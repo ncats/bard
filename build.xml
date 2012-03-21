@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="bard">
+
+    <property name="bard.src" value="src"/>
+    <property name="bard.lib" value="lib"/>
+    <property name="bard.build" value="classes"/>
+    <property name="bard.dist" value="dist"/>
+
+    <path id="compile.classpath">
+        <fileset dir="${bard.lib}">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+
+    <target name="clean">
+        <delete dir="${bard.build}"/>
+    </target>
+
+    <target name="tools">
+        <mkdir dir="${bard.build}"/>
+        <javac srcdir="${bard.src}" destdir="${bard.build}"
+               debug="yes" target="1.6"
+               includes="**/tools/*.java">
+            <classpath refid="compile.classpath"/>
+        </javac>
+        <jar destfile="${bard.dist}/tools.jar"
+             basedir="${bard.build}">
+        </jar>
+    </target>
+
+</project>
