@@ -20,7 +20,7 @@
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
                debug="yes" target="1.6"
-               includes="**/tools/*.java">
+               includes="**/tools/*.java, **/Util.java">
             <classpath refid="compile.classpath"/>
         </javac>
         <jar destfile="${bard.dist}/tools.jar"

@@ -1,5 +1,7 @@
 package gov.nih.ncgc.bard.tools;
 
+import gov.nih.ncgc.bard.Util;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -11,7 +13,7 @@ import java.net.URL;
 import java.util.zip.GZIPInputStream;
 
 /**
- * A one line summary.
+ * Download latest Uniprot text dump and generate an Oracle SQL loading file.
  *
  * @author Rajarshi Guha
  */
@@ -32,7 +34,7 @@ public class PopulateTargets {
                 "into table protein_target\n" +
                 "fields terminated by '\\t'\n" +
                 "trailing nullcols\n" +
-                "(accession, gene_id, name, tax id, description, uniprot_status)\n" +
+                "(accession, gene_id, name, taxid, description, uniprot_status)\n" +
                 "begindata\n");
 
         URL uniprot = new URL("ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz");
@@ -59,7 +61,7 @@ public class PopulateTargets {
                         taxid = aline.trim().replace("OX   NCBI_TaxID=", "").replace(";", "");
                     }
                 }
-                writer.write(join(new String[]{acc, geneid, name, taxid, desc, status}, "\t") + "\n");
+                writer.write(Util.join(new String[]{acc, geneid, name, taxid, desc, status}, "\t") + "\n");
                 sb = new StringBuffer();
 
                 n++;
@@ -70,17 +72,6 @@ public class PopulateTargets {
         }
         System.out.println();
     }
-
-    private static String join(Object[] x, String delim) {
-        if (delim == null) delim = "";
-        StringBuilder buffer = new StringBuilder();
-        for (int i = 0; i < x.length; i++) {
-            buffer.append(x[i]);
-            if (i != x.length - 1) buffer.append(delim);
-        }
-        return buffer.toString();
-    }
-
 
     public static void main(String[] args) throws IOException {
         String ofilename = null;
