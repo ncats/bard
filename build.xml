@@ -62,7 +62,6 @@
 
     <property name="war.filename" value="${bard.deploy}/bard.war"/>
     <target name='war-rest' depends="explode-rest">
-        <!--<mkdir dir="${war.filename}"/>-->
         <jar destfile="${war.filename}" duplicate="preserve">
             <manifest>
                 <attribute name="Created-By" value="Rajarshi Guha"/>
