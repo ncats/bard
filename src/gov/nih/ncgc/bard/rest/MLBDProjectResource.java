@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
@@ -40,6 +41,12 @@ public class MLBDProjectResource implements IMLBDResource {
     HttpServletRequest httpServletRequest;
     @Context
     HttpHeaders headers;
+
+    @GET
+    @Produces("text/plain")
+    public String info() {
+        return "Return BARD project objects";
+    }
 
     @GET
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
