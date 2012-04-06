@@ -104,7 +104,7 @@ create table assay_data (
     cid number not null,
     classification number, -- substance acquisition classification: mlsmr (null or 0), purchased (1), synthesized (2)
     updated date,
-
+    runset varchar2(128) default "default",
     constraint ad_aid_fk foreign key (aid) references assay (aid),
     constraint ad_cid_fk foreign key (cid) references compound (cid),
     constraint ad_sid_fk foreign key (sid) references substance (sid)
