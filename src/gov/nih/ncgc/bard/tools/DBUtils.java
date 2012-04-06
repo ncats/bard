@@ -28,7 +28,7 @@ public class DBUtils {
         try {
             initContext = new javax.naming.InitialContext();
             javax.naming.Context envContext = (javax.naming.Context) initContext.lookup("java:/comp/env");
-            DataSource ds = (javax.sql.DataSource) envContext.lookup("jdbc/hcs");
+            DataSource ds = (javax.sql.DataSource) envContext.lookup("jdbc/bard");
             return ds.getConnection();
         } catch (Exception e) {
             e.printStackTrace();
@@ -89,10 +89,10 @@ public class DBUtils {
         while (rs.next()) {
             p.setAcc(accession);
             p.setDescription(rs.getString("description"));
-            p.setGeneId(rs.getLong("geneid"));
+            p.setGeneId(rs.getLong("gene_id"));
             p.setTaxId(rs.getLong("taxid"));
             p.setName(rs.getString("name"));
-            p.setStatus(rs.getString("status"));
+            p.setStatus(rs.getString("uniprot_status"));
         }
         return p;
     }
@@ -106,10 +106,10 @@ public class DBUtils {
         while (rs.next()) {
             p.setAcc(rs.getString("accession"));
             p.setDescription(rs.getString("description"));
-            p.setGeneId(rs.getLong("geneid"));
+            p.setGeneId(rs.getLong("gene_id"));
             p.setTaxId(rs.getLong("taxid"));
             p.setName(rs.getString("name"));
-            p.setStatus(rs.getString("status"));
+            p.setStatus(rs.getString("uniprot_status"));
         }
         return p;
     }

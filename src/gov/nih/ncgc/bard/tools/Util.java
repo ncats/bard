@@ -1,4 +1,4 @@
-package gov.nih.ncgc.bard;
+package gov.nih.ncgc.bard.tools;
 
 import java.util.List;
 
