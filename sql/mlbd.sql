@@ -111,6 +111,7 @@ create table assay_data (
     );
 
 create table assay_result (
+    assay_result_id number primary key,
     assay_data_id number,
     replicate_id number default 1,
     potency float,
@@ -125,10 +126,10 @@ create table assay_result (
     );
 
 create table assay_concentration (
-    assay_data_id number,
+    assay_result_id number,
     concentration float,
     response float,
     conc_order number default 1,
 
-    constraint ac_adi_fk foreign key (assay_data_id) references assay_data (assay_data_id)
+    constraint ac_arid_fk foreign key (assay_result_id) references assay_result (assay_result_id)
     );
