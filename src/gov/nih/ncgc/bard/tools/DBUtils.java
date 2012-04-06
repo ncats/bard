@@ -99,7 +99,7 @@ public class DBUtils {
 
     public ProteinTarget getProteinTargetByGeneid(Long geneId) throws SQLException {
         if (geneId == null) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from protein_target where geneid = ?");
+        PreparedStatement pst = conn.prepareStatement("select * from protein_target where gene_id = ?");
         pst.setLong(1, geneId);
         ResultSet rs = pst.executeQuery();
         ProteinTarget p = new ProteinTarget();

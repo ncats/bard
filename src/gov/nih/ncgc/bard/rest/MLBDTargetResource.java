@@ -63,4 +63,22 @@ public class MLBDTargetResource implements IMLBDResource {
             throw new WebApplicationException(e, 500);
         }
     }
+
+    @GET
+    @Path("/geneid/{id}")
+    @Produces("application/json")
+    public Response getByGeneid(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+        DBUtils db = new DBUtils();
+        ProteinTarget p = null;
+        try {
+            p = db.getProteinTargetByGeneid(Long.parseLong(resourceId));
+            String json = p.toJson();
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
 }
