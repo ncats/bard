@@ -38,9 +38,9 @@ create table compound (
 
 create table substance (
     sid number primary key,
-    cid number not null,
-    creation date,
-    constraint cid_fk foreign key (cid) references compound (cid)
+    cid number,
+    creation date
+    --constraint cid_fk foreign key (cid) references compound (cid)
     );
 
 -- store synonyms for compounds, genes
@@ -56,7 +56,7 @@ create table source (
     name varchar2(4000)
     );
 create table source_substance (
-    source_id number primary key,
+    source_id number not null,
     sid number not null,
     constraint source_id_fk foreign key (source_id) references source (source_id)   
     );
@@ -64,31 +64,36 @@ create table source_substance (
 -- assay related tables
 -- 
 -- the classification field in the MLBD schema seems a lot like a BAO annotation
--- so I moved it out of assay and anticipate it goes into annotation. Similarly
--- type could be moved to an annotation table
+-- kept it here but might be a good idea ot move it out of assay and anticipate it goes into annotation. Similarly
+-- type could be moved to an annotation table. But this then requires that we always perform joins
+-- to get at that information. So for now we keep it here
 create table assay (
     aid number primary key,
     name varchar2(4000),
     description clob,
-    source_id number,
+    source varchar2(1024),
+    assays number,
     category number, -- mlscn (1), mlpcn (2), mlscn-ap (3), mlpcn-ap (4)
     type number, -- other (0), screening (1), confirmatory (2),  summary (3)
     summary number, -- parent summary AID (null if this assay is a summary assay)
     grant_no varchar2(1024),
-    deposited date not null,
+    deposited date,
     updated date,
-    constraint assay_src_fk foreign key (source_id) references source (source_id)
+    data blob default null,
+    classification number,
+    samples number
     );
 
 create table assay_target (
-    aid number primary key,
-    accession varchar2(2) not null,
+    aid number not null,
+    accession varchar2(20),
+    gene_id number,
     constraint aid_fk foreign key (aid) references assay (aid),
     constraint acc_fk foreign key (accession) references protein_target (accession)
     );
 
 create table assay_pub (
-    aid number primary key,
+    aid number not null,
     pmid number not null,
     constraint ap_aid_fk foreign key (aid) references assay (aid),
     constraint pmid_fk foreign key (pmid) references publication (pmid)
@@ -104,7 +109,7 @@ create table assay_data (
     cid number not null,
     classification number, -- substance acquisition classification: mlsmr (null or 0), purchased (1), synthesized (2)
     updated date,
-    runset varchar2(128) default "default",
+    runset varchar2(128) default 'default',
     constraint ad_aid_fk foreign key (aid) references assay (aid),
     constraint ad_cid_fk foreign key (cid) references compound (cid),
     constraint ad_sid_fk foreign key (sid) references substance (sid)
