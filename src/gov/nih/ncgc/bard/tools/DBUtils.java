@@ -1,5 +1,7 @@
 package gov.nih.ncgc.bard.tools;
 
+import chemaxon.formats.MolFormatException;
+import chemaxon.formats.MolImporter;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
@@ -125,6 +127,15 @@ public class DBUtils {
             c.setCid(rs.getLong("cid"));
             c.setProbeId(rs.getString("probe_id"));
             c.setUrl(rs.getString("url"));
+
+            String smiles = null;
+            String molfile = rs.getString("molfile");
+            try {
+                smiles = MolImporter.importMol(molfile).toFormat("smiles");
+                c.setSmiles(smiles);
+            } catch (MolFormatException e) {
+                e.printStackTrace();
+            }
         }
         return c;
     }
@@ -139,6 +150,15 @@ public class DBUtils {
             c.setCid(rs.getLong("cid"));
             c.setProbeId(rs.getString("probe_id"));
             c.setUrl(rs.getString("url"));
+
+            String smiles = null;
+            String molfile = rs.getString("molfile");
+            try {
+                smiles = MolImporter.importMol(molfile).toFormat("smiles");
+                c.setSmiles(smiles);
+            } catch (MolFormatException e) {
+                e.printStackTrace();
+            }
         }
         return c;
     }

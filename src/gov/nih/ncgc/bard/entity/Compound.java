@@ -20,6 +20,7 @@ public class Compound implements BardEntity {
     Long cid;
     String probeId = null;
     String url = null;
+    String smiles = null;
 
     public Compound(Long cid, String probeId, String url) {
         this.cid = cid;
@@ -28,6 +29,14 @@ public class Compound implements BardEntity {
     }
 
     public Compound() {
+    }
+
+    public String getSmiles() {
+        return smiles;
+    }
+
+    public void setSmiles(String smiles) {
+        this.smiles = smiles;
     }
 
     public Long getCid() {
