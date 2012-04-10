@@ -1,5 +1,9 @@
 package gov.nih.ncgc.bard.tools;
 
+import javax.ws.rs.Path;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,6 +31,42 @@ public class Util {
             if (i != x.size() - 1) buffer.append(delim);
         }
         return buffer.toString();
+    }
+
+    /**
+     * Get a list of REST resource paths provided by a class.
+     * <p/>
+     * This is based on the use of Jersey annotations to mark up the class
+     * and methods.
+     *
+     * @param klass The class to analyze
+     * @return A list of paths for each resource provided by the supplied class
+     */
+    public static List<String> getResourcePaths(Class klass) {
+        List<String> ret = new ArrayList<String>();
+
+        String root = null;
+        // first get root resource
+        Annotation[] classAnnots = klass.getAnnotations();
+        for (Annotation annot : classAnnots) {
+            if (annot instanceof Path) {
+                root = ((Path) annot).value();
+            }
+        }
+
+        // get method annotations
+        Method[] methods = klass.getMethods();
+        for (Method method : methods) {
+            Annotation[] methodAnnots = method.getAnnotations();
+            for (Annotation annot : methodAnnots) {
+                if (annot instanceof Path) {
+                    String res = ((Path) annot).value();
+                    res = root + res;
+                    ret.add(res);
+                }
+            }
+        }
+        return ret;
     }
 
 }

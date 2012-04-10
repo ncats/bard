@@ -1,5 +1,7 @@
 package gov.nih.ncgc.bard.rest;
 
+import gov.nih.ncgc.bard.tools.Util;
+
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -9,6 +11,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import java.util.List;
 
 /**
  * Prototype of MLBD REST resources.
@@ -32,10 +35,13 @@ public class MLBDScaffoldResource implements IMLBDResource {
     @GET
     @Produces("text/plain")
     public String info() {
-        return "Return scaffold information";
+
+        StringBuilder msg = new StringBuilder("Returns scaffold information\n\nAvailable resources:\n");
+        List<String> paths = Util.getResourcePaths(this.getClass());
+        for (String path : paths) msg.append(path).append("\n");
+        return msg.toString();
     }
 
-    @GET
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }

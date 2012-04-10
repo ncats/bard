@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.rest;
 
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.tools.DBUtils;
+import gov.nih.ncgc.bard.tools.Util;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -16,6 +17,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Prototype of MLBD REST resources.
@@ -39,10 +41,12 @@ public class MLBDTargetResource implements IMLBDResource {
     @GET
     @Produces("text/plain")
     public String info() {
-        return "Return protein target information";
+        StringBuilder msg = new StringBuilder("Returns protein target information\n\nAvailable resources:\n");
+        List<String> paths = Util.getResourcePaths(this.getClass());
+        for (String path : paths) msg.append(path).append("\n");
+        return msg.toString();
     }
 
-    @GET
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
         return getResources(null, filter, search, expand);
     }
