@@ -42,6 +42,18 @@ public class Compound implements BardEntity {
         return url;
     }
 
+    public void setCid(Long cid) {
+        this.cid = cid;
+    }
+
+    public void setProbeId(String probeId) {
+        this.probeId = probeId;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
     public String toJson() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         Writer writer = new StringWriter();

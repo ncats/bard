@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.tools;
 
+import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
 
@@ -113,5 +114,34 @@ public class DBUtils {
         }
         return p;
     }
+
+    public Compound getCompoundByCid(Long cid) throws SQLException {
+        if (cid == null || cid < 0) return null;
+        PreparedStatement pst = conn.prepareStatement("select * from compound where cid = ?");
+        pst.setLong(1, cid);
+        ResultSet rs = pst.executeQuery();
+        Compound c = new Compound();
+        while (rs.next()) {
+            c.setCid(rs.getLong("cid"));
+            c.setProbeId(rs.getString("probe_id"));
+            c.setUrl(rs.getString("url"));
+        }
+        return c;
+    }
+
+    public Compound getCompoundByProbeId(String probeid) throws SQLException {
+        if (probeid == null || probeid.trim().equals("")) return null;
+        PreparedStatement pst = conn.prepareStatement("select * from compound where probe_id = ?");
+        pst.setString(1, probeid.trim());
+        ResultSet rs = pst.executeQuery();
+        Compound c = new Compound();
+        while (rs.next()) {
+            c.setCid(rs.getLong("cid"));
+            c.setProbeId(rs.getString("probe_id"));
+            c.setUrl(rs.getString("url"));
+        }
+        return c;
+    }
+
 
 }
