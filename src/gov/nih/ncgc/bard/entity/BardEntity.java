@@ -1,7 +1,5 @@
 package gov.nih.ncgc.bard.entity;
 
-import java.io.IOException;
-
 /**
  * The interface that is implemented by all entities.
  * <p/>
@@ -10,5 +8,5 @@ import java.io.IOException;
  * @author Rajarshi Guha
  */
 public interface BardEntity {
-    public String toJson() throws IOException;
+
 }
