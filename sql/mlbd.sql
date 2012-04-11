@@ -40,7 +40,6 @@ create table substance (
     sid number primary key,
     cid number,
     creation date
-    --constraint cid_fk foreign key (cid) references compound (cid)
     );
 
 -- store synonyms for compounds, genes
@@ -72,16 +71,16 @@ create table assay (
     name varchar2(4000),
     description clob,
     source varchar2(1024),
-    assays number,
     category number, -- mlscn (1), mlpcn (2), mlscn-ap (3), mlpcn-ap (4)
     type number, -- other (0), screening (1), confirmatory (2),  summary (3)
     summary number, -- parent summary AID (null if this assay is a summary assay)
+    assays number,
     grant_no varchar2(1024),
-    deposited date,
-    updated date,
     data blob default null,
+    deposited date,
     classification number,
-    samples number
+    samples number,
+    updated date
     );
 
 create table assay_target (
@@ -106,12 +105,11 @@ create table assay_data (
     assay_data_id number primary key,
     aid number not null,
     sid number not null,
-    cid number not null,
+    cid number,
     classification number, -- substance acquisition classification: mlsmr (null or 0), purchased (1), synthesized (2)
     updated date,
     runset varchar2(128) default 'default',
     constraint ad_aid_fk foreign key (aid) references assay (aid),
-    constraint ad_cid_fk foreign key (cid) references compound (cid),
     constraint ad_sid_fk foreign key (sid) references substance (sid)
     );
 

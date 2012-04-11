@@ -76,7 +76,7 @@ public class MLBDTargetResource implements IMLBDResource {
         ProteinTarget p = null;
         try {
             p = db.getProteinTargetByGeneid(Long.parseLong(resourceId));
-            String json = p.toJson();
+            String json = Util.toJson(p);
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);

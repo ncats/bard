@@ -1,11 +1,5 @@
 package gov.nih.ncgc.bard.entity;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
-
 /**
  * Represents a publication.
  * <p/>
@@ -53,10 +47,4 @@ public class Publication implements BardEntity {
         this.pubmedId = pubmedId;
     }
 
-    public String toJson() throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        Writer writer = new StringWriter();
-        mapper.writeValue(writer, this);
-        return writer.toString();
-    }
 }

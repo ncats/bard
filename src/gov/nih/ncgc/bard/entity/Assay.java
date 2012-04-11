@@ -1,10 +1,5 @@
 package gov.nih.ncgc.bard.entity;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.sql.Date;
 import java.util.List;
 
@@ -14,29 +9,68 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Assay implements BardEntity {
-    Long aid, sourceId;
-    Integer category, type, summary;
-    String name, description, grantNo;
+    Long aid;
+    int category, type, summary, assays, classification, samples;
+    String name, description, source, grantNo;
     Date deposited, updated;
 
-    List<AssayPub> publications;
-    List<AssayTarget> targets;
+    List<Publication> publications;
+    List<ProteinTarget> targets;
     List<AssayData> data;
 
-    public Assay(Long aid, Long sourceId, Integer category, Integer type, Integer summary, String name, String description, String grantNo, Date deposited, Date updated) {
+    public Assay(Long aid, int category, int type, int summary, int assays, int classification, int samples, String name, String description, String source, String grantNo, Date deposited, Date updated) {
         this.aid = aid;
-        this.sourceId = sourceId;
         this.category = category;
         this.type = type;
         this.summary = summary;
+        this.assays = assays;
+        this.classification = classification;
+        this.samples = samples;
         this.name = name;
         this.description = description;
+        this.source = source;
         this.grantNo = grantNo;
         this.deposited = deposited;
         this.updated = updated;
     }
 
+    public String toString() {
+        return aid + "[" + name + "]";
+    }
+
     public Assay() {
+    }
+
+    public int getAssays() {
+        return assays;
+    }
+
+    public void setAssays(int assays) {
+        this.assays = assays;
+    }
+
+    public int getClassification() {
+        return classification;
+    }
+
+    public void setClassification(int classification) {
+        this.classification = classification;
+    }
+
+    public int getSamples() {
+        return samples;
+    }
+
+    public void setSamples(int samples) {
+        this.samples = samples;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
     }
 
     public List<AssayData> getData() {
@@ -47,19 +81,19 @@ public class Assay implements BardEntity {
         this.data = data;
     }
 
-    public List<AssayPub> getPublications() {
+    public List<Publication> getPublications() {
         return publications;
     }
 
-    public void setPublications(List<AssayPub> publications) {
+    public void setPublications(List<Publication> publications) {
         this.publications = publications;
     }
 
-    public List<AssayTarget> getTargets() {
+    public List<ProteinTarget> getTargets() {
         return targets;
     }
 
-    public void setTargets(List<AssayTarget> targets) {
+    public void setTargets(List<ProteinTarget> targets) {
         this.targets = targets;
     }
 
@@ -69,14 +103,6 @@ public class Assay implements BardEntity {
 
     public void setAid(Long aid) {
         this.aid = aid;
-    }
-
-    public Long getSourceId() {
-        return sourceId;
-    }
-
-    public void setSourceId(Long sourceId) {
-        this.sourceId = sourceId;
     }
 
     public Integer getCategory() {
@@ -141,12 +167,5 @@ public class Assay implements BardEntity {
 
     public void setUpdated(Date updated) {
         this.updated = updated;
-    }
-
-    public String toJson() throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        Writer writer = new StringWriter();
-        mapper.writeValue(writer, this);
-        return writer.toString();
     }
 }
