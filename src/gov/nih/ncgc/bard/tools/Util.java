@@ -1,6 +1,11 @@
 package gov.nih.ncgc.bard.tools;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import javax.ws.rs.Path;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -12,6 +17,13 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Util {
+
+    public static String toJson(Object o) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        Writer writer = new StringWriter();
+        mapper.writeValue(writer, o);
+        return writer.toString();
+    }
 
     public static String join(Object[] x, String delim) {
         if (delim == null) delim = "";
