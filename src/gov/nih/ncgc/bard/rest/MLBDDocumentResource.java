@@ -31,6 +31,7 @@ public class MLBDDocumentResource implements IMLBDResource {
 
     @GET
     @Produces("text/plain")
+    @Path("/info")
     public String info() {
         return "Return Document objects";
     }

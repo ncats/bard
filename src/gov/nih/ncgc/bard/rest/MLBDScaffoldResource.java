@@ -34,6 +34,7 @@ public class MLBDScaffoldResource implements IMLBDResource {
 
     @GET
     @Produces("text/plain")
+    @Path("/info")
     public String info() {
 
         StringBuilder msg = new StringBuilder("Returns scaffold information\n\nAvailable resources:\n");

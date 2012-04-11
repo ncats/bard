@@ -16,6 +16,7 @@ public interface IMLBDResource {
 
     @GET
     @Produces("text/plain")
+    @Path("/info")
     public String info();
 
     @GET

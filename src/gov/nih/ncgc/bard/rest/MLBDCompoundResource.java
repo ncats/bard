@@ -40,6 +40,7 @@ public class MLBDCompoundResource implements IMLBDResource {
 
     @GET
     @Produces("text/plain")
+    @Path("/info")
     public String info() {
         StringBuilder msg = new StringBuilder("Returns compound information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
