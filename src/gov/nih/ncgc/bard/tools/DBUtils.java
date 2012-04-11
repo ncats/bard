@@ -245,4 +245,52 @@ public class DBUtils {
         return targets;
     }
 
+    /**
+     * Retrieve assays based on query.
+     * <p/>
+     * Currently a crude qury language is supported which requries you to specify the field
+     * to be queried on or if no field is specified then a full text search is applied to all
+     * text fields.
+     * <p/>
+     * Queries should in the form of [field:]query_string
+     * <p/>
+     * The current implementation of free text search is pretty stupid. We should enable the
+     * full text search functionality in the database.
+     *
+     * @param query the query to use
+     * @return A list of {@link Assay} objects, whuich may be empty if no assays match the query.
+     */
+    public List<Assay> searchForAssay(String query) throws SQLException {
+        boolean freeTextQuery = false;
+
+        if (!query.contains(":")) freeTextQuery = true;
+
+        PreparedStatement pst = null;
+        if (freeTextQuery) {
+            String q = "%" + query + "%";
+            pst = conn.prepareStatement("select aid from assay where (name like ? or description like ? or source like ? or grant_no like ?)");
+            pst.setString(1, q);
+            pst.setString(2, q);
+            pst.setString(3, q);
+            pst.setString(4, q);
+        } else {
+            String[] toks = query.split(":");
+            if (toks.length != 2) return new ArrayList<Assay>();
+            String field = toks[0].trim();
+            String q = toks[1].trim();
+            String sql = "select aid from assay where " + field + " like '%" + q + "%'";
+            pst = conn.prepareStatement(sql);
+        }
+
+        ResultSet rs = pst.executeQuery();
+        List<Assay> assays = new ArrayList<Assay>();
+        while (rs.next()) {
+            Long aid = rs.getLong("aid");
+            assays.add(getAssayByAid(aid));
+        }
+        pst.close();
+
+        return assays;
+    }
+
 }

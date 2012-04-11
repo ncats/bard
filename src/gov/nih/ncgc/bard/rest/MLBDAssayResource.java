@@ -21,6 +21,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -50,12 +51,36 @@ public class MLBDAssayResource implements IMLBDResource {
         StringBuilder msg = new StringBuilder("Returns assay information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
+        msg.append("/v1/assays/?search=[field:]query_string&expand=true|false\n");
         return msg.toString();
 
     }
 
+    @GET
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
-        return getResources(null, filter, search, expand);
+        boolean expandEntries = false;
+
+        if (search == null) return null;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        DBUtils db = new DBUtils();
+        try {
+            List<Assay> assays = db.searchForAssay(search);
+            if (expandEntries) {
+                String json = Util.toJson(assays);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Assay a : assays) links.add("/bard/rest/" + MLBDConstants.API_VERSION + "/assays/" + a.getAid());
+                String json = Util.toJson(links);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            }
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
     }
 
     @GET
@@ -77,12 +102,24 @@ public class MLBDAssayResource implements IMLBDResource {
     @GET
     @Path("/{aid}/targets")
     public Response getAssayTargets(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
         DBUtils db = new DBUtils();
         List<ProteinTarget> targets = null;
         try {
             targets = db.getAssayTargets(Long.valueOf(resourceId));
-            String json = Util.toJson(targets);
-            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            if (expandEntries) {
+                String json = Util.toJson(targets);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (ProteinTarget t : targets)
+                    links.add("/bard/rest/" + MLBDConstants.API_VERSION + "/targets/accession/" + t.getAcc());
+                String json = Util.toJson(links);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            }
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (JsonMappingException e) {
@@ -97,12 +134,24 @@ public class MLBDAssayResource implements IMLBDResource {
     @GET
     @Path("/{aid}/publications")
     public Response getAssayPublications(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
         DBUtils db = new DBUtils();
         List<Publication> targets = null;
         try {
             targets = db.getAssayPublications(Long.valueOf(resourceId));
-            String json = Util.toJson(targets);
-            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            if (expandEntries) {
+                String json = Util.toJson(targets);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Publication pub : targets)
+                    links.add("/bard/rest/" + MLBDConstants.API_VERSION + "/documents/" + pub.getPubmedId());
+                String json = Util.toJson(links);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            }
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (JsonMappingException e) {
