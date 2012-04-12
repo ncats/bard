@@ -1,5 +1,7 @@
 package gov.nih.ncgc.bard.entity;
 
+import gov.nih.ncgc.bard.rest.MLBDConstants;
+
 /**
  * Represents a publication.
  * <p/>
@@ -47,4 +49,16 @@ public class Publication implements BardEntity {
         this.pubmedId = pubmedId;
     }
 
+    /**
+     * Return the path for this resource in the REST API.
+     * <p/>
+     * The actual resource can be accessed by prepending the hostname of the server
+     * hosting the REST API.
+     *
+     * @return The path to this resource. <code>null</code> if the object is not meant
+     *         to be publically available via the REST API
+     */
+    public String getResourcePath() {
+        return MLBDConstants.API_BASE + "/documents/" + pubmedId;
+    }
 }

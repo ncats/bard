@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nih.ncgc.bard.rest.MLBDConstants;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -80,5 +81,18 @@ public class ProteinTarget implements BardEntity {
         Writer writer = new StringWriter();
         mapper.writeValue(writer, this);
         return writer.toString();
+    }
+
+    /**
+     * Return the path for this resource in the REST API.
+     * <p/>
+     * The actual resource can be accessed by prepending the hostname of the server
+     * hosting the REST API.
+     *
+     * @return The path to this resource. <code>null</code> if the object is not meant
+     *         to be publically available via the REST API
+     */
+    public String getResourcePath() {
+        return MLBDConstants.API_BASE + "/targets/accession/" + acc;
     }
 }

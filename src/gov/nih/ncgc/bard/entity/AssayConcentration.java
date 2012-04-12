@@ -63,4 +63,16 @@ public class AssayConcentration implements BardEntity, Comparable<AssayConcentra
         else if (this.order > assayConcentration.getOrder()) return 1;
         return 0;
     }
+
+    /**
+     * Return the path for this resource in the REST API.
+     * <p/>
+     * The actual resource can be accessed by prepending the hostname of the server
+     * hosting the REST API.
+     *
+     * @return The path to this resource
+     */
+    public String getResourcePath() {
+        return null;
+    }
 }

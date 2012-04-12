@@ -13,4 +13,5 @@ public class MLBDConstants {
     public static final MediaType MIME_MOL = new MediaType("chemical", "x-mdl-mol");
 
     public static final String API_VERSION = "v1";
+    public static final String API_BASE = "/bard/rest/" + API_VERSION;
 }
