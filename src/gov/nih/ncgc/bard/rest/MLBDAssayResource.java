@@ -72,7 +72,7 @@ public class MLBDAssayResource implements IMLBDResource {
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
             } else {
                 List<String> links = new ArrayList<String>();
-                for (Assay a : assays) links.add("/bard/rest/" + MLBDConstants.API_VERSION + "/assays/" + a.getAid());
+                for (Assay a : assays) links.add(a.getResourcePath());
                 String json = Util.toJson(links);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
@@ -116,7 +116,7 @@ public class MLBDAssayResource implements IMLBDResource {
             } else {
                 List<String> links = new ArrayList<String>();
                 for (ProteinTarget t : targets)
-                    links.add("/bard/rest/" + MLBDConstants.API_VERSION + "/targets/accession/" + t.getAcc());
+                    links.add(t.getResourcePath());
                 String json = Util.toJson(links);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
@@ -148,7 +148,7 @@ public class MLBDAssayResource implements IMLBDResource {
             } else {
                 List<String> links = new ArrayList<String>();
                 for (Publication pub : targets)
-                    links.add("/bard/rest/" + MLBDConstants.API_VERSION + "/documents/" + pub.getPubmedId());
+                    links.add(pub.getResourcePath());
                 String json = Util.toJson(links);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
             }

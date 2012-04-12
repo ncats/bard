@@ -136,3 +136,7 @@ create table assay_concentration (
 
     constraint ac_arid_fk foreign key (assay_result_id) references assay_result (assay_result_id)
     );
+
+
+-- some explicit indexes
+create index assay_summary on assay(summary) tablespace bard_index;

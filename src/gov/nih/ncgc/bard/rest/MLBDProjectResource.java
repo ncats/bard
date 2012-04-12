@@ -3,7 +3,9 @@ package gov.nih.ncgc.bard.rest;
 import chemaxon.formats.MolFormatException;
 import chemaxon.formats.MolImporter;
 import chemaxon.struc.Molecule;
+import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -69,7 +71,7 @@ public class MLBDProjectResource implements IMLBDResource {
                 List<Long[]> ids = db.getProjectCount();
                 if (!expandEntries) {
                     List<String> links = new ArrayList<String>();
-                    for (Long[] id : ids) links.add("/bard/rest/" + MLBDConstants.API_VERSION + "/projects/" + id[0]);
+                    for (Long[] id : ids) links.add(MLBDConstants.API_BASE + "/projects/" + id[0]);
                     return Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
                 } else {
                     List<Project> projects = new ArrayList<Project>();
@@ -84,7 +86,7 @@ public class MLBDProjectResource implements IMLBDResource {
                 } else {
                     List<String> links = new ArrayList<String>();
                     for (Project a : projects)
-                        links.add("/bard/rest/" + MLBDConstants.API_VERSION + "/projects/" + a.getAid());
+                        links.add(a.getResourcePath());
                     String json = Util.toJson(links);
                     return Response.ok(json, MediaType.APPLICATION_JSON).build();
                 }
@@ -100,7 +102,71 @@ public class MLBDProjectResource implements IMLBDResource {
     @GET
     @Path("/{id}")
     public Response getResources(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
-        return null;
+        DBUtils db = new DBUtils();
+        try {
+            Project p = db.getProjectByAid(Long.valueOf(resourceId));
+            String json = Util.toJson(p);
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    // TODO only list targets associated with the summary assay, not the member assays. Correct?
+    @GET
+    @Path("/{id}/targets")
+    public Response getTargetsForProject(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+        DBUtils db = new DBUtils();
+        try {
+            Project project = db.getProjectByAid(Long.valueOf(resourceId));
+            List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
+            for (ProteinTarget target : project.getTargets())
+                targets.add(db.getProteinTargetByAccession(target.getAcc()));
+            String json;
+            if (expandEntries) json = Util.toJson(targets);
+            else {
+                List<String> links = new ArrayList<String>();
+                for (ProteinTarget pt : targets) links.add(pt.getResourcePath());
+                json = Util.toJson(links);
+            }
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
+    @Path("/{id}/assays")
+    public Response getAssaysForProject(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+        DBUtils db = new DBUtils();
+        try {
+            Project p = db.getProjectByAid(Long.valueOf(resourceId));
+            List<Assay> a = new ArrayList<Assay>();
+            for (Long aid : p.getAids()) a.add(db.getAssayByAid(aid));
+
+            String json;
+            if (expandEntries) json = Util.toJson(p);
+            else {
+                List<String> links = new ArrayList<String>();
+                for (Assay anAssay : a) links.add(anAssay.getResourcePath());
+                json = Util.toJson(links);
+            }
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
     }
 
     /**
@@ -115,8 +181,12 @@ public class MLBDProjectResource implements IMLBDResource {
      * @throws MolFormatException
      */
     @GET
-    @Path("/{name}/compounds")
+    @Path("/{id}/compounds")
     public Response getCompoundsForProject(@PathParam("name") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
         String ret = "";
         List<MediaType> types = headers.getAcceptableMediaTypes();
 

@@ -339,6 +339,7 @@ public class DBUtils {
         // identify the assays that are part of this project
         PreparedStatement pst = conn.prepareStatement("select aid from assay where summary = ?");
         pst.setLong(1, aid);
+
         ResultSet rs = pst.executeQuery();
         List<Long> aids = new ArrayList<Long>();
         while (rs.next()) aids.add(rs.getLong("aid"));
