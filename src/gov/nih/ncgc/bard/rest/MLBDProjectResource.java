@@ -3,9 +3,9 @@ package gov.nih.ncgc.bard.rest;
 import chemaxon.formats.MolFormatException;
 import chemaxon.formats.MolImporter;
 import chemaxon.struc.Molecule;
-import nu.xom.Attribute;
-import nu.xom.Document;
-import nu.xom.Element;
+import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.tools.DBUtils;
+import gov.nih.ncgc.bard.tools.Util;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -19,6 +19,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -44,38 +47,60 @@ public class MLBDProjectResource implements IMLBDResource {
 
     @GET
     @Produces("text/plain")
+    @Path("info")
     public String info() {
-        return "Return BARD project objects";
+        StringBuilder msg = new StringBuilder("Returns project information\n\nAvailable resources:\n");
+        List<String> paths = Util.getResourcePaths(this.getClass());
+        for (String path : paths) msg.append(path).append("\n");
+        msg.append("/v1/projects/?search=[field:]query_string&expand=true|false\n");
+        return msg.toString();
     }
 
     @GET
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        DBUtils db = new DBUtils();
+        try {
+            if (filter == null && search == null) { // just list all projects
+
+                List<Long[]> ids = db.getProjectCount();
+                if (!expandEntries) {
+                    List<String> links = new ArrayList<String>();
+                    for (Long[] id : ids) links.add("/bard/rest/" + MLBDConstants.API_VERSION + "/projects/" + id[0]);
+                    return Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
+                } else {
+                    List<Project> projects = new ArrayList<Project>();
+                    for (Long[] id : ids) projects.add(db.getProjectByAid(id[0]));
+                    return Response.ok(Util.toJson(projects), MediaType.APPLICATION_JSON).build();
+                }
+            } else if (filter != null) {
+                List<Project> projects = db.searchForProject(filter);
+                if (expandEntries) {
+                    String json = Util.toJson(projects);
+                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                } else {
+                    List<String> links = new ArrayList<String>();
+                    for (Project a : projects)
+                        links.add("/bard/rest/" + MLBDConstants.API_VERSION + "/projects/" + a.getAid());
+                    String json = Util.toJson(links);
+                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                }
+            }
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
         return getResources(null, filter, search, expand);
     }
 
     @GET
-    @Path("/{name}")
-    public Response getResources(@PathParam("name") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
-        String ret;
-
-        if (resourceId == null) {
-            Element root = new Element("projectList");
-            for (int i = 0; i < 10; i++) {
-                Element e = new Element("project");
-                e.addAttribute(new Attribute("assayCount", "10"));
-                e.addAttribute(new Attribute("probeCount", "2"));
-                root.appendChild(e);
-            }
-            ret = (new Document(root)).toXML();
-            return Response.ok(ret, "text/xml").build();
-        } else {
-            Element root = new Element("project");
-            root.addAttribute(new Attribute("assayCount", "10"));
-            root.addAttribute(new Attribute("probeCount", "2"));
-            ret = (new Document(root)).toXML();
-
-        }
-        return Response.ok(ret, "text/xml").build();
+    @Path("/{id}")
+    public Response getResources(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+        return null;
     }
 
     /**

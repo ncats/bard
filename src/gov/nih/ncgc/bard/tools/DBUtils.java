@@ -4,6 +4,7 @@ import chemaxon.formats.MolFormatException;
 import chemaxon.formats.MolImporter;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
 
@@ -248,7 +249,7 @@ public class DBUtils {
     /**
      * Retrieve assays based on query.
      * <p/>
-     * Currently a crude qury language is supported which requries you to specify the field
+     * Currently a crude query language is supported which requries you to specify the field
      * to be queried on or if no field is specified then a full text search is applied to all
      * text fields.
      * <p/>
@@ -290,6 +291,106 @@ public class DBUtils {
         pst.close();
 
         return assays;
+    }
+
+    /**
+     * Get a summary count of projects listing AID for project and number of assays associated with it.
+     *
+     * @return A list of Long[2], where the elements of the array are the summary AID and the number of
+     *         assays associated with it, respectively.
+     * @throws SQLException
+     */
+    public List<Long[]> getProjectCount() throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select summary,count(1) as cnt from assay where summary is not null group by summary order by cnt desc");
+        ResultSet rs = pst.executeQuery();
+        List<Long[]> ret = new ArrayList<Long[]>();
+        while (rs.next()) {
+            ret.add(new Long[]{rs.getLong("summary"), rs.getLong("cnt")});
+        }
+        pst.close();
+        return ret;
+    }
+
+    /**
+     * Return a project object based on its AID.
+     * <p/>
+     * Currently projects are simply summary assays and therefore are very similar
+     * in structure to {@link Assay} objects. The key difference is that they will
+     * list AID's of assays associated with it.
+     *
+     * @param aid The AID for the summary assay
+     * @return A {@link Project} object
+     * @throws SQLException
+     */
+    public Project getProjectByAid(Long aid) throws SQLException {
+        Assay a = getAssayByAid(aid);
+        Project p = new Project();
+        p.setAid(a.getAid());
+        p.setCategory(a.getCategory());
+        p.setType(a.getType());
+        p.setTargets(a.getTargets());
+        p.setPublications(a.getPublications());
+        p.setGrantNo(a.getGrantNo());
+        p.setSource(a.getSource());
+        p.setDescription(a.getDescription());
+        p.setDeposited(a.getDeposited());
+        p.setUpdated(a.getUpdated());
+
+        // identify the assays that are part of this project
+        PreparedStatement pst = conn.prepareStatement("select aid from assay where summary = ?");
+        pst.setLong(1, aid);
+        ResultSet rs = pst.executeQuery();
+        List<Long> aids = new ArrayList<Long>();
+        while (rs.next()) aids.add(rs.getLong("aid"));
+        p.setAids(aids);
+        pst.close();
+        return p;
+    }
+
+    /**
+     * Retrieve projects based on query.
+     * <p/>
+     * Currently a crude query language is supported which requries you to specify the field
+     * to be queried on or if no field is specified then a full text search is applied to all
+     * text fields.
+     * <p/>
+     * Queries should in the form of query_string[field_name]
+     * <p/>
+     * The current implementation of free text search is pretty stupid. We should enable the
+     * full text search functionality in the database.
+     *
+     * @param query the query to use
+     * @return A list of {@link Project} objects, whuich may be empty if no assays match the query.
+     */
+    public List<Project> searchForProject(String query) throws SQLException {
+        boolean freeTextQuery = false;
+
+        if (!query.contains("[")) freeTextQuery = true;
+
+        PreparedStatement pst = null;
+        if (freeTextQuery) {
+            String q = "%" + query + "%";
+            pst = conn.prepareStatement("select aid from assay where type = 3 and (name like ? or description like ? or source like ? or grant_no like ?)");
+            pst.setString(1, q);
+            pst.setString(2, q);
+            pst.setString(3, q);
+            pst.setString(4, q);
+        } else {
+            String[] toks = query.split("\\[");
+            String q = toks[0].trim();
+            String field = toks[1].trim().replace("]", "");
+            String sql = "select aid from assay where type = 3 and  " + field + " like '%" + q + "%'";
+            pst = conn.prepareStatement(sql);
+        }
+
+        ResultSet rs = pst.executeQuery();
+        List<Project> projects = new ArrayList<Project>();
+        while (rs.next()) {
+            Long aid = rs.getLong("aid");
+            projects.add(getProjectByAid(aid));
+        }
+        pst.close();
+        return projects;
     }
 
 }
