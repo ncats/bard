@@ -252,7 +252,7 @@ public class DBUtils {
      * to be queried on or if no field is specified then a full text search is applied to all
      * text fields.
      * <p/>
-     * Queries should in the form of [field:]query_string
+     * Queries should in the form of query_string[field_name]
      * <p/>
      * The current implementation of free text search is pretty stupid. We should enable the
      * full text search functionality in the database.
@@ -263,7 +263,7 @@ public class DBUtils {
     public List<Assay> searchForAssay(String query) throws SQLException {
         boolean freeTextQuery = false;
 
-        if (!query.contains(":")) freeTextQuery = true;
+        if (!query.contains("[")) freeTextQuery = true;
 
         PreparedStatement pst = null;
         if (freeTextQuery) {
@@ -274,10 +274,9 @@ public class DBUtils {
             pst.setString(3, q);
             pst.setString(4, q);
         } else {
-            String[] toks = query.split(":");
-            if (toks.length != 2) return new ArrayList<Assay>();
-            String field = toks[0].trim();
-            String q = toks[1].trim();
+            String[] toks = query.split("\\[");
+            String q = toks[0].trim();
+            String field = toks[1].trim().replace("]", "");
             String sql = "select aid from assay where " + field + " like '%" + q + "%'";
             pst = conn.prepareStatement(sql);
         }

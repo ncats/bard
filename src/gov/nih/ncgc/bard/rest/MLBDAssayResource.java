@@ -60,13 +60,13 @@ public class MLBDAssayResource implements IMLBDResource {
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
         boolean expandEntries = false;
 
-        if (search == null) return null;
+        if (filter == null) return null;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
         DBUtils db = new DBUtils();
         try {
-            List<Assay> assays = db.searchForAssay(search);
+            List<Assay> assays = db.searchForAssay(filter);
             if (expandEntries) {
                 String json = Util.toJson(assays);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
