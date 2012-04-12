@@ -49,12 +49,12 @@ public class MLBDProjectResource implements IMLBDResource {
 
     @GET
     @Produces("text/plain")
-    @Path("info")
+    @Path("/info")
     public String info() {
         StringBuilder msg = new StringBuilder("Returns project information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
-        msg.append("/v1/projects/?search=[field:]query_string&expand=true|false\n");
+        msg.append("/v1/projects/?search=query_string[field]&expand=true|false\n");
         return msg.toString();
     }
 
