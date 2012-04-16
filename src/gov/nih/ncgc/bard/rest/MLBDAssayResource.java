@@ -51,7 +51,7 @@ public class MLBDAssayResource implements IMLBDResource {
         StringBuilder msg = new StringBuilder("Returns assay information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
-        msg.append("/v1/assays/?search=[field:]query_string&expand=true|false\n");
+        msg.append("/v1/assays/" + MLBDConstants.API_EXTRA_PARAM_SPEC + "\n");
         return msg.toString();
 
     }

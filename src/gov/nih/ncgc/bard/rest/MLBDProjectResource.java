@@ -54,7 +54,7 @@ public class MLBDProjectResource implements IMLBDResource {
         StringBuilder msg = new StringBuilder("Returns project information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
-        msg.append("/v1/projects/?search=query_string[field]&expand=true|false\n");
+        msg.append("/v1/projects/" + MLBDConstants.API_EXTRA_PARAM_SPEC + "\n");
         return msg.toString();
     }
 

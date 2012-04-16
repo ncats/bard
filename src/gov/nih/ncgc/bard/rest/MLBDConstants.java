@@ -14,4 +14,5 @@ public class MLBDConstants {
 
     public static final String API_VERSION = "v1";
     public static final String API_BASE = "/bard/rest/" + API_VERSION;
+    public static final String API_EXTRA_PARAM_SPEC = "?search=query_string[field]&expand=true|false&skip=N&stop=M";
 }
