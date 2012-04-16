@@ -16,31 +16,37 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Project implements BardEntity {
+
+    /**
+     * Numeric project identifier.
+     * <p/>
+     * Currently the AID of the summary assay.
+     */
     Long aid;
+
+
     int category, type, classification;
-    String name, description, source, grantNo;
-    Date deposited, updated;
+    String name, description, source;
+
+    /**
+     * Grant number for this project (if any).
+     */
+    String grantNo;
+
+    /**
+     * Date deposited.
+     */
+    Date deposited;
+
+    /**
+     * Date update;
+     */
+    Date updated;
 
     List<Long> probeIds;
     List<Long> aids;
     List<Publication> publications;
     List<ProteinTarget> targets;
-
-
-    public Project(Long aid, int category, int type, int classification, String name, String description, String source, String grantNo, Date deposited, Date updated) {
-        this.aid = aid;
-        this.category = category;
-        this.type = type;
-        this.classification = classification;
-        this.name = name;
-        this.description = description;
-        this.source = source;
-        this.grantNo = grantNo;
-        this.deposited = deposited;
-        this.updated = updated;
-
-        aids = new ArrayList<Long>();
-    }
 
     public String toString() {
         return aid + "[" + name + "]";
@@ -56,6 +62,7 @@ public class Project implements BardEntity {
 
     public Project() {
         aids = new ArrayList<Long>();
+        probeIds = new ArrayList<Long>();
     }
 
     public int getAssayCount() {

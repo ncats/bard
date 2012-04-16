@@ -339,13 +339,26 @@ public class DBUtils {
         // identify the assays that are part of this project
         PreparedStatement pst = conn.prepareStatement("select aid from assay where summary = ?");
         pst.setLong(1, aid);
-
         ResultSet rs = pst.executeQuery();
         List<Long> aids = new ArrayList<Long>();
         while (rs.next()) aids.add(rs.getLong("aid"));
         p.setAids(aids);
+
+        // get probe ids
+        List<Long> probeids = getProbesForProject(aid);
+        p.setProbeIds(probeids);
+
         pst.close();
         return p;
+    }
+
+    public List<Long> getProbesForProject(Long aid) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select a.cid from assay_data a, compound b where b.probe_id is not null and a.aid = ? and a.cid = b.cid");
+        pst.setLong(1, aid);
+        ResultSet rs = pst.executeQuery();
+        List<Long> probeids = new ArrayList<Long>();
+        while (rs.next()) probeids.add(rs.getLong("cid"));
+        return probeids;
     }
 
     /**
@@ -393,5 +406,4 @@ public class DBUtils {
         pst.close();
         return projects;
     }
-
 }

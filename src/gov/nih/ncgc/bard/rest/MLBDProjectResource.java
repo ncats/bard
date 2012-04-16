@@ -1,9 +1,8 @@
 package gov.nih.ncgc.bard.rest;
 
 import chemaxon.formats.MolFormatException;
-import chemaxon.formats.MolImporter;
-import chemaxon.struc.Molecule;
 import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.tools.DBUtils;
@@ -181,28 +180,37 @@ public class MLBDProjectResource implements IMLBDResource {
      * @throws MolFormatException
      */
     @GET
-    @Path("/{id}/compounds")
-    public Response getCompoundsForProject(@PathParam("name") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    @Path("/{id}/probes")
+    public Response getProbesForProject(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
-        String ret = "";
         List<MediaType> types = headers.getAcceptableMediaTypes();
 
-        Molecule mol;
+        DBUtils db = new DBUtils();
         try {
-            mol = MolImporter.importMol("C1CCCCC1");
-        } catch (MolFormatException e) {
+            List<Long> probes = db.getProbesForProject(Long.valueOf(resourceId));
+            if (types.contains(MLBDConstants.MIME_SMILES)) {
+                List<String> smiles = new ArrayList<String>();
+                for (Long probe : probes) {
+                    Compound c = db.getCompoundByCid(probe);
+                    smiles.add(c.getSmiles() + "\t" + probe);
+                }
+                return Response.ok(Util.join(smiles, "\n"), MLBDConstants.MIME_SMILES).build();
+            } else if (types.contains(MLBDConstants.MIME_SDF)) {
+
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Long id : probes) links.add(MLBDConstants.API_BASE + "/compounds/" + id);
+                return Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
+            }
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
-        mol.setName("molid1");
-        if (types.contains(MLBDConstants.MIME_SMILES) || types.contains(MediaType.TEXT_HTML)) {
-            ret = mol.toFormat("smiles");
-        } else if (types.contains(MLBDConstants.MIME_SDF)) {
-            ret = mol.toFormat("sdf");
-        }
-        Response.ResponseBuilder builder = Response.ok(ret, types.get(0));
-        return builder.build();
+
+        return null;
     }
 }
