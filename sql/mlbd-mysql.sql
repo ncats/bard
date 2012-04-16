@@ -1,3 +1,5 @@
+create database if not exists bard;
+
 drop table assay_concentration;
 drop table assay_result;
 drop table assay_data;
@@ -56,7 +58,7 @@ create table source (
     );
 create table source_substance (
     source_id bigint not null,
-    sid bigint not null,
+    sid bigint not null
 --    constraint source_id_fk foreign key (source_id) references source (source_id)
     );
 
@@ -86,14 +88,14 @@ create table assay (
 create table assay_target (
     aid bigint not null,
     accession varchar(20),
-    gene_id bigint,
+    gene_id bigint
 --    constraint aid_fk foreign key (aid) references assay (aid),
 --    constraint acc_fk foreign key (accession) references protein_target (accession)
     );
 
 create table assay_pub (
     aid bigint not null,
-    pmid bigint not null,
+    pmid bigint not null
 --    constraint ap_aid_fk foreign key (aid) references assay (aid),
 --    constraint pmid_fk foreign key (pmid) references publication (pmid)
     );    
@@ -108,7 +110,7 @@ create table assay_data (
     cid bigint,
     classification tinyint, -- substance acquisition classification: mlsmr (null or 0), purchased (1), synthesized (2)
     updated date,
-    runset varchar(128) default 'default',
+    runset varchar(128) default 'default'
 --    constraint ad_aid_fk foreign key (aid) references assay (aid),
 --    constraint ad_sid_fk foreign key (sid) references substance (sid)
     );
@@ -123,7 +125,7 @@ create table assay_result (
     s0 float, 
     sInf float,
     hill float,
-    lac50 float,
+    lac50 float
 
 --    constraint ar_adi_fk foreign key (assay_data_id) references assay_data (assay_data_id)
     );
@@ -132,7 +134,7 @@ create table assay_concentration (
     assay_result_id bigint,
     concentration float,
     response float,
-    conc_order bigint default 1,
+    conc_order bigint default 1
 
 --    constraint ac_arid_fk foreign key (assay_result_id) references assay_result (assay_result_id)
     );
