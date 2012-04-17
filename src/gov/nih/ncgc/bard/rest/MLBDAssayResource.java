@@ -47,7 +47,7 @@ public class MLBDAssayResource implements IMLBDResource {
 
     @GET
     @Produces("text/plain")
-    @Path("/info")
+    @Path("/_info")
     public String info() {
         StringBuilder msg = new StringBuilder("Returns assay information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
