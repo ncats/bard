@@ -53,7 +53,7 @@ public class MLBDCompoundResource implements IMLBDResource {
     }
 
     @GET
-    @Path("/cid/{cid}")
+    @Path("/{cid}")
     public Response getResources(@PathParam("cid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         DBUtils db = new DBUtils();
         Compound compound;
@@ -74,7 +74,7 @@ public class MLBDCompoundResource implements IMLBDResource {
         DBUtils db = new DBUtils();
         Compound compound = null;
         try {
-            compound = db.getCompoundByCid(Long.parseLong(resourceId));
+            compound = db.getCompoundByProbeId(resourceId);
             String json = compound.toJson();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (IOException e) {
