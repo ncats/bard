@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.rest;
 
+import chemaxon.formats.MolImporter;
+import chemaxon.marvin.util.MolExportException;
+import chemaxon.struc.Molecule;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
@@ -13,6 +16,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -37,6 +41,8 @@ public class MLBDCompoundResource implements IMLBDResource {
     ServletContext servletContext;
     @Context
     HttpServletRequest httpServletRequest;
+    @Context
+    HttpHeaders headers;
 
     @GET
     @Produces("text/plain")
@@ -52,18 +58,43 @@ public class MLBDCompoundResource implements IMLBDResource {
         return getResources(null, filter, expand);
     }
 
+    private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes) throws SQLException, IOException, MolExportException {
+        DBUtils db = new DBUtils();
+
+        if (!type.equals("cid") && !type.equals("probeid") && !type.equals("sid")) return null;
+        Compound c = null;
+        if (type.equals("cid")) c = db.getCompoundByCid(Long.parseLong(id));
+        else if (type.equals("probeid")) c = db.getCompoundByProbeId(id);
+        else if (type.equals("sid")) {
+        }
+
+        if (c == null) throw new WebApplicationException(404);
+
+        if (mediaTypes.contains(MLBDConstants.MIME_SMILES)) {
+            String smiles = c.getSmiles() + "\t" + id;
+            return Response.ok(smiles, MLBDConstants.MIME_SMILES).build();
+        } else if (mediaTypes.contains(MLBDConstants.MIME_SDF)) {
+            Molecule mol = MolImporter.importMol(c.getSmiles());
+            mol.setProperty("cid", String.valueOf(c.getCid()));
+            mol.setProperty("probeId", c.getProbeId());
+            mol.setProperty("url", c.getUrl());
+            mol.setProperty("resourecePath", c.getResourcePath());
+            String sdf = mol.exportToFormat("sdf");
+            return Response.ok(sdf, MLBDConstants.MIME_SDF).build();
+        } else {
+            String json = c.toJson();
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        }
+    }
+
     @GET
     @Path("/{cid}")
     public Response getResources(@PathParam("cid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
-        Compound compound;
         try {
-            compound = db.getCompoundByCid(Long.parseLong(resourceId));
-            String json = compound.toJson();
-            return Response.ok(json, MediaType.APPLICATION_JSON).build();
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
+            return getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes());
         } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
     }
@@ -71,17 +102,12 @@ public class MLBDCompoundResource implements IMLBDResource {
     @GET
     @Path("/probeid/{pid}")
     public Response getCompoundByProbeid(@PathParam("pid") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
-        Compound compound = null;
         try {
-            compound = db.getCompoundByProbeId(resourceId);
-            String json = compound.toJson();
-            return Response.ok(json, MediaType.APPLICATION_JSON).build();
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
+            return getCompoundResponse(resourceId, "probeid", headers.getAcceptableMediaTypes());
         } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
     }
-
 }
