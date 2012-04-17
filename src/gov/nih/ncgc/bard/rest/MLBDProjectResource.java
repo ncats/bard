@@ -77,14 +77,14 @@ public class MLBDProjectResource implements IMLBDResource {
     }
 
     @GET
-    public Response getResources(@QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    public Response getResources(@QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
         DBUtils db = new DBUtils();
         try {
-            if (filter == null && search == null) { // just list all projects
+            if (filter == null) { // just list all projects
 
                 List<Long[]> ids = db.getProjectCount();
                 if (!expandEntries) {
@@ -114,12 +114,12 @@ public class MLBDProjectResource implements IMLBDResource {
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
-        return getResources(null, filter, search, expand);
+        return getResources(null, filter, expand);
     }
 
     @GET
     @Path("/{id}")
-    public Response getResources(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    public Response getResources(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         DBUtils db = new DBUtils();
         try {
             Project p = db.getProjectByAid(Long.valueOf(resourceId));

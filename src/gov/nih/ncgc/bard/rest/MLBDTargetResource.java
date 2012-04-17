@@ -65,7 +65,7 @@ public class MLBDTargetResource implements IMLBDResource {
     }
 
     @GET
-    public Response getResources(@QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    public Response getResources(@QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         if (filter == null) return null;
 
         boolean expandEntries = false;
@@ -94,9 +94,9 @@ public class MLBDTargetResource implements IMLBDResource {
     @GET
     @Path("/accession/{acc}")
     @Produces("application/json")
-    public Response getResources(@PathParam("acc") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    public Response getResources(@PathParam("acc") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         DBUtils db = new DBUtils();
-        ProteinTarget p = null;
+        ProteinTarget p;
         try {
             p = db.getProteinTargetByAccession(resourceId);
             String json = p.toJson();
@@ -113,7 +113,7 @@ public class MLBDTargetResource implements IMLBDResource {
     @Produces("application/json")
     public Response getByGeneid(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
         DBUtils db = new DBUtils();
-        ProteinTarget p = null;
+        ProteinTarget p;
         try {
             p = db.getProteinTargetByGeneid(Long.parseLong(resourceId));
             String json = Util.toJson(p);

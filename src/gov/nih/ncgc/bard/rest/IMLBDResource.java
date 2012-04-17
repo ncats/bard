@@ -21,14 +21,12 @@ public interface IMLBDResource {
 
     @GET
     public Response getResources(@QueryParam("filter") String filter,
-                                 @QueryParam("search") String search,
                                  @QueryParam("expand") String expand);
 
     @GET
     @Path("/{name}")
     public Response getResources(@PathParam("name") String resourceId,
                                  @QueryParam("filter") String filter,
-                                 @QueryParam("search") String search,
                                  @QueryParam("expand") String expand);
 
 

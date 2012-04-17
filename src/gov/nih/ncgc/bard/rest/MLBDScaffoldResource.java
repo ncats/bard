@@ -43,13 +43,13 @@ public class MLBDScaffoldResource implements IMLBDResource {
         return msg.toString();
     }
 
-    public Response getResources(@QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    public Response getResources(@QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     @GET
     @Path("/{name}")
-    public Response getResources(@PathParam("name") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    public Response getResources(@PathParam("name") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 }

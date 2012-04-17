@@ -76,7 +76,7 @@ public class MLBDAssayResource implements IMLBDResource {
     }
 
     @GET
-    public Response getResources(@QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    public Response getResources(@QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
@@ -84,7 +84,7 @@ public class MLBDAssayResource implements IMLBDResource {
         DBUtils db = new DBUtils();
         try {
 
-            if (filter == null && search == null) {
+            if (filter == null) {
                 List<Long> ids = db.getAssayCount();
                 if (!expandEntries) {
                     List<String> links = new ArrayList<String>();
@@ -116,7 +116,7 @@ public class MLBDAssayResource implements IMLBDResource {
 
     @GET
     @Path("/{aid}")
-    public Response getResources(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    public Response getResources(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         DBUtils db = new DBUtils();
         Assay a = null;
         try {
