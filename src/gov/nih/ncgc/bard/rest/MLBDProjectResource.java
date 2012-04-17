@@ -57,6 +57,25 @@ public class MLBDProjectResource implements IMLBDResource {
         return msg.toString();
     }
 
+
+    @GET
+    @Produces("text/plain")
+    @Path("/_count")
+    public String count(@QueryParam("filter") String filter) {
+        DBUtils db = new DBUtils();
+        try {
+            if (filter == null) {
+                int n = db.getProjectCount().size();
+                return String.valueOf(n);
+            } else { // run the query and return count of results
+                List<Project> projects = db.searchForProject(filter);
+                return String.valueOf(projects.size());
+            }
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
     @GET
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
         boolean expandEntries = false;

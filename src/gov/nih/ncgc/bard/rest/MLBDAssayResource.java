@@ -3,6 +3,7 @@ package gov.nih.ncgc.bard.rest;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.tools.DBUtils;
@@ -57,24 +58,54 @@ public class MLBDAssayResource implements IMLBDResource {
     }
 
     @GET
+    @Produces("text/plain")
+    @Path("/_count")
+    public String count(@QueryParam("filter") String filter) {
+        DBUtils db = new DBUtils();
+        try {
+            if (filter == null) {
+                int n = db.getAssayCount().size();
+                return String.valueOf(n);
+            } else {
+                List<Assay> assays = db.searchForAssay(filter);
+                return String.valueOf(assays.size());
+            }
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
         boolean expandEntries = false;
-
-        if (filter == null) return null;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
         DBUtils db = new DBUtils();
         try {
-            List<Assay> assays = db.searchForAssay(filter);
-            if (expandEntries) {
-                String json = Util.toJson(assays);
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+
+            if (filter == null && search == null) {
+                List<Long> ids = db.getAssayCount();
+                if (!expandEntries) {
+                    List<String> links = new ArrayList<String>();
+                    for (Long id : ids) links.add(MLBDConstants.API_BASE + "/assays/" + id);
+                    return Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
+                } else {
+                    List<Project> projects = new ArrayList<Project>();
+                    for (Long id : ids) projects.add(db.getProjectByAid(id));
+                    return Response.ok(Util.toJson(projects), MediaType.APPLICATION_JSON).build();
+                }
             } else {
-                List<String> links = new ArrayList<String>();
-                for (Assay a : assays) links.add(a.getResourcePath());
-                String json = Util.toJson(links);
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                List<Assay> assays = db.searchForAssay(filter);
+                if (expandEntries) {
+                    String json = Util.toJson(assays);
+                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                } else {
+                    List<String> links = new ArrayList<String>();
+                    for (Assay a : assays) links.add(a.getResourcePath());
+                    String json = Util.toJson(links);
+                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                }
             }
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);

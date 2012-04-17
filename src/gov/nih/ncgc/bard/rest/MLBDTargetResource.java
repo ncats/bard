@@ -17,6 +17,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -49,8 +50,45 @@ public class MLBDTargetResource implements IMLBDResource {
         return msg.toString();
     }
 
+    @GET
+    @Produces("text/plain")
+    @Path("/_count")
+    public String count(@QueryParam("filter") String filter) {
+        DBUtils db = new DBUtils();
+        try {
+            if (filter == null)
+                return String.valueOf(db.getTargetCount());
+            else return String.valueOf(db.searchForTargets(filter).size());
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
-        return getResources(null, filter, search, expand);
+        if (filter == null) return null;
+
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        DBUtils db = new DBUtils();
+        try {
+            List<ProteinTarget> targets = db.searchForTargets(filter);
+            if (expandEntries) {
+                String json = Util.toJson(targets);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (ProteinTarget a : targets) links.add(a.getResourcePath());
+                String json = Util.toJson(links);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            }
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
     }
 
     @GET

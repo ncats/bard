@@ -294,6 +294,55 @@ public class DBUtils {
     }
 
     /**
+     * Retrieve targets based on query.
+     * <p/>
+     * Currently a crude query language is supported which requries you to specify the field
+     * to be queried on or if no field is specified then a full text search is applied to all
+     * text fields.
+     * <p/>
+     * Queries should in the form of query_string[field_name]
+     * <p/>
+     * The current implementation of free text search is pretty stupid. We should enable the
+     * full text search functionality in the database.
+     *
+     * @param query the query to use
+     * @return A list of {@link ProteinTarget} objects, whuich may be empty if no assays match the query.
+     */
+    public List<ProteinTarget> searchForTargets(String query) throws SQLException {
+        boolean freeTextQuery = false;
+
+        if (!query.contains("[")) freeTextQuery = true;
+
+        PreparedStatement pst = null;
+        if (freeTextQuery) {
+            String q = "%" + query + "%";
+            pst = conn.prepareStatement("select accession from protein_target where (accession like ? or gene_id like ? or name like ? or description like ? or uniprot_status like ?)");
+            pst.setString(1, q);
+            pst.setString(2, q);
+            pst.setString(3, q);
+            pst.setString(4, q);
+            pst.setString(5, q);
+        } else {
+            String[] toks = query.split("\\[");
+            String q = toks[0].trim();
+            String field = toks[1].trim().replace("]", "");
+            String sql = "select accession from protein_target where " + field + " like '%" + q + "%'";
+            pst = conn.prepareStatement(sql);
+        }
+
+        ResultSet rs = pst.executeQuery();
+        List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
+        while (rs.next()) {
+            String accession = rs.getString("accession");
+            targets.add(getProteinTargetByAccession(accession));
+        }
+        pst.close();
+
+        return targets;
+    }
+
+
+    /**
      * Get a summary count of projects listing AID for project and number of assays associated with it.
      *
      * @return A list of Long[2], where the elements of the array are the summary AID and the number of
@@ -309,6 +358,32 @@ public class DBUtils {
         }
         pst.close();
         return ret;
+    }
+
+    /**
+     * Return a list of all aids.
+     *
+     * @return
+     * @throws SQLException
+     */
+    public List<Long> getAssayCount() throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select aid from assay order by aid");
+        ResultSet rs = pst.executeQuery();
+        List<Long> ret = new ArrayList<Long>();
+        while (rs.next()) {
+            ret.add(rs.getLong("aid"));
+        }
+        pst.close();
+        return ret;
+    }
+
+    public int getTargetCount() throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select count(accession) as c from protein_target");
+        ResultSet rs = pst.executeQuery();
+        int n = 0;
+        while (rs.next()) n = rs.getInt("c");
+        pst.close();
+        return n;
     }
 
     /**
