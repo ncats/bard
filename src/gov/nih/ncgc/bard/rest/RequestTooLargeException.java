@@ -4,7 +4,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 /**
- * Provides an exception for HTTP 413 (Request Too Large)
+ * Provides an exception for HTTP 413 (Request Too Large)mplement
  *
  * @author Rajarshi Guha
  */
