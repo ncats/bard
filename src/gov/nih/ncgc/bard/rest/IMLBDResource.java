@@ -19,6 +19,14 @@ public interface IMLBDResource {
     @Path("/info")
     public String info();
 
+    /**
+     * Return a count of (possibly filtered) instances of a given resource.
+     *
+     * @param filter A query filter or null
+     * @return the number of instances
+     */
+    public String count(@QueryParam("filter") String filter);
+
     @GET
     public Response getResources(@QueryParam("filter") String filter,
                                  @QueryParam("expand") String expand);
