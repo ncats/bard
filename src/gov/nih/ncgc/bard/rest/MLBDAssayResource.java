@@ -3,6 +3,7 @@ package gov.nih.ncgc.bard.rest;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
@@ -18,6 +19,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -43,6 +45,8 @@ public class MLBDAssayResource implements IMLBDResource {
     ServletContext servletContext;
     @Context
     HttpServletRequest httpServletRequest;
+    @Context
+    HttpHeaders headers;
 
 
     @GET
@@ -192,5 +196,46 @@ public class MLBDAssayResource implements IMLBDResource {
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
+    }
+
+    @GET
+    @Path("/{aid}/compounds")
+    public Response getAssayCompounds(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        List<MediaType> types = headers.getAcceptableMediaTypes();
+        DBUtils db = new DBUtils();
+
+        try {
+            Assay a = db.getAssayByAid(Long.valueOf(resourceId));
+            if (a.getSamples() > MLBDConstants.MAX_COMPOUND_COUNT) {
+                throw new RequestTooLargeException("Assay " + resourceId + " has more than 1000 compounds. Use paging");
+            }
+
+            if (types.contains(MLBDConstants.MIME_SMILES)) {
+
+            } else if (types.contains(MLBDConstants.MIME_SDF)) {
+
+            } else { // JSON
+                if (!expandEntries) {
+                    List<Long> cids = db.getAssayCompoundCids(Long.valueOf(resourceId));
+                    List<String> links = new ArrayList<String>();
+                    for (Long cid : cids) links.add((new Compound(cid, null, null)).getResourcePath());
+                    String json = Util.toJson(links);
+                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                } else {
+                    List<Compound> compounds = db.getAssayCompounds(Long.valueOf(resourceId));
+                    String json = Util.toJson(compounds);
+                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                }
+            }
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+        return null;
     }
 }

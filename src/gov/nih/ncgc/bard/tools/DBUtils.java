@@ -201,6 +201,42 @@ public class DBUtils {
     }
 
     /**
+     * Retrieve CIDs for compounds associated with an assay.
+     *
+     * @param aid The assay identifier
+     * @return A list of compound CIDs
+     * @throws SQLException
+     */
+    public List<Long> getAssayCompoundCids(Long aid) throws SQLException {
+        if (aid == null || aid < 0) return null;
+        PreparedStatement pst = conn.prepareStatement("select cid from assay_data where aid = ?");
+        pst.setLong(1, aid);
+        ResultSet rs = pst.executeQuery();
+        List<Long> ret = new ArrayList<Long>();
+        while (rs.next()) ret.add(rs.getLong("cid"));
+        pst.close();
+        return ret;
+    }
+
+    /**
+     * Retrieve compounds associated with an assay.
+     *
+     * @param aid The assay identifier
+     * @return A list of {@link Compound} objects
+     * @throws SQLException
+     */
+    public List<Compound> getAssayCompounds(Long aid) throws SQLException {
+        if (aid == null || aid < 0) return null;
+        PreparedStatement pst = conn.prepareStatement("select cid from assay_data where aid = ?");
+        pst.setLong(1, aid);
+        ResultSet rs = pst.executeQuery();
+        List<Compound> ret = new ArrayList<Compound>();
+        while (rs.next()) ret.add(getCompoundByCid(rs.getLong("cid")));
+        pst.close();
+        return ret;
+    }
+
+    /**
      * Retrieve publications associated with an assay id.
      * <p/>
      * This query requires that the publication details are available in the publication table.
