@@ -54,6 +54,16 @@ public class MLBDCompoundResource implements IMLBDResource {
         return msg.toString();
     }
 
+    /**
+     * Return a count of (possibly filtered) instances of a given resource.
+     *
+     * @param filter A query filter or null
+     * @return the number of instances
+     */
+    public String count(@QueryParam("filter") String filter) {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         return getResources(null, filter, expand);
     }
