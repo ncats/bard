@@ -99,6 +99,7 @@ public class MLBDTargetResource implements IMLBDResource {
         ProteinTarget p;
         try {
             p = db.getProteinTargetByAccession(resourceId);
+            if (p.getAcc() == null) throw new WebApplicationException(404);
             String json = p.toJson();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
@@ -116,6 +117,7 @@ public class MLBDTargetResource implements IMLBDResource {
         ProteinTarget p;
         try {
             p = db.getProteinTargetByGeneid(Long.parseLong(resourceId));
+            if (p.getAcc() == null) throw new WebApplicationException(404);
             String json = Util.toJson(p);
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {

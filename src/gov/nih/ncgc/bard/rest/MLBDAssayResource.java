@@ -125,6 +125,7 @@ public class MLBDAssayResource implements IMLBDResource {
         Assay a = null;
         try {
             a = db.getAssayByAid(Long.valueOf(resourceId));
+            if (a.getAid() == null) throw new WebApplicationException(404);
             String json = Util.toJson(a);
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {

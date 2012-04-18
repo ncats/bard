@@ -68,7 +68,7 @@ public class MLBDCompoundResource implements IMLBDResource {
         else if (type.equals("sid")) {
         }
 
-        if (c == null) throw new WebApplicationException(404);
+        if (c == null || c.getCid() == null) throw new WebApplicationException(404);
 
         if (mediaTypes.contains(MLBDConstants.MIME_SMILES)) {
             String smiles = c.getSmiles() + "\t" + id;

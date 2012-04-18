@@ -123,6 +123,7 @@ public class MLBDProjectResource implements IMLBDResource {
         DBUtils db = new DBUtils();
         try {
             Project p = db.getProjectByAid(Long.valueOf(resourceId));
+            if (p.getAid() == null) throw new WebApplicationException(404);
             String json = Util.toJson(p);
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
