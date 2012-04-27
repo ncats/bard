@@ -30,6 +30,10 @@ public class DBUtils {
         conn = getConnection();
     }
 
+    public void closeConnection() throws SQLException {
+        conn.close();
+    }
+
     private Connection getConnection() {
         javax.naming.Context initContext;
         try {
