@@ -8,6 +8,8 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -79,6 +81,11 @@ public class Util {
             }
         }
         return ret;
+    }
+
+    static public byte[] getMD5(String s) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        return md.digest(s.getBytes());
     }
 
 }

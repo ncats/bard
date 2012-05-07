@@ -1,7 +1,9 @@
 package gov.nih.ncgc.bard.entity;
 
 import gov.nih.ncgc.bard.rest.MLBDConstants;
+import gov.nih.ncgc.bard.tools.Util;
 
+import java.security.NoSuchAlgorithmException;
 import java.sql.Date;
 import java.util.List;
 
@@ -181,5 +183,22 @@ public class Assay implements BardEntity {
      */
     public String getResourcePath() {
         return MLBDConstants.API_BASE + "/assays/" + aid;
+    }
+
+    public String getEntityTag() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(aid).append(category).append(type).append(summary).append(assays).append(classification).append(samples);
+        sb.append(name).append(grantNo).append(description).append(source);
+        sb.append(deposited).append(updated);
+        for (ProteinTarget t : targets) sb.append(t.getAcc());
+        for (Publication p : publications) sb.append(p.getPubmedId());
+        for (AssayData d : data) sb.append(d.getAssayDataId());
+
+        try {
+            byte[] digest = Util.getMD5(sb.toString());
+            return new String(digest);
+        } catch (NoSuchAlgorithmException e) {
+        }
+        return null;
     }
 }
