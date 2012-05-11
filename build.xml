@@ -30,13 +30,25 @@
         </jar>
     </target>
 
-    <target name='compile-rest'>
+    <target name='compile-rest' id='compile-rest'>
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
                debug="yes" target="1.6"
-               includes="**/rest/*.java, **entity/*.java, **/tools/*.java, **/plugin/*.java">
+               includes="**/rest/*.java, **entity/*.java, **/tools/*.java, **/plugin/IPlugin.java">
             <classpath refid="compile.classpath"/>
         </javac>
+    </target>
+
+    <target name="jar-rest" id='jar-rest' depends="compile-rest">
+        <jar destfile="${bard.deploy}/bard.jar" duplicate="preserve">
+            <manifest>
+                <attribute name="Created-By" value="NCGC"/>
+                <attribute name="Manifest-Version" value="1.0"/>
+            </manifest>
+            <fileset dir="${bard.build}" casesensitive="yes">
+                <include name="**/*"/>
+            </fileset>
+        </jar>
     </target>
 
     <property name="bard.explode.dir" value="${bard.deploy}/exploded"/>
@@ -71,7 +83,7 @@
     <target name='war-rest' depends="explode-rest">
         <jar destfile="${war.filename}" duplicate="preserve">
             <manifest>
-                <attribute name="Created-By" value="Rajarshi Guha"/>
+                <attribute name="Created-By" value="NCGC"/>
                 <attribute name="Manifest-Version" value="1.0"/>
             </manifest>
             <fileset dir="${bard.explode.dir}" casesensitive="yes">
