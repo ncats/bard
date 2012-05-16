@@ -58,15 +58,26 @@ public class MLBDTargetResource implements IMLBDResource {
         try {
             if (filter == null)
                 return String.valueOf(db.getTargetCount());
-            else return String.valueOf(db.searchForTargets(filter).size());
+            else return String.valueOf(db.searchForTargets(filter, -1, -1).size());
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         }
     }
 
     @GET
-    public Response getResources(@QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+    public Response getResources(@QueryParam("filter") String filter,
+                                 @QueryParam("expand") String expand,
+                                 @QueryParam("skip") Integer skip,
+                                 @QueryParam("top") Integer top) {
         if (filter == null) return null;
+
+        // validate skip/top
+        if (skip == null && top != null) {
+            skip = 0;
+        } else if (skip == null) {
+            skip = -1;
+            top = -1;
+        }
 
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
@@ -74,7 +85,7 @@ public class MLBDTargetResource implements IMLBDResource {
 
         DBUtils db = new DBUtils();
         try {
-            List<ProteinTarget> targets = db.searchForTargets(filter);
+            List<ProteinTarget> targets = db.searchForTargets(filter, skip, top);
             if (expandEntries) {
                 String json = Util.toJson(targets);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();

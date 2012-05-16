@@ -348,15 +348,21 @@ public class DBUtils {
      * @param query the query to use
      * @return A list of {@link ProteinTarget} objects, whuich may be empty if no assays match the query.
      */
-    public List<ProteinTarget> searchForTargets(String query) throws SQLException {
+    public List<ProteinTarget> searchForTargets(String query, int skip, int top) throws SQLException {
         boolean freeTextQuery = false;
 
         if (!query.contains("[")) freeTextQuery = true;
 
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
         PreparedStatement pst = null;
         if (freeTextQuery) {
             String q = "%" + query + "%";
-            pst = conn.prepareStatement("select accession from protein_target where (accession like ? or gene_id like ? or name like ? or description like ? or uniprot_status like ?)");
+            pst = conn.prepareStatement("select accession from protein_target where (accession like ? or gene_id like ? or name like ? or description like ? or uniprot_status like ?) order by accession" + limitClause);
             pst.setString(1, q);
             pst.setString(2, q);
             pst.setString(3, q);
@@ -366,7 +372,7 @@ public class DBUtils {
             String[] toks = query.split("\\[");
             String q = toks[0].trim();
             String field = toks[1].trim().replace("]", "");
-            String sql = "select accession from protein_target where " + field + " like '%" + q + "%'";
+            String sql = "select accession from protein_target where " + field + " like '%" + q + "%' order by accession " + limitClause;
             pst = conn.prepareStatement(sql);
         }
 
