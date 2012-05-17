@@ -92,4 +92,21 @@
         </jar>
     </target>
 
+
+    <target name="plugins" depends="jar-rest">
+        <path id="plugin.compile.classpath">
+            <fileset dir="${bard.lib}">
+                <include name="*.jar"/>
+                <include name="${bard.deploy}/bard.jar"/>
+            </fileset>
+        </path>
+        <mkdir dir="${bard.build}"/>
+        <javac srcdir="${bard.src}" destdir="${bard.build}"
+               debug="yes" target="1.6"
+               includes="**/plugin/*.java"
+               excludes="**/plugin/IPlugin.java">
+            <classpath refid="compile.classpath"/>
+        </javac>
+    </target>
+
 </project>

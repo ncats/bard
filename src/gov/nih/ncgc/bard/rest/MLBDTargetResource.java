@@ -1,6 +1,9 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
+import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -137,5 +140,41 @@ public class MLBDTargetResource implements IMLBDResource {
             throw new WebApplicationException(e, 500);
         }
     }
+
+    @GET
+    @Path("/accession/{acc}/publications")
+    public Response getTargetPublications(@PathParam("acc") String resourceId,
+                                          @QueryParam("filter") String filter,
+                                          @QueryParam("search") String search,
+                                          @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        DBUtils db = new DBUtils();
+        List<Publication> pubs = null;
+        try {
+            pubs = db.getProteinTargetPublications(resourceId);
+            if (expandEntries) {
+                String json = Util.toJson(pubs);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Publication pub : pubs)
+                    links.add(pub.getResourcePath());
+                String json = Util.toJson(links);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            }
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (JsonMappingException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (JsonGenerationException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
 
 }

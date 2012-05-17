@@ -91,6 +91,25 @@ public class DBUtils {
         return p;
     }
 
+    public List<Publication> getProteinTargetPublications(String accession) throws SQLException {
+        if (accession == null || accession.trim().equals("")) return null;
+
+        PreparedStatement pst2 = conn.prepareStatement("select a.* from publication a, target_pub b where b.accession = ? and b.pmid = a.pmid");
+        pst2.setString(1, accession);
+        ResultSet rs2 = pst2.executeQuery();
+        List<Publication> pubs = new ArrayList<Publication>();
+        while (rs2.next()) {
+            Publication p = new Publication();
+            p.setDoi(rs2.getString("doi"));
+            p.setTitle(rs2.getString("title"));
+            p.setPubmedId(rs2.getLong("pmid"));
+            p.setAbs(rs2.getString("abstract"));
+            pubs.add(p);
+        }
+        pst2.close();
+        return pubs;
+    }
+
     public ProteinTarget getProteinTargetByAccession(String accession) throws SQLException {
         if (accession == null || accession.trim().equals("")) return null;
         PreparedStatement pst = conn.prepareStatement("select * from protein_target where accession  = ?");
