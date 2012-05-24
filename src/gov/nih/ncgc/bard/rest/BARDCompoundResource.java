@@ -32,7 +32,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/v1/compounds")
-public class MLBDCompoundResource implements IMLBDResource {
+public class BARDCompoundResource implements IBARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -86,17 +86,17 @@ public class MLBDCompoundResource implements IMLBDResource {
 
         if (c == null || c.getCid() == null) throw new WebApplicationException(404);
 
-        if (mediaTypes.contains(MLBDConstants.MIME_SMILES)) {
+        if (mediaTypes.contains(BARDConstants.MIME_SMILES)) {
             String smiles = c.getSmiles() + "\t" + id;
-            return Response.ok(smiles, MLBDConstants.MIME_SMILES).build();
-        } else if (mediaTypes.contains(MLBDConstants.MIME_SDF)) {
+            return Response.ok(smiles, BARDConstants.MIME_SMILES).build();
+        } else if (mediaTypes.contains(BARDConstants.MIME_SDF)) {
             Molecule mol = MolImporter.importMol(c.getSmiles());
             mol.setProperty("cid", String.valueOf(c.getCid()));
             mol.setProperty("probeId", c.getProbeId());
             mol.setProperty("url", c.getUrl());
             mol.setProperty("resourecePath", c.getResourcePath());
             String sdf = mol.exportToFormat("sdf");
-            return Response.ok(sdf, MLBDConstants.MIME_SDF).build();
+            return Response.ok(sdf, BARDConstants.MIME_SDF).build();
         } else {
             String json = c.toJson();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();

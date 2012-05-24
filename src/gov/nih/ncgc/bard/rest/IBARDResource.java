@@ -12,7 +12,7 @@ import javax.ws.rs.core.Response;
  *
  * @author Rajarshi Guha
  */
-public interface IMLBDResource {
+public interface IBARDResource {
 
     @GET
     @Produces("text/plain")

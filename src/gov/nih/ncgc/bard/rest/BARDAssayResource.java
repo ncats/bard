@@ -36,7 +36,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/v1/assays")
-public class MLBDAssayResource implements IMLBDResource {
+public class BARDAssayResource implements IBARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -56,7 +56,7 @@ public class MLBDAssayResource implements IMLBDResource {
         StringBuilder msg = new StringBuilder("Returns assay information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
-        msg.append("/v1/assays/" + MLBDConstants.API_EXTRA_PARAM_SPEC + "\n");
+        msg.append("/v1/assays/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
         return msg.toString();
 
     }
@@ -95,7 +95,7 @@ public class MLBDAssayResource implements IMLBDResource {
                 List<Long> ids = db.getAssayCount();
                 if (!expandEntries) {
                     List<String> links = new ArrayList<String>();
-                    for (Long id : ids) links.add(MLBDConstants.API_BASE + "/assays/" + id);
+                    for (Long id : ids) links.add(BARDConstants.API_BASE + "/assays/" + id);
                     return Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
                 } else {
                     List<Project> projects = new ArrayList<Project>();
@@ -214,13 +214,13 @@ public class MLBDAssayResource implements IMLBDResource {
 
         try {
             Assay a = db.getAssayByAid(Long.valueOf(resourceId));
-            if (a.getSamples() > MLBDConstants.MAX_COMPOUND_COUNT) {
+            if (a.getSamples() > BARDConstants.MAX_COMPOUND_COUNT) {
                 throw new RequestTooLargeException("Assay " + resourceId + " has more than 1000 compounds. Use paging");
             }
 
-            if (types.contains(MLBDConstants.MIME_SMILES)) {
+            if (types.contains(BARDConstants.MIME_SMILES)) {
 
-            } else if (types.contains(MLBDConstants.MIME_SDF)) {
+            } else if (types.contains(BARDConstants.MIME_SDF)) {
 
             } else { // JSON
                 if (!expandEntries) {

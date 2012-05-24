@@ -1,6 +1,6 @@
 package gov.nih.ncgc.bard.entity;
 
-import gov.nih.ncgc.bard.rest.MLBDConstants;
+import gov.nih.ncgc.bard.rest.BARDConstants;
 
 import java.sql.Date;
 import java.util.ArrayList;
@@ -183,6 +183,6 @@ public class Project implements BardEntity {
      *         to be publically available via the REST API
      */
     public String getResourcePath() {
-        return MLBDConstants.API_BASE + "/projects/" + aid;
+        return BARDConstants.API_BASE + "/projects/" + aid;
     }
 }

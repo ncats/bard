@@ -1,7 +1,7 @@
 package gov.nih.ncgc.bard.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gov.nih.ncgc.bard.rest.MLBDConstants;
+import gov.nih.ncgc.bard.rest.BARDConstants;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -50,6 +50,6 @@ public class Substance implements BardEntity {
      *         to be publically available via the REST API
      */
     public String getResourcePath() {
-        return MLBDConstants.API_BASE + "/substances/" + sid;
+        return BARDConstants.API_BASE + "/substances/" + sid;
     }
 }

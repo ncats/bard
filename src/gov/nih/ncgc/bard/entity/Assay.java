@@ -1,6 +1,6 @@
 package gov.nih.ncgc.bard.entity;
 
-import gov.nih.ncgc.bard.rest.MLBDConstants;
+import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.tools.Util;
 
 import java.security.NoSuchAlgorithmException;
@@ -182,7 +182,7 @@ public class Assay implements BardEntity {
      * @return The path to this resource
      */
     public String getResourcePath() {
-        return MLBDConstants.API_BASE + "/assays/" + aid;
+        return BARDConstants.API_BASE + "/assays/" + aid;
     }
 
     public String getEntityTag() {

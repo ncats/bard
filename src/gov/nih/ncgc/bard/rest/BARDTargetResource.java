@@ -32,7 +32,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/v1/targets")
-public class MLBDTargetResource implements IMLBDResource {
+public class BARDTargetResource implements IBARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -49,7 +49,7 @@ public class MLBDTargetResource implements IMLBDResource {
         StringBuilder msg = new StringBuilder("Returns protein target information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
-        msg.append("/v1/targets/" + MLBDConstants.API_EXTRA_PARAM_SPEC + "\n");
+        msg.append("/v1/targets/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
         return msg.toString();
     }
 

@@ -22,7 +22,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/v1/scaffolds")
-public class MLBDScaffoldResource implements IMLBDResource {
+public class BARDScaffoldResource implements IBARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";

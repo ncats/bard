@@ -34,7 +34,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/v1/projects")
-public class MLBDProjectResource implements IMLBDResource {
+public class BARDProjectResource implements IBARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -53,7 +53,7 @@ public class MLBDProjectResource implements IMLBDResource {
         StringBuilder msg = new StringBuilder("Returns project information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
-        msg.append("/v1/projects/" + MLBDConstants.API_EXTRA_PARAM_SPEC + "\n");
+        msg.append("/v1/projects/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
         return msg.toString();
     }
 
@@ -92,7 +92,7 @@ public class MLBDProjectResource implements IMLBDResource {
                 List<Long[]> ids = db.getProjectCount();
                 if (!expandEntries) {
                     List<String> links = new ArrayList<String>();
-                    for (Long[] id : ids) links.add(MLBDConstants.API_BASE + "/projects/" + id[0]);
+                    for (Long[] id : ids) links.add(BARDConstants.API_BASE + "/projects/" + id[0]);
                     return Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
                 } else {
                     List<Project> projects = new ArrayList<Project>();
@@ -214,18 +214,18 @@ public class MLBDProjectResource implements IMLBDResource {
         DBUtils db = new DBUtils();
         try {
             List<Long> probes = db.getProbesForProject(Long.valueOf(resourceId));
-            if (types.contains(MLBDConstants.MIME_SMILES)) {
+            if (types.contains(BARDConstants.MIME_SMILES)) {
                 List<String> smiles = new ArrayList<String>();
                 for (Long probe : probes) {
                     Compound c = db.getCompoundByCid(probe);
                     smiles.add(c.getSmiles() + "\t" + probe);
                 }
-                return Response.ok(Util.join(smiles, "\n"), MLBDConstants.MIME_SMILES).build();
-            } else if (types.contains(MLBDConstants.MIME_SDF)) {
+                return Response.ok(Util.join(smiles, "\n"), BARDConstants.MIME_SMILES).build();
+            } else if (types.contains(BARDConstants.MIME_SDF)) {
 
             } else {
                 List<String> links = new ArrayList<String>();
-                for (Long id : probes) links.add(MLBDConstants.API_BASE + "/compounds/" + id);
+                for (Long id : probes) links.add(BARDConstants.API_BASE + "/compounds/" + id);
                 return Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
             }
         } catch (SQLException e) {

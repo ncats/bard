@@ -1,7 +1,7 @@
 package gov.nih.ncgc.bard.plugin;
 
 import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.rest.MLBDConstants;
+import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -101,7 +101,7 @@ public class AssayInfoPlugin implements IPlugin {
         List<String> paths = Util.getResourcePaths(this.getClass());
         String[] ret = new String[paths.size()];
         for (int i = 0; i < paths.size(); i++)
-            ret[i] = MLBDConstants.API_BASE + "plugins/" + paths.get(i);
+            ret[i] = BARDConstants.API_BASE + "plugins/" + paths.get(i);
         return ret;
     }
 }

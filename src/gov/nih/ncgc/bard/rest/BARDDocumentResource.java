@@ -28,7 +28,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/v1/documents")
-public class MLBDDocumentResource implements IMLBDResource {
+public class BARDDocumentResource implements IBARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -45,7 +45,7 @@ public class MLBDDocumentResource implements IMLBDResource {
         StringBuilder msg = new StringBuilder("Returns publication information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
-        msg.append("/v1/documents/" + MLBDConstants.API_EXTRA_PARAM_SPEC + "\n");
+        msg.append("/v1/documents/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
         return msg.toString();
     }
 
