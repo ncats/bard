@@ -13,10 +13,12 @@ import javax.ws.rs.core.Response;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.List;
 
@@ -50,12 +52,18 @@ public class CSLSPlugin implements IPlugin {
     public Response getTermFromCsls(@PathParam("term") String term) {
         try {
             URL url = new URI("http://cactus.nci.nih.gov/chemical/structure/" + URLEncoder.encode(term, "UTF-8") + "/smiles").toURL();
-            StringBuilder sb = new StringBuilder();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
-            String str;
-            while ((str = reader.readLine()) != null) sb.append(str);
-            reader.close();
-            return Response.ok(sb.toString(), MediaType.TEXT_PLAIN).build();
+            URLConnection con = url.openConnection();
+            con.connect();
+            HttpURLConnection hcon = (HttpURLConnection) con;
+            int response = hcon.getResponseCode();
+            if (response == 200) {
+                StringBuilder sb = new StringBuilder();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                String str;
+                while ((str = reader.readLine()) != null) sb.append(str);
+                reader.close();
+                return Response.ok(sb.toString(), MediaType.TEXT_PLAIN).build();
+            } else throw new WebApplicationException(response);
         } catch (MalformedURLException e) {
             throw new WebApplicationException(e, 500);
         } catch (URISyntaxException e) {
