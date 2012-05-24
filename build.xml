@@ -34,7 +34,7 @@
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
                debug="yes" target="1.6"
-               includes="**/rest/*.java, **entity/*.java, **/tools/*.java, **/plugin/IPlugin.java">
+               includes="**/rest/*.java, **entity/*.java, **/tools/*.java, **/plugin/*.java">
             <classpath refid="compile.classpath"/>
         </javac>
     </target>
