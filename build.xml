@@ -103,10 +103,18 @@
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
                debug="yes" target="1.6"
-               includes="**/plugin/*.java"
-               excludes="**/plugin/IPlugin.java">
+               includes="**/plugin/*">
             <classpath refid="compile.classpath"/>
         </javac>
+        <jar destfile="${bard.deploy}/bard-plugins.jar">
+            <manifest>
+                <attribute name="Created-By" value="NCGC"/>
+                <attribute name="Manifest-Version" value="1.0"/>
+            </manifest>
+            <fileset dir="${bard.build}" casesensitive="yes">
+                <include name="**/plugin/*"/>
+            </fileset>
+        </jar>
     </target>
 
 </project>
