@@ -53,7 +53,10 @@ public class MLBDScaffoldResource implements IMLBDResource {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
-    public Response getResources(@QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+    public Response getResources(@QueryParam("filter") String filter,
+                                 @QueryParam("expand") String expand,
+                                 @QueryParam("skip") Integer skip,
+                                 @QueryParam("top") Integer top) {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 

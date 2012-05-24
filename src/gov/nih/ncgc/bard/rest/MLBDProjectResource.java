@@ -77,7 +77,10 @@ public class MLBDProjectResource implements IMLBDResource {
     }
 
     @GET
-    public Response getResources(@QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+    public Response getResources(@QueryParam("filter") String filter,
+                                 @QueryParam("expand") String expand,
+                                 @QueryParam("skip") Integer skip,
+                                 @QueryParam("top") Integer top) {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;

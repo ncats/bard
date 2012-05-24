@@ -55,12 +55,18 @@ public class MLBDDocumentResource implements IMLBDResource {
      * @param filter A query filter or null
      * @return the number of instances
      */
+    @GET
+    @Produces("text/plain")
+    @Path("/_count")
     public String count(@QueryParam("filter") String filter) {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     @GET
-    public Response getResources(@QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+    public Response getResources(@QueryParam("filter") String filter,
+                                 @QueryParam("expand") String expand,
+                                 @QueryParam("skip") Integer skip,
+                                 @QueryParam("top") Integer top) {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 

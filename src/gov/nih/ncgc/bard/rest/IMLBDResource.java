@@ -29,7 +29,9 @@ public interface IMLBDResource {
 
     @GET
     public Response getResources(@QueryParam("filter") String filter,
-                                 @QueryParam("expand") String expand);
+                                 @QueryParam("expand") String expand,
+                                 @QueryParam("skip") Integer skip,
+                                 @QueryParam("top") Integer top);
 
     @GET
     @Path("/{name}")
