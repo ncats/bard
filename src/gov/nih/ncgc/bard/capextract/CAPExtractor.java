@@ -30,24 +30,11 @@ public class CAPExtractor {
 	try {
 	    JAXBContext jc = JAXBContext.newInstance("gov.nih.ncgc.bard.capextract.jaxb");
 	    Unmarshaller unmarshaller = jc.createUnmarshaller();
-	    Dictionary dict = (Dictionary)unmarshaller.unmarshal(new File("resources/dictionary.xml"));
+	    Dictionary dict = (Dictionary)unmarshaller.unmarshal(new File("resources/test/dictionary.xml"));
 	
 	    String yo = "";
 	    for (DescriptorType item: dict.getAssayDescriptors().getAssayDescriptor()) yo = yo + item.getLabel() + "\n";
 	    System.out.println(yo);
 	} catch (Exception ex) {ex.printStackTrace();}
-	
-//	SAXParserFactory spf = SAXParserFactory.newInstance();
-//	spf.setNamespaceAware(true);
-//	XMLReader xmlReader = spf.newSAXParser().getXMLReader();
-//
-//	xmlReader.setContentHandler(new MyContentHandler());
-//
-//        FileInputStream instream = new FileInputStream(args[0]);
-//        InputSource is = new InputSource(instream);
-//
-//        xmlReader.parse(is);
-
-        
     }
 }
