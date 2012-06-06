@@ -7,7 +7,6 @@
     <property name="bard.dist" value="dist"/>
     <property name="bard.deploy" value="deploy"/>
 
-
     <path id="compile.classpath">
         <fileset dir="${bard.lib}">
             <include name="*.jar"/>
@@ -40,6 +39,7 @@
     </target>
 
     <target name="jar-rest" id='jar-rest' depends="compile-rest">
+        <mkdir dir="${bard.deploy}"/>
         <jar destfile="${bard.deploy}/bard.jar" duplicate="preserve">
             <manifest>
                 <attribute name="Created-By" value="NCGC"/>
@@ -68,7 +68,6 @@
               tofile="${bard.explode.dir}/WEB-INF/lib/jackson-annotations-2.0.0.jar"/>
         <copy file="${bard.lib}/jackson-databind-2.0.0.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/jackson-databind-2.0.0.jar"/>
-        <copy file="${bard.lib}/jchem.jar" tofile="${bard.explode.dir}/WEB-INF/lib/jchem.jar"/>
         <!--Move compiled classes into WEB-INF-->
         <copy todir="${bard.explode.dir}/WEB-INF/classes">
             <fileset dir="${bard.build}/"/>
@@ -81,6 +80,7 @@
 
     <property name="war.filename" value="${bard.deploy}/bard.war"/>
     <target name='war-rest' depends="explode-rest">
+        <mkdir dir="${bard.deploy}"/>
         <jar destfile="${war.filename}" duplicate="preserve">
             <manifest>
                 <attribute name="Created-By" value="NCGC"/>
