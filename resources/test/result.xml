@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<result xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:noNamespaceSchemaLocation="BARDexportSchema.xsd"
+ readyForExtraction="Ready"
+ valueDisplay="&lt; 0.00303uM"
+ valueNum="0.00303"
+ qualifier="&lt; ">
+  <status>Approved</status>
+  <substance url='http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?sid=7970106' />
+  <resultContextItems>
+    <resultContextItem resultContextItemId='2' valueDisplay='0' valueNum='0'>
+      <attributeId>
+        <link rel='related' href='http://localhost/api/dictionary/element/369' type='application/vnd.bard.cap+xml;type=element' />
+      </attributeId>
+    </resultContextItem>
+  </resultContextItems>
+  <link rel='up' title='Experiment' type='application/vnd.bard.cap+xml;type=experiment' href='http://localhost/api/data/experiment/1' />
+  <link rel='related' title='Result Type' type='application/vnd.bard.cap+xml;type=resultType' href='http://localhost/api/dictionary/resultType/341' />
+  <link rel='edit' title='Edit Link' type='application/vnd.bard.cap+xml;type=result' href='http://localhost/api/data/result/1' />
+</result>

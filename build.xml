@@ -33,7 +33,6 @@
     </target>
 
     <target name='cap-extract-jaxb'>
-        <echo message="**** Ant version ****" />
         <exec executable="cmd" osfamily="windows">
 	    	<arg value="/c"/>
 	    	<arg value="${jaxb.windir}xjc.bat"/>
