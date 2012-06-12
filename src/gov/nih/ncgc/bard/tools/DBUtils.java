@@ -278,11 +278,15 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select cid from assay_data where aid = ? order by cid " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select cid, sid from assay_data where aid = ? order by cid " + limitClause);
         pst.setLong(1, aid);
         ResultSet rs = pst.executeQuery();
         List<Compound> ret = new ArrayList<Compound>();
-        while (rs.next()) ret.add(getCompoundByCid(rs.getLong("cid")));
+        while (rs.next()) {
+            Compound c = getCompoundByCid(rs.getLong("cid"));
+            c.setSid(rs.getLong("sid"));
+            ret.add(c);
+        }
         pst.close();
         return ret;
     }

@@ -18,7 +18,7 @@ import java.io.Writer;
  * @author Rajarshi Guha
  */
 public class Compound implements BardEntity {
-    Long cid;
+    Long cid, sid;
     String probeId = null;
     String url = null;
     String smiles = null;
@@ -30,6 +30,14 @@ public class Compound implements BardEntity {
     }
 
     public Compound() {
+    }
+
+    public Long getSid() {
+        return sid;
+    }
+
+    public void setSid(Long sid) {
+        this.sid = sid;
     }
 
     public String getSmiles() {
