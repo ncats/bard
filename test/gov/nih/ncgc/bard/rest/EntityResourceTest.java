@@ -48,5 +48,8 @@ public abstract class EntityResourceTest {
         ClientResponse response = resource.get(ClientResponse.class);
         int status = response.getStatus();
         Assert.assertEquals(status, 200, "Response was " + status + " rather than 200");
+
+        Integer count = Integer.valueOf(response.getEntity(String.class));
+        Assert.assertTrue(count > 0, resourceName + " had zero instances from _count");
     }
 }
