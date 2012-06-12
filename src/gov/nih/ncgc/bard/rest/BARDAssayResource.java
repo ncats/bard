@@ -233,7 +233,8 @@ public class BARDAssayResource implements IBARDResource {
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
                 if (expandEntries) expandClause = "expand=true";
-                linkString = BARDConstants.API_BASE + "/assays/" + resourceId + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+                if (skip + top <= a.getSamples())
+                    linkString = BARDConstants.API_BASE + "/assays/" + resourceId + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
 
             if (types.contains(BARDConstants.MIME_SMILES)) {
