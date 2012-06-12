@@ -30,12 +30,20 @@ public abstract class EntityResourceTest {
     public void testResourceName() {
         Assert.assertNotNull(resourceName);
         Assert.assertFalse(resourceName.equals(""));
-
     }
 
     @Test
     public void test_info() {
         String url = prefix + resourceName + "/_info";
+        WebResource resource = client.resource(url);
+        ClientResponse response = resource.get(ClientResponse.class);
+        int status = response.getStatus();
+        Assert.assertEquals(status, 200, "Response was " + status + " rather than 200");
+    }
+
+    @Test
+    public void test_count() {
+        String url = prefix + resourceName + "/_count";
         WebResource resource = client.resource(url);
         ClientResponse response = resource.get(ClientResponse.class);
         int status = response.getStatus();
