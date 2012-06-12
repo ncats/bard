@@ -3,6 +3,7 @@ package gov.nih.ncgc.bard.rest;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
@@ -140,7 +141,7 @@ public class BARDAssayResource implements IBARDResource {
 
     @GET
     @Path("/{aid}/targets")
-    public Response getAssayTargets(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    public Response getAssayTargets(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
@@ -172,7 +173,7 @@ public class BARDAssayResource implements IBARDResource {
 
     @GET
     @Path("/{aid}/publications")
-    public Response getAssayPublications(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    public Response getAssayPublications(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
@@ -202,20 +203,37 @@ public class BARDAssayResource implements IBARDResource {
         }
     }
 
+    // TODO right now, we don't support filtering on compounds
     @GET
     @Path("/{aid}/compounds")
-    public Response getAssayCompounds(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    public Response getAssayCompounds(@PathParam("aid") String resourceId,
+                                      @QueryParam("filter") String filter,
+                                      @QueryParam("expand") String expand,
+                                      @QueryParam("skip") Integer skip,
+                                      @QueryParam("top") Integer top) {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
         List<MediaType> types = headers.getAcceptableMediaTypes();
         DBUtils db = new DBUtils();
+        String linkString = null;
+
+        if (skip == null) skip = -1;
+        if (top == null) top = -1;
 
         try {
             Assay a = db.getAssayByAid(Long.valueOf(resourceId));
+
+            // set up skip and top params
             if (a.getSamples() > BARDConstants.MAX_COMPOUND_COUNT) {
-                throw new RequestTooLargeException("Assay " + resourceId + " has more than 1000 compounds. Use paging");
+                if ((top == -1)) { // top was not specified, so we start from the beginning
+                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                }
+                if (skip == -1) skip = 0;
+                String expandClause = "expand=false";
+                if (expandEntries) expandClause = "expand=true";
+                linkString = BARDConstants.API_BASE + "/assays/" + resourceId + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
 
             if (types.contains(BARDConstants.MIME_SMILES)) {
@@ -224,14 +242,17 @@ public class BARDAssayResource implements IBARDResource {
 
             } else { // JSON
                 if (!expandEntries) {
-                    List<Long> cids = db.getAssayCompoundCids(Long.valueOf(resourceId));
+                    List<Long> cids = db.getAssayCompoundCids(Long.valueOf(resourceId), skip, top);
                     List<String> links = new ArrayList<String>();
                     for (Long cid : cids) links.add((new Compound(cid, null, null)).getResourcePath());
-                    String json = Util.toJson(links);
+
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                    String json = Util.toJson(linkedEntity);
                     return Response.ok(json, MediaType.APPLICATION_JSON).build();
                 } else {
-                    List<Compound> compounds = db.getAssayCompounds(Long.valueOf(resourceId));
-                    String json = Util.toJson(compounds);
+                    List<Compound> compounds = db.getAssayCompounds(Long.valueOf(resourceId), skip, top);
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(compounds, linkString);
+                    String json = Util.toJson(linkedEntity);
                     return Response.ok(json, MediaType.APPLICATION_JSON).build();
                 }
             }

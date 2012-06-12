@@ -236,13 +236,22 @@ public class DBUtils {
     /**
      * Retrieve CIDs for compounds associated with an assay.
      *
-     * @param aid The assay identifier
+     * @param aid  The assay identifier
+     * @param skip how many records to skip
+     * @param top  how many records to return
      * @return A list of compound CIDs
-     * @throws SQLException
+     * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Long> getAssayCompoundCids(Long aid) throws SQLException {
+    public List<Long> getAssayCompoundCids(Long aid, int skip, int top) throws SQLException {
         if (aid == null || aid < 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select cid from assay_data where aid = ?");
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select cid from assay_data where aid = ? order by cid " + limitClause);
         pst.setLong(1, aid);
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
@@ -254,13 +263,22 @@ public class DBUtils {
     /**
      * Retrieve compounds associated with an assay.
      *
-     * @param aid The assay identifier
+     * @param aid  The assay identifier
+     * @param skip how many records to skip
+     * @param top  how many records to return
      * @return A list of {@link Compound} objects
-     * @throws SQLException
+     * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Compound> getAssayCompounds(Long aid) throws SQLException {
+    public List<Compound> getAssayCompounds(Long aid, int skip, int top) throws SQLException {
         if (aid == null || aid < 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select cid from assay_data where aid = ?");
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select cid from assay_data where aid = ? order by cid " + limitClause);
         pst.setLong(1, aid);
         ResultSet rs = pst.executeQuery();
         List<Compound> ret = new ArrayList<Compound>();
