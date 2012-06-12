@@ -192,7 +192,9 @@ public class Assay implements BardEntity {
         sb.append(deposited).append(updated);
         for (ProteinTarget t : targets) sb.append(t.getAcc());
         for (Publication p : publications) sb.append(p.getPubmedId());
-        for (AssayData d : data) sb.append(d.getAssayDataId());
+        if (data != null) {
+            for (AssayData d : data) sb.append(d.getAssayDataId());
+        }
 
         try {
             byte[] digest = Util.getMD5(sb.toString());
