@@ -160,7 +160,7 @@
     <taskdef name="testng" classpathref="cp" classname="org.testng.TestNGAntTask"/>
     <target name='run-tests' id='run-test' depends='compile-test'>
         <testng classpathref="cp" outputDir="${bard.test.output}">
-            <classfileset dir="${bard.build}" includes="**/*.class"/>
+            <classfileset dir="${bard.build}" includes="**/rest/*.class"/>
         </testng>
     </target>
     <target name='rest-heartbeat' id='run-test' depends='compile-test'>
