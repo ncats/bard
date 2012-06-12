@@ -16,6 +16,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -89,6 +90,15 @@ public class DBUtils {
         }
         pst.close();
         return p;
+    }
+
+    public int getPublicationCount() throws SQLException, IOException {
+        PreparedStatement pst = conn.prepareStatement("select count(pmid) as c from publication");
+        ResultSet rs = pst.executeQuery();
+        int n = 0;
+        while (rs.next()) n = rs.getInt("c");
+        pst.close();
+        return n;
     }
 
     public List<Publication> getProteinTargetPublications(String accession) throws SQLException {
@@ -545,5 +555,44 @@ public class DBUtils {
         }
         pst.close();
         return projects;
+    }
+
+    public List<Publication> searchForPublication(String query, int skip, int top) throws SQLException, IOException {
+        List<String> validFields = Arrays.asList("pmid", "title", "abstract", "doi");
+        boolean freeTextQuery = false;
+
+        if (!query.contains("[")) freeTextQuery = true;
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = null;
+        if (freeTextQuery) {
+            String q = "%" + query + "%";
+            pst = conn.prepareStatement("select pmid from publication where (pmid like ? or title like ? or abstract like ? or doi like ?) order by pmid " + limitClause);
+            pst.setString(1, q);
+            pst.setString(2, q);
+            pst.setString(3, q);
+            pst.setString(4, q);
+        } else {
+            String[] toks = query.split("\\[");
+            String q = toks[0].trim();
+            String field = toks[1].trim().replace("]", "");
+            if (!validFields.contains(field)) throw new SQLException("Invalid field was specified");
+            String sql = "select pmid from publication  " + field + " like '%" + q + "%' order by pmid " + limitClause;
+            pst = conn.prepareStatement(sql);
+        }
+
+        ResultSet rs = pst.executeQuery();
+        List<Publication> publications = new ArrayList<Publication>();
+        while (rs.next()) {
+            Long pmid = rs.getLong("pmid");
+            publications.add(getPublicationByPmid(pmid));
+        }
+        pst.close();
+        return publications;
     }
 }
