@@ -81,8 +81,7 @@ public class BARDCompoundResource implements IBARDResource {
         Compound c = null;
         if (type.equals("cid")) c = db.getCompoundByCid(Long.parseLong(id));
         else if (type.equals("probeid")) c = db.getCompoundByProbeId(id);
-        else if (type.equals("sid")) {
-        }
+        else if (type.equals("sid")) c = db.getCompoundBySid(Long.parseLong(id));
 
         if (c == null || c.getCid() == null) throw new WebApplicationException(404);
 
@@ -116,8 +115,20 @@ public class BARDCompoundResource implements IBARDResource {
     }
 
     @GET
+    @Path("/sid/{sid}")
+    public Response getCompoundBySid(@PathParam("sid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+        try {
+            return getCompoundResponse(resourceId, "sid", headers.getAcceptableMediaTypes());
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
     @Path("/probeid/{pid}")
-    public Response getCompoundByProbeid(@PathParam("pid") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    public Response getCompoundByProbeid(@PathParam("pid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
             return getCompoundResponse(resourceId, "probeid", headers.getAcceptableMediaTypes());
         } catch (SQLException e) {

@@ -158,14 +158,17 @@ public class DBUtils {
 
     public Compound getCompoundByCid(Long cid) throws SQLException {
         if (cid == null || cid < 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from compound where cid = ?");
+        PreparedStatement pst = conn.prepareStatement("select c.*, s.sid from compound c, substance s where c.cid = ? and c.cid = s.cid");
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         Compound c = new Compound();
+        List<Long> sids = new ArrayList<Long>();
         while (rs.next()) {
             c.setCid(rs.getLong("cid"));
             c.setProbeId(rs.getString("probe_id"));
             c.setUrl(rs.getString("url"));
+
+            sids.add(rs.getLong("sid"));
 
             String smiles = null;
             String molfile = rs.getString("molfile");
@@ -176,20 +179,35 @@ public class DBUtils {
                 e.printStackTrace();
             }
         }
+        c.setSids(sids);
         pst.close();
         return c;
     }
 
+    public Compound getCompoundBySid(Long sid) throws SQLException {
+        if (sid == null || sid < 0) return null;
+        PreparedStatement pst = conn.prepareStatement("select cid from substance s where s.sid = ?");
+        pst.setLong(1, sid);
+        ResultSet rs = pst.executeQuery();
+        Long cid = -1L;
+        while (rs.next()) cid = rs.getLong("cid");
+        pst.close();
+        return getCompoundByCid(cid);
+    }
+
     public Compound getCompoundByProbeId(String probeid) throws SQLException {
         if (probeid == null || probeid.trim().equals("")) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from compound where probe_id = ?");
+        PreparedStatement pst = conn.prepareStatement("select c.*, s.sid from compound c, substance s where probe_id = ? and c.cid = s.cid");
         pst.setString(1, probeid.trim());
         ResultSet rs = pst.executeQuery();
         Compound c = new Compound();
+        List<Long> sids = new ArrayList<Long>();
         while (rs.next()) {
             c.setCid(rs.getLong("cid"));
             c.setProbeId(rs.getString("probe_id"));
             c.setUrl(rs.getString("url"));
+
+            sids.add(rs.getLong("sid"));
 
             String smiles = null;
             String molfile = rs.getString("molfile");
@@ -200,6 +218,7 @@ public class DBUtils {
                 e.printStackTrace();
             }
         }
+        c.setSids(sids);
         pst.close();
         return c;
     }
@@ -282,9 +301,9 @@ public class DBUtils {
         pst.setLong(1, aid);
         ResultSet rs = pst.executeQuery();
         List<Compound> ret = new ArrayList<Compound>();
+
         while (rs.next()) {
             Compound c = getCompoundByCid(rs.getLong("cid"));
-            c.setSid(rs.getLong("sid"));
             ret.add(c);
         }
         pst.close();
