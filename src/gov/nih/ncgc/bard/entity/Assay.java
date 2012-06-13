@@ -39,10 +39,20 @@ public class Assay implements BardEntity {
         this.compounds = compounds;
     }
 
+    /**
+     * Get the number of compounds (CIDs) tested in the assay.
+     *
+     * @return the number of compounds tested
+     */
     public int getCompounds() {
         return compounds;
     }
 
+    /**
+     * Set the number of compounds (CIDs) tested in the assay.
+     *
+     * @param compounds the number of compounds tested
+     */
     public void setCompounds(int compounds) {
         this.compounds = compounds;
     }
@@ -70,10 +80,20 @@ public class Assay implements BardEntity {
         this.classification = classification;
     }
 
+    /**
+     * Get the number of substances (SIDs) tested in the assay.
+     *
+     * @return the number of substances tested.
+     */
     public int getSubstances() {
         return substances;
     }
 
+    /**
+     * Set the number of substances (SIDs) tested in the assay.
+     *
+     * @param substances the number of substances tested
+     */
     public void setSubstances(int substances) {
         this.substances = substances;
     }
