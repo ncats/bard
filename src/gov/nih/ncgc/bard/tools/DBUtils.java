@@ -166,18 +166,8 @@ public class DBUtils {
         while (rs.next()) {
             c.setCid(rs.getLong("cid"));
             c.setProbeId(rs.getString("probe_id"));
-            c.setUrl(rs.getString("url"));
-
+            c.setSmiles(rs.getString("iso_smiles"));
             sids.add(rs.getLong("sid"));
-
-            String smiles = null;
-            String molfile = rs.getString("molfile");
-            try {
-                smiles = MolImporter.importMol(molfile).toFormat("smiles");
-                c.setSmiles(smiles);
-            } catch (MolFormatException e) {
-                e.printStackTrace();
-            }
         }
         c.setSids(sids);
         pst.close();
@@ -205,18 +195,8 @@ public class DBUtils {
         while (rs.next()) {
             c.setCid(rs.getLong("cid"));
             c.setProbeId(rs.getString("probe_id"));
-            c.setUrl(rs.getString("url"));
-
+            c.setSmiles(rs.getString("iso_smiles"));
             sids.add(rs.getLong("sid"));
-
-            String smiles = null;
-            String molfile = rs.getString("molfile");
-            try {
-                smiles = MolImporter.importMol(molfile).toFormat("smiles");
-                c.setSmiles(smiles);
-            } catch (MolFormatException e) {
-                e.printStackTrace();
-            }
         }
         c.setSids(sids);
         pst.close();
