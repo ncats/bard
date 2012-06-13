@@ -226,14 +226,14 @@ public class BARDAssayResource implements IBARDResource {
             Assay a = db.getAssayByAid(Long.valueOf(resourceId));
 
             // set up skip and top params
-            if (a.getSamples() > BARDConstants.MAX_COMPOUND_COUNT) {
+            if (a.getSubstances() > BARDConstants.MAX_COMPOUND_COUNT) {
                 if ((top == -1)) { // top was not specified, so we start from the beginning
                     top = BARDConstants.MAX_COMPOUND_COUNT;
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
                 if (expandEntries) expandClause = "expand=true";
-                if (skip + top <= a.getSamples())
+                if (skip + top <= a.getSubstances())
                     linkString = BARDConstants.API_BASE + "/assays/" + resourceId + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
 

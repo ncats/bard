@@ -14,7 +14,7 @@ import java.util.List;
  */
 public class Assay implements BardEntity {
     Long aid;
-    int category, type, summary, assays, classification, samples;
+    int category, type, summary, assays, classification, substances, compounds;
     String name, description, source, grantNo;
     Date deposited, updated;
 
@@ -22,20 +22,29 @@ public class Assay implements BardEntity {
     List<ProteinTarget> targets;
     List<AssayData> data;
 
-    public Assay(Long aid, int category, int type, int summary, int assays, int classification, int samples, String name, String description, String source, String grantNo, Date deposited, Date updated) {
+    public Assay(Long aid, int category, int type, int summary, int assays, int classification, int samples, int compounds, String name, String description, String source, String grantNo, Date deposited, Date updated) {
         this.aid = aid;
         this.category = category;
         this.type = type;
         this.summary = summary;
         this.assays = assays;
         this.classification = classification;
-        this.samples = samples;
+        this.substances = samples;
         this.name = name;
         this.description = description;
         this.source = source;
         this.grantNo = grantNo;
         this.deposited = deposited;
         this.updated = updated;
+        this.compounds = compounds;
+    }
+
+    public int getCompounds() {
+        return compounds;
+    }
+
+    public void setCompounds(int compounds) {
+        this.compounds = compounds;
     }
 
     public String toString() {
@@ -61,12 +70,12 @@ public class Assay implements BardEntity {
         this.classification = classification;
     }
 
-    public int getSamples() {
-        return samples;
+    public int getSubstances() {
+        return substances;
     }
 
-    public void setSamples(int samples) {
-        this.samples = samples;
+    public void setSubstances(int substances) {
+        this.substances = substances;
     }
 
     public String getSource() {
@@ -187,7 +196,7 @@ public class Assay implements BardEntity {
 
     public String getEntityTag() {
         StringBuilder sb = new StringBuilder();
-        sb.append(aid).append(category).append(type).append(summary).append(assays).append(classification).append(samples);
+        sb.append(aid).append(category).append(type).append(summary).append(assays).append(classification).append(substances);
         sb.append(name).append(grantNo).append(description).append(source);
         sb.append(deposited).append(updated);
         for (ProteinTarget t : targets) sb.append(t.getAcc());

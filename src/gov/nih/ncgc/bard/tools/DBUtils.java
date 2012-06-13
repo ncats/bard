@@ -238,7 +238,7 @@ public class DBUtils {
             a.setDescription(rs.getString("description"));
             a.setGrantNo(rs.getString("grant_no"));
             a.setName(rs.getString("name"));
-            a.setSamples(rs.getInt("samples"));
+            a.setSubstances(rs.getInt("samples"));
             a.setSource(rs.getString("source"));
             a.setSummary(rs.getInt("summary"));
             a.setType(rs.getInt("type"));
@@ -248,6 +248,13 @@ public class DBUtils {
             a.setPublications(getAssayPublications(aid));
             a.setTargets(getAssayTargets(aid));
         }
+
+        // get a compound count
+        pst = conn.prepareStatement("select count(distinct cid) from assay_data where aid = ?");
+        pst.setLong(1, aid);
+        rs = pst.executeQuery();
+        while (rs.next()) a.setCompounds(rs.getInt(1));
+
         pst.close();
         return a;
     }
