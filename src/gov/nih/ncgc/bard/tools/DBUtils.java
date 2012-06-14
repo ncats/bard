@@ -1,7 +1,5 @@
 package gov.nih.ncgc.bard.tools;
 
-import chemaxon.formats.MolFormatException;
-import chemaxon.formats.MolImporter;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Project;
@@ -156,6 +154,24 @@ public class DBUtils {
         return p;
     }
 
+    public int getCompoundCount() throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select count(cid) from compound");
+        ResultSet rs = pst.executeQuery();
+        int n = 0;
+        while (rs.next()) n = rs.getInt(1);
+        pst.close();
+        return (n);
+    }
+
+    public int getSubstanceCount() throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select count(sid) from substance");
+        ResultSet rs = pst.executeQuery();
+        int n = 0;
+        while (rs.next()) n = rs.getInt(1);
+        pst.close();
+        return (n);
+    }
+
     public Compound getCompoundByCid(Long cid) throws SQLException {
         if (cid == null || cid < 0) return null;
         PreparedStatement pst = conn.prepareStatement("select c.*, s.sid from compound c, substance s where c.cid = ? and c.cid = s.cid");
@@ -257,11 +273,38 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select cid from assay_data where aid = ? order by cid " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select distinct cid from assay_data where aid = ? order by cid " + limitClause);
         pst.setLong(1, aid);
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
         while (rs.next()) ret.add(rs.getLong("cid"));
+        pst.close();
+        return ret;
+    }
+
+    /**
+     * Retrieve SIDs for compounds associated with an assay.
+     *
+     * @param aid  The assay identifier
+     * @param skip how many records to skip
+     * @param top  how many records to return
+     * @return A list of compound SIDs
+     * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
+     */
+    public List<Long> getAssayCompoundSids(Long aid, int skip, int top) throws SQLException {
+        if (aid == null || aid < 0) return null;
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select distinct sid from assay_data where aid = ? order by sid " + limitClause);
+        pst.setLong(1, aid);
+        ResultSet rs = pst.executeQuery();
+        List<Long> ret = new ArrayList<Long>();
+        while (rs.next()) ret.add(rs.getLong("sid"));
         pst.close();
         return ret;
     }
