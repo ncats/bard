@@ -14,10 +14,10 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Substance implements BardEntity {
-    String sid = null;
-    List<String> cid;
+    Long sid = null;
+    List<Long> cid;
 
-    public Substance(String sid, List<String> cid) {
+    public Substance(Long sid, List<Long> cid) {
         this.sid = sid;
         this.cid = cid;
     }
@@ -25,11 +25,11 @@ public class Substance implements BardEntity {
     public Substance() {
     }
 
-    public String getSid() {
+    public Long getSid() {
         return sid;
     }
 
-    public List<String> getCid() {
+    public List<Long> getCid() {
         return cid;
     }
 

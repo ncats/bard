@@ -163,6 +163,26 @@ public class DBUtils {
         return (n);
     }
 
+    public Long getCidBySid(Long sid) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select cid from substance where sid = ?");
+        pst.setLong(1, sid);
+        ResultSet rs = pst.executeQuery();
+        long cid = -1L;
+        while (rs.next()) cid = rs.getLong(1);
+        pst.close();
+        return cid;
+    }
+
+    public List<Long> getSidsByCid(Long cid) throws SQLException {
+        List<Long> sids = new ArrayList<Long>();
+        PreparedStatement pst = conn.prepareStatement("select sid from substance where cid = ?");
+        pst.setLong(1, cid);
+        ResultSet rs = pst.executeQuery();
+        while (rs.next()) sids.add(rs.getLong(1));
+        pst.close();
+        return sids;
+    }
+
     public int getSubstanceCount() throws SQLException {
         PreparedStatement pst = conn.prepareStatement("select count(sid) from substance");
         ResultSet rs = pst.executeQuery();
@@ -327,7 +347,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select cid, sid from assay_data where aid = ? order by cid " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select cid, sid from assay_data where aid = ? order by sid " + limitClause);
         pst.setLong(1, aid);
         ResultSet rs = pst.executeQuery();
         List<Compound> ret = new ArrayList<Compound>();
@@ -339,6 +359,38 @@ public class DBUtils {
         pst.close();
         return ret;
     }
+
+    /**
+     * Retrieve substances associated with an assay.
+     *
+     * @param aid  The assay identifier
+     * @param skip how many records to skip
+     * @param top  how many records to return
+     * @return A list of {@link Compound} objects
+     * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
+     */
+    public List<Compound> getAssaySubstances(Long aid, int skip, int top) throws SQLException {
+        if (aid == null || aid < 0) return null;
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select cid, sid from assay_data where aid = ? order by sid " + limitClause);
+        pst.setLong(1, aid);
+        ResultSet rs = pst.executeQuery();
+        List<Compound> ret = new ArrayList<Compound>();
+
+        while (rs.next()) {
+            Compound c = getCompoundBySid(rs.getLong("sid"));
+            ret.add(c);
+        }
+        pst.close();
+        return ret;
+    }
+
 
     /**
      * Retrieve publications associated with an assay id.

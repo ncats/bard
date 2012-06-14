@@ -1,7 +1,6 @@
 package gov.nih.ncgc.bard.rest;
 
 import chemaxon.formats.MolImporter;
-import chemaxon.marvin.util.MolExportException;
 import chemaxon.struc.Molecule;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.tools.DBUtils;
@@ -21,6 +20,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -81,14 +81,17 @@ public class BARDSubstanceResource implements IBARDResource {
         return getResources(null, filter, expand);
     }
 
-    private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes) throws SQLException, IOException, MolExportException {
-        DBUtils db = new DBUtils();
+    private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes) throws SQLException, IOException {
+        if (!type.equals("cid") && !type.equals("sid")) throw new WebApplicationException(400);
 
-        if (!type.equals("cid") && !type.equals("probeid") && !type.equals("sid")) return null;
+        DBUtils db = new DBUtils();
         Compound c = null;
-        if (type.equals("cid")) c = db.getCompoundByCid(Long.parseLong(id));
-        else if (type.equals("probeid")) c = db.getCompoundByProbeId(id);
-        else if (type.equals("sid")) c = db.getCompoundBySid(Long.parseLong(id));
+        if (type.equals("cid")) {
+            List<Long> sids = db.getSidsByCid(Long.parseLong(id));
+            List<String> paths = new ArrayList<String>();
+            for (Long sid : sids) paths.add(BARDConstants.API_BASE + "/substances/" + sid);
+            return Response.ok(Util.toJson(paths), MediaType.APPLICATION_JSON).build();
+        } else if (type.equals("sid")) c = db.getCompoundBySid(Long.parseLong(id));
 
         if (c == null || c.getCid() == null) throw new WebApplicationException(404);
 
@@ -109,21 +112,10 @@ public class BARDSubstanceResource implements IBARDResource {
         }
     }
 
+    // return compound (via CID) for this SID
     @GET
-    @Path("/{cid}")
-    public Response getResources(@PathParam("cid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
-        try {
-            return getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes());
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
-        }
-    }
-
-    @GET
-    @Path("/sid/{sid}")
-    public Response getCompoundBySid(@PathParam("sid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+    @Path("/{sid}")
+    public Response getResources(@PathParam("sid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
             return getCompoundResponse(resourceId, "sid", headers.getAcceptableMediaTypes());
         } catch (SQLException e) {
@@ -133,15 +125,17 @@ public class BARDSubstanceResource implements IBARDResource {
         }
     }
 
+    // return list of SID's for this CID
     @GET
-    @Path("/probeid/{pid}")
-    public Response getCompoundByProbeid(@PathParam("pid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+    @Path("/cid/{cid}")
+    public Response getCompoundBySid(@PathParam("cid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            return getCompoundResponse(resourceId, "probeid", headers.getAcceptableMediaTypes());
+            return getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes());
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
     }
+
 }
