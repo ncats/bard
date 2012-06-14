@@ -243,20 +243,21 @@ public class BARDAssayResource implements IBARDResource {
             } else if (types.contains(BARDConstants.MIME_SDF)) {
 
             } else { // JSON
+                String json;
                 if (!expandEntries) {
                     List<Long> cids = db.getAssayCompoundCids(Long.valueOf(resourceId), skip, top);
                     List<String> links = new ArrayList<String>();
                     for (Long cid : cids) links.add((new Compound(cid, null, null)).getResourcePath());
 
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
-                    String json = Util.toJson(linkedEntity);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                    json = Util.toJson(linkedEntity);
                 } else {
                     List<Compound> compounds = db.getAssayCompounds(Long.valueOf(resourceId), skip, top);
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(compounds, linkString);
-                    String json = Util.toJson(linkedEntity);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                    json = Util.toJson(linkedEntity);
                 }
+                db.closeConnection();
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
@@ -304,20 +305,21 @@ public class BARDAssayResource implements IBARDResource {
             } else if (types.contains(BARDConstants.MIME_SDF)) {
 
             } else { // JSON
+                String json;
                 if (!expandEntries) {
                     List<Long> sids = db.getAssayCompoundSids(Long.valueOf(resourceId), skip, top);
                     List<String> links = new ArrayList<String>();
                     for (Long sid : sids) links.add((new Substance(sid, null)).getResourcePath());
 
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
-                    String json = Util.toJson(linkedEntity);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                    json = Util.toJson(linkedEntity);
                 } else {
                     List<Compound> compounds = db.getAssaySubstances(Long.valueOf(resourceId), skip, top);
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(compounds, linkString);
-                    String json = Util.toJson(linkedEntity);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                    json = Util.toJson(linkedEntity);
                 }
+                db.closeConnection();
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);

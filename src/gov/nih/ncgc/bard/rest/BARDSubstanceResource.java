@@ -92,6 +92,7 @@ public class BARDSubstanceResource implements IBARDResource {
             for (Long sid : sids) paths.add(BARDConstants.API_BASE + "/substances/" + sid);
             return Response.ok(Util.toJson(paths), MediaType.APPLICATION_JSON).build();
         } else if (type.equals("sid")) c = db.getCompoundBySid(Long.parseLong(id));
+        db.closeConnection();
 
         if (c == null || c.getCid() == null) throw new WebApplicationException(404);
 

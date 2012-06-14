@@ -89,6 +89,7 @@ public class BARDCompoundResource implements IBARDResource {
         if (type.equals("cid")) c = db.getCompoundByCid(Long.parseLong(id));
         else if (type.equals("probeid")) c = db.getCompoundByProbeId(id);
         else if (type.equals("sid")) c = db.getCompoundBySid(Long.parseLong(id));
+        db.closeConnection();
 
         if (c == null || c.getCid() == null) throw new WebApplicationException(404);
 
