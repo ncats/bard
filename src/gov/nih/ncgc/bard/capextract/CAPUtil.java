@@ -1,8 +1,5 @@
 package gov.nih.ncgc.bard.capextract;
 
-import gov.nih.ncgc.bard.capextract.jaxb.Dictionary;
-import gov.nih.ncgc.bard.capextract.jaxb.Link;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
