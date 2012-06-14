@@ -31,8 +31,8 @@ import java.util.List;
  *
  * @author Rajarshi Guha
  */
-@Path("/v1/compounds")
-public class BARDCompoundResource implements IBARDResource {
+@Path("/v1/substances")
+public class BARDSubstanceResource implements IBARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -48,7 +48,7 @@ public class BARDCompoundResource implements IBARDResource {
     @Produces("text/plain")
     @Path("/_info")
     public String info() {
-        StringBuilder msg = new StringBuilder("Returns compound information\n\nAvailable resources:\n");
+        StringBuilder msg = new StringBuilder("Returns substance information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
         return msg.toString();
@@ -66,7 +66,7 @@ public class BARDCompoundResource implements IBARDResource {
     public String count(@QueryParam("filter") String filter) {
         DBUtils db = new DBUtils();
         try {
-            int n = db.getCompoundCount();
+            int n = db.getSubstanceCount();
             db.closeConnection();
             return String.valueOf(n);
         } catch (SQLException e) {
