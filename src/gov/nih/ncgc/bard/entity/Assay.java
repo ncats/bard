@@ -13,30 +13,37 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Assay implements BardEntity {
-    Long aid;
+    Long aid, bardAid;
     int category, type, summary, assays, classification, substances, compounds;
-    String name, description, source, grantNo;
+    String name, description, source, grantNo, protocol, comments;
     Date deposited, updated;
 
     List<Publication> publications;
     List<ProteinTarget> targets;
     List<AssayData> data;
 
-    public Assay(Long aid, int category, int type, int summary, int assays, int classification, int samples, int compounds, String name, String description, String source, String grantNo, Date deposited, Date updated) {
-        this.aid = aid;
-        this.category = category;
-        this.type = type;
-        this.summary = summary;
-        this.assays = assays;
-        this.classification = classification;
-        this.substances = samples;
-        this.name = name;
-        this.description = description;
-        this.source = source;
-        this.grantNo = grantNo;
-        this.deposited = deposited;
-        this.updated = updated;
-        this.compounds = compounds;
+    public String getProtocol() {
+        return protocol;
+    }
+
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
+    public String getComments() {
+        return comments;
+    }
+
+    public void setComments(String comments) {
+        this.comments = comments;
+    }
+
+    public Long getBardAid() {
+        return bardAid;
+    }
+
+    public void setBardAid(Long bardAid) {
+        this.bardAid = bardAid;
     }
 
     /**
