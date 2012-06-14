@@ -16,6 +16,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -91,6 +92,15 @@ public class DBUtils {
         return p;
     }
 
+    public int getPublicationCount() throws SQLException, IOException {
+        PreparedStatement pst = conn.prepareStatement("select count(pmid) as c from publication");
+        ResultSet rs = pst.executeQuery();
+        int n = 0;
+        while (rs.next()) n = rs.getInt("c");
+        pst.close();
+        return n;
+    }
+
     public List<Publication> getProteinTargetPublications(String accession) throws SQLException {
         if (accession == null || accession.trim().equals("")) return null;
 
@@ -148,48 +158,47 @@ public class DBUtils {
 
     public Compound getCompoundByCid(Long cid) throws SQLException {
         if (cid == null || cid < 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from compound where cid = ?");
+        PreparedStatement pst = conn.prepareStatement("select c.*, s.sid from compound c, substance s where c.cid = ? and c.cid = s.cid");
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         Compound c = new Compound();
+        List<Long> sids = new ArrayList<Long>();
         while (rs.next()) {
             c.setCid(rs.getLong("cid"));
             c.setProbeId(rs.getString("probe_id"));
-            c.setUrl(rs.getString("url"));
-
-            String smiles = null;
-            String molfile = rs.getString("molfile");
-            try {
-                smiles = MolImporter.importMol(molfile).toFormat("smiles");
-                c.setSmiles(smiles);
-            } catch (MolFormatException e) {
-                e.printStackTrace();
-            }
+            c.setSmiles(rs.getString("iso_smiles"));
+            sids.add(rs.getLong("sid"));
         }
+        c.setSids(sids);
         pst.close();
         return c;
     }
 
+    public Compound getCompoundBySid(Long sid) throws SQLException {
+        if (sid == null || sid < 0) return null;
+        PreparedStatement pst = conn.prepareStatement("select cid from substance s where s.sid = ?");
+        pst.setLong(1, sid);
+        ResultSet rs = pst.executeQuery();
+        Long cid = -1L;
+        while (rs.next()) cid = rs.getLong("cid");
+        pst.close();
+        return getCompoundByCid(cid);
+    }
+
     public Compound getCompoundByProbeId(String probeid) throws SQLException {
         if (probeid == null || probeid.trim().equals("")) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from compound where probe_id = ?");
+        PreparedStatement pst = conn.prepareStatement("select c.*, s.sid from compound c, substance s where probe_id = ? and c.cid = s.cid");
         pst.setString(1, probeid.trim());
         ResultSet rs = pst.executeQuery();
         Compound c = new Compound();
+        List<Long> sids = new ArrayList<Long>();
         while (rs.next()) {
             c.setCid(rs.getLong("cid"));
             c.setProbeId(rs.getString("probe_id"));
-            c.setUrl(rs.getString("url"));
-
-            String smiles = null;
-            String molfile = rs.getString("molfile");
-            try {
-                smiles = MolImporter.importMol(molfile).toFormat("smiles");
-                c.setSmiles(smiles);
-            } catch (MolFormatException e) {
-                e.printStackTrace();
-            }
+            c.setSmiles(rs.getString("iso_smiles"));
+            sids.add(rs.getLong("sid"));
         }
+        c.setSids(sids);
         pst.close();
         return c;
     }
@@ -209,7 +218,7 @@ public class DBUtils {
             a.setDescription(rs.getString("description"));
             a.setGrantNo(rs.getString("grant_no"));
             a.setName(rs.getString("name"));
-            a.setSamples(rs.getInt("samples"));
+            a.setSubstances(rs.getInt("samples"));
             a.setSource(rs.getString("source"));
             a.setSummary(rs.getInt("summary"));
             a.setType(rs.getInt("type"));
@@ -219,6 +228,13 @@ public class DBUtils {
             a.setPublications(getAssayPublications(aid));
             a.setTargets(getAssayTargets(aid));
         }
+
+        // get a compound count
+        pst = conn.prepareStatement("select count(distinct cid) from assay_data where aid = ?");
+        pst.setLong(1, aid);
+        rs = pst.executeQuery();
+        while (rs.next()) a.setCompounds(rs.getInt(1));
+
         pst.close();
         return a;
     }
@@ -226,13 +242,22 @@ public class DBUtils {
     /**
      * Retrieve CIDs for compounds associated with an assay.
      *
-     * @param aid The assay identifier
+     * @param aid  The assay identifier
+     * @param skip how many records to skip
+     * @param top  how many records to return
      * @return A list of compound CIDs
-     * @throws SQLException
+     * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Long> getAssayCompoundCids(Long aid) throws SQLException {
+    public List<Long> getAssayCompoundCids(Long aid, int skip, int top) throws SQLException {
         if (aid == null || aid < 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select cid from assay_data where aid = ?");
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select cid from assay_data where aid = ? order by cid " + limitClause);
         pst.setLong(1, aid);
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
@@ -244,17 +269,30 @@ public class DBUtils {
     /**
      * Retrieve compounds associated with an assay.
      *
-     * @param aid The assay identifier
+     * @param aid  The assay identifier
+     * @param skip how many records to skip
+     * @param top  how many records to return
      * @return A list of {@link Compound} objects
-     * @throws SQLException
+     * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Compound> getAssayCompounds(Long aid) throws SQLException {
+    public List<Compound> getAssayCompounds(Long aid, int skip, int top) throws SQLException {
         if (aid == null || aid < 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select cid from assay_data where aid = ?");
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select cid, sid from assay_data where aid = ? order by cid " + limitClause);
         pst.setLong(1, aid);
         ResultSet rs = pst.executeQuery();
         List<Compound> ret = new ArrayList<Compound>();
-        while (rs.next()) ret.add(getCompoundByCid(rs.getLong("cid")));
+
+        while (rs.next()) {
+            Compound c = getCompoundByCid(rs.getLong("cid"));
+            ret.add(c);
+        }
         pst.close();
         return ret;
     }
@@ -545,5 +583,44 @@ public class DBUtils {
         }
         pst.close();
         return projects;
+    }
+
+    public List<Publication> searchForPublication(String query, int skip, int top) throws SQLException, IOException {
+        List<String> validFields = Arrays.asList("pmid", "title", "abstract", "doi");
+        boolean freeTextQuery = false;
+
+        if (!query.contains("[")) freeTextQuery = true;
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = null;
+        if (freeTextQuery) {
+            String q = "%" + query + "%";
+            pst = conn.prepareStatement("select pmid from publication where (pmid like ? or title like ? or abstract like ? or doi like ?) order by pmid " + limitClause);
+            pst.setString(1, q);
+            pst.setString(2, q);
+            pst.setString(3, q);
+            pst.setString(4, q);
+        } else {
+            String[] toks = query.split("\\[");
+            String q = toks[0].trim();
+            String field = toks[1].trim().replace("]", "");
+            if (!validFields.contains(field)) throw new SQLException("Invalid field was specified");
+            String sql = "select pmid from publication  " + field + " like '%" + q + "%' order by pmid " + limitClause;
+            pst = conn.prepareStatement(sql);
+        }
+
+        ResultSet rs = pst.executeQuery();
+        List<Publication> publications = new ArrayList<Publication>();
+        while (rs.next()) {
+            Long pmid = rs.getLong("pmid");
+            publications.add(getPublicationByPmid(pmid));
+        }
+        pst.close();
+        return publications;
     }
 }

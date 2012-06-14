@@ -13,29 +13,55 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Assay implements BardEntity {
-    Long aid;
-    int category, type, summary, assays, classification, samples;
-    String name, description, source, grantNo;
+    Long aid, bardAid;
+    int category, type, summary, assays, classification, substances, compounds;
+    String name, description, source, grantNo, protocol, comments;
     Date deposited, updated;
 
     List<Publication> publications;
     List<ProteinTarget> targets;
     List<AssayData> data;
 
-    public Assay(Long aid, int category, int type, int summary, int assays, int classification, int samples, String name, String description, String source, String grantNo, Date deposited, Date updated) {
-        this.aid = aid;
-        this.category = category;
-        this.type = type;
-        this.summary = summary;
-        this.assays = assays;
-        this.classification = classification;
-        this.samples = samples;
-        this.name = name;
-        this.description = description;
-        this.source = source;
-        this.grantNo = grantNo;
-        this.deposited = deposited;
-        this.updated = updated;
+    public String getProtocol() {
+        return protocol;
+    }
+
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
+    public String getComments() {
+        return comments;
+    }
+
+    public void setComments(String comments) {
+        this.comments = comments;
+    }
+
+    public Long getBardAid() {
+        return bardAid;
+    }
+
+    public void setBardAid(Long bardAid) {
+        this.bardAid = bardAid;
+    }
+
+    /**
+     * Get the number of compounds (CIDs) tested in the assay.
+     *
+     * @return the number of compounds tested
+     */
+    public int getCompounds() {
+        return compounds;
+    }
+
+    /**
+     * Set the number of compounds (CIDs) tested in the assay.
+     *
+     * @param compounds the number of compounds tested
+     */
+    public void setCompounds(int compounds) {
+        this.compounds = compounds;
     }
 
     public String toString() {
@@ -61,12 +87,22 @@ public class Assay implements BardEntity {
         this.classification = classification;
     }
 
-    public int getSamples() {
-        return samples;
+    /**
+     * Get the number of substances (SIDs) tested in the assay.
+     *
+     * @return the number of substances tested.
+     */
+    public int getSubstances() {
+        return substances;
     }
 
-    public void setSamples(int samples) {
-        this.samples = samples;
+    /**
+     * Set the number of substances (SIDs) tested in the assay.
+     *
+     * @param substances the number of substances tested
+     */
+    public void setSubstances(int substances) {
+        this.substances = substances;
     }
 
     public String getSource() {
@@ -187,12 +223,14 @@ public class Assay implements BardEntity {
 
     public String getEntityTag() {
         StringBuilder sb = new StringBuilder();
-        sb.append(aid).append(category).append(type).append(summary).append(assays).append(classification).append(samples);
+        sb.append(aid).append(category).append(type).append(summary).append(assays).append(classification).append(substances);
         sb.append(name).append(grantNo).append(description).append(source);
         sb.append(deposited).append(updated);
         for (ProteinTarget t : targets) sb.append(t.getAcc());
         for (Publication p : publications) sb.append(p.getPubmedId());
-        for (AssayData d : data) sb.append(d.getAssayDataId());
+        if (data != null) {
+            for (AssayData d : data) sb.append(d.getAssayDataId());
+        }
 
         try {
             byte[] digest = Util.getMD5(sb.toString());

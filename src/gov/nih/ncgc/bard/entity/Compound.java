@@ -6,6 +6,7 @@ import gov.nih.ncgc.bard.rest.BARDConstants;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.List;
 
 /**
  * Represents a compound.
@@ -19,6 +20,7 @@ import java.io.Writer;
  */
 public class Compound implements BardEntity {
     Long cid;
+    List<Long> sids;
     String probeId = null;
     String url = null;
     String smiles = null;
@@ -30,6 +32,14 @@ public class Compound implements BardEntity {
     }
 
     public Compound() {
+    }
+
+    public List<Long> getSids() {
+        return sids;
+    }
+
+    public void setSids(List<Long> sids) {
+        this.sids = sids;
     }
 
     public String getSmiles() {

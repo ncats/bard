@@ -24,6 +24,22 @@ ant war-rest
 ```
 You can then copy `deploy/bard.war` to the application containers' webapp directory and restart the server (if required)
 
+Testing
+-------
+
+We are currently employing the [TestNG](http://testng.org/doc/index.html) framework for testing. At this stage we have a small
+set of tests focusing on the various entity resources - most of them are currently stubs and need to be fleshed out. To run
+the tests do
+```
+ant clean run-tests
+```
+and view `test.out/index.html` in your browser to view the summary.
+
+There is a special test target called `rest-heartbeat` that simply retrieves the `/_info` resource for all available
+entities on the main development server and checks that the HTTP status code is 200. While this does not check that the resource is returning the
+correct values, it does indicate that the resources are available. Ideally, there should be no failures for this
+test target. If there are failures, that will indicate that one or more resources are not available.
+
 Tomcat Configuration
 --------------------
 

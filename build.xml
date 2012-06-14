@@ -2,13 +2,14 @@
 <project name="bard">
 
     <property name="bard.src" value="src"/>
+    <property name="bard.test" value="test"/>
+    <property name="bard.test.output" value="test.out"/>
     <property name="bard.lib" value="lib"/>
     <property name="bard.build" value="classes"/>
     <property name="bard.dist" value="dist"/>
     <property name="bard.deploy" value="deploy"/>
     <property name="jaxb.windir" value="..\\jaxb-ri-20120516\\bin\\"/>
     <property name="jaxb.dir" value="../jaxb/bin/"/>
-
 
     <path id="compile.classpath">
         <fileset dir="${bard.lib}">
@@ -19,6 +20,7 @@
     <target name="clean">
         <delete dir="${bard.build}"/>
         <delete dir="${bard.explode.dir}"/>
+        <delete dir="${bard.test.output}"/>
     </target>
 
     <target name="tools">
@@ -34,20 +36,20 @@
 
     <target name='cap-extract-jaxb'>
         <exec executable="cmd" osfamily="windows">
-	    	<arg value="/c"/>
-	    	<arg value="${jaxb.windir}xjc.bat"/>
-        	<arg value="-p"/>
-        	<arg value="gov.nih.ncgc.bard.capextract.jaxb"/>
-        	<arg value="resources\\BARDexportSchema.xsd"/>
-        	<arg value="-d"/>
-               	<arg value="${bard.src}"/>
+            <arg value="/c"/>
+            <arg value="${jaxb.windir}xjc.bat"/>
+            <arg value="-p"/>
+            <arg value="gov.nih.ncgc.bard.capextract.jaxb"/>
+            <arg value="resources\\BARDexportSchema.xsd"/>
+            <arg value="-d"/>
+            <arg value="${bard.src}"/>
         </exec>
         <exec executable="${jaxb.dir}xjc.sh" osfamily="unix">
-        	<arg value="-p"/>
-        	<arg value="gov.nih.ncgc.bard.capextract.jaxb"/>
-        	<arg value="resources/BARDexportSchema.xsd"/>
-        	<arg value="-d"/>
-               	<arg value="${bard.src}"/>
+            <arg value="-p"/>
+            <arg value="gov.nih.ncgc.bard.capextract.jaxb"/>
+            <arg value="resources/BARDexportSchema.xsd"/>
+            <arg value="-d"/>
+            <arg value="${bard.src}"/>
         </exec>
     </target>
 
@@ -61,6 +63,7 @@
     </target>
 
     <target name="jar-rest" id='jar-rest' depends="compile-rest">
+        <mkdir dir="${bard.deploy}"/>
         <jar destfile="${bard.deploy}/bard.jar" duplicate="preserve">
             <manifest>
                 <attribute name="Created-By" value="NCGC"/>
@@ -83,13 +86,13 @@
         <copy file="${bard.lib}/jersey-server-1.3.jar" tofile="${bard.explode.dir}/WEB-INF/lib/jersey-server-1.3.jar"/>
         <copy file="${bard.lib}/jsr311-api-1.1.1.jar" tofile="${bard.explode.dir}/WEB-INF/lib/jsr311-api-1.1.1.jar"/>
         <copy file="${bard.lib}/xom-1.2.5.jar" tofile="${bard.explode.dir}/WEB-INF/lib/xom-1.2.5.jar"/>
+        <copy file="${bard.lib}/asm-3.1.jar" tofile="${bard.explode.dir}/WEB-INF/lib/asm-3.1.jar"/>
         <copy file="${bard.lib}/jackson-core-2.0.0.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/jackson-core-2.0.0.jar"/>
         <copy file="${bard.lib}/jackson-annotations-2.0.0.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/jackson-annotations-2.0.0.jar"/>
         <copy file="${bard.lib}/jackson-databind-2.0.0.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/jackson-databind-2.0.0.jar"/>
-        <copy file="${bard.lib}/jchem.jar" tofile="${bard.explode.dir}/WEB-INF/lib/jchem.jar"/>
         <!--Move compiled classes into WEB-INF-->
         <copy todir="${bard.explode.dir}/WEB-INF/classes">
             <fileset dir="${bard.build}/"/>
@@ -102,6 +105,7 @@
 
     <property name="war.filename" value="${bard.deploy}/bard.war"/>
     <target name='war-rest' depends="explode-rest">
+        <mkdir dir="${bard.deploy}"/>
         <jar destfile="${war.filename}" duplicate="preserve">
             <manifest>
                 <attribute name="Created-By" value="NCGC"/>
@@ -137,5 +141,33 @@
             </fileset>
         </jar>
     </target>
+
+
+    <!-- Testing related targets -->
+    <target name='compile-test' id='compile-test' depends='compile-rest'>
+        <mkdir dir="${bard.build}"/>
+        <javac srcdir="${bard.test}" destdir="${bard.build}"
+               debug="yes" target="1.6">
+            <classpath refid="compile.classpath"/>
+        </javac>
+    </target>
+    <path id="cp">
+        <fileset dir="${bard.lib}">
+            <include name="*.jar"/>
+        </fileset>
+        <pathelement location="${bard.build}"/>
+    </path>
+    <taskdef name="testng" classpathref="cp" classname="org.testng.TestNGAntTask"/>
+    <target name='run-tests' id='run-test' depends='compile-test'>
+        <testng classpathref="cp" outputDir="${bard.test.output}">
+            <classfileset dir="${bard.build}" includes="**/rest/*.class"/>
+        </testng>
+    </target>
+    <target name='rest-heartbeat' id='run-test' depends='compile-test'>
+        <testng classpathref="cp" groups="heartbeat" outputDir="${bard.test.output}">
+            <classfileset dir="${bard.build}" includes="**/rest/*.class"/>
+        </testng>
+    </target>
+
 
 </project>

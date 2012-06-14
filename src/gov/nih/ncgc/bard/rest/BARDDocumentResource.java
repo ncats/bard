@@ -17,6 +17,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -59,7 +60,20 @@ public class BARDDocumentResource implements IBARDResource {
     @Produces("text/plain")
     @Path("/_count")
     public String count(@QueryParam("filter") String filter) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        DBUtils db = new DBUtils();
+        try {
+            if (filter == null) {
+                int n = db.getPublicationCount();
+                return String.valueOf(n);
+            } else {
+                List<Publication> publications = db.searchForPublication(filter, -1, -1);
+                return String.valueOf(publications.size());
+            }
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
     }
 
     @GET
@@ -67,7 +81,35 @@ public class BARDDocumentResource implements IBARDResource {
                                  @QueryParam("expand") String expand,
                                  @QueryParam("skip") Integer skip,
                                  @QueryParam("top") Integer top) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        // validate skip/top
+        if (skip == null && top != null) {
+            skip = 0;
+        } else if (skip == null) {
+            skip = -1;
+            top = -1;
+        }
+
+        DBUtils db = new DBUtils();
+        try {
+            List<Publication> publications = db.searchForPublication(filter, skip, top);
+            if (expandEntries) {
+                String json = Util.toJson(publications);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Publication a : publications) links.add(a.getResourcePath());
+                String json = Util.toJson(links);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            }
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
     }
 
     @GET
