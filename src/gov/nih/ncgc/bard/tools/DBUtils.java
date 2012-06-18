@@ -165,7 +165,7 @@ public class DBUtils {
     }
 
     public Long getCidBySid(Long sid) throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select cid from substance where sid = ?");
+        PreparedStatement pst = conn.prepareStatement("select cid from cid_sid where sid = ?");
         pst.setLong(1, sid);
         ResultSet rs = pst.executeQuery();
         long cid = -1L;
@@ -176,7 +176,7 @@ public class DBUtils {
 
     public List<Long> getSidsByCid(Long cid) throws SQLException {
         List<Long> sids = new ArrayList<Long>();
-        PreparedStatement pst = conn.prepareStatement("select sid from substance where cid = ?");
+        PreparedStatement pst = conn.prepareStatement("select sid from cid_sid where cid = ?");
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         while (rs.next()) sids.add(rs.getLong(1));
@@ -195,7 +195,7 @@ public class DBUtils {
 
     public Compound getCompoundByCid(Long cid) throws SQLException {
         if (cid == null || cid < 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select c.*, s.sid from compound c, substance s where c.cid = ? and c.cid = s.cid");
+        PreparedStatement pst = conn.prepareStatement("select c.*, s.sid from compound c, cid_sid s where c.cid = ? and c.cid = s.cid");
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         Compound c = new Compound();
@@ -213,7 +213,7 @@ public class DBUtils {
 
     public Compound getCompoundBySid(Long sid) throws SQLException {
         if (sid == null || sid < 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select cid from substance s where s.sid = ?");
+        PreparedStatement pst = conn.prepareStatement("select cid from cid_sid s where s.sid = ?");
         pst.setLong(1, sid);
         ResultSet rs = pst.executeQuery();
         Long cid = -1L;
@@ -224,7 +224,7 @@ public class DBUtils {
 
     public Compound getCompoundByProbeId(String probeid) throws SQLException {
         if (probeid == null || probeid.trim().equals("")) return null;
-        PreparedStatement pst = conn.prepareStatement("select c.*, s.sid from compound c, substance s where probe_id = ? and c.cid = s.cid");
+        PreparedStatement pst = conn.prepareStatement("select c.*, s.sid from compound c, cid_sid s where probe_id = ? and c.cid = s.cid");
         pst.setString(1, probeid.trim());
         ResultSet rs = pst.executeQuery();
         Compound c = new Compound();
