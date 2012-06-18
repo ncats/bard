@@ -281,6 +281,7 @@ public class DBUtils {
         Assay a = new Assay();
         while (rs.next()) {
             a.setAid(aid);
+            a.setBardAid(rs.getLong("assay_id"));
             a.setAssays(rs.getInt("assays"));
             a.setCategory(rs.getInt("category"));
             a.setClassification(rs.getInt("classification"));
@@ -288,11 +289,12 @@ public class DBUtils {
             a.setDescription(rs.getString("description"));
             a.setGrantNo(rs.getString("grant_no"));
             a.setName(rs.getString("name"));
-            a.setSubstances(rs.getInt("samples"));
             a.setSource(rs.getString("source"));
             a.setSummary(rs.getInt("summary"));
             a.setType(rs.getInt("type"));
             a.setUpdated(rs.getDate("updated"));
+            a.setComments(rs.getString("comment"));
+            a.setProtocol(rs.getString("protocol"));
 
             // next we need to look up publications, targets and data
             a.setPublications(getAssayPublications(aid));
