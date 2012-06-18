@@ -311,7 +311,7 @@ public class DBUtils {
      * @return A list of compound CIDs
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Long> getExperimentCompoundCids(Long eid, int skip, int top) throws SQLException {
+    public List<Long> getExperimentCids(Long eid, int skip, int top) throws SQLException {
         if (eid == null || eid < 0) return null;
 
         String limitClause = "";
@@ -338,7 +338,7 @@ public class DBUtils {
      * @return A list of compound SIDs
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Long> getExperimentCompoundSids(Long eid, int skip, int top) throws SQLException {
+    public List<Long> getExperimentSids(Long eid, int skip, int top) throws SQLException {
         if (eid == null || eid < 0) return null;
 
         String limitClause = "";
@@ -411,7 +411,7 @@ public class DBUtils {
         List<Compound> ret = new ArrayList<Compound>();
 
         while (rs.next()) {
-            Compound c = getCompoundBySid(rs.getLong("sid"));
+            Compound c = getCompoundBySid(rs.getLong("sid"));  // TODO should return a Substance entity
             ret.add(c);
         }
         pst.close();

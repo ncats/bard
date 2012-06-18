@@ -176,7 +176,7 @@ public class BARDExperimentResource implements IBARDResource {
             } else { // JSON
                 String json;
                 if (!expandEntries) {
-                    List<Long> cids = db.getExperimentCompoundCids(Long.valueOf(resourceId), skip, top);
+                    List<Long> cids = db.getExperimentCids(Long.valueOf(resourceId), skip, top);
                     List<String> links = new ArrayList<String>();
                     for (Long cid : cids) links.add((new Compound(cid, null, null)).getResourcePath());
 
@@ -238,7 +238,7 @@ public class BARDExperimentResource implements IBARDResource {
             } else { // JSON
                 String json;
                 if (!expandEntries) {
-                    List<Long> sids = db.getExperimentCompoundSids(Long.valueOf(resourceId), skip, top);
+                    List<Long> sids = db.getExperimentSids(Long.valueOf(resourceId), skip, top);
                     List<String> links = new ArrayList<String>();
                     for (Long sid : sids) links.add((new Substance(sid, null)).getResourcePath());
 

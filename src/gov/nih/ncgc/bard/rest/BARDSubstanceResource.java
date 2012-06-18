@@ -91,7 +91,8 @@ public class BARDSubstanceResource implements IBARDResource {
             List<String> paths = new ArrayList<String>();
             for (Long sid : sids) paths.add(BARDConstants.API_BASE + "/substances/" + sid);
             return Response.ok(Util.toJson(paths), MediaType.APPLICATION_JSON).build();
-        } else if (type.equals("sid")) c = db.getCompoundBySid(Long.parseLong(id));
+        } else if (type.equals("sid"))
+            c = db.getCompoundBySid(Long.parseLong(id));   // TODO should be returning a Substance entity, not a compound entity
         db.closeConnection();
 
         if (c == null || c.getCid() == null) throw new WebApplicationException(404);
