@@ -7,14 +7,14 @@ import java.util.List;
  *
  * @author Rajarshi Guha
  */
-public class AssayResult {
+public class ExperimentResult {
     Long assayResultId, assayDataId;
     int replicateId, outcome, score;
     float potency, s0, sInf, hill, lac50;
 
     List<AssayConcentration> concs;
 
-    public AssayResult(Long assayResultId, Long assayDataId, int replicateId, int outcome, int score, float potency, float s0, float sInf, float hill, float lac50, List<AssayConcentration> concs) {
+    public ExperimentResult(Long assayResultId, Long assayDataId, int replicateId, int outcome, int score, float potency, float s0, float sInf, float hill, float lac50, List<AssayConcentration> concs) {
         this.assayResultId = assayResultId;
         this.assayDataId = assayDataId;
         this.replicateId = replicateId;
@@ -28,7 +28,7 @@ public class AssayResult {
         this.concs = concs;
     }
 
-    public AssayResult() {
+    public ExperimentResult() {
     }
 
     public Long getAssayResultId() {

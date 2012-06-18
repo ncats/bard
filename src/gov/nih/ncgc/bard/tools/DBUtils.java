@@ -3,6 +3,7 @@ package gov.nih.ncgc.bard.tools;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
@@ -238,6 +239,26 @@ public class DBUtils {
         c.setSids(sids);
         pst.close();
         return c;
+    }
+
+    public ExperimentData getExperimentDataByDataId(Long edid) throws SQLException {
+        if (edid == null || edid <= 0) return null;
+        PreparedStatement pst = conn.prepareStatement("select * from experiment_data where expt_data_id = ?");
+        pst.setLong(1, edid);
+        ResultSet rs = pst.executeQuery();
+        ExperimentData ed = new ExperimentData();
+        ed.setExptDataId(edid);
+        while (rs.next()) {
+            ed.setEid(rs.getLong("eid"));
+            ed.setSid(rs.getLong("sid"));
+            ed.setCid(rs.getLong("cid"));
+            ed.setClassification(rs.getInt("classification"));
+            ed.setUpdated(rs.getDate("updated"));
+            ed.setOutcome(rs.getInt("outcome"));
+            ed.setScore(rs.getInt("score"));
+            ed.setPotency(rs.getFloat("potency"));
+        }
+        return ed;
     }
 
     public Experiment getExperimentByExptId(Long exptId) throws SQLException {
@@ -525,6 +546,48 @@ public class DBUtils {
     }
 
     /**
+     * Retrieve experiment data based on a query.
+     * <p/>
+     * Currently a crude query language is supported which requries you to specify the field
+     * to be queried on or if no field is specified then a full text search is applied to all
+     * text fields.
+     * <p/>
+     * Queries should in the form of query_string[field_name]
+     * <p/>
+     * The current implementation of free text search is pretty stupid. We should enable the
+     * full text search functionality in the database.
+     *
+     * @param query the query to use
+     * @return A list of {@link gov.nih.ncgc.bard.entity.Experiment} objects, whuich may be empty if no experiments match the query.
+     */
+    public List<ExperimentData> searchForExperimentData(String query) throws SQLException {
+        boolean freeTextQuery = false;
+
+        if (!query.contains("[")) freeTextQuery = true;
+
+        PreparedStatement pst = null;
+        if (freeTextQuery) {
+            return new ArrayList<ExperimentData>();
+        } else {
+            String[] toks = query.split("\\[");
+            String q = toks[0].trim();
+            String field = toks[1].trim().replace("]", "");
+
+            String sql = "select expt_data_id from experiment_data where " + field + " = " + q + "";
+            pst = conn.prepareStatement(sql);
+        }
+
+        ResultSet rs = pst.executeQuery();
+        List<ExperimentData> experimentData = new ArrayList<ExperimentData>();
+        while (rs.next()) {
+            Long exptId = rs.getLong("expt_id");
+            experimentData.add(getExperimentDataByDataId(exptId));
+        }
+        pst.close();
+        return experimentData;
+    }
+
+    /**
      * Retrieve experiments based on query.
      * <p/>
      * Currently a crude query language is supported which requries you to specify the field
@@ -694,6 +757,22 @@ public class DBUtils {
         return n;
     }
 
+    /**
+     * Return a count of all experiment data values.
+     *
+     * @return
+     * @throws SQLException
+     */
+    public int getExperimentDataCount() throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select count(expt_data_id) from experiment_data;");
+        ResultSet rs = pst.executeQuery();
+        int n = 0;
+        while (rs.next()) n = rs.getInt(1);
+        pst.close();
+        return n;
+    }
+
+
     public int getTargetCount() throws SQLException {
         PreparedStatement pst = conn.prepareStatement("select count(accession) as c from protein_target");
         ResultSet rs = pst.executeQuery();
@@ -837,4 +916,5 @@ public class DBUtils {
         pst.close();
         return publications;
     }
+
 }
