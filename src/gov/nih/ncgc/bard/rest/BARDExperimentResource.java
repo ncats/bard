@@ -63,16 +63,16 @@ public class BARDExperimentResource implements IBARDResource {
     @Path("/_count")
     public String count(@QueryParam("filter") String filter) {
         DBUtils db = new DBUtils();
+        String ret;
         try {
             if (filter == null) {
-                int n = db.getExperimentCount();
-                db.closeConnection();
-                return String.valueOf(n);
+                ret = String.valueOf(db.getExperimentCount());
             } else {
                 List<Experiment> experiments = db.searchForExperiment(filter);
-                db.closeConnection();
-                return String.valueOf(experiments.size());
+                ret = String.valueOf(experiments.size());
             }
+            db.closeConnection();
+            return ret;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         }
