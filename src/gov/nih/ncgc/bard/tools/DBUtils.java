@@ -273,9 +273,20 @@ public class DBUtils {
         return e;
     }
 
+    public List<Experiment> getExperimentByAssayId(Long aid) throws SQLException {
+        if (aid == null || aid <= 0) return null;
+        PreparedStatement pst = conn.prepareStatement("select expt_id from experiment where assay_id = ?");
+        pst.setLong(1, aid);
+        ResultSet rs = pst.executeQuery();
+        List<Experiment> experiments = new ArrayList<Experiment>();
+        while (rs.next()) experiments.add(getExperimentByExptId(rs.getLong(1)));
+        pst.close();
+        return experiments;
+    }
+
     public Assay getAssayByAid(Long aid) throws SQLException {
         if (aid == null || aid <= 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from assay where aid = ?");
+        PreparedStatement pst = conn.prepareStatement("select * from assay where assay_id = ?");
         pst.setLong(1, aid);
         ResultSet rs = pst.executeQuery();
         Assay a = new Assay();
@@ -642,11 +653,11 @@ public class DBUtils {
      * @throws SQLException
      */
     public List<Long> getAssayCount() throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select aid from assay order by aid");
+        PreparedStatement pst = conn.prepareStatement("select assay_id from assay order by assay_id");
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
         while (rs.next()) {
-            ret.add(rs.getLong("aid"));
+            ret.add(rs.getLong(1));
         }
         pst.close();
         return ret;

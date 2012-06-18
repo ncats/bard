@@ -3,6 +3,7 @@ package gov.nih.ncgc.bard.rest;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
@@ -21,6 +22,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -199,5 +201,50 @@ public class BARDAssayResource implements IBARDResource {
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
+    }
+
+    @GET
+    @Path("/{aid}/experiments")
+    public Response getAssayExperiments(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        DBUtils db = new DBUtils();
+        List<Experiment> experiments = null;
+        try {
+            experiments = db.getExperimentByAssayId(Long.valueOf(resourceId));
+            if (expandEntries) {
+                String json = Util.toJson(experiments);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Experiment experiment : experiments)
+                    links.add(experiment.getResourcePath());
+                String json = Util.toJson(links);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            }
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (JsonMappingException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (JsonGenerationException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
+    @Path("/{aid}/experiments/{eid}")
+    public Response getAssayExperiment(@PathParam("aid") String aid,
+                                       @PathParam("eid") String eid,
+                                       @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+        Experiment e = new Experiment();
+        e.setExptId(Long.parseLong(eid));
+        UriBuilder ub = UriBuilder.fromUri("/v1/experiments/" + eid);
+        if (filter != null) ub.queryParam("filter", filter);
+        if (expand != null) ub.queryParam("name", expand);
+        return Response.temporaryRedirect(ub.build()).build();
     }
 }
