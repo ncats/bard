@@ -363,6 +363,60 @@ public class DBUtils {
     }
 
     /**
+     * Return experiment data ids for an experiment.
+     *
+     * @param eid  The experiment id (AKA Pubchem AID for experiments taken from Pubchem)
+     * @param skip how many records to skip
+     * @param top  how many records to return
+     * @return
+     * @throws SQLException
+     */
+    public List<Long> getExperimentDataIds(Long eid, int skip, int top) throws SQLException {
+        if (eid == null || eid < 0) return null;
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select expt_data_id from experiment_data where eid = ? order by expt_data_id " + limitClause);
+        pst.setLong(1, eid);
+        ResultSet rs = pst.executeQuery();
+        List<Long> ret = new ArrayList<Long>();
+        while (rs.next()) ret.add(rs.getLong("expt_data_id"));
+        pst.close();
+        return ret;
+    }
+
+    /**
+     * Return experiment data objects for an experiment.
+     *
+     * @param eid  The experiment id (AKA Pubchem AID for experiments taken from Pubchem)
+     * @param skip how many records to skip
+     * @param top  how many records to return
+     * @return
+     * @throws SQLException
+     */
+    public List<ExperimentData> getExperimentData(Long eid, int skip, int top) throws SQLException {
+        if (eid == null || eid < 0) return null;
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select expt_data_id from experiment_data where eid = ? order by expt_data_id " + limitClause);
+        pst.setLong(1, eid);
+        ResultSet rs = pst.executeQuery();
+        List<ExperimentData> ret = new ArrayList<ExperimentData>();
+        while (rs.next()) ret.add(getExperimentDataByDataId(rs.getLong(1)));
+        pst.close();
+        return ret;
+    }
+
+    /**
      * Retrieve SIDs for compounds associated with an experiment.
      *
      * @param eid  The experiment identifier
