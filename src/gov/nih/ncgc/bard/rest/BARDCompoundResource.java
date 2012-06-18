@@ -3,7 +3,10 @@ package gov.nih.ncgc.bard.rest;
 import chemaxon.formats.MolImporter;
 import chemaxon.marvin.util.MolExportException;
 import chemaxon.struc.Molecule;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -21,6 +24,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -139,6 +143,64 @@ public class BARDCompoundResource implements IBARDResource {
     public Response getCompoundByProbeid(@PathParam("pid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
             return getCompoundResponse(resourceId, "probeid", headers.getAcceptableMediaTypes());
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    // return alle xperiment data for this CID
+    @GET
+    @Path("/{cid}/exptdata")
+    public Response getExperimentData(@PathParam("cid") String resourceId,
+                                      @QueryParam("filter") String filter,
+                                      @QueryParam("expand") String expand,
+                                      @QueryParam("skip") Integer skip,
+                                      @QueryParam("top") Integer top) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        DBUtils db = new DBUtils();
+        String linkString = null;
+
+        if (skip == null) skip = -1;
+        if (top == null) top = -1;
+
+        try {
+            Experiment experiemnt = db.getExperimentByExptId(Long.valueOf(resourceId));
+
+            // set up skip and top params
+            if (experiemnt.getSubstances() > BARDConstants.MAX_DATA_COUNT) {
+                if ((top == -1)) { // top was not specified, so we start from the beginning
+                    top = BARDConstants.MAX_DATA_COUNT;
+                }
+                if (skip == -1) skip = 0;
+                String expandClause = "expand=false";
+                if (expandEntries) expandClause = "expand=true";
+                if (skip + top <= experiemnt.getSubstances())
+                    linkString = BARDConstants.API_BASE + "/compounds/" + resourceId + "/exptdata?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+            }
+
+            String json;
+            if (!expandEntries) {
+                List<Long> edids = db.getCompoundDataIds(Long.valueOf(resourceId), skip, top);
+                List<String> links = new ArrayList<String>();
+                for (Long edid : edids) {
+                    ExperimentData ed = new ExperimentData();
+                    ed.setExptDataId(edid);
+                    links.add(ed.getResourcePath());
+                }
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                json = Util.toJson(linkedEntity);
+            } else {
+                List<ExperimentData> data = db.getCompoundData(Long.valueOf(resourceId), skip, top);
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
+                json = Util.toJson(linkedEntity);
+            }
+            db.closeConnection();
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
