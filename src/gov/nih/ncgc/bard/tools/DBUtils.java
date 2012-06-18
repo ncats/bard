@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.tools;
 
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
@@ -239,6 +240,39 @@ public class DBUtils {
         return c;
     }
 
+    public Experiment getExperimentByExptId(Long exptId) throws SQLException {
+        if (exptId == null || exptId <= 0) return null;
+        PreparedStatement pst = conn.prepareStatement("select * from experiment where expt_id = ?");
+        pst.setLong(1, exptId);
+        ResultSet rs = pst.executeQuery();
+        Experiment e = new Experiment();
+        while (rs.next()) {
+            e.setExptId(exptId);
+            e.setAssayId(rs.getLong("assay_id"));
+            e.setProjId(rs.getLong("proj_id"));
+
+            e.setName(rs.getString("name"));
+            e.setDescription(rs.getString("description"));
+            e.setSource(rs.getString("source"));
+            e.setGrantNo(rs.getString("grant_no"));
+
+            e.setCategory(rs.getInt("category"));
+            e.setClassification(rs.getInt("classification"));
+            e.setClassification(rs.getInt("type"));
+            e.setSummary(rs.getInt("summary"));
+
+            e.setDeposited(rs.getDate("deposited"));
+            e.setUpdated(rs.getDate("updated"));
+
+            e.setSubstances(rs.getInt("samples"));
+            e.setCompounds(rs.getInt("cid_count"));
+
+            e.setHasProbe(rs.getInt("have_probe") == 0 ? false : true);
+        }
+        pst.close();
+        return e;
+    }
+
     public Assay getAssayByAid(Long aid) throws SQLException {
         if (aid == null || aid <= 0) return null;
         PreparedStatement pst = conn.prepareStatement("select * from assay where aid = ?");
@@ -264,28 +298,21 @@ public class DBUtils {
             a.setPublications(getAssayPublications(aid));
             a.setTargets(getAssayTargets(aid));
         }
-
-        // get a compound count
-        pst = conn.prepareStatement("select count(distinct cid) from assay_data where aid = ?");
-        pst.setLong(1, aid);
-        rs = pst.executeQuery();
-        while (rs.next()) a.setCompounds(rs.getInt(1));
-
         pst.close();
         return a;
     }
 
     /**
-     * Retrieve CIDs for compounds associated with an assay.
+     * Retrieve CIDs for compounds associated with an experiment.
      *
-     * @param aid  The assay identifier
+     * @param eid  The experiment identifier
      * @param skip how many records to skip
      * @param top  how many records to return
      * @return A list of compound CIDs
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Long> getAssayCompoundCids(Long aid, int skip, int top) throws SQLException {
-        if (aid == null || aid < 0) return null;
+    public List<Long> getExperimentCompoundCids(Long eid, int skip, int top) throws SQLException {
+        if (eid == null || eid < 0) return null;
 
         String limitClause = "";
         if (skip != -1) {
@@ -293,8 +320,8 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct cid from assay_data where aid = ? order by cid " + limitClause);
-        pst.setLong(1, aid);
+        PreparedStatement pst = conn.prepareStatement("select distinct cid from experiment_data where aid = ? order by cid " + limitClause);
+        pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
         while (rs.next()) ret.add(rs.getLong("cid"));
@@ -303,16 +330,16 @@ public class DBUtils {
     }
 
     /**
-     * Retrieve SIDs for compounds associated with an assay.
+     * Retrieve SIDs for compounds associated with an experiment.
      *
-     * @param aid  The assay identifier
+     * @param eid  The experiment identifier
      * @param skip how many records to skip
      * @param top  how many records to return
      * @return A list of compound SIDs
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Long> getAssayCompoundSids(Long aid, int skip, int top) throws SQLException {
-        if (aid == null || aid < 0) return null;
+    public List<Long> getExperimentCompoundSids(Long eid, int skip, int top) throws SQLException {
+        if (eid == null || eid < 0) return null;
 
         String limitClause = "";
         if (skip != -1) {
@@ -320,8 +347,8 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct sid from assay_data where aid = ? order by sid " + limitClause);
-        pst.setLong(1, aid);
+        PreparedStatement pst = conn.prepareStatement("select distinct sid from experiment_data where aid = ? order by sid " + limitClause);
+        pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
         while (rs.next()) ret.add(rs.getLong("sid"));
@@ -330,16 +357,16 @@ public class DBUtils {
     }
 
     /**
-     * Retrieve compounds associated with an assay.
+     * Retrieve compounds associated with an experiment.
      *
-     * @param aid  The assay identifier
+     * @param eid  The experiment identifier
      * @param skip how many records to skip
      * @param top  how many records to return
      * @return A list of {@link Compound} objects
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Compound> getAssayCompounds(Long aid, int skip, int top) throws SQLException {
-        if (aid == null || aid < 0) return null;
+    public List<Compound> getExperimentCompounds(Long eid, int skip, int top) throws SQLException {
+        if (eid == null || eid < 0) return null;
 
         String limitClause = "";
         if (skip != -1) {
@@ -347,8 +374,8 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select cid, sid from assay_data where aid = ? order by sid " + limitClause);
-        pst.setLong(1, aid);
+        PreparedStatement pst = conn.prepareStatement("select cid, sid from experiment_data where aid = ? order by sid " + limitClause);
+        pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
         List<Compound> ret = new ArrayList<Compound>();
 
@@ -363,14 +390,14 @@ public class DBUtils {
     /**
      * Retrieve substances associated with an assay.
      *
-     * @param aid  The assay identifier
+     * @param eid  The assay identifier
      * @param skip how many records to skip
      * @param top  how many records to return
      * @return A list of {@link Compound} objects
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Compound> getAssaySubstances(Long aid, int skip, int top) throws SQLException {
-        if (aid == null || aid < 0) return null;
+    public List<Compound> getExperimentSubstances(Long eid, int skip, int top) throws SQLException {
+        if (eid == null || eid < 0) return null;
 
         String limitClause = "";
         if (skip != -1) {
@@ -378,8 +405,8 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select cid, sid from assay_data where aid = ? order by sid " + limitClause);
-        pst.setLong(1, aid);
+        PreparedStatement pst = conn.prepareStatement("select cid, sid from experiment_data where aid = ? order by sid " + limitClause);
+        pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
         List<Compound> ret = new ArrayList<Compound>();
 
@@ -486,6 +513,54 @@ public class DBUtils {
     }
 
     /**
+     * Retrieve experiments based on query.
+     * <p/>
+     * Currently a crude query language is supported which requries you to specify the field
+     * to be queried on or if no field is specified then a full text search is applied to all
+     * text fields.
+     * <p/>
+     * Queries should in the form of query_string[field_name]
+     * <p/>
+     * The current implementation of free text search is pretty stupid. We should enable the
+     * full text search functionality in the database.
+     *
+     * @param query the query to use
+     * @return A list of {@link gov.nih.ncgc.bard.entity.Experiment} objects, whuich may be empty if no experiments match the query.
+     */
+    public List<Experiment> searchForExperiment(String query) throws SQLException {
+        boolean freeTextQuery = false;
+
+        if (!query.contains("[")) freeTextQuery = true;
+
+        PreparedStatement pst = null;
+        if (freeTextQuery) {
+            String q = "%" + query + "%";
+            pst = conn.prepareStatement("select expt_id from experiment where (name like ? or description like ? or source like ? or grant_no like ?)");
+            pst.setString(1, q);
+            pst.setString(2, q);
+            pst.setString(3, q);
+            pst.setString(4, q);
+        } else {
+            String[] toks = query.split("\\[");
+            String q = toks[0].trim();
+            String field = toks[1].trim().replace("]", "");
+            String sql = "select expt_id from experiment where " + field + " like '%" + q + "%'";
+            pst = conn.prepareStatement(sql);
+        }
+
+        ResultSet rs = pst.executeQuery();
+        List<Experiment> experiments = new ArrayList<Experiment>();
+        while (rs.next()) {
+            Long exptId = rs.getLong("expt_id");
+            experiments.add(getExperimentByExptId(exptId));
+        }
+        pst.close();
+
+        return experiments;
+    }
+
+
+    /**
      * Retrieve targets based on query.
      * <p/>
      * Currently a crude query language is supported which requries you to specify the field
@@ -573,6 +648,38 @@ public class DBUtils {
         }
         pst.close();
         return ret;
+    }
+
+    /**
+     * Returns a list of all experiment ids.
+     *
+     * @return
+     * @throws SQLException
+     */
+    public List<Long> getExperimentIds() throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select expt_id from experiment order by expt_id");
+        ResultSet rs = pst.executeQuery();
+        List<Long> ret = new ArrayList<Long>();
+        while (rs.next()) {
+            ret.add(rs.getLong("expt_id"));
+        }
+        pst.close();
+        return ret;
+    }
+
+    /**
+     * Return a count of all experiments.
+     *
+     * @return
+     * @throws SQLException
+     */
+    public int getExperimentCount() throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select count(distinct expt_id) from experiment;");
+        ResultSet rs = pst.executeQuery();
+        int n = 0;
+        while (rs.next()) n = rs.getInt(1);
+        pst.close();
+        return n;
     }
 
     public int getTargetCount() throws SQLException {
