@@ -3,12 +3,9 @@ package gov.nih.ncgc.bard.rest;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
-import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -202,130 +199,5 @@ public class BARDAssayResource implements IBARDResource {
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
-    }
-
-    // TODO right now, we don't support filtering on compounds
-    @GET
-    @Path("/{aid}/compounds")
-    public Response getAssayCompounds(@PathParam("aid") String resourceId,
-                                      @QueryParam("filter") String filter,
-                                      @QueryParam("expand") String expand,
-                                      @QueryParam("skip") Integer skip,
-                                      @QueryParam("top") Integer top) {
-        boolean expandEntries = false;
-        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
-            expandEntries = true;
-
-        List<MediaType> types = headers.getAcceptableMediaTypes();
-        DBUtils db = new DBUtils();
-        String linkString = null;
-
-        if (skip == null) skip = -1;
-        if (top == null) top = -1;
-
-        try {
-            Assay a = db.getAssayByAid(Long.valueOf(resourceId));
-
-            // set up skip and top params
-            if (a.getSubstances() > BARDConstants.MAX_COMPOUND_COUNT) {
-                if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_COMPOUND_COUNT;
-                }
-                if (skip == -1) skip = 0;
-                String expandClause = "expand=false";
-                if (expandEntries) expandClause = "expand=true";
-                if (skip + top <= a.getSubstances())
-                    linkString = BARDConstants.API_BASE + "/assays/" + resourceId + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
-            }
-
-            if (types.contains(BARDConstants.MIME_SMILES)) {
-
-            } else if (types.contains(BARDConstants.MIME_SDF)) {
-
-            } else { // JSON
-                String json;
-                if (!expandEntries) {
-                    List<Long> cids = db.getAssayCompoundCids(Long.valueOf(resourceId), skip, top);
-                    List<String> links = new ArrayList<String>();
-                    for (Long cid : cids) links.add((new Compound(cid, null, null)).getResourcePath());
-
-                    BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
-                    json = Util.toJson(linkedEntity);
-                } else {
-                    List<Compound> compounds = db.getAssayCompounds(Long.valueOf(resourceId), skip, top);
-                    BardLinkedEntity linkedEntity = new BardLinkedEntity(compounds, linkString);
-                    json = Util.toJson(linkedEntity);
-                }
-                db.closeConnection();
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
-            }
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
-        }
-        return null;
-    }
-
-    @GET
-    @Path("/{aid}/substances")
-    public Response getAssaySubstances(@PathParam("aid") String resourceId,
-                                       @QueryParam("filter") String filter,
-                                       @QueryParam("expand") String expand,
-                                       @QueryParam("skip") Integer skip,
-                                       @QueryParam("top") Integer top) {
-        boolean expandEntries = false;
-        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
-            expandEntries = true;
-
-        List<MediaType> types = headers.getAcceptableMediaTypes();
-        DBUtils db = new DBUtils();
-        String linkString = null;
-
-        if (skip == null) skip = -1;
-        if (top == null) top = -1;
-
-        try {
-            Assay a = db.getAssayByAid(Long.valueOf(resourceId));
-
-            // set up skip and top params
-            if (a.getSubstances() > BARDConstants.MAX_COMPOUND_COUNT) {
-                if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_COMPOUND_COUNT;
-                }
-                if (skip == -1) skip = 0;
-                String expandClause = "expand=false";
-                if (expandEntries) expandClause = "expand=true";
-                if (skip + top <= a.getSubstances())
-                    linkString = BARDConstants.API_BASE + "/assays/" + resourceId + "/substances?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
-            }
-
-            if (types.contains(BARDConstants.MIME_SMILES)) {
-
-            } else if (types.contains(BARDConstants.MIME_SDF)) {
-
-            } else { // JSON
-                String json;
-                if (!expandEntries) {
-                    List<Long> sids = db.getAssayCompoundSids(Long.valueOf(resourceId), skip, top);
-                    List<String> links = new ArrayList<String>();
-                    for (Long sid : sids) links.add((new Substance(sid, null)).getResourcePath());
-
-                    BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
-                    json = Util.toJson(linkedEntity);
-                } else {
-                    List<Compound> compounds = db.getAssaySubstances(Long.valueOf(resourceId), skip, top);
-                    BardLinkedEntity linkedEntity = new BardLinkedEntity(compounds, linkString);
-                    json = Util.toJson(linkedEntity);
-                }
-                db.closeConnection();
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
-            }
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
-        }
-        return null;
     }
 }
