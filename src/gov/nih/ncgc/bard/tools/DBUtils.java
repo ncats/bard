@@ -498,6 +498,60 @@ public class DBUtils {
     }
 
     /**
+     * Return experiment ids for a compound.
+     *
+     * @param cid  The Pubchem CID
+     * @param skip how many records to skip
+     * @param top  how many records to return
+     * @return
+     * @throws SQLException
+     */
+    public List<Long> getCompoundExperimentIds(Long cid, int skip, int top) throws SQLException {
+        if (cid == null || cid < 0) return null;
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select distinct(eid) from experiment_data where cid = ? order by eid " + limitClause);
+        pst.setLong(1, cid);
+        ResultSet rs = pst.executeQuery();
+        List<Long> ret = new ArrayList<Long>();
+        while (rs.next()) ret.add(rs.getLong(1));
+        pst.close();
+        return ret;
+    }
+
+    /**
+     * Return experiment objects for a compound.
+     *
+     * @param cid  The Pubchem CID
+     * @param skip how many records to skip
+     * @param top  how many records to return
+     * @return
+     * @throws SQLException
+     */
+    public List<Experiment> getCompoundExperiment(Long cid, int skip, int top) throws SQLException {
+        if (cid == null || cid < 0) return null;
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select distinct(eid) from experiment_data where cid = ? order by eid " + limitClause);
+        pst.setLong(1, cid);
+        ResultSet rs = pst.executeQuery();
+        List<Experiment> ret = new ArrayList<Experiment>();
+        while (rs.next()) ret.add(getExperimentByExptId(rs.getLong(1)));
+        pst.close();
+        return ret;
+    }
+
+    /**
      * Return experiment data objects for a compound.
      *
      * @param cid  The Pubchem CID
