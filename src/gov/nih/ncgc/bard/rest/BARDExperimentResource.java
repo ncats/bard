@@ -66,9 +66,11 @@ public class BARDExperimentResource implements IBARDResource {
         try {
             if (filter == null) {
                 int n = db.getExperimentCount();
+                db.closeConnection();
                 return String.valueOf(n);
             } else {
                 List<Experiment> experiments = db.searchForExperiment(filter);
+                db.closeConnection();
                 return String.valueOf(experiments.size());
             }
         } catch (SQLException e) {
@@ -90,6 +92,7 @@ public class BARDExperimentResource implements IBARDResource {
 
             if (filter == null) {
                 List<Long> ids = db.getExperimentIds();
+                db.closeConnection();
                 if (!expandEntries) {
                     List<String> links = new ArrayList<String>();
                     for (Long id : ids) links.add(BARDConstants.API_BASE + "/experiments/" + id);
@@ -101,6 +104,7 @@ public class BARDExperimentResource implements IBARDResource {
                 }
             } else {
                 List<Experiment> experiments = db.searchForExperiment(filter);
+                db.closeConnection();
                 if (expandEntries) {
                     String json = Util.toJson(experiments);
                     return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -115,6 +119,12 @@ public class BARDExperimentResource implements IBARDResource {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (SQLException e) {
+
+            }
         }
     }
 
@@ -125,6 +135,7 @@ public class BARDExperimentResource implements IBARDResource {
         Experiment experiment;
         try {
             experiment = db.getExperimentByExptId(Long.valueOf(resourceId));
+            db.closeConnection();
             if (experiment.getExptId() == null) throw new WebApplicationException(404);
             String json = Util.toJson(experiment);
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -241,7 +252,6 @@ public class BARDExperimentResource implements IBARDResource {
                     List<Long> sids = db.getExperimentSids(Long.valueOf(resourceId), skip, top);
                     List<String> links = new ArrayList<String>();
                     for (Long sid : sids) links.add((new Substance(sid, null)).getResourcePath());
-
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
                     json = Util.toJson(linkedEntity);
                 } else {

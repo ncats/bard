@@ -292,7 +292,6 @@ public class DBUtils {
         Assay a = new Assay();
         while (rs.next()) {
             a.setAid(aid);
-            a.setBardAid(rs.getLong("assay_id"));
             a.setAssays(rs.getInt("assays"));
             a.setCategory(rs.getInt("category"));
             a.setClassification(rs.getInt("classification"));
@@ -333,7 +332,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct cid from experiment_data where aid = ? order by cid " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select distinct cid from experiment_data where eid = ? order by cid " + limitClause);
         pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
@@ -360,7 +359,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct sid from experiment_data where aid = ? order by sid " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select distinct sid from experiment_data where eid = ? order by sid " + limitClause);
         pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
@@ -387,7 +386,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select cid, sid from experiment_data where aid = ? order by sid " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select cid, sid from experiment_data where eid = ? order by sid " + limitClause);
         pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
         List<Compound> ret = new ArrayList<Compound>();
@@ -418,7 +417,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select cid, sid from experiment_data where aid = ? order by sid " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select cid, sid from experiment_data where eid = ? order by sid " + limitClause);
         pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
         List<Compound> ret = new ArrayList<Compound>();

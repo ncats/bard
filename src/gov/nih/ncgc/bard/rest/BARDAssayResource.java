@@ -131,6 +131,7 @@ public class BARDAssayResource implements IBARDResource {
             a = db.getAssayByAid(Long.valueOf(resourceId));
             if (a.getAid() == null) throw new WebApplicationException(404);
             String json = Util.toJson(a);
+            db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
@@ -150,6 +151,7 @@ public class BARDAssayResource implements IBARDResource {
         List<ProteinTarget> targets = null;
         try {
             targets = db.getAssayTargets(Long.valueOf(resourceId));
+            db.closeConnection();
             if (expandEntries) {
                 String json = Util.toJson(targets);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -182,6 +184,7 @@ public class BARDAssayResource implements IBARDResource {
         List<Publication> targets = null;
         try {
             targets = db.getAssayPublications(Long.valueOf(resourceId));
+            db.closeConnection();
             if (expandEntries) {
                 String json = Util.toJson(targets);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -214,6 +217,7 @@ public class BARDAssayResource implements IBARDResource {
         List<Experiment> experiments = null;
         try {
             experiments = db.getExperimentByAssayId(Long.valueOf(resourceId));
+            db.closeConnection();
             if (expandEntries) {
                 String json = Util.toJson(experiments);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();

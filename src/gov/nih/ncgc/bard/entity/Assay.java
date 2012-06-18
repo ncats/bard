@@ -13,7 +13,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Assay implements BardEntity {
-    Long aid, bardAid;
+    Long aid;
     int category, type, summary, assays, classification;
     String name, description, source, grantNo, protocol, comments;
     Date deposited, updated;
@@ -37,12 +37,12 @@ public class Assay implements BardEntity {
         this.comments = comments;
     }
 
-    public Long getBardAid() {
-        return bardAid;
+    public Long getAid() {
+        return aid;
     }
 
-    public void setBardAid(Long bardAid) {
-        this.bardAid = bardAid;
+    public void setAid(Long aid) {
+        this.aid = aid;
     }
 
     public String toString() {
@@ -91,14 +91,6 @@ public class Assay implements BardEntity {
 
     public void setTargets(List<ProteinTarget> targets) {
         this.targets = targets;
-    }
-
-    public Long getAid() {
-        return aid;
-    }
-
-    public void setAid(Long aid) {
-        this.aid = aid;
     }
 
     public Integer getCategory() {
