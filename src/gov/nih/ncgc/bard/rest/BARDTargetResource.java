@@ -61,7 +61,7 @@ public class BARDTargetResource implements IBARDResource {
         try {
             if (filter == null)
                 return String.valueOf(db.getTargetCount());
-            else return String.valueOf(db.searchForTargets(filter, -1, -1).size());
+            else return String.valueOf(db.searchForEntity(filter, -1, -1, ProteinTarget.class).size());
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
@@ -90,7 +90,7 @@ public class BARDTargetResource implements IBARDResource {
 
         DBUtils db = new DBUtils();
         try {
-            List<ProteinTarget> targets = db.searchForTargets(filter, skip, top);
+            List<ProteinTarget> targets = db.searchForEntity(filter, skip, top, ProteinTarget.class);
             db.closeConnection();
             if (expandEntries) {
                 String json = Util.toJson(targets);

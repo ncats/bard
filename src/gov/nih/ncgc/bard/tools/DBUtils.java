@@ -1050,22 +1050,6 @@ public class DBUtils {
         return experimentData;
     }
 
-    public List<Project> searchForProject(String query, int skip, int top) throws SQLException, IOException {
-        return searchForEntity(query, skip, top, Project.class);
-    }
-
-    public List<Publication> searchForPublication(String query, int skip, int top) throws SQLException, IOException {
-        return searchForEntity(query, skip, top, Publication.class);
-    }
-
-    public List<ProteinTarget> searchForTargets(String query, int skip, int top) throws SQLException, IOException {
-        return searchForEntity(query, skip, top, ProteinTarget.class);
-    }
-
-    public List<Experiment> searchForExperiment(String query, int skip, int top) throws SQLException, IOException {
-        return searchForEntity(query, skip, top, Experiment.class);
-    }
-
     public <T extends BardEntity> List<T> searchForEntity(String query, int skip, int top, Class<T> klass) throws SQLException, IOException {
         Query queryParams;
         if (fieldMap.containsKey(klass)) queryParams = fieldMap.get(klass);
