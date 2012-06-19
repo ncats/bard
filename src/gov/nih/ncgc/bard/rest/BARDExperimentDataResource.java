@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.rest;
 
-import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
@@ -66,7 +65,7 @@ public class BARDExperimentDataResource implements IBARDResource {
             if (filter == null) {
                 ret = String.valueOf(db.getExperimentDataCount());
             } else {
-                List<Experiment> experiments = db.searchForExperiment(filter);
+                List<ExperimentData> experiments = db.searchForExperimentData(filter, -1, -1);
                 ret = String.valueOf(experiments.size());
             }
             db.closeConnection();
@@ -91,7 +90,7 @@ public class BARDExperimentDataResource implements IBARDResource {
             if (filter == null) { // don't bother returning all experiment_data objects
                 response = Response.status(413).build();
             } else {
-                List<ExperimentData> experimentData = db.searchForExperimentData(filter); // TODO search needs to be reworked
+                List<ExperimentData> experimentData = db.searchForExperimentData(filter, skip, top); // TODO search needs to be reworked
                 if (expandEntries) {
                     String json = Util.toJson(experimentData);
                     response = Response.ok(json, MediaType.APPLICATION_JSON).build();

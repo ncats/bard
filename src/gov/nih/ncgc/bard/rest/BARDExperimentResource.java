@@ -69,12 +69,14 @@ public class BARDExperimentResource implements IBARDResource {
             if (filter == null) {
                 ret = String.valueOf(db.getExperimentCount());
             } else {
-                List<Experiment> experiments = db.searchForExperiment(filter);
+                List<Experiment> experiments = db.searchForExperiment(filter, -1, -1);
                 ret = String.valueOf(experiments.size());
             }
             db.closeConnection();
             return ret;
         } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
     }
@@ -104,7 +106,7 @@ public class BARDExperimentResource implements IBARDResource {
                     return Response.ok(Util.toJson(experiments), MediaType.APPLICATION_JSON).build();
                 }
             } else {
-                List<Experiment> experiments = db.searchForExperiment(filter);
+                List<Experiment> experiments = db.searchForExperiment(filter, skip, top);
                 db.closeConnection();
                 if (expandEntries) {
                     String json = Util.toJson(experiments);

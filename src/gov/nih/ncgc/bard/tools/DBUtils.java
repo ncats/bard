@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.tools;
 
 import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
@@ -17,7 +18,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Utility methods to interact with the database backend.
@@ -26,9 +29,59 @@ import java.util.List;
  */
 public class DBUtils {
     Connection conn;
+    Map<Class, Query> fieldMap;
+
+    class Query {
+        List<String> validFields;
+        String orderField, tableName, idField;
+
+        Query(List<String> validFields, String orderField, String idField, String tableName) {
+            this.validFields = validFields;
+            this.orderField = orderField;
+            this.tableName = tableName;
+
+            if (idField == null) this.idField = orderField;
+        }
+
+        public List<String> getValidFields() {
+            return validFields;
+        }
+
+        public String getOrderField() {
+            return orderField;
+        }
+
+        public String getTableName() {
+            return tableName;
+        }
+
+        public String getIdField() {
+            return idField;
+        }
+    }
 
     public DBUtils() {
+        final List<String> publicationFields = Arrays.asList("pmid", "title", "abstract", "doi");
+        final List<String> projectFields = Arrays.asList("name", "description");
+        final List<String> targetFields = Arrays.asList("name", "description", "uniprot_status");
+        final List<String> experimentFields = Arrays.asList("name", "description", "source", "grant_no");
+        fieldMap = new HashMap<Class, Query>() {{
+            put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
+            put(Project.class, new Query(projectFields, "proj_id", null, "project"));
+            put(ProteinTarget.class, new Query(targetFields, "accession", null, "protein_target"));
+            put(Experiment.class, new Query(experimentFields, "expt_id", null, "experiment"));
+        }};
+
         conn = getConnection();
+    }
+
+    /**
+     * Indicates whether the database connection is ready / valid.
+     *
+     * @return <code>true</code> if there is a valid connection to the database, otherwise false
+     */
+    public boolean ready() {
+        return conn != null;
     }
 
     public void closeConnection() throws SQLException {
@@ -43,9 +96,14 @@ public class DBUtils {
             DataSource ds = (javax.sql.DataSource) envContext.lookup("jdbc/bard");
             return ds.getConnection();
         } catch (Exception e) {
+            System.err.println("Not running in Tomcat/Jetty/Glassfish or other app container?");
             e.printStackTrace();
             return null;
         }
+    }
+
+    protected void setConnection(Connection conn) {
+        this.conn = conn;
     }
 
     private String readFromClob(Reader reader) throws IOException {
@@ -817,151 +875,6 @@ public class DBUtils {
     }
 
     /**
-     * Retrieve experiment data based on a query.
-     * <p/>
-     * Currently a crude query language is supported which requries you to specify the field
-     * to be queried on or if no field is specified then a full text search is applied to all
-     * text fields.
-     * <p/>
-     * Queries should in the form of query_string[field_name]
-     * <p/>
-     * The current implementation of free text search is pretty stupid. We should enable the
-     * full text search functionality in the database.
-     *
-     * @param query the query to use
-     * @return A list of {@link gov.nih.ncgc.bard.entity.Experiment} objects, whuich may be empty if no experiments match the query.
-     */
-    public List<ExperimentData> searchForExperimentData(String query) throws SQLException {
-        boolean freeTextQuery = false;
-
-        if (!query.contains("[")) freeTextQuery = true;
-
-        PreparedStatement pst = null;
-        if (freeTextQuery) {
-            return new ArrayList<ExperimentData>();
-        } else {
-            String[] toks = query.split("\\[");
-            String q = toks[0].trim();
-            String field = toks[1].trim().replace("]", "");
-
-            String sql = "select expt_data_id from experiment_data where " + field + " = " + q + "";
-            pst = conn.prepareStatement(sql);
-        }
-
-        ResultSet rs = pst.executeQuery();
-        List<ExperimentData> experimentData = new ArrayList<ExperimentData>();
-        while (rs.next()) {
-            Long exptId = rs.getLong("expt_id");
-            experimentData.add(getExperimentDataByDataId(exptId));
-        }
-        pst.close();
-        return experimentData;
-    }
-
-    /**
-     * Retrieve experiments based on query.
-     * <p/>
-     * Currently a crude query language is supported which requries you to specify the field
-     * to be queried on or if no field is specified then a full text search is applied to all
-     * text fields.
-     * <p/>
-     * Queries should in the form of query_string[field_name]
-     * <p/>
-     * The current implementation of free text search is pretty stupid. We should enable the
-     * full text search functionality in the database.
-     *
-     * @param query the query to use
-     * @return A list of {@link gov.nih.ncgc.bard.entity.Experiment} objects, whuich may be empty if no experiments match the query.
-     */
-    public List<Experiment> searchForExperiment(String query) throws SQLException {
-        boolean freeTextQuery = false;
-
-        if (!query.contains("[")) freeTextQuery = true;
-
-        PreparedStatement pst = null;
-        if (freeTextQuery) {
-            String q = "%" + query + "%";
-            pst = conn.prepareStatement("select expt_id from experiment where (name like ? or description like ? or source like ? or grant_no like ?)");
-            pst.setString(1, q);
-            pst.setString(2, q);
-            pst.setString(3, q);
-            pst.setString(4, q);
-        } else {
-            String[] toks = query.split("\\[");
-            String q = toks[0].trim();
-            String field = toks[1].trim().replace("]", "");
-            String sql = "select expt_id from experiment where " + field + " like '%" + q + "%'";
-            pst = conn.prepareStatement(sql);
-        }
-
-        ResultSet rs = pst.executeQuery();
-        List<Experiment> experiments = new ArrayList<Experiment>();
-        while (rs.next()) {
-            Long exptId = rs.getLong("expt_id");
-            experiments.add(getExperimentByExptId(exptId));
-        }
-        pst.close();
-
-        return experiments;
-    }
-
-
-    /**
-     * Retrieve targets based on query.
-     * <p/>
-     * Currently a crude query language is supported which requries you to specify the field
-     * to be queried on or if no field is specified then a full text search is applied to all
-     * text fields.
-     * <p/>
-     * Queries should in the form of query_string[field_name]
-     * <p/>
-     * The current implementation of free text search is pretty stupid. We should enable the
-     * full text search functionality in the database.
-     *
-     * @param query the query to use
-     * @return A list of {@link ProteinTarget} objects, whuich may be empty if no assays match the query.
-     */
-    public List<ProteinTarget> searchForTargets(String query, int skip, int top) throws SQLException {
-        boolean freeTextQuery = false;
-
-        if (!query.contains("[")) freeTextQuery = true;
-
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
-
-        PreparedStatement pst = null;
-        if (freeTextQuery) {
-            String q = "%" + query + "%";
-            pst = conn.prepareStatement("select accession from protein_target where (accession like ? or gene_id like ? or name like ? or description like ? or uniprot_status like ?) order by accession" + limitClause);
-            pst.setString(1, q);
-            pst.setString(2, q);
-            pst.setString(3, q);
-            pst.setString(4, q);
-            pst.setString(5, q);
-        } else {
-            String[] toks = query.split("\\[");
-            String q = toks[0].trim();
-            String field = toks[1].trim().replace("]", "");
-            String sql = "select accession from protein_target where " + field + " like '%" + q + "%' order by accession " + limitClause;
-            pst = conn.prepareStatement(sql);
-        }
-
-        ResultSet rs = pst.executeQuery();
-        List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
-        while (rs.next()) {
-            String accession = rs.getString("accession");
-            targets.add(getProteinTargetByAccession(accession));
-        }
-        pst.close();
-
-        return targets;
-    }
-
-
-    /**
      * Get a summary count of projects listing AID for project and number of assays associated with it.
      *
      * @return A list of Long[2], where the elements of the array are the summary AID and the number of
@@ -1103,57 +1016,60 @@ public class DBUtils {
         return probeids;
     }
 
+    /*****************/
+    /* Query methods */
+
     /**
-     * Retrieve projects based on query.
-     * <p/>
-     * Currently a crude query language is supported which requries you to specify the field
-     * to be queried on or if no field is specified then a full text search is applied to all
-     * text fields.
-     * <p/>
-     * Queries should in the form of query_string[field_name]
-     * <p/>
-     * The current implementation of free text search is pretty stupid. We should enable the
-     * full text search functionality in the database.
-     *
-     * @param query the query to use
-     * @return A list of {@link Project} objects, whuich may be empty if no assays match the query.
+     * *************
      */
-    public List<Project> searchForProject(String query) throws SQLException {
+
+    public List<ExperimentData> searchForExperimentData(String query, int skip, int top) throws SQLException {
         boolean freeTextQuery = false;
 
         if (!query.contains("[")) freeTextQuery = true;
 
         PreparedStatement pst = null;
         if (freeTextQuery) {
-            String q = "%" + query + "%";
-            pst = conn.prepareStatement("select aid from assay where type = 3 and (name like ? or description like ? or source like ? or grant_no like ?)");
-            pst.setString(1, q);
-            pst.setString(2, q);
-            pst.setString(3, q);
-            pst.setString(4, q);
+            return new ArrayList<ExperimentData>();
         } else {
             String[] toks = query.split("\\[");
             String q = toks[0].trim();
             String field = toks[1].trim().replace("]", "");
-            String sql = "select aid from assay where type = 3 and  " + field + " like '%" + q + "%'";
+
+            String sql = "select expt_data_id from experiment_data where " + field + " = " + q + "";
             pst = conn.prepareStatement(sql);
         }
 
         ResultSet rs = pst.executeQuery();
-        List<Project> projects = new ArrayList<Project>();
+        List<ExperimentData> experimentData = new ArrayList<ExperimentData>();
         while (rs.next()) {
-            Long aid = rs.getLong("aid");
-            projects.add(getProjectByAid(aid));
+            Long exptId = rs.getLong("expt_id");
+            experimentData.add(getExperimentDataByDataId(exptId));
         }
         pst.close();
-        return projects;
+        return experimentData;
+    }
+
+    public List<Project> searchForProject(String query, int skip, int top) throws SQLException, IOException {
+        return searchForEntity(query, skip, top, Project.class);
     }
 
     public List<Publication> searchForPublication(String query, int skip, int top) throws SQLException, IOException {
-        List<String> validFields = Arrays.asList("pmid", "title", "abstract", "doi");
-        boolean freeTextQuery = false;
+        return searchForEntity(query, skip, top, Publication.class);
+    }
 
-        if (!query.contains("[")) freeTextQuery = true;
+    public List<ProteinTarget> searchForTargets(String query, int skip, int top) throws SQLException, IOException {
+        return searchForEntity(query, skip, top, ProteinTarget.class);
+    }
+
+    public List<Experiment> searchForExperiment(String query, int skip, int top) throws SQLException, IOException {
+        return searchForEntity(query, skip, top, Experiment.class);
+    }
+
+    public <T extends BardEntity> List<T> searchForEntity(String query, int skip, int top, Class<T> klass) throws SQLException, IOException {
+        Query queryParams;
+        if (fieldMap.containsKey(klass)) queryParams = fieldMap.get(klass);
+        else return new ArrayList<T>();
 
         String limitClause = "";
         if (skip != -1) {
@@ -1161,31 +1077,38 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = null;
-        if (freeTextQuery) {
-            String q = "%" + query + "%";
-            pst = conn.prepareStatement("select pmid from publication where (pmid like ? or title like ? or abstract like ? or doi like ?) order by pmid " + limitClause);
-            pst.setString(1, q);
-            pst.setString(2, q);
-            pst.setString(3, q);
-            pst.setString(4, q);
+        PreparedStatement pst;
+        if (!query.contains("[")) {
+            String q = "'%" + query + "%' ";
+            List<String> tmp = new ArrayList<String>();
+            for (String s : queryParams.getValidFields()) tmp.add(s + " like " + q);
+            String tmp2 = Util.join(tmp, " or ");
+
+            String sql = "select " + queryParams.getIdField() + " from " + queryParams.getTableName() + " where (" + tmp2 + ") order by " + queryParams.getOrderField() + " " + limitClause;
+            pst = conn.prepareStatement(sql);
         } else {
+            // TODO we currently only assume a single query field is specified
             String[] toks = query.split("\\[");
             String q = toks[0].trim();
             String field = toks[1].trim().replace("]", "");
-            if (!validFields.contains(field)) throw new SQLException("Invalid field was specified");
-            String sql = "select pmid from publication  " + field + " like '%" + q + "%' order by pmid " + limitClause;
+            if (!queryParams.getValidFields().contains(field)) throw new SQLException("Invalid field was specified");
+            String sql = "select " + queryParams.getIdField() + " from " + queryParams.getTableName() + " where " + field + " like '%" + q + "%' order by " + queryParams.getOrderField() + "  " + limitClause;
             pst = conn.prepareStatement(sql);
         }
 
         ResultSet rs = pst.executeQuery();
-        List<Publication> publications = new ArrayList<Publication>();
+        List<T> entities = new ArrayList<T>();
         while (rs.next()) {
-            Long pmid = rs.getLong("pmid");
-            publications.add(getPublicationByPmid(pmid));
+            Object id = rs.getObject(queryParams.getIdField());
+            BardEntity entity = null;
+            if (klass.equals(Publication.class)) entity = getPublicationByPmid((Long) id);
+            else if (klass.equals(ProteinTarget.class)) entity = getProteinTargetByAccession((String) id);
+            else if (klass.equals(Project.class)) entity = getProjectByAid((Long) id);
+            else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
+            if (entity != null) entities.add((T) entity);
         }
         pst.close();
-        return publications;
+        return entities;
     }
 
 }
