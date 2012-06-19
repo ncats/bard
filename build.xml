@@ -164,6 +164,11 @@
             <classfileset dir="${bard.build}" includes="**/rest/*.class"/>
         </testng>
     </target>
+    <target name='run-db-tests' id='run-db-test' depends='compile-test'>
+        <testng classpathref="cp" outputDir="${bard.test.output}">
+            <classfileset dir="${bard.build}" includes="**/tools/*.class"/>
+        </testng>
+    </target>
     <target name='rest-heartbeat' id='run-test' depends='compile-test'>
         <testng classpathref="cp" groups="heartbeat" outputDir="${bard.test.output}">
             <classfileset dir="${bard.build}" includes="**/rest/*.class"/>

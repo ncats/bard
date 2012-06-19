@@ -12,18 +12,17 @@ import java.sql.SQLException;
  *
  * @author Rajarshi Guha
  */
-public class DBUtilsTest {
-    DBUtils db;
+public class DBUtilsTest extends DBTest {
 
-    public DBUtilsTest() {
-        db = new DBUtils();
+    public DBUtilsTest() throws ClassNotFoundException, SQLException {
+        super();
     }
 
     @DataProvider
     public Object[][] aidDataProvider() {
         return new Object[][]{
                 {new Long(2048), new Long(2048)},
-                {new Long(1215), new Long(1215)},
+                {new Long(399), new Long(399)},
                 {new Long(2492), new Long(2492)}
         };
     }
