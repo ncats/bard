@@ -64,6 +64,8 @@ public class BARDTargetResource implements IBARDResource {
             else return String.valueOf(db.searchForTargets(filter, -1, -1).size());
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
         }
     }
 
