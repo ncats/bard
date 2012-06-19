@@ -33,4 +33,25 @@ public class DBUtilsTest extends DBTest {
         Assert.assertNotNull(assay.getAid());
         Assert.assertEquals(assay.getAid(), aid2);
     }
+
+    @DataProvider
+    public Object[][] countProvider() {
+        return new Object[][]{
+                {"gov.nih.ncgc.bard.entity.Assay", 0},
+                {"gov.nih.ncgc.bard.entity.Compound", 0},
+                {"gov.nih.ncgc.bard.entity.Substance", 0},
+                {"gov.nih.ncgc.bard.entity.Experiment", 0},
+                {"gov.nih.ncgc.bard.entity.ExperimentData", 0},
+                {"gov.nih.ncgc.bard.entity.Publication", 0},
+                {"gov.nih.ncgc.bard.entity.Project", 0},
+                {"gov.nih.ncgc.bard.entity.ProteinTarget", 0}
+        };
+    }
+
+    @Test(dataProvider = "countProvider")
+    public void getCompoundCount(String className, int n) throws SQLException, ClassNotFoundException {
+        Class klass = Class.forName(className);
+        int count = db.getEntityCount(klass);
+        Assert.assertTrue(count > n);
+    }
 }

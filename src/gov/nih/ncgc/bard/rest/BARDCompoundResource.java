@@ -70,7 +70,7 @@ public class BARDCompoundResource implements IBARDResource {
     public String count(@QueryParam("filter") String filter) {
         DBUtils db = new DBUtils();
         try {
-            int n = db.getCompoundCount();
+            int n = db.getEntityCount(Compound.class);
             db.closeConnection();
             return String.valueOf(n);
         } catch (SQLException e) {

@@ -63,7 +63,7 @@ public class BARDDocumentResource implements IBARDResource {
         DBUtils db = new DBUtils();
         try {
             if (filter == null) {
-                int n = db.getPublicationCount();
+                int n = db.getEntityCount(Publication.class);
                 return String.valueOf(n);
             } else {
                 List<Publication> publications = db.searchForEntity(filter, -1, -1, Publication.class);

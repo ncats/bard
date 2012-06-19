@@ -60,7 +60,7 @@ public class BARDTargetResource implements IBARDResource {
         DBUtils db = new DBUtils();
         try {
             if (filter == null)
-                return String.valueOf(db.getTargetCount());
+                return String.valueOf(db.getEntityCount(ProteinTarget.class));
             else return String.valueOf(db.searchForEntity(filter, -1, -1, ProteinTarget.class).size());
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);

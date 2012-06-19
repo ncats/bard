@@ -63,7 +63,7 @@ public class BARDExperimentDataResource implements IBARDResource {
         String ret;
         try {
             if (filter == null) {
-                ret = String.valueOf(db.getExperimentDataCount());
+                ret = String.valueOf(db.getEntityCount(ExperimentData.class));
             } else {
                 List<ExperimentData> experiments = db.searchForExperimentData(filter, -1, -1);
                 ret = String.valueOf(experiments.size());

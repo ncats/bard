@@ -6,6 +6,7 @@ import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -69,7 +70,7 @@ public class BARDSubstanceResource implements IBARDResource {
     public String count(@QueryParam("filter") String filter) {
         DBUtils db = new DBUtils();
         try {
-            int n = db.getSubstanceCount();
+            int n = db.getEntityCount(Substance.class);
             db.closeConnection();
             return String.valueOf(n);
         } catch (SQLException e) {

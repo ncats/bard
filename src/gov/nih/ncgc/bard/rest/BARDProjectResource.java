@@ -66,7 +66,7 @@ public class BARDProjectResource implements IBARDResource {
         String ret;
         try {
             if (filter == null) {
-                int n = db.getProjectCount().size();
+                int n = db.getEntityCount(Project.class);
                 ret = String.valueOf(n);
             } else { // run the query and return count of results
                 List<Project> projects = db.searchForEntity(filter, -1, -1, Project.class);
@@ -94,15 +94,14 @@ public class BARDProjectResource implements IBARDResource {
         Response response = null;
         try {
             if (filter == null) { // just list all projects
-
-                List<Long[]> ids = db.getProjectCount();
+                List<Long> ids = db.getProjectIds();
                 if (!expandEntries) {
                     List<String> links = new ArrayList<String>();
-                    for (Long[] id : ids) links.add(BARDConstants.API_BASE + "/projects/" + id[0]);
+                    for (Long id : ids) links.add(BARDConstants.API_BASE + "/projects/" + id);
                     response = Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
                 } else {
                     List<Project> projects = new ArrayList<Project>();
-                    for (Long[] id : ids) projects.add(db.getProjectByAid(id[0]));
+                    for (Long id : ids) projects.add(db.getProjectByAid(id));
                     response = Response.ok(Util.toJson(projects), MediaType.APPLICATION_JSON).build();
                 }
             } else if (filter != null) {

@@ -8,6 +8,7 @@ import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
+import gov.nih.ncgc.bard.entity.Substance;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -65,11 +66,20 @@ public class DBUtils {
         final List<String> projectFields = Arrays.asList("name", "description");
         final List<String> targetFields = Arrays.asList("accession", "name", "description", "uniprot_status");
         final List<String> experimentFields = Arrays.asList("name", "description", "source", "grant_no");
+        final List<String> compoundFields = Arrays.asList("url");
+        final List<String> substanceFields = Arrays.asList("url");
+        final List<String> assayFields = Arrays.asList("name", "description", "protocol", "comemnt", "source", "grant_no");
+        final List<String> edFields = Arrays.asList();
+
         fieldMap = new HashMap<Class, Query>() {{
             put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
             put(Project.class, new Query(projectFields, "proj_id", null, "project"));
             put(ProteinTarget.class, new Query(targetFields, "accession", null, "protein_target"));
             put(Experiment.class, new Query(experimentFields, "expt_id", null, "experiment"));
+            put(Compound.class, new Query(compoundFields, "cid", null, "compound"));
+            put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
+            put(Assay.class, new Query(assayFields, "assay_id", null, "assay"));
+            put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "experiment_data"));
         }};
 
         conn = getConnection();
@@ -150,15 +160,6 @@ public class DBUtils {
         return p;
     }
 
-    public int getPublicationCount() throws SQLException, IOException {
-        PreparedStatement pst = conn.prepareStatement("select count(pmid) as c from publication");
-        ResultSet rs = pst.executeQuery();
-        int n = 0;
-        while (rs.next()) n = rs.getInt("c");
-        pst.close();
-        return n;
-    }
-
     public List<Publication> getProteinTargetPublications(String accession) throws SQLException {
         if (accession == null || accession.trim().equals("")) return null;
 
@@ -214,15 +215,6 @@ public class DBUtils {
         return p;
     }
 
-    public int getCompoundCount() throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select count(cid) from compound");
-        ResultSet rs = pst.executeQuery();
-        int n = 0;
-        while (rs.next()) n = rs.getInt(1);
-        pst.close();
-        return (n);
-    }
-
     public Long getCidBySid(Long sid) throws SQLException {
         PreparedStatement pst = conn.prepareStatement("select cid from cid_sid where sid = ?");
         pst.setLong(1, sid);
@@ -241,15 +233,6 @@ public class DBUtils {
         while (rs.next()) sids.add(rs.getLong(1));
         pst.close();
         return sids;
-    }
-
-    public int getSubstanceCount() throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select count(sid) from substance");
-        ResultSet rs = pst.executeQuery();
-        int n = 0;
-        while (rs.next()) n = rs.getInt(1);
-        pst.close();
-        return (n);
     }
 
     public Compound getCompoundByCid(Long cid) throws SQLException {
@@ -874,19 +857,12 @@ public class DBUtils {
         return assays;
     }
 
-    /**
-     * Get a summary count of projects listing AID for project and number of assays associated with it.
-     *
-     * @return A list of Long[2], where the elements of the array are the summary AID and the number of
-     *         assays associated with it, respectively.
-     * @throws SQLException
-     */
-    public List<Long[]> getProjectCount() throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select summary,count(1) as cnt from assay where summary is not null group by summary order by cnt desc");
+    public List<Long> getProjectIds() throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select proj_id from project");
         ResultSet rs = pst.executeQuery();
-        List<Long[]> ret = new ArrayList<Long[]>();
+        List<Long> ret = new ArrayList<Long>();
         while (rs.next()) {
-            ret.add(new Long[]{rs.getLong("summary"), rs.getLong("cnt")});
+            ret.add(rs.getLong(1));
         }
         pst.close();
         return ret;
@@ -924,46 +900,6 @@ public class DBUtils {
         }
         pst.close();
         return ret;
-    }
-
-    /**
-     * Return a count of all experiments.
-     *
-     * @return
-     * @throws SQLException
-     */
-    public int getExperimentCount() throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select count(distinct expt_id) from experiment;");
-        ResultSet rs = pst.executeQuery();
-        int n = 0;
-        while (rs.next()) n = rs.getInt(1);
-        pst.close();
-        return n;
-    }
-
-    /**
-     * Return a count of all experiment data values.
-     *
-     * @return
-     * @throws SQLException
-     */
-    public int getExperimentDataCount() throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select count(expt_data_id) from experiment_data;");
-        ResultSet rs = pst.executeQuery();
-        int n = 0;
-        while (rs.next()) n = rs.getInt(1);
-        pst.close();
-        return n;
-    }
-
-
-    public int getTargetCount() throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select count(accession) as c from protein_target");
-        ResultSet rs = pst.executeQuery();
-        int n = 0;
-        while (rs.next()) n = rs.getInt("c");
-        pst.close();
-        return n;
     }
 
     /**
@@ -1048,6 +984,27 @@ public class DBUtils {
         }
         pst.close();
         return experimentData;
+    }
+
+    /**
+     * Get a count of the instances of an entity currently stored in the database.
+     *
+     * @param klass The class of the entity to be counted
+     * @return the count of the instances present
+     * @throws SQLException if there is an error in the query
+     */
+    public <T extends BardEntity> int getEntityCount(Class<T> klass) throws SQLException {
+        Query queryParams;
+        if (fieldMap.containsKey(klass)) queryParams = fieldMap.get(klass);
+        else throw new IllegalArgumentException("Invalid entity class was specified");
+
+        String sql = "select count(" + queryParams.getIdField() + ") from " + queryParams.getTableName();
+        PreparedStatement pst = conn.prepareStatement(sql);
+        ResultSet rs = pst.executeQuery();
+        int n = 0;
+        while (rs.next()) n = rs.getInt(1);
+        pst.close();
+        return (n);
     }
 
     public <T extends BardEntity> List<T> searchForEntity(String query, int skip, int top, Class<T> klass) throws SQLException, IOException {
