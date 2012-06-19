@@ -63,14 +63,17 @@ public class BARDProjectResource implements IBARDResource {
     @Path("/_count")
     public String count(@QueryParam("filter") String filter) {
         DBUtils db = new DBUtils();
+        String ret;
         try {
             if (filter == null) {
                 int n = db.getProjectCount().size();
-                return String.valueOf(n);
+                ret = String.valueOf(n);
             } else { // run the query and return count of results
                 List<Project> projects = db.searchForProject(filter);
-                return String.valueOf(projects.size());
+                ret = String.valueOf(projects.size());
             }
+            db.closeConnection();
+            return ret;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         }
@@ -86,6 +89,7 @@ public class BARDProjectResource implements IBARDResource {
             expandEntries = true;
 
         DBUtils db = new DBUtils();
+        Response response = null;
         try {
             if (filter == null) { // just list all projects
 
@@ -93,31 +97,32 @@ public class BARDProjectResource implements IBARDResource {
                 if (!expandEntries) {
                     List<String> links = new ArrayList<String>();
                     for (Long[] id : ids) links.add(BARDConstants.API_BASE + "/projects/" + id[0]);
-                    return Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
+                    response = Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
                 } else {
                     List<Project> projects = new ArrayList<Project>();
                     for (Long[] id : ids) projects.add(db.getProjectByAid(id[0]));
-                    return Response.ok(Util.toJson(projects), MediaType.APPLICATION_JSON).build();
+                    response = Response.ok(Util.toJson(projects), MediaType.APPLICATION_JSON).build();
                 }
             } else if (filter != null) {
                 List<Project> projects = db.searchForProject(filter);
                 if (expandEntries) {
                     String json = Util.toJson(projects);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                    response = Response.ok(json, MediaType.APPLICATION_JSON).build();
                 } else {
                     List<String> links = new ArrayList<String>();
                     for (Project a : projects)
                         links.add(a.getResourcePath());
                     String json = Util.toJson(links);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                    response = Response.ok(json, MediaType.APPLICATION_JSON).build();
                 }
             }
+            db.closeConnection();
+            return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
-        return getResources(null, filter, expand);
     }
 
     @GET
@@ -128,6 +133,7 @@ public class BARDProjectResource implements IBARDResource {
             Project p = db.getProjectByAid(Long.valueOf(resourceId));
             if (p.getAid() == null) throw new WebApplicationException(404);
             String json = Util.toJson(p);
+            db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
@@ -156,6 +162,7 @@ public class BARDProjectResource implements IBARDResource {
                 for (ProteinTarget pt : targets) links.add(pt.getResourcePath());
                 json = Util.toJson(links);
             }
+            db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
@@ -175,7 +182,6 @@ public class BARDProjectResource implements IBARDResource {
             Project p = db.getProjectByAid(Long.valueOf(resourceId));
             List<Assay> a = new ArrayList<Assay>();
             for (Long aid : p.getAids()) a.add(db.getAssayByAid(aid));
-
             String json;
             if (expandEntries) json = Util.toJson(p);
             else {
@@ -183,6 +189,7 @@ public class BARDProjectResource implements IBARDResource {
                 for (Assay anAssay : a) links.add(anAssay.getResourcePath());
                 json = Util.toJson(links);
             }
+            db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
@@ -212,6 +219,7 @@ public class BARDProjectResource implements IBARDResource {
         List<MediaType> types = headers.getAcceptableMediaTypes();
 
         DBUtils db = new DBUtils();
+        Response response = null;
         try {
             List<Long> probes = db.getProbesForProject(Long.valueOf(resourceId));
             if (types.contains(BARDConstants.MIME_SMILES)) {
@@ -220,20 +228,20 @@ public class BARDProjectResource implements IBARDResource {
                     Compound c = db.getCompoundByCid(probe);
                     smiles.add(c.getSmiles() + "\t" + probe);
                 }
-                return Response.ok(Util.join(smiles, "\n"), BARDConstants.MIME_SMILES).build();
+                response = Response.ok(Util.join(smiles, "\n"), BARDConstants.MIME_SMILES).build();
             } else if (types.contains(BARDConstants.MIME_SDF)) {
 
             } else {
                 List<String> links = new ArrayList<String>();
                 for (Long id : probes) links.add(BARDConstants.API_BASE + "/compounds/" + id);
-                return Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
+                response = Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
             }
+            db.closeConnection();
+            return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
-
-        return null;
     }
 }
