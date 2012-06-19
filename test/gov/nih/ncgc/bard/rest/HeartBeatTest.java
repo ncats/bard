@@ -27,6 +27,9 @@ public class HeartBeatTest {
         return new Object[][]{
                 {"assays", 200},
                 {"compounds", 200},
+                {"substances", 200},
+                {"experiments", 200},
+                {"exptdata", 200},
                 {"documents", 200},
                 {"projects", 200},
                 {"targets", 200}
