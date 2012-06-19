@@ -40,7 +40,7 @@ it requires a connection to a MySQL database, which developers may not have inst
 you should place a file called `database.parameters` in the root directory of the distribution. The contents of the file
 should be something like
 ```
-jdbc:mysql://data.base.server:portnum/dbname,username,password
+jdbc:mysql://db.host.name:port/schema,username,password
 ```
 As with the general tests, the results can be viewed in `test.out/index.html`
 
