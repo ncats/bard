@@ -63,7 +63,7 @@ public class DBUtils {
     public DBUtils() {
         final List<String> publicationFields = Arrays.asList("pmid", "title", "abstract", "doi");
         final List<String> projectFields = Arrays.asList("name", "description");
-        final List<String> targetFields = Arrays.asList("name", "description", "uniprot_status");
+        final List<String> targetFields = Arrays.asList("accession", "name", "description", "uniprot_status");
         final List<String> experimentFields = Arrays.asList("name", "description", "source", "grant_no");
         fieldMap = new HashMap<Class, Query>() {{
             put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));

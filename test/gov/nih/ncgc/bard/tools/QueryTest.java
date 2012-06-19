@@ -38,4 +38,38 @@ public class QueryTest extends DBTest {
         Assert.assertTrue(targets.size() > 0);
     }
 
+    @Test
+    public void queryTargetsWithField1() throws IOException, SQLException {
+        String query = "Q6GZX3[accession]";
+        List<ProteinTarget> targets = db.searchForEntity(query, -1, -1, ProteinTarget.class);
+        System.out.println("Querying targets for '" + query + "' gave " + targets.size() + " results");
+        Assert.assertTrue(targets.get(0).getClass().equals(ProteinTarget.class));
+        Assert.assertEquals(1, targets.size(), "Should have gotten a single result when filtering by accession");
+    }
+
+    @Test
+    public void queryTargetsWithField2() throws IOException, SQLException {
+        String query = "Q6GZ[accession]";
+        List<ProteinTarget> targets = db.searchForEntity(query, -1, -1, ProteinTarget.class);
+        System.out.println("Querying targets for '" + query + "' gave " + targets.size() + " results");
+        Assert.assertTrue(targets.get(0).getClass().equals(ProteinTarget.class));
+        Assert.assertTrue(targets.size() > 0);
+    }
+
+    @Test
+    public void queryTargetsWithField3() throws IOException, SQLException {
+        String query = "Napin[name]";
+        List<ProteinTarget> targets = db.searchForEntity(query, -1, -1, ProteinTarget.class);
+        System.out.println("Querying targets for '" + query + "' gave " + targets.size() + " results");
+        Assert.assertTrue(targets.get(0).getClass().equals(ProteinTarget.class));
+        Assert.assertTrue(targets.size() > 0);
+    }
+
+    @Test(expectedExceptions = SQLException.class)
+    public void queryTargetsWithInvalidField() throws IOException, SQLException {
+        String query = "Q6GZ[accessionFOO]";
+        List<ProteinTarget> targets = db.searchForEntity(query, -1, -1, ProteinTarget.class);
+        System.out.println("Querying targets for '" + query + "' gave " + targets.size() + " results");
+    }
+
 }
