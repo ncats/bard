@@ -237,7 +237,7 @@ public class BARDCompoundResource implements IBARDResource {
                 String expandClause = "expand=false";
                 if (expandEntries) expandClause = "expand=true";
                 if (skip + top <= experiemnt.getSubstances())
-                    linkString = BARDConstants.API_BASE + "/compounds/" + resourceId + "/exptdata?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+                    linkString = BARDConstants.API_BASE + "/compounds/" + resourceId + "/experiments?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
 
             String json;

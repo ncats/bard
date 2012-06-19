@@ -525,6 +525,33 @@ public class DBUtils {
     }
 
     /**
+     * Return experiment ids for a substance.
+     *
+     * @param sid  The Pubchem SID
+     * @param skip how many records to skip
+     * @param top  how many records to return
+     * @return
+     * @throws SQLException
+     */
+    public List<Long> getSubstanceExperimentIds(Long sid, int skip, int top) throws SQLException {
+        if (sid == null || sid < 0) return null;
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select distinct(eid) from experiment_data where sid = ? order by eid " + limitClause);
+        pst.setLong(1, sid);
+        ResultSet rs = pst.executeQuery();
+        List<Long> ret = new ArrayList<Long>();
+        while (rs.next()) ret.add(rs.getLong(1));
+        pst.close();
+        return ret;
+    }
+
+    /**
      * Return experiment objects for a compound.
      *
      * @param cid  The Pubchem CID
@@ -544,6 +571,33 @@ public class DBUtils {
 
         PreparedStatement pst = conn.prepareStatement("select distinct(eid) from experiment_data where cid = ? order by eid " + limitClause);
         pst.setLong(1, cid);
+        ResultSet rs = pst.executeQuery();
+        List<Experiment> ret = new ArrayList<Experiment>();
+        while (rs.next()) ret.add(getExperimentByExptId(rs.getLong(1)));
+        pst.close();
+        return ret;
+    }
+
+    /**
+     * Return experiment objects for a subtstance.
+     *
+     * @param sid  The Pubchem SID
+     * @param skip how many records to skip
+     * @param top  how many records to return
+     * @return
+     * @throws SQLException
+     */
+    public List<Experiment> getSubstanceExperiment(Long sid, int skip, int top) throws SQLException {
+        if (sid == null || sid < 0) return null;
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select distinct(eid) from experiment_data where sid = ? order by eid " + limitClause);
+        pst.setLong(1, sid);
         ResultSet rs = pst.executeQuery();
         List<Experiment> ret = new ArrayList<Experiment>();
         while (rs.next()) ret.add(getExperimentByExptId(rs.getLong(1)));
