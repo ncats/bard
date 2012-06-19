@@ -35,6 +35,15 @@ ant clean run-tests
 ```
 and view `test.out/index.html` in your browser to view the summary.
 
+Unit tests that focus on database functionality can be run via the `run-db-tests` target. These have been seperated out since
+it requires a connection to a MySQL database, which developers may not have installed. If you choose to run these tests
+you should place a file called `database.parameters` in the root directory of the distribution. The contents of the file
+should be something like
+```
+jdbc:mysql://db.host.name:port/schema,username,password
+```
+As with the general tests, the results can be viewed in `test.out/index.html`
+
 There is a special test target called `rest-heartbeat` that simply retrieves the `/_info` resource for all available
 entities on the main development server and checks that the HTTP status code is 200. While this does not check that the resource is returning the
 correct values, it does indicate that the resources are available. Ideally, there should be no failures for this
