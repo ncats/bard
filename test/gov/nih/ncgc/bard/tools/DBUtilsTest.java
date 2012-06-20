@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.tools;
 
 import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardEntity;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -49,8 +50,8 @@ public class DBUtilsTest extends DBTest {
     }
 
     @Test(dataProvider = "countProvider")
-    public void getCompoundCount(String className, int n) throws SQLException, ClassNotFoundException {
-        Class klass = Class.forName(className);
+    public void getEntityCount(String className, int n) throws SQLException, ClassNotFoundException {
+        Class<BardEntity> klass = (Class<BardEntity>) Class.forName(className);
         int count = db.getEntityCount(klass);
         Assert.assertTrue(count > n);
     }
