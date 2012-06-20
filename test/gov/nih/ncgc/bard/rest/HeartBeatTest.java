@@ -44,4 +44,14 @@ public class HeartBeatTest {
         Integer status = response.getStatus();
         Assert.assertEquals(status, expectedStatus);
     }
+
+    // actually tests a QSL query
+    @Test(groups = "heartbeat", dataProvider = "resourceNameProvider")
+    public void connectToCountResource(String resourceName, Integer expectedStatus) {
+        String url = prefix + resourceName + "/_count";
+        WebResource resource = client.resource(url);
+        ClientResponse response = resource.get(ClientResponse.class);
+        Integer status = response.getStatus();
+        Assert.assertEquals(status, expectedStatus);
+    }
 }
