@@ -67,14 +67,17 @@ public class BARDAssayResource implements IBARDResource {
     @Path("/_count")
     public String count(@QueryParam("filter") String filter) {
         DBUtils db = new DBUtils();
+        String ret;
         try {
             if (filter == null) {
                 int n = db.getAssayCount().size();
-                return String.valueOf(n);
+                ret = String.valueOf(n);
             } else {
                 List<Assay> assays = db.searchForAssay(filter);
-                return String.valueOf(assays.size());
+                ret = String.valueOf(assays.size());
             }
+            db.closeConnection();
+            return ret;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         }
@@ -90,6 +93,7 @@ public class BARDAssayResource implements IBARDResource {
             expandEntries = true;
 
         DBUtils db = new DBUtils();
+        Response response;
         try {
 
             if (filter == null) {
@@ -97,24 +101,26 @@ public class BARDAssayResource implements IBARDResource {
                 if (!expandEntries) {
                     List<String> links = new ArrayList<String>();
                     for (Long id : ids) links.add(BARDConstants.API_BASE + "/assays/" + id);
-                    return Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
+                    response = Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
                 } else {
                     List<Project> projects = new ArrayList<Project>();
                     for (Long id : ids) projects.add(db.getProjectByAid(id));
-                    return Response.ok(Util.toJson(projects), MediaType.APPLICATION_JSON).build();
+                    response = Response.ok(Util.toJson(projects), MediaType.APPLICATION_JSON).build();
                 }
             } else {
                 List<Assay> assays = db.searchForAssay(filter);
                 if (expandEntries) {
                     String json = Util.toJson(assays);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                    response = Response.ok(json, MediaType.APPLICATION_JSON).build();
                 } else {
                     List<String> links = new ArrayList<String>();
                     for (Assay a : assays) links.add(a.getResourcePath());
                     String json = Util.toJson(links);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                    response = Response.ok(json, MediaType.APPLICATION_JSON).build();
                 }
             }
+            db.closeConnection();
+            return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
@@ -149,19 +155,21 @@ public class BARDAssayResource implements IBARDResource {
 
         DBUtils db = new DBUtils();
         List<ProteinTarget> targets = null;
+        Response response;
         try {
             targets = db.getAssayTargets(Long.valueOf(resourceId));
             db.closeConnection();
             if (expandEntries) {
                 String json = Util.toJson(targets);
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
             } else {
                 List<String> links = new ArrayList<String>();
                 for (ProteinTarget t : targets)
                     links.add(t.getResourcePath());
                 String json = Util.toJson(links);
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
+            return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (JsonMappingException e) {
