@@ -10,16 +10,12 @@ import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -36,17 +32,10 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/v1/substances")
-public class BARDSubstanceResource implements IBARDResource {
+public class BARDSubstanceResource extends BARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
-
-    @Context
-    ServletContext servletContext;
-    @Context
-    HttpServletRequest httpServletRequest;
-    @Context
-    HttpHeaders headers;
 
     @GET
     @Produces("text/plain")
@@ -56,26 +45,6 @@ public class BARDSubstanceResource implements IBARDResource {
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
         return msg.toString();
-    }
-
-    /**
-     * Return a count of (possibly filtered) instances of a given resource.
-     *
-     * @param filter A query filter or null
-     * @return the number of instances
-     */
-    @GET
-    @Produces("text/plain")
-    @Path("/_count")
-    public String count(@QueryParam("filter") String filter) {
-        DBUtils db = new DBUtils();
-        try {
-            int n = db.getEntityCount(Substance.class);
-            db.closeConnection();
-            return String.valueOf(n);
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        }
     }
 
     public Response getResources(@QueryParam("filter") String filter,
@@ -118,12 +87,32 @@ public class BARDSubstanceResource implements IBARDResource {
         }
     }
 
+    @GET
+    public Response getAll(@QueryParam("filter") String filter,
+                           @QueryParam("expand") String expand,
+                           @QueryParam("skip") Integer skip,
+                           @QueryParam("top") Integer top) throws SQLException {
+        DBUtils db = new DBUtils();
+        Response response = null;
+        if (filter == null) {
+            if (countRequested)
+                response = Response.ok(String.valueOf(db.getEntityCount(Substance.class))).build();
+            else {
+                // make a paged response of all substances
+            }
+        }
+        db.closeConnection();
+        return response;
+    }
+
     // return compound (via CID) for this SID
     @GET
     @Path("/{sid}")
     public Response getResources(@PathParam("sid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            return getCompoundResponse(resourceId, "sid", headers.getAcceptableMediaTypes());
+            Response response = getCompoundResponse(resourceId, "sid", headers.getAcceptableMediaTypes());
+            if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
+            else return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
@@ -136,7 +125,9 @@ public class BARDSubstanceResource implements IBARDResource {
     @Path("/cid/{cid}")
     public Response getCompoundBySid(@PathParam("cid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            return getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes());
+            Response response = getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes());
+            if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
+            else return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
@@ -180,18 +171,24 @@ public class BARDSubstanceResource implements IBARDResource {
             String json;
             if (!expandEntries) {
                 List<Long> edids = db.getSubstanceDataIds(Long.valueOf(resourceId), skip, top);
-                List<String> links = new ArrayList<String>();
-                for (Long edid : edids) {
-                    ExperimentData ed = new ExperimentData();
-                    ed.setExptDataId(edid);
-                    links.add(ed.getResourcePath());
+                if (countRequested) json = String.valueOf(edids.size());
+                else {
+                    List<String> links = new ArrayList<String>();
+                    for (Long edid : edids) {
+                        ExperimentData ed = new ExperimentData();
+                        ed.setExptDataId(edid);
+                        links.add(ed.getResourcePath());
+                    }
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                    json = Util.toJson(linkedEntity);
                 }
-                BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
-                json = Util.toJson(linkedEntity);
             } else {
                 List<ExperimentData> data = db.getSubstanceData(Long.valueOf(resourceId), skip, top);
-                BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
-                json = Util.toJson(linkedEntity);
+                if (countRequested) json = String.valueOf(data.size());
+                else {
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
+                    json = Util.toJson(linkedEntity);
+                }
             }
             db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -215,6 +212,7 @@ public class BARDSubstanceResource implements IBARDResource {
 
         DBUtils db = new DBUtils();
         String linkString = null;
+        String json;
 
         if (skip == null) skip = -1;
         if (top == null) top = -1;
@@ -233,22 +231,25 @@ public class BARDSubstanceResource implements IBARDResource {
                 if (skip + top <= experiemnt.getSubstances())
                     linkString = BARDConstants.API_BASE + "/substances/" + resourceId + "/experiments?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
-
-            String json;
             if (!expandEntries) {
                 List<Long> eids = db.getSubstanceExperimentIds(Long.valueOf(resourceId), skip, top);
-                List<String> links = new ArrayList<String>();
-                for (Long eid : eids) {
-                    Experiment ed = new Experiment();
-                    ed.setExptId(eid);
-                    links.add(ed.getResourcePath());
+                if (countRequested) json = String.valueOf(eids.size());
+                else {
+                    List<String> links = new ArrayList<String>();
+                    for (Long eid : eids) {
+                        Experiment ed = new Experiment();
+                        ed.setExptId(eid);
+                        links.add(ed.getResourcePath());
+                    }
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                    json = Util.toJson(linkedEntity);
                 }
-                BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
-                json = Util.toJson(linkedEntity);
             } else {
                 List<Experiment> data = db.getSubstanceExperiment(Long.valueOf(resourceId), skip, top);
-                BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
-                json = Util.toJson(linkedEntity);
+                if (!countRequested) {
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
+                    json = Util.toJson(linkedEntity);
+                } else json = String.valueOf(data.size());
             }
             db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
