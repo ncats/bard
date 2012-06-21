@@ -60,9 +60,11 @@ public class BARDTargetResource implements IBARDResource {
         DBUtils db = new DBUtils();
         try {
             if (filter == null)
-                return String.valueOf(db.getTargetCount());
-            else return String.valueOf(db.searchForTargets(filter, -1, -1).size());
+                return String.valueOf(db.getEntityCount(ProteinTarget.class));
+            else return String.valueOf(db.searchForEntity(filter, -1, -1, ProteinTarget.class).size());
         } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
     }
@@ -88,7 +90,8 @@ public class BARDTargetResource implements IBARDResource {
 
         DBUtils db = new DBUtils();
         try {
-            List<ProteinTarget> targets = db.searchForTargets(filter, skip, top);
+            List<ProteinTarget> targets = db.searchForEntity(filter, skip, top, ProteinTarget.class);
+            db.closeConnection();
             if (expandEntries) {
                 String json = Util.toJson(targets);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -113,6 +116,7 @@ public class BARDTargetResource implements IBARDResource {
         ProteinTarget p;
         try {
             p = db.getProteinTargetByAccession(resourceId);
+            db.closeConnection();
             if (p.getAcc() == null) throw new WebApplicationException(404);
             String json = p.toJson();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -131,6 +135,7 @@ public class BARDTargetResource implements IBARDResource {
         ProteinTarget p;
         try {
             p = db.getProteinTargetByGeneid(Long.parseLong(resourceId));
+            db.closeConnection();
             if (p.getAcc() == null) throw new WebApplicationException(404);
             String json = Util.toJson(p);
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -155,16 +160,19 @@ public class BARDTargetResource implements IBARDResource {
         List<Publication> pubs = null;
         try {
             pubs = db.getProteinTargetPublications(resourceId);
+            Response response;
             if (expandEntries) {
                 String json = Util.toJson(pubs);
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
             } else {
                 List<String> links = new ArrayList<String>();
                 for (Publication pub : pubs)
                     links.add(pub.getResourcePath());
                 String json = Util.toJson(links);
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
+            db.closeConnection();
+            return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (JsonMappingException e) {

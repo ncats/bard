@@ -3,8 +3,7 @@ package gov.nih.ncgc.bard.rest;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
@@ -23,6 +22,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -67,14 +67,17 @@ public class BARDAssayResource implements IBARDResource {
     @Path("/_count")
     public String count(@QueryParam("filter") String filter) {
         DBUtils db = new DBUtils();
+        String ret;
         try {
             if (filter == null) {
                 int n = db.getAssayCount().size();
-                return String.valueOf(n);
+                ret = String.valueOf(n);
             } else {
                 List<Assay> assays = db.searchForAssay(filter);
-                return String.valueOf(assays.size());
+                ret = String.valueOf(assays.size());
             }
+            db.closeConnection();
+            return ret;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         }
@@ -90,6 +93,7 @@ public class BARDAssayResource implements IBARDResource {
             expandEntries = true;
 
         DBUtils db = new DBUtils();
+        Response response;
         try {
 
             if (filter == null) {
@@ -97,24 +101,26 @@ public class BARDAssayResource implements IBARDResource {
                 if (!expandEntries) {
                     List<String> links = new ArrayList<String>();
                     for (Long id : ids) links.add(BARDConstants.API_BASE + "/assays/" + id);
-                    return Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
+                    response = Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
                 } else {
                     List<Project> projects = new ArrayList<Project>();
                     for (Long id : ids) projects.add(db.getProjectByAid(id));
-                    return Response.ok(Util.toJson(projects), MediaType.APPLICATION_JSON).build();
+                    response = Response.ok(Util.toJson(projects), MediaType.APPLICATION_JSON).build();
                 }
             } else {
                 List<Assay> assays = db.searchForAssay(filter);
                 if (expandEntries) {
                     String json = Util.toJson(assays);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                    response = Response.ok(json, MediaType.APPLICATION_JSON).build();
                 } else {
                     List<String> links = new ArrayList<String>();
                     for (Assay a : assays) links.add(a.getResourcePath());
                     String json = Util.toJson(links);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                    response = Response.ok(json, MediaType.APPLICATION_JSON).build();
                 }
             }
+            db.closeConnection();
+            return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
@@ -131,6 +137,7 @@ public class BARDAssayResource implements IBARDResource {
             a = db.getAssayByAid(Long.valueOf(resourceId));
             if (a.getAid() == null) throw new WebApplicationException(404);
             String json = Util.toJson(a);
+            db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
@@ -148,18 +155,21 @@ public class BARDAssayResource implements IBARDResource {
 
         DBUtils db = new DBUtils();
         List<ProteinTarget> targets = null;
+        Response response;
         try {
             targets = db.getAssayTargets(Long.valueOf(resourceId));
+            db.closeConnection();
             if (expandEntries) {
                 String json = Util.toJson(targets);
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
             } else {
                 List<String> links = new ArrayList<String>();
                 for (ProteinTarget t : targets)
                     links.add(t.getResourcePath());
                 String json = Util.toJson(links);
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
+            return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (JsonMappingException e) {
@@ -182,6 +192,7 @@ public class BARDAssayResource implements IBARDResource {
         List<Publication> targets = null;
         try {
             targets = db.getAssayPublications(Long.valueOf(resourceId));
+            db.closeConnection();
             if (expandEntries) {
                 String json = Util.toJson(targets);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -203,65 +214,49 @@ public class BARDAssayResource implements IBARDResource {
         }
     }
 
-    // TODO right now, we don't support filtering on compounds
     @GET
-    @Path("/{aid}/compounds")
-    public Response getAssayCompounds(@PathParam("aid") String resourceId,
-                                      @QueryParam("filter") String filter,
-                                      @QueryParam("expand") String expand,
-                                      @QueryParam("skip") Integer skip,
-                                      @QueryParam("top") Integer top) {
+    @Path("/{aid}/experiments")
+    public Response getAssayExperiments(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
-        List<MediaType> types = headers.getAcceptableMediaTypes();
         DBUtils db = new DBUtils();
-        String linkString = null;
-
-        if (skip == null) skip = -1;
-        if (top == null) top = -1;
-
+        List<Experiment> experiments = null;
         try {
-            Assay a = db.getAssayByAid(Long.valueOf(resourceId));
-
-            // set up skip and top params
-            if (a.getSubstances() > BARDConstants.MAX_COMPOUND_COUNT) {
-                if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_COMPOUND_COUNT;
-                }
-                if (skip == -1) skip = 0;
-                String expandClause = "expand=false";
-                if (expandEntries) expandClause = "expand=true";
-                if (skip + top <= a.getSubstances())
-                    linkString = BARDConstants.API_BASE + "/assays/" + resourceId + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
-            }
-
-            if (types.contains(BARDConstants.MIME_SMILES)) {
-
-            } else if (types.contains(BARDConstants.MIME_SDF)) {
-
-            } else { // JSON
-                if (!expandEntries) {
-                    List<Long> cids = db.getAssayCompoundCids(Long.valueOf(resourceId), skip, top);
-                    List<String> links = new ArrayList<String>();
-                    for (Long cid : cids) links.add((new Compound(cid, null, null)).getResourcePath());
-
-                    BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
-                    String json = Util.toJson(linkedEntity);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
-                } else {
-                    List<Compound> compounds = db.getAssayCompounds(Long.valueOf(resourceId), skip, top);
-                    BardLinkedEntity linkedEntity = new BardLinkedEntity(compounds, linkString);
-                    String json = Util.toJson(linkedEntity);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
-                }
+            experiments = db.getExperimentByAssayId(Long.valueOf(resourceId));
+            db.closeConnection();
+            if (expandEntries) {
+                String json = Util.toJson(experiments);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Experiment experiment : experiments)
+                    links.add(experiment.getResourcePath());
+                String json = Util.toJson(links);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
         } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (JsonMappingException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (JsonGenerationException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
-        return null;
+    }
+
+    @GET
+    @Path("/{aid}/experiments/{eid}")
+    public Response getAssayExperiment(@PathParam("aid") String aid,
+                                       @PathParam("eid") String eid,
+                                       @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+        Experiment e = new Experiment();
+        e.setExptId(Long.parseLong(eid));
+        UriBuilder ub = UriBuilder.fromUri("/v1/experiments/" + eid);
+        if (filter != null) ub.queryParam("filter", filter);
+        if (expand != null) ub.queryParam("name", expand);
+        return Response.temporaryRedirect(ub.build()).build();
     }
 }

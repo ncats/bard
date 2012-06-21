@@ -63,10 +63,10 @@ public class BARDDocumentResource implements IBARDResource {
         DBUtils db = new DBUtils();
         try {
             if (filter == null) {
-                int n = db.getPublicationCount();
+                int n = db.getEntityCount(Publication.class);
                 return String.valueOf(n);
             } else {
-                List<Publication> publications = db.searchForPublication(filter, -1, -1);
+                List<Publication> publications = db.searchForEntity(filter, -1, -1, Publication.class);
                 return String.valueOf(publications.size());
             }
         } catch (SQLException e) {
@@ -95,7 +95,7 @@ public class BARDDocumentResource implements IBARDResource {
 
         DBUtils db = new DBUtils();
         try {
-            List<Publication> publications = db.searchForPublication(filter, skip, top);
+            List<Publication> publications = db.searchForEntity(filter, skip, top, Publication.class);
             if (expandEntries) {
                 String json = Util.toJson(publications);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();

@@ -27,6 +27,9 @@ public class HeartBeatTest {
         return new Object[][]{
                 {"assays", 200},
                 {"compounds", 200},
+                {"substances", 200},
+                {"experiments", 200},
+                {"exptdata", 200},
                 {"documents", 200},
                 {"projects", 200},
                 {"targets", 200}
@@ -36,6 +39,16 @@ public class HeartBeatTest {
     @Test(groups = "heartbeat", dataProvider = "resourceNameProvider")
     public void connectToResource(String resourceName, Integer expectedStatus) {
         String url = prefix + resourceName + "/_info";
+        WebResource resource = client.resource(url);
+        ClientResponse response = resource.get(ClientResponse.class);
+        Integer status = response.getStatus();
+        Assert.assertEquals(status, expectedStatus);
+    }
+
+    // actually tests a QSL query
+    @Test(groups = "heartbeat", dataProvider = "resourceNameProvider")
+    public void connectToCountResource(String resourceName, Integer expectedStatus) {
+        String url = prefix + resourceName + "/_count";
         WebResource resource = client.resource(url);
         ClientResponse response = resource.get(ClientResponse.class);
         Integer status = response.getStatus();

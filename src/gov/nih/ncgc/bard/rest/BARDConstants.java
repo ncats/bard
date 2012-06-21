@@ -20,4 +20,6 @@ public class BARDConstants {
      * The maximum number of compounds to be returned by default.
      */
     public static final int MAX_COMPOUND_COUNT = 500;
+    public static final int MAX_DATA_COUNT = 500;
+
 }

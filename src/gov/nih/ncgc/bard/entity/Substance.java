@@ -6,7 +6,6 @@ import gov.nih.ncgc.bard.rest.BARDConstants;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.List;
 
 /**
  * Represents Pubchem substances and includes the related CID's
@@ -14,10 +13,10 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Substance implements BardEntity {
-    String sid = null;
-    List<String> cid;
+    Long sid = null;
+    Long cid;
 
-    public Substance(String sid, List<String> cid) {
+    public Substance(Long sid, Long cid) {
         this.sid = sid;
         this.cid = cid;
     }
@@ -25,11 +24,11 @@ public class Substance implements BardEntity {
     public Substance() {
     }
 
-    public String getSid() {
+    public Long getSid() {
         return sid;
     }
 
-    public List<String> getCid() {
+    public Long getCid() {
         return cid;
     }
 

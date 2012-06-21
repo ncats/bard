@@ -1,12 +1,12 @@
 package gov.nih.ncgc.bard.rest;
 
 import chemaxon.formats.MolImporter;
-import chemaxon.marvin.util.MolExportException;
 import chemaxon.struc.Molecule;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -35,8 +35,8 @@ import java.util.List;
  *
  * @author Rajarshi Guha
  */
-@Path("/v1/compounds")
-public class BARDCompoundResource implements IBARDResource {
+@Path("/v1/substances")
+public class BARDSubstanceResource implements IBARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -52,7 +52,7 @@ public class BARDCompoundResource implements IBARDResource {
     @Produces("text/plain")
     @Path("/_info")
     public String info() {
-        StringBuilder msg = new StringBuilder("Returns compound information\n\nAvailable resources:\n");
+        StringBuilder msg = new StringBuilder("Returns substance information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
         return msg.toString();
@@ -70,7 +70,7 @@ public class BARDCompoundResource implements IBARDResource {
     public String count(@QueryParam("filter") String filter) {
         DBUtils db = new DBUtils();
         try {
-            int n = db.getEntityCount(Compound.class);
+            int n = db.getEntityCount(Substance.class);
             db.closeConnection();
             return String.valueOf(n);
         } catch (SQLException e) {
@@ -85,14 +85,18 @@ public class BARDCompoundResource implements IBARDResource {
         return getResources(null, filter, expand);
     }
 
-    private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes) throws SQLException, IOException, MolExportException {
-        DBUtils db = new DBUtils();
+    private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes) throws SQLException, IOException {
+        if (!type.equals("cid") && !type.equals("sid")) throw new WebApplicationException(400);
 
-        if (!type.equals("cid") && !type.equals("probeid") && !type.equals("sid")) return null;
+        DBUtils db = new DBUtils();
         Compound c = null;
-        if (type.equals("cid")) c = db.getCompoundByCid(Long.parseLong(id));
-        else if (type.equals("probeid")) c = db.getCompoundByProbeId(id);
-        else if (type.equals("sid")) c = db.getCompoundBySid(Long.parseLong(id));
+        if (type.equals("cid")) {
+            List<Long> sids = db.getSidsByCid(Long.parseLong(id));
+            List<String> paths = new ArrayList<String>();
+            for (Long sid : sids) paths.add(BARDConstants.API_BASE + "/substances/" + sid);
+            return Response.ok(Util.toJson(paths), MediaType.APPLICATION_JSON).build();
+        } else if (type.equals("sid"))
+            c = db.getCompoundBySid(Long.parseLong(id));   // TODO should be returning a Substance entity, not a compound entity
         db.closeConnection();
 
         if (c == null || c.getCid() == null) throw new WebApplicationException(404);
@@ -114,21 +118,10 @@ public class BARDCompoundResource implements IBARDResource {
         }
     }
 
+    // return compound (via CID) for this SID
     @GET
-    @Path("/{cid}")
-    public Response getResources(@PathParam("cid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
-        try {
-            return getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes());
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
-        }
-    }
-
-    @GET
-    @Path("/sid/{sid}")
-    public Response getCompoundBySid(@PathParam("sid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+    @Path("/{sid}")
+    public Response getResources(@PathParam("sid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
             return getCompoundResponse(resourceId, "sid", headers.getAcceptableMediaTypes());
         } catch (SQLException e) {
@@ -138,11 +131,12 @@ public class BARDCompoundResource implements IBARDResource {
         }
     }
 
+    // return list of SID's for this CID
     @GET
-    @Path("/probeid/{pid}")
-    public Response getCompoundByProbeid(@PathParam("pid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+    @Path("/cid/{cid}")
+    public Response getCompoundBySid(@PathParam("cid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            return getCompoundResponse(resourceId, "probeid", headers.getAcceptableMediaTypes());
+            return getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes());
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
@@ -150,10 +144,10 @@ public class BARDCompoundResource implements IBARDResource {
         }
     }
 
-    // return alle xperiment data for this CID
+    // return alle xperiment data for this SID
     @GET
-    @Path("/{cid}/exptdata")
-    public Response getExperimentData(@PathParam("cid") String resourceId,
+    @Path("/{sid}/exptdata")
+    public Response getExperimentData(@PathParam("sid") String resourceId,
                                       @QueryParam("filter") String filter,
                                       @QueryParam("expand") String expand,
                                       @QueryParam("skip") Integer skip,
@@ -180,12 +174,12 @@ public class BARDCompoundResource implements IBARDResource {
                 String expandClause = "expand=false";
                 if (expandEntries) expandClause = "expand=true";
                 if (skip + top <= experiemnt.getSubstances())
-                    linkString = BARDConstants.API_BASE + "/compounds/" + resourceId + "/exptdata?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+                    linkString = BARDConstants.API_BASE + "/substances/" + resourceId + "/exptdata?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
 
             String json;
             if (!expandEntries) {
-                List<Long> edids = db.getCompoundDataIds(Long.valueOf(resourceId), skip, top);
+                List<Long> edids = db.getSubstanceDataIds(Long.valueOf(resourceId), skip, top);
                 List<String> links = new ArrayList<String>();
                 for (Long edid : edids) {
                     ExperimentData ed = new ExperimentData();
@@ -195,7 +189,7 @@ public class BARDCompoundResource implements IBARDResource {
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
                 json = Util.toJson(linkedEntity);
             } else {
-                List<ExperimentData> data = db.getCompoundData(Long.valueOf(resourceId), skip, top);
+                List<ExperimentData> data = db.getSubstanceData(Long.valueOf(resourceId), skip, top);
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
                 json = Util.toJson(linkedEntity);
             }
@@ -209,8 +203,8 @@ public class BARDCompoundResource implements IBARDResource {
     }
 
     @GET
-    @Path("/{cid}/experiments")
-    public Response getExperiments(@PathParam("cid") String resourceId,
+    @Path("/{sid}/experiments")
+    public Response getExperiments(@PathParam("sid") String resourceId,
                                    @QueryParam("filter") String filter,
                                    @QueryParam("expand") String expand,
                                    @QueryParam("skip") Integer skip,
@@ -237,12 +231,12 @@ public class BARDCompoundResource implements IBARDResource {
                 String expandClause = "expand=false";
                 if (expandEntries) expandClause = "expand=true";
                 if (skip + top <= experiemnt.getSubstances())
-                    linkString = BARDConstants.API_BASE + "/compounds/" + resourceId + "/experiments?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+                    linkString = BARDConstants.API_BASE + "/substances/" + resourceId + "/experiments?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
 
             String json;
             if (!expandEntries) {
-                List<Long> eids = db.getCompoundExperimentIds(Long.valueOf(resourceId), skip, top);
+                List<Long> eids = db.getSubstanceExperimentIds(Long.valueOf(resourceId), skip, top);
                 List<String> links = new ArrayList<String>();
                 for (Long eid : eids) {
                     Experiment ed = new Experiment();
@@ -252,7 +246,7 @@ public class BARDCompoundResource implements IBARDResource {
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
                 json = Util.toJson(linkedEntity);
             } else {
-                List<Experiment> data = db.getCompoundExperiment(Long.valueOf(resourceId), skip, top);
+                List<Experiment> data = db.getSubstanceExperiment(Long.valueOf(resourceId), skip, top);
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
                 json = Util.toJson(linkedEntity);
             }
@@ -264,4 +258,5 @@ public class BARDCompoundResource implements IBARDResource {
             throw new WebApplicationException(e, 500);
         }
     }
+
 }

@@ -13,14 +13,13 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Assay implements BardEntity {
-    Long aid, bardAid;
-    int category, type, summary, assays, classification, substances, compounds;
+    Long aid;
+    int category, type, summary, assays, classification;
     String name, description, source, grantNo, protocol, comments;
     Date deposited, updated;
 
     List<Publication> publications;
     List<ProteinTarget> targets;
-    List<AssayData> data;
 
     public String getProtocol() {
         return protocol;
@@ -38,30 +37,12 @@ public class Assay implements BardEntity {
         this.comments = comments;
     }
 
-    public Long getBardAid() {
-        return bardAid;
+    public Long getAid() {
+        return aid;
     }
 
-    public void setBardAid(Long bardAid) {
-        this.bardAid = bardAid;
-    }
-
-    /**
-     * Get the number of compounds (CIDs) tested in the assay.
-     *
-     * @return the number of compounds tested
-     */
-    public int getCompounds() {
-        return compounds;
-    }
-
-    /**
-     * Set the number of compounds (CIDs) tested in the assay.
-     *
-     * @param compounds the number of compounds tested
-     */
-    public void setCompounds(int compounds) {
-        this.compounds = compounds;
+    public void setAid(Long aid) {
+        this.aid = aid;
     }
 
     public String toString() {
@@ -87,23 +68,6 @@ public class Assay implements BardEntity {
         this.classification = classification;
     }
 
-    /**
-     * Get the number of substances (SIDs) tested in the assay.
-     *
-     * @return the number of substances tested.
-     */
-    public int getSubstances() {
-        return substances;
-    }
-
-    /**
-     * Set the number of substances (SIDs) tested in the assay.
-     *
-     * @param substances the number of substances tested
-     */
-    public void setSubstances(int substances) {
-        this.substances = substances;
-    }
 
     public String getSource() {
         return source;
@@ -111,14 +75,6 @@ public class Assay implements BardEntity {
 
     public void setSource(String source) {
         this.source = source;
-    }
-
-    public List<AssayData> getData() {
-        return data;
-    }
-
-    public void setData(List<AssayData> data) {
-        this.data = data;
     }
 
     public List<Publication> getPublications() {
@@ -135,14 +91,6 @@ public class Assay implements BardEntity {
 
     public void setTargets(List<ProteinTarget> targets) {
         this.targets = targets;
-    }
-
-    public Long getAid() {
-        return aid;
-    }
-
-    public void setAid(Long aid) {
-        this.aid = aid;
     }
 
     public Integer getCategory() {
@@ -223,15 +171,11 @@ public class Assay implements BardEntity {
 
     public String getEntityTag() {
         StringBuilder sb = new StringBuilder();
-        sb.append(aid).append(category).append(type).append(summary).append(assays).append(classification).append(substances);
+        sb.append(aid).append(category).append(type).append(summary).append(assays).append(classification);
         sb.append(name).append(grantNo).append(description).append(source);
         sb.append(deposited).append(updated);
         for (ProteinTarget t : targets) sb.append(t.getAcc());
         for (Publication p : publications) sb.append(p.getPubmedId());
-        if (data != null) {
-            for (AssayData d : data) sb.append(d.getAssayDataId());
-        }
-
         try {
             byte[] digest = Util.getMD5(sb.toString());
             return new String(digest);

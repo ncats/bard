@@ -1,47 +1,63 @@
 package gov.nih.ncgc.bard.entity;
 
-import java.io.IOException;
+import gov.nih.ncgc.bard.rest.BARDConstants;
+
 import java.sql.Date;
 
 /**
- * A one line summary.
+ * A representation of experiment data (ie measurements).
  *
  * @author Rajarshi Guha
  */
-public class AssayData implements BardEntity {
-    Long assayDataId;
-    Long aid, cid, sid;
-    int classification;
+public class ExperimentData implements BardEntity {
+    Long exptDataId;
+    Long eid, cid, sid;
     Date updated;
     String runset = "default";
+    int classification, outcome, score;
+    float potency;
 
-    public AssayData(Long assayDataId, Long aid, Long cid, Long sid, int classification, Date updated, String runset) {
-        this.assayDataId = assayDataId;
-        this.aid = aid;
-        this.cid = cid;
-        this.sid = sid;
-        this.classification = classification;
-        this.updated = updated;
-        this.runset = runset;
+    public ExperimentData() {
     }
 
-    public AssayData() {
+    public int getOutcome() {
+        return outcome;
     }
 
-    public Long getAssayDataId() {
-        return assayDataId;
+    public void setOutcome(int outcome) {
+        this.outcome = outcome;
     }
 
-    public void setAssayDataId(Long assayDataId) {
-        this.assayDataId = assayDataId;
+    public int getScore() {
+        return score;
     }
 
-    public Long getAid() {
-        return aid;
+    public void setScore(int score) {
+        this.score = score;
     }
 
-    public void setAid(Long aid) {
-        this.aid = aid;
+    public float getPotency() {
+        return potency;
+    }
+
+    public void setPotency(float potency) {
+        this.potency = potency;
+    }
+
+    public Long getExptDataId() {
+        return exptDataId;
+    }
+
+    public void setExptDataId(Long exptDataId) {
+        this.exptDataId = exptDataId;
+    }
+
+    public Long getEid() {
+        return eid;
+    }
+
+    public void setEid(Long eid) {
+        this.eid = eid;
     }
 
     public Long getCid() {
@@ -84,8 +100,8 @@ public class AssayData implements BardEntity {
         this.runset = runset;
     }
 
-    public String toJson() throws IOException {
-        return null;
+    public String toString() {
+        return "ExperimentData[" + exptDataId + ", outcome=" + outcome + ", score=" + score + ", potency=" + potency + "]";
     }
 
     /**
@@ -98,6 +114,6 @@ public class AssayData implements BardEntity {
      *         to be publically available via the REST API
      */
     public String getResourcePath() {
-        return null;
+        return BARDConstants.API_BASE + "/exptdata/" + exptDataId;
     }
 }
