@@ -1019,24 +1019,25 @@ public class DBUtils {
         }
 
         PreparedStatement pst;
-        if (!query.contains("[")) {
+        String sql;
+        if (query == null && top > 0) { // get all rows - caller had better implement paging
+            sql = "select " + queryParams.getIdField() + " from " + queryParams.getTableName() + " order by " + queryParams.getOrderField() + " " + limitClause;
+        } else if (!query.contains("[")) {
             String q = "'%" + query + "%' ";
             List<String> tmp = new ArrayList<String>();
             for (String s : queryParams.getValidFields()) tmp.add(s + " like " + q);
             String tmp2 = Util.join(tmp, " or ");
 
-            String sql = "select " + queryParams.getIdField() + " from " + queryParams.getTableName() + " where (" + tmp2 + ") order by " + queryParams.getOrderField() + " " + limitClause;
-            pst = conn.prepareStatement(sql);
+            sql = "select " + queryParams.getIdField() + " from " + queryParams.getTableName() + " where (" + tmp2 + ") order by " + queryParams.getOrderField() + " " + limitClause;
         } else {
             // TODO we currently only assume a single query field is specified
             String[] toks = query.split("\\[");
             String q = toks[0].trim();
             String field = toks[1].trim().replace("]", "");
             if (!queryParams.getValidFields().contains(field)) throw new SQLException("Invalid field was specified");
-            String sql = "select " + queryParams.getIdField() + " from " + queryParams.getTableName() + " where " + field + " like '%" + q + "%' order by " + queryParams.getOrderField() + "  " + limitClause;
-            pst = conn.prepareStatement(sql);
+            sql = "select " + queryParams.getIdField() + " from " + queryParams.getTableName() + " where " + field + " like '%" + q + "%' order by " + queryParams.getOrderField() + "  " + limitClause;
         }
-
+        pst = conn.prepareStatement(sql);
         ResultSet rs = pst.executeQuery();
         List<T> entities = new ArrayList<T>();
         while (rs.next()) {

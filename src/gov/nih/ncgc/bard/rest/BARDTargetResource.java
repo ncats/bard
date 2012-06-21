@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.rest;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.tools.DBUtils;
@@ -74,32 +75,38 @@ public class BARDTargetResource implements IBARDResource {
                                  @QueryParam("expand") String expand,
                                  @QueryParam("skip") Integer skip,
                                  @QueryParam("top") Integer top) {
-        if (filter == null) return null;
+        DBUtils db = new DBUtils();
 
-        // validate skip/top
-        if (skip == null && top != null) {
-            skip = 0;
-        } else if (skip == null) {
-            skip = -1;
-            top = -1;
-        }
+        if (skip == null) skip = -1;
+        if (top == null) top = -1;
 
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
-        DBUtils db = new DBUtils();
         try {
+            String linkString = null;
+            if (filter == null) {
+                if ((top == -1)) { // top was not specified, so we start from the beginning
+                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                }
+                if (skip == -1) skip = 0;
+                String expandClause = "expand=false";
+                if (expandEntries) expandClause = "expand=true";
+                if (skip + top <= db.getEntityCount(ProteinTarget.class))
+                    linkString = BARDConstants.API_BASE + "/targets?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+            }
+
             List<ProteinTarget> targets = db.searchForEntity(filter, skip, top, ProteinTarget.class);
             db.closeConnection();
             if (expandEntries) {
-                String json = Util.toJson(targets);
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(targets, linkString);
+                return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
             } else {
                 List<String> links = new ArrayList<String>();
                 for (ProteinTarget a : targets) links.add(a.getResourcePath());
-                String json = Util.toJson(links);
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
             }
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
