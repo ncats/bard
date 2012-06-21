@@ -8,16 +8,12 @@ import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -34,17 +30,10 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/v1/projects")
-public class BARDProjectResource implements IBARDResource {
+public class BARDProjectResource extends BARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
-
-    @Context
-    ServletContext servletContext;
-    @Context
-    HttpServletRequest httpServletRequest;
-    @Context
-    HttpHeaders headers;
 
     @GET
     @Produces("text/plain")
@@ -55,30 +44,6 @@ public class BARDProjectResource implements IBARDResource {
         for (String path : paths) msg.append(path).append("\n");
         msg.append("/v1/projects/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
         return msg.toString();
-    }
-
-
-    @GET
-    @Produces("text/plain")
-    @Path("/_count")
-    public String count(@QueryParam("filter") String filter) {
-        DBUtils db = new DBUtils();
-        String ret;
-        try {
-            if (filter == null) {
-                int n = db.getEntityCount(Project.class);
-                ret = String.valueOf(n);
-            } else { // run the query and return count of results
-                List<Project> projects = db.searchForEntity(filter, -1, -1, Project.class);
-                ret = String.valueOf(projects.size());
-            }
-            db.closeConnection();
-            return ret;
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
-        }
     }
 
     @GET
@@ -95,7 +60,8 @@ public class BARDProjectResource implements IBARDResource {
         try {
             if (filter == null) { // just list all projects
                 List<Long> ids = db.getProjectIds();
-                if (!expandEntries) {
+                if (countRequested) response = Response.ok(String.valueOf(ids.size()), MediaType.TEXT_PLAIN).build();
+                else if (!expandEntries) {
                     List<String> links = new ArrayList<String>();
                     for (Long id : ids) links.add(BARDConstants.API_BASE + "/projects/" + id);
                     response = Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
@@ -104,9 +70,10 @@ public class BARDProjectResource implements IBARDResource {
                     for (Long id : ids) projects.add(db.getProjectByAid(id));
                     response = Response.ok(Util.toJson(projects), MediaType.APPLICATION_JSON).build();
                 }
-            } else if (filter != null) {
+            } else {
                 List<Project> projects = db.searchForEntity(filter, skip, top, Project.class);
-                if (expandEntries) {
+                if (countRequested) response = Response.ok(projects.size(), MediaType.TEXT_PLAIN).build();
+                else if (expandEntries) {
                     String json = Util.toJson(projects);
                     response = Response.ok(json, MediaType.APPLICATION_JSON).build();
                 } else {
@@ -134,6 +101,7 @@ public class BARDProjectResource implements IBARDResource {
             Project p = db.getProjectByAid(Long.valueOf(resourceId));
             if (p.getAid() == null) throw new WebApplicationException(404);
             String json = Util.toJson(p);
+            if (countRequested) json = Util.toJson("1");
             db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
@@ -157,7 +125,8 @@ public class BARDProjectResource implements IBARDResource {
             for (ProteinTarget target : project.getTargets())
                 targets.add(db.getProteinTargetByAccession(target.getAcc()));
             String json;
-            if (expandEntries) json = Util.toJson(targets);
+            if (countRequested) json = Util.toJson(targets.size());
+            else if (expandEntries) json = Util.toJson(targets);
             else {
                 List<String> links = new ArrayList<String>();
                 for (ProteinTarget pt : targets) links.add(pt.getResourcePath());
@@ -184,7 +153,8 @@ public class BARDProjectResource implements IBARDResource {
             List<Assay> a = new ArrayList<Assay>();
             for (Long aid : p.getAids()) a.add(db.getAssayByAid(aid));
             String json;
-            if (expandEntries) json = Util.toJson(p);
+            if (countRequested) json = Util.toJson(a.size());
+            else if (expandEntries) json = Util.toJson(p);
             else {
                 List<String> links = new ArrayList<String>();
                 for (Assay anAssay : a) links.add(anAssay.getResourcePath());
@@ -223,7 +193,8 @@ public class BARDProjectResource implements IBARDResource {
         Response response = null;
         try {
             List<Long> probes = db.getProbesForProject(Long.valueOf(resourceId));
-            if (types.contains(BARDConstants.MIME_SMILES)) {
+            if (countRequested) response = Response.ok(Util.toJson(probes.size()), MediaType.APPLICATION_JSON).build();
+            else if (types.contains(BARDConstants.MIME_SMILES)) {
                 List<String> smiles = new ArrayList<String>();
                 for (Long probe : probes) {
                     Compound c = db.getCompoundByCid(probe);
