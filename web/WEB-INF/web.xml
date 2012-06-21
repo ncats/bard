@@ -19,6 +19,11 @@
         <servlet-name>ServletAdaptor</servlet-name>
         <servlet-class>com.sun.jersey.server.impl.container.servlet.ServletAdaptor</servlet-class>
         <load-on-startup>1</load-on-startup>
+
+        <init-param>
+            <param-name>com.sun.jersey.spi.container.ContainerRequestFilters</param-name>
+            <param-value>gov.nih.ncgc.bard.rest.filter.CountFilter</param-value>
+        </init-param>
     </servlet>
 
     <servlet-mapping>

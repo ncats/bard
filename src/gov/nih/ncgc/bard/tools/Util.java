@@ -1,8 +1,10 @@
 package gov.nih.ncgc.bard.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nih.ncgc.bard.rest.BARDConstants;
 
 import javax.ws.rs.Path;
+import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -19,6 +21,10 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Util {
+
+    public static boolean countRequested(HttpHeaders headers) {
+        return (headers.getRequestHeaders().containsKey(BARDConstants.REQUEST_HEADER_COUNT));
+    }
 
     public static String toJson(Object o) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
