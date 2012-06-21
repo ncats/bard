@@ -1,9 +1,11 @@
 package gov.nih.ncgc.bard.capextract;
 
 import gov.nih.ncgc.bard.capextract.jaxb.Dictionary;
+import gov.nih.ncgc.bard.capextract.jaxb.Experiments;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Project;
 import gov.nih.ncgc.bard.capextract.jaxb.Projects;
+import gov.nih.ncgc.bard.capextract.jaxb.Result;
 import gov.nih.ncgc.bard.capextract.jaxb.Results;
 
 import java.io.File;
@@ -46,6 +48,7 @@ public class CAPExtractor {
     protected enum CAPresource {
 	Dictionary ("resources/test/dictionary.xml", true),
 	Projects ("resources/test/projects.xml", true),
+	Experiments ("resources/test/experiments.xml", true),
 	Results ("resources/test/results.xml", true);
 	
 	public final String uri;
@@ -76,6 +79,15 @@ public class CAPExtractor {
 	WebResource r = CAPclient.resource(uri);
 	r.accept(MediaType.APPLICATION_XML_TYPE);
 	return new StringReader(r.get(String.class));
+    }
+    
+    public void patchResource(String uri) {
+//	Client client = new Client();
+//	WebResource r = client.resource("http://localhost:8080/xyz");
+//	r.accept(MediaType.APPLICATION_XML_TYPE).header("", "");
+//	r.setProperty(URLConnectionClientHandler.PROPERTY_HTTP_URL_CONNECTION_SET_METHOD_WORKAROUND, true);
+//	String response = r.method("PATCH", String.class);
+//	System.out.println(response);
     }
     
     protected Object unmarshal(CAPresource cr) throws JAXBException {
@@ -135,10 +147,18 @@ public class CAPExtractor {
 	return (Projects)unmarshal(CAPresource.Projects);
     }
     
+    public Experiments getExperiments() throws JAXBException {
+	return (Experiments)unmarshal(CAPresource.Experiments);
+    }
+    
     public Results getResults() throws JAXBException {
 	return (Results)unmarshal(CAPresource.Results);
     }
     
+    private Result getResult(String href) throws JAXBException {
+	return (Result)unmarshal("resources/test/result.xml", true);
+    }
+
     private Object link2Dict(Link link) {
 	String href = link.getHref();
 	if (href.contains("api/dictionary/")) {
@@ -202,49 +222,33 @@ public class CAPExtractor {
     }
     
     public static void main(String[] args) {
-//        CAPExtractor extractor = new CAPExtractor();
-//        extractor.run();
-	
-//	Client client = new Client();
-//	WebResource r = client.resource("http://localhost:8080/xyz");
-//	r.accept(MediaType.APPLICATION_XML_TYPE).header("", "");
-//	r.setProperty(URLConnectionClientHandler.PROPERTY_HTTP_URL_CONNECTION_SET_METHOD_WORKAROUND, true);
-//	String response = r.method("PATCH", String.class);
-//	System.out.println(response);
-	
-	
-	
-//	System.exit(0);
-        
+
 	try {
-//	    JAXBContext jc = JAXBContext.newInstance("gov.nih.ncgc.bard.capextract.jaxb");
-//	    Unmarshaller unmarshaller = jc.createUnmarshaller();
-//	    ValidationEventCollector vec = new ValidationEventCollector();
-//	    unmarshaller.setEventHandler(vec);
-//	    Dictionary dict = (Dictionary)unmarshaller.unmarshal(new File("resources/test/dictionary.xml"));
-//	    
-//	    
-//	    if (vec.hasEvents()) {
-//		for (ValidationEvent ve: vec.getEvents())
-//		    System.out.println(ve.getMessage());
-//	    }
+	    CAPExtractor cape = new CAPExtractor();	    
+	    
+	    List<Project> ps = cape.getProjects().getProject();
+	    List<?> es = cape.getExperiments().getExperimentAndLink();
+	    List<Link> rs = cape.getResults().getLink();
+	    for (Iterator<Link> it = rs.iterator(); it.hasNext();) {
+		Link link = it.next();
+		cape.jaxbString(link, new Vector<String>());
+		if (link.getRel().equals("related") && link.getHref().contains("api/data/result/")) {
+		    Result result = cape.getResult(link.getHref());
+		    cape.jaxbString(result, new Vector<String>());
+		    break;
+		}
+	    }
+	    
+	    
+	    // Example roundtip / jaxb object clone
+	    System.out.println(CAPUtil.jaxbHashMap(ps.get(0)));
+	    Project projectClone = (Project)CAPUtil.jaxbConstructor(Project.class, CAPUtil.jaxbHashMap(ps.get(0)));
+	    System.out.println(CAPUtil.jaxbHashMap(projectClone));
+	    CAPUtil.jaxbString(projectClone, new Vector<String>());
 
-	    CAPExtractor CAP = new CAPExtractor();	    
-	    
-	    List<Project> ps = CAP.getProjects().getProject();
-//	    for (Iterator<Project> it = ps.iterator(); it.hasNext();) {
-//		Project project = it.next();
-//		CAPUtil.jaxbString(project);
-//	    }
-	    
-	    
-//	    // Example roundtip / jaxb object clone
-//	    System.out.println(CAPUtil.jaxbHashMap(ps.get(0)));
-//	    Project projectClone = (Project)CAPUtil.jaxbConstructor(Project.class, CAPUtil.jaxbHashMap(ps.get(0)));
-//	    System.out.println(CAPUtil.jaxbHashMap(projectClone));
-
-	    CAP.jaxbString(ps.get(0), new Vector<String>());
+	    cape.jaxbString(es.get(0), new Vector<String>());
 	    
 	} catch (Exception ex) {ex.printStackTrace();}
     }
+
 }

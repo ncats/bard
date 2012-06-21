@@ -11,12 +11,7 @@ import java.util.Vector;
 
 public class CAPUtil {
 
-    static public void jaxbString(Object obj) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
-	jaxbString(obj, new Vector<String>());
-	return;
-    }
-    
-    static private void jaxbString(Object obj, Vector<String> levels) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
+    static public void jaxbString(Object obj, Vector<String> levels) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
 	Method[] methods = obj.getClass().getDeclaredMethods();
 	for (Method method: methods) {
 	    if (method.getParameterTypes().length == 0 && method.getName().length() > 3 && method.getName().startsWith("get")) {
@@ -89,18 +84,5 @@ public class CAPUtil {
 	    }
 	}
 	return obj;
-    }
-    
-    static public HashMap<String, String> jaxbAttributes(Object obj) {
-	HashMap<String, String> data = new HashMap<String, String>();
-	
-	Method[] methods = obj.getClass().getDeclaredMethods();
-	for (Method method: methods) {
-	    if (method.getParameterTypes().length == 0 && method.getName().length() > 3 && method.getName().startsWith("get")) {
-		//if (method.getReturnType().isAssignableFrom(List.class))
-		data.put(method.getName(), "yo");
-	    }
-	}
-	return data;	
     }
 }
