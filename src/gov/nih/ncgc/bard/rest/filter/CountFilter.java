@@ -18,6 +18,11 @@ import java.net.URISyntaxException;
  * <p/>
  * Any resource should check the request headers and if the <code>x-count-entities</code>
  * is present, return a count instead of the entities.
+ * <p/>
+ * We implement this as a request filter (rather than a response filter) as there are
+ * certain requests that may have very large result sts that it is infeasible to return
+ * them in a response and intercept it to get the count. An example would be /targets
+ * or /substances.
  *
  * @author Rajarshi Guha
  */
