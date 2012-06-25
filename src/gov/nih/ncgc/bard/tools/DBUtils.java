@@ -321,6 +321,7 @@ public class DBUtils {
 
             ObjectMapper mapper = new ObjectMapper();
             DataResultObject[] o = mapper.readValue(s, DataResultObject[].class);
+
             ed.setResults(o);
         }
         return ed;
@@ -909,6 +910,26 @@ public class DBUtils {
         }
         pst.close();
 
+        return assays;
+    }
+
+    public List<Experiment> getExperimentsByTargetAccession(String acc) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select distinct b.aid from protein_target a, assay_target b where a.accession = ? and a.accession = b.accession");
+        pst.setString(1, acc);
+        List<Experiment> assays = new ArrayList<Experiment>();
+        ResultSet rs = pst.executeQuery();
+        while (rs.next()) assays.add(getExperimentByExptId(rs.getLong(1)));
+        pst.close();
+        return assays;
+    }
+
+    public List<Experiment> getExperimentsByTargetGeneid(Long geneid) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select distinct b.aid from protein_target a, assay_target b where a.gene_id = ? and a.accession = b.accession");
+        pst.setLong(1, geneid);
+        List<Experiment> assays = new ArrayList<Experiment>();
+        ResultSet rs = pst.executeQuery();
+        while (rs.next()) assays.add(getExperimentByExptId(rs.getLong(1)));
+        pst.close();
         return assays;
     }
 

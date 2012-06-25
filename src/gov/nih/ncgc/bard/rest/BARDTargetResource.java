@@ -3,6 +3,7 @@ package gov.nih.ncgc.bard.rest;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
+import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.tools.DBUtils;
@@ -191,5 +192,68 @@ public class BARDTargetResource implements IBARDResource {
         }
     }
 
+    @GET
+    @Path("/accession/{acc}/experiments")
+    public Response getExperimentsForTarget(@PathParam("acc") String acc,
+                                            @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        DBUtils db = new DBUtils();
+        List<Experiment> experiments;
+        try {
+            experiments = db.getExperimentsByTargetAccession(acc);
+            Response response;
+            if (expandEntries) {
+                String json = Util.toJson(experiments);
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Experiment experiment : experiments)
+                    links.add(experiment.getResourcePath());
+                String json = Util.toJson(links);
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
+            }
+            db.closeConnection();
+            return response;
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
+    @Path("/geneid/{geneid}/experiments")
+    public Response getExperimentsForTargetByGeneid(@PathParam("geneid") Long geneid,
+                                                    @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        DBUtils db = new DBUtils();
+        List<Experiment> experiments;
+        try {
+            experiments = db.getExperimentsByTargetGeneid(geneid);
+            Response response;
+            if (expandEntries) {
+                String json = Util.toJson(experiments);
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Experiment experiment : experiments)
+                    links.add(experiment.getResourcePath());
+                String json = Util.toJson(links);
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
+            }
+            db.closeConnection();
+            return response;
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
 
 }
