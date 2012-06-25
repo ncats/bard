@@ -2,10 +2,13 @@ package gov.nih.ncgc.bard.tools;
 
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardEntity;
+import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.entity.Substance;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
 import java.sql.SQLException;
 
 /**
@@ -54,5 +57,21 @@ public class DBUtilsTest extends DBTest {
         Class<BardEntity> klass = (Class<BardEntity>) Class.forName(className);
         int count = db.getEntityCount(klass);
         Assert.assertTrue(count > n);
+    }
+
+    @Test
+    public void getSinglePointExperimentData() throws IOException, SQLException {
+        Long edid = 3891279L;
+        ExperimentData ed = db.getExperimentDataByDataId(edid);
+        Assert.assertNotNull(ed);
+        Assert.assertEquals(ed.getResults().length, 21);
+    }
+
+    @Test
+    public void getSubstance() throws SQLException {
+        Long sid = 135010881L;
+        Substance s = db.getSubstanceBySid(sid);
+        Assert.assertNotNull(s);
+        Assert.assertFalse(s.getSmiles().equals(""));
     }
 }

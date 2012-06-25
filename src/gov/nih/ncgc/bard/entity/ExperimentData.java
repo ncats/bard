@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.entity;
 
 import gov.nih.ncgc.bard.rest.BARDConstants;
+import gov.nih.ncgc.bard.tools.DataResultObject;
 
 import java.sql.Date;
 
@@ -17,7 +18,17 @@ public class ExperimentData implements BardEntity {
     int classification, outcome, score;
     float potency;
 
+    DataResultObject[] results;
+
     public ExperimentData() {
+    }
+
+    public DataResultObject[] getResults() {
+        return results;
+    }
+
+    public void setResults(DataResultObject[] results) {
+        this.results = results;
     }
 
     public int getOutcome() {

@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.tools;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardEntity;
 import gov.nih.ncgc.bard.entity.Compound;
@@ -13,6 +14,7 @@ import gov.nih.ncgc.bard.entity.Substance;
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.Reader;
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -282,9 +284,23 @@ public class DBUtils {
         return c;
     }
 
-    public ExperimentData getExperimentDataByDataId(Long edid) throws SQLException {
+    /**
+     * Extract the measured results for a substance in an experiment.
+     * <p/>
+     * The identifier will usually be obtained via {@link #getExperimentData(Long, int, int)} using the
+     * experiment identifier.
+     * <p/>
+     * This method returns an {@link ExperimentData} object that contains the high level summary of the
+     * result (score, potency, outcome etc) as well as the actual measured data which may be single
+     * point or dose response.
+     *
+     * @param edid The experiment data identifier
+     * @return
+     * @throws SQLException
+     */
+    public ExperimentData getExperimentDataByDataId(Long edid) throws SQLException, IOException {
         if (edid == null || edid <= 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from experiment_data where expt_data_id = ?");
+        PreparedStatement pst = conn.prepareStatement("select * from experiment_data a, experiment_result b where a.expt_data_id = ? and a.expt_data_id = b.expt_data_id");
         pst.setLong(1, edid);
         ResultSet rs = pst.executeQuery();
         ExperimentData ed = new ExperimentData();
@@ -298,6 +314,14 @@ public class DBUtils {
             ed.setOutcome(rs.getInt("outcome"));
             ed.setScore(rs.getInt("score"));
             ed.setPotency(rs.getFloat("potency"));
+
+            Blob blob = rs.getBlob("json_data_array");
+            byte[] bytes = blob.getBytes(1, (int) blob.length());
+            String s = new String(bytes);
+
+            ObjectMapper mapper = new ObjectMapper();
+            DataResultObject[] o = mapper.readValue(s, DataResultObject[].class);
+            ed.setResults(o);
         }
         return ed;
     }
@@ -439,7 +463,7 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<ExperimentData> getExperimentData(Long eid, int skip, int top) throws SQLException {
+    public List<ExperimentData> getExperimentData(Long eid, int skip, int top) throws SQLException, IOException {
         if (eid == null || eid < 0) return null;
 
         String limitClause = "";
@@ -489,12 +513,12 @@ public class DBUtils {
      *
      * @param sid the SID in question
      * @return a {@link Substance} object
-     * @throws SQLException TODO Should include CID
+     * @throws SQLException TODO Should include CID and also include SMILES from CID (rel_type=1)
      */
     public Substance getSubstanceBySid(Long sid) throws SQLException {
         if (sid == null || sid < 0) return null;
-//        PreparedStatement pst = conn.prepareStatement("select a.*, b.cid from substance a, cid_sid b where a.sid = ? and a.sid = b.sid and b.rel_type = 1");
-        PreparedStatement pst = conn.prepareStatement("select a.* from substance a where a.sid = ? ");
+        PreparedStatement pst = conn.prepareStatement("select a.*, b.cid, c.iso_smiles from substance a, cid_sid b, compound c where a.sid = ? and a.sid = b.sid and b.rel_type = 1 and c.cid = b.cid");
+//        PreparedStatement pst = conn.prepareStatement("select a.* from substance a where a.sid = ? ");
         pst.setLong(1, sid);
         ResultSet rs = pst.executeQuery();
         Substance s = new Substance();
@@ -503,12 +527,13 @@ public class DBUtils {
             s.setSourceName(rs.getString("source_name"));
             s.setUrl(rs.getString("substance_url"));
             s.setSid(sid);
-//            s.setCid(rs.getLong("cid"));
             s.setDeposited(rs.getDate("deposited"));
             s.setUpdated(rs.getDate("updated"));
+            String pidText = rs.getString("patent_ids");
+            if (pidText != null) s.setPatentIds(pidText.split("\\s+"));
 
-            String[] pids = rs.getString("patent_ids").split("\\s+");
-            s.setPatentIds(pids);
+            s.setCid(rs.getLong("cid"));
+            s.setSmiles(rs.getString("iso_smiles"));
         }
         return s;
     }
@@ -522,7 +547,7 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<ExperimentData> getSubstanceData(Long sid, int skip, int top) throws SQLException {
+    public List<ExperimentData> getSubstanceData(Long sid, int skip, int top) throws SQLException, IOException {
         if (sid == null || sid < 0) return null;
 
         String limitClause = "";
@@ -684,7 +709,7 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<ExperimentData> getCompoundData(Long cid, int skip, int top) throws SQLException {
+    public List<ExperimentData> getCompoundData(Long cid, int skip, int top) throws SQLException, IOException {
         if (cid == null || cid < 0) return null;
 
         String limitClause = "";
@@ -862,23 +887,24 @@ public class DBUtils {
         PreparedStatement pst = null;
         if (freeTextQuery) {
             String q = "%" + query + "%";
-            pst = conn.prepareStatement("select aid from assay where (name like ? or description like ? or source like ? or grant_no like ?)");
+            pst = conn.prepareStatement("select assay_id from assay where (name like ? or description like ? or source like ? or grant_no like ? or protocol like ?)");
             pst.setString(1, q);
             pst.setString(2, q);
             pst.setString(3, q);
             pst.setString(4, q);
+            pst.setString(5, q);
         } else {
             String[] toks = query.split("\\[");
             String q = toks[0].trim();
             String field = toks[1].trim().replace("]", "");
-            String sql = "select aid from assay where " + field + " like '%" + q + "%'";
+            String sql = "select assay_id from assay where " + field + " like '%" + q + "%'";
             pst = conn.prepareStatement(sql);
         }
 
         ResultSet rs = pst.executeQuery();
         List<Assay> assays = new ArrayList<Assay>();
         while (rs.next()) {
-            Long aid = rs.getLong("aid");
+            Long aid = rs.getLong("assay_id");
             assays.add(getAssayByAid(aid));
         }
         pst.close();
@@ -988,7 +1014,7 @@ public class DBUtils {
      * *************
      */
 
-    public List<ExperimentData> searchForExperimentData(String query, int skip, int top) throws SQLException {
+    public List<ExperimentData> searchForExperimentData(String query, int skip, int top) throws SQLException, IOException {
         boolean freeTextQuery = false;
 
         if (!query.contains("[")) freeTextQuery = true;

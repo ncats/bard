@@ -19,6 +19,7 @@ public class Substance implements BardEntity {
 
     String depRegId, sourceName, url;
     String[] patentIds;
+    String smiles;
 
     Date deposited, updated;
 
@@ -28,6 +29,14 @@ public class Substance implements BardEntity {
     }
 
     public Substance() {
+    }
+
+    public String getSmiles() {
+        return smiles;
+    }
+
+    public void setSmiles(String smiles) {
+        this.smiles = smiles;
     }
 
     public Date getDeposited() {
