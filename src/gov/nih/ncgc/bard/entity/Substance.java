@@ -6,6 +6,7 @@ import gov.nih.ncgc.bard.rest.BARDConstants;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.Date;
 
 /**
  * Represents Pubchem substances and includes the related CID's
@@ -16,6 +17,11 @@ public class Substance implements BardEntity {
     Long sid = null;
     Long cid;
 
+    String depRegId, sourceName, url;
+    String[] patentIds;
+
+    Date deposited, updated;
+
     public Substance(Long sid, Long cid) {
         this.sid = sid;
         this.cid = cid;
@@ -24,12 +30,68 @@ public class Substance implements BardEntity {
     public Substance() {
     }
 
+    public Date getDeposited() {
+        return deposited;
+    }
+
+    public void setDeposited(Date deposited) {
+        this.deposited = deposited;
+    }
+
+    public Date getUpdated() {
+        return updated;
+    }
+
+    public void setUpdated(Date updated) {
+        this.updated = updated;
+    }
+
     public Long getSid() {
         return sid;
     }
 
     public Long getCid() {
         return cid;
+    }
+
+    public void setSid(Long sid) {
+        this.sid = sid;
+    }
+
+    public void setCid(Long cid) {
+        this.cid = cid;
+    }
+
+    public String getDepRegId() {
+        return depRegId;
+    }
+
+    public void setDepRegId(String depRegId) {
+        this.depRegId = depRegId;
+    }
+
+    public String getSourceName() {
+        return sourceName;
+    }
+
+    public void setSourceName(String sourceName) {
+        this.sourceName = sourceName;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public String[] getPatentIds() {
+        return patentIds;
+    }
+
+    public void setPatentIds(String[] patentIds) {
+        this.patentIds = patentIds;
     }
 
     public String toJson() throws IOException {

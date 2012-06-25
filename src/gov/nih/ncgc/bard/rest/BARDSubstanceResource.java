@@ -1,9 +1,6 @@
 package gov.nih.ncgc.bard.rest;
 
-import chemaxon.formats.MolImporter;
-import chemaxon.struc.Molecule;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Substance;
@@ -54,37 +51,46 @@ public class BARDSubstanceResource extends BARDResource {
         return getResources(null, filter, expand);
     }
 
-    private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes) throws SQLException, IOException {
+    private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes, boolean expand) throws SQLException, IOException {
         if (!type.equals("cid") && !type.equals("sid")) throw new WebApplicationException(400);
 
         DBUtils db = new DBUtils();
-        Compound c = null;
+        Substance s = null;
+
         if (type.equals("cid")) {
             List<Long> sids = db.getSidsByCid(Long.parseLong(id));
-            List<String> paths = new ArrayList<String>();
-            for (Long sid : sids) paths.add(BARDConstants.API_BASE + "/substances/" + sid);
-            return Response.ok(Util.toJson(paths), MediaType.APPLICATION_JSON).build();
+            if (!expand) {
+                List<String> paths = new ArrayList<String>();
+                for (Long sid : sids) paths.add(BARDConstants.API_BASE + "/substances/" + sid);
+                return Response.ok(Util.toJson(paths), MediaType.APPLICATION_JSON).build();
+            } else { // TODO should be able to get multiple SIDs at one go
+                List<Substance> slist = new ArrayList<Substance>();
+                for (Long sid : sids) slist.add(db.getSubstanceBySid(sid));
+                return Response.ok(Util.toJson(slist), MediaType.APPLICATION_JSON).build();
+            }
         } else if (type.equals("sid"))
-            c = db.getCompoundBySid(Long.parseLong(id));   // TODO should be returning a Substance entity, not a compound entity
+            s = db.getSubstanceBySid(Long.parseLong(id));
         db.closeConnection();
 
-        if (c == null || c.getCid() == null) throw new WebApplicationException(404);
+        if (s == null || s.getSid() == null) throw new WebApplicationException(404);
 
+        Response response = null;
         if (mediaTypes.contains(BARDConstants.MIME_SMILES)) {
-            String smiles = c.getSmiles() + "\t" + id;
-            return Response.ok(smiles, BARDConstants.MIME_SMILES).build();
+//            String smiles = c.getSmiles() + "\t" + id;
+//            return Response.ok(smiles, BARDConstants.MIME_SMILES).build();
         } else if (mediaTypes.contains(BARDConstants.MIME_SDF)) {
-            Molecule mol = MolImporter.importMol(c.getSmiles());
-            mol.setProperty("cid", String.valueOf(c.getCid()));
-            mol.setProperty("probeId", c.getProbeId());
-            mol.setProperty("url", c.getUrl());
-            mol.setProperty("resourecePath", c.getResourcePath());
-            String sdf = mol.exportToFormat("sdf");
-            return Response.ok(sdf, BARDConstants.MIME_SDF).build();
+//            Molecule mol = MolImporter.importMol(c.getSmiles());
+//            mol.setProperty("cid", String.valueOf(c.getCid()));
+//            mol.setProperty("probeId", c.getProbeId());
+//            mol.setProperty("url", c.getUrl());
+//            mol.setProperty("resourecePath", c.getResourcePath());
+//            String sdf = mol.exportToFormat("sdf");
+//            return Response.ok(sdf, BARDConstants.MIME_SDF).build();
         } else {
-            String json = c.toJson();
-            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            String json = s.toJson();
+            response = Response.ok(json, MediaType.APPLICATION_JSON).build();
         }
+        return response;
     }
 
     @GET
@@ -110,7 +116,7 @@ public class BARDSubstanceResource extends BARDResource {
     @Path("/{sid}")
     public Response getResources(@PathParam("sid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            Response response = getCompoundResponse(resourceId, "sid", headers.getAcceptableMediaTypes());
+            Response response = getCompoundResponse(resourceId, "sid", headers.getAcceptableMediaTypes(), expand != null && expand.equals("true"));
             if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
             else return response;
         } catch (SQLException e) {
@@ -125,7 +131,7 @@ public class BARDSubstanceResource extends BARDResource {
     @Path("/cid/{cid}")
     public Response getCompoundBySid(@PathParam("cid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            Response response = getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes());
+            Response response = getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes(), expand != null && expand.equals("true"));
             if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
             else return response;
         } catch (SQLException e) {

@@ -485,6 +485,35 @@ public class DBUtils {
     }
 
     /**
+     * Get a substance by its SID.
+     *
+     * @param sid the SID in question
+     * @return a {@link Substance} object
+     * @throws SQLException TODO Should include CID
+     */
+    public Substance getSubstanceBySid(Long sid) throws SQLException {
+        if (sid == null || sid < 0) return null;
+//        PreparedStatement pst = conn.prepareStatement("select a.*, b.cid from substance a, cid_sid b where a.sid = ? and a.sid = b.sid and b.rel_type = 1");
+        PreparedStatement pst = conn.prepareStatement("select a.* from substance a where a.sid = ? ");
+        pst.setLong(1, sid);
+        ResultSet rs = pst.executeQuery();
+        Substance s = new Substance();
+        while (rs.next()) {
+            s.setDepRegId(rs.getString("dep_regid"));
+            s.setSourceName(rs.getString("source_name"));
+            s.setUrl(rs.getString("substance_url"));
+            s.setSid(sid);
+//            s.setCid(rs.getLong("cid"));
+            s.setDeposited(rs.getDate("deposited"));
+            s.setUpdated(rs.getDate("updated"));
+
+            String[] pids = rs.getString("patent_ids").split("\\s+");
+            s.setPatentIds(pids);
+        }
+        return s;
+    }
+
+    /**
      * Return experiment data objects for a substance.
      *
      * @param sid  The Pubchem SID
