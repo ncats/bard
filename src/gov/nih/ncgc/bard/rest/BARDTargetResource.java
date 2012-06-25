@@ -2,8 +2,8 @@ package gov.nih.ncgc.bard.rest;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.tools.DBUtils;
@@ -193,7 +193,7 @@ public class BARDTargetResource implements IBARDResource {
     }
 
     @GET
-    @Path("/accession/{acc}/experiments")
+    @Path("/accession/{acc}/assays")
     public Response getExperimentsForTarget(@PathParam("acc") String acc,
                                             @QueryParam("expand") String expand) {
         boolean expandEntries = false;
@@ -201,17 +201,17 @@ public class BARDTargetResource implements IBARDResource {
             expandEntries = true;
 
         DBUtils db = new DBUtils();
-        List<Experiment> experiments;
+        List<Assay> assays;
         try {
-            experiments = db.getExperimentsByTargetAccession(acc);
+            assays = db.getAssaysByTargetAccession(acc);
             Response response;
             if (expandEntries) {
-                String json = Util.toJson(experiments);
+                String json = Util.toJson(assays);
                 response = Response.ok(json, MediaType.APPLICATION_JSON).build();
             } else {
                 List<String> links = new ArrayList<String>();
-                for (Experiment experiment : experiments)
-                    links.add(experiment.getResourcePath());
+                for (Assay assay : assays)
+                    links.add(assay.getResourcePath());
                 String json = Util.toJson(links);
                 response = Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
@@ -225,7 +225,7 @@ public class BARDTargetResource implements IBARDResource {
     }
 
     @GET
-    @Path("/geneid/{geneid}/experiments")
+    @Path("/geneid/{geneid}/assays")
     public Response getExperimentsForTargetByGeneid(@PathParam("geneid") Long geneid,
                                                     @QueryParam("expand") String expand) {
         boolean expandEntries = false;
@@ -233,17 +233,17 @@ public class BARDTargetResource implements IBARDResource {
             expandEntries = true;
 
         DBUtils db = new DBUtils();
-        List<Experiment> experiments;
+        List<Assay> assays;
         try {
-            experiments = db.getExperimentsByTargetGeneid(geneid);
+            assays = db.getAssaysByTargetGeneid(geneid);
             Response response;
             if (expandEntries) {
-                String json = Util.toJson(experiments);
+                String json = Util.toJson(assays);
                 response = Response.ok(json, MediaType.APPLICATION_JSON).build();
             } else {
                 List<String> links = new ArrayList<String>();
-                for (Experiment experiment : experiments)
-                    links.add(experiment.getResourcePath());
+                for (Assay assay : assays)
+                    links.add(assay.getResourcePath());
                 String json = Util.toJson(links);
                 response = Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
