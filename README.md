@@ -79,8 +79,8 @@ in Tomcats `bin/catalina.sh` make sure that you have
 ```
 CATALINA_OPTS="-Dorg.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true"
 ```
-If you Tomcat instance is behind an Apache server, you will also need to specify `AllowEncodedSlashes On` somewhere in the
-configuration
+If you Tomcat instance is behind an Apache server, you will also need to specify `AllowEncodedSlashes NoDecode` (only
+available in Apache 2.2.18 or better) somewhere in the configuration
 
 Plugins
 -------
