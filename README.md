@@ -73,6 +73,14 @@ the global Tomcat classpath and then add the following entry to `config/context.
       logAbandoned="true"
       debug="99"/>
 ```
+In addition, some resources such as `/documents` support paths that include forward slashes. An example is when querying
+for documents by their DOI. In such cases make sure that URLS are appropriately encoded (so '/' becomes '%2F'). In addition
+in Tomcats `bin/catalina.sh` make sure that you have
+```
+CATALINA_OPTS="-Dorg.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true"
+```
+If you Tomcat instance is behind an Apache server, you will also need to specify `AllowEncodedSlashes On` somewhere in the
+configuration
 
 Plugins
 -------
