@@ -255,6 +255,16 @@ public class DBUtils {
         return c;
     }
 
+    public List<Compound> getCompoundByName(String name) throws SQLException {
+        if (name == null || name.trim().equals("")) return null;
+        PreparedStatement pst = conn.prepareStatement("select id from synonyms where id == 1 and match(syn) against (?)");
+        pst.setString(1, name);
+        ResultSet rs = pst.executeQuery();
+        List<Compound> cmpds = new ArrayList<Compound>();
+        while (rs.next()) cmpds.add(getCompoundByCid(rs.getLong(1)));
+        return cmpds;
+    }
+
     public Compound getCompoundBySid(Long sid) throws SQLException {
         if (sid == null || sid < 0) return null;
         PreparedStatement pst = conn.prepareStatement("select cid from cid_sid s where s.sid = ?");

@@ -1,8 +1,5 @@
 package gov.nih.ncgc.bard.rest;
 
-import chemaxon.formats.MolImporter;
-import chemaxon.marvin.util.MolExportException;
-import chemaxon.struc.Molecule;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
@@ -72,31 +69,34 @@ public class BARDCompoundResource extends BARDResource {
         return response;
     }
 
-    private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes) throws SQLException, IOException, MolExportException {
+    private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes) throws SQLException, IOException {
         DBUtils db = new DBUtils();
 
         if (!type.equals("cid") && !type.equals("probeid") && !type.equals("sid")) return null;
-        Compound c = null;
-        if (type.equals("cid")) c = db.getCompoundByCid(Long.parseLong(id));
-        else if (type.equals("probeid")) c = db.getCompoundByProbeId(id);
-        else if (type.equals("sid")) c = db.getCompoundBySid(Long.parseLong(id));
+        List<Compound> c = new ArrayList<Compound>();
+        if (type.equals("cid")) c.add(db.getCompoundByCid(Long.parseLong(id)));
+        else if (type.equals("probeid")) c.add(db.getCompoundByProbeId(id));
+        else if (type.equals("sid")) c.add(db.getCompoundBySid(Long.parseLong(id)));
+        else if (type.equals("name")) c.addAll(db.getCompoundByName(id));
         db.closeConnection();
 
-        if (c == null || c.getCid() == null) throw new WebApplicationException(404);
+        if (c.size() == 0) throw new WebApplicationException(404);
 
         if (mediaTypes.contains(BARDConstants.MIME_SMILES)) {
-            String smiles = c.getSmiles() + "\t" + id;
-            return Response.ok(smiles, BARDConstants.MIME_SMILES).build();
-        } else if (mediaTypes.contains(BARDConstants.MIME_SDF)) {
-            Molecule mol = MolImporter.importMol(c.getSmiles());
-            mol.setProperty("cid", String.valueOf(c.getCid()));
-            mol.setProperty("probeId", c.getProbeId());
-            mol.setProperty("url", c.getUrl());
-            mol.setProperty("resourecePath", c.getResourcePath());
-            String sdf = mol.exportToFormat("sdf");
-            return Response.ok(sdf, BARDConstants.MIME_SDF).build();
+            StringBuilder s = new StringBuilder();
+            for (Compound ac : c) s.append(ac.getSmiles() + "\t" + ac.getCid());
+            return Response.ok(s, BARDConstants.MIME_SMILES).build();
+        } else if (mediaTypes.contains(BARDConstants.MIME_SDF)) {   // TODO handle multi-molecule SDFs
+            throw new WebApplicationException(406);
+//            Molecule mol = MolImporter.importMol(c.getSmiles());
+//            mol.setProperty("cid", String.valueOf(c.getCid()));
+//            mol.setProperty("probeId", c.getProbeId());
+//            mol.setProperty("url", c.getUrl());
+//            mol.setProperty("resourecePath", c.getResourcePath());
+//            String sdf = mol.exportToFormat("sdf");
+//            return Response.ok(sdf, BARDConstants.MIME_SDF).build();
         } else {
-            String json = c.toJson();
+            String json = Util.toJson(c);
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         }
     }
@@ -141,6 +141,21 @@ public class BARDCompoundResource extends BARDResource {
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
+    }
+
+    @GET
+    @Path("/name/{name}")
+    public Response getCompoundByName(@PathParam("name") String name) {
+        try {
+            Response response = getCompoundResponse(name, "name", headers.getAcceptableMediaTypes());
+            if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
+            else return response;
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+
     }
 
     // return alle xperiment data for this CID
