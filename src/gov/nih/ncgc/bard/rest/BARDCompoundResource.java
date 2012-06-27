@@ -7,7 +7,10 @@ import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -19,7 +22,9 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Prototype of MLBD REST resources.
@@ -100,7 +105,7 @@ public class BARDCompoundResource extends BARDResource {
 //            return Response.ok(sdf, BARDConstants.MIME_SDF).build();
         } else {
             String json;
-            if (c.size() == 1) json = c.get(0).toJson();
+            if (!type.equals("name") && c.size() == 1) json = c.get(0).toJson();
             else {
                 if (expand) json = Util.toJson(c);
                 else {
@@ -160,7 +165,7 @@ public class BARDCompoundResource extends BARDResource {
     @Path("/name/{name}")
     public Response getCompoundByName(@PathParam("name") String name, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            Response response = getCompoundResponse(name, "name", headers.getAcceptableMediaTypes(), expand != null && expand.toLowerCase().equals(true));
+            Response response = getCompoundResponse(name, "name", headers.getAcceptableMediaTypes(), expand != null && expand.toLowerCase().equals("true"));
             if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
             else return response;
         } catch (SQLException e) {
@@ -168,7 +173,37 @@ public class BARDCompoundResource extends BARDResource {
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
+    }
 
+    @POST
+    @Path("/name/")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response getCompoundByNameList(@FormParam("names") String names, @QueryParam("expand") String expand) {
+        if (names == null || names.trim().equals("")) throw new WebApplicationException(400);
+        String[] toks = names.trim().split(",");
+        Map<String, List<Compound>> map = new HashMap<String, List<Compound>>();
+        DBUtils db = new DBUtils();
+        Response response = null;
+        try {
+            for (String tok : toks) map.put(tok.trim(), db.getCompoundByName(tok.trim()));
+            db.closeConnection();
+            if (expandEntries(expand)) response = Response.ok(Util.toJson(map), MediaType.APPLICATION_JSON).build();
+            else {
+                Map<String, List<String>> lmap = new HashMap<String, List<String>>();
+                for (String key : map.keySet()) {
+                    List<Compound> compounds = map.get(key);
+                    List<String> links = new ArrayList<String>();
+                    for (Compound c : compounds) links.add(c.getResourcePath());
+                    lmap.put(key, links);
+                }
+                response = Response.ok(Util.toJson(lmap), MediaType.APPLICATION_JSON).build();
+            }
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+        return response;
     }
 
     // return alle xperiment data for this CID
