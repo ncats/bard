@@ -257,7 +257,7 @@ public class DBUtils {
 
     public List<Compound> getCompoundByName(String name) throws SQLException {
         if (name == null || name.trim().equals("")) return null;
-        PreparedStatement pst = conn.prepareStatement("select id from synonyms where id == 1 and match(syn) against (?)");
+        PreparedStatement pst = conn.prepareStatement("select distinct id from synonyms where type = 1 and match(syn) against (? in boolean mode)");
         pst.setString(1, name);
         ResultSet rs = pst.executeQuery();
         List<Compound> cmpds = new ArrayList<Compound>();

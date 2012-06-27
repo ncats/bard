@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.tools;
 
+import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
 import org.testng.Assert;
@@ -70,6 +71,15 @@ public class QueryTest extends DBTest {
         String query = "Q6GZ[accessionFOO]";
         List<ProteinTarget> targets = db.searchForEntity(query, -1, -1, ProteinTarget.class);
         System.out.println("Querying targets for '" + query + "' gave " + targets.size() + " results");
+    }
+
+    @Test
+    public void getCompoundsByName() throws SQLException {
+        String query = "lidocaine";
+        List<Compound> compounds = db.getCompoundByName(query);
+        System.out.println("Querying compounds for '" + query + "' gave " + compounds.size() + " compounds");
+        Assert.assertTrue(compounds.size() > 0);
+
     }
 
 }

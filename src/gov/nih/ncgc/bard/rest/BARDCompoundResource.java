@@ -18,6 +18,7 @@ import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -69,10 +70,12 @@ public class BARDCompoundResource extends BARDResource {
         return response;
     }
 
-    private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes) throws SQLException, IOException {
+    private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes, boolean expand) throws SQLException, IOException {
         DBUtils db = new DBUtils();
 
-        if (!type.equals("cid") && !type.equals("probeid") && !type.equals("sid")) return null;
+        List<String> validTypes = Arrays.asList("cid", "sid", "probeid", "name");
+
+        if (!validTypes.contains(type)) return null;
         List<Compound> c = new ArrayList<Compound>();
         if (type.equals("cid")) c.add(db.getCompoundByCid(Long.parseLong(id)));
         else if (type.equals("probeid")) c.add(db.getCompoundByProbeId(id));
@@ -96,7 +99,17 @@ public class BARDCompoundResource extends BARDResource {
 //            String sdf = mol.exportToFormat("sdf");
 //            return Response.ok(sdf, BARDConstants.MIME_SDF).build();
         } else {
-            String json = Util.toJson(c);
+            String json;
+            if (c.size() == 1) json = c.get(0).toJson();
+            else {
+                if (expand) json = Util.toJson(c);
+                else {
+                    List<String> links = new ArrayList<String>();
+                    for (Compound ac : c) links.add(ac.getResourcePath());
+                    json = Util.toJson(links);
+                }
+            }
+
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         }
     }
@@ -105,7 +118,7 @@ public class BARDCompoundResource extends BARDResource {
     @Path("/{cid}")
     public Response getResources(@PathParam("cid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            Response response = getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes());
+            Response response = getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes(), true);
             if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
             else return response;
         } catch (SQLException e) {
@@ -119,7 +132,7 @@ public class BARDCompoundResource extends BARDResource {
     @Path("/sid/{sid}")
     public Response getCompoundBySid(@PathParam("sid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            Response response = getCompoundResponse(resourceId, "sid", headers.getAcceptableMediaTypes());
+            Response response = getCompoundResponse(resourceId, "sid", headers.getAcceptableMediaTypes(), true);
             if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
             else return response;
         } catch (SQLException e) {
@@ -133,7 +146,7 @@ public class BARDCompoundResource extends BARDResource {
     @Path("/probeid/{pid}")
     public Response getCompoundByProbeid(@PathParam("pid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            Response response = getCompoundResponse(resourceId, "probeid", headers.getAcceptableMediaTypes());
+            Response response = getCompoundResponse(resourceId, "probeid", headers.getAcceptableMediaTypes(), true);
             if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
             else return response;
         } catch (SQLException e) {
@@ -145,9 +158,9 @@ public class BARDCompoundResource extends BARDResource {
 
     @GET
     @Path("/name/{name}")
-    public Response getCompoundByName(@PathParam("name") String name) {
+    public Response getCompoundByName(@PathParam("name") String name, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            Response response = getCompoundResponse(name, "name", headers.getAcceptableMediaTypes());
+            Response response = getCompoundResponse(name, "name", headers.getAcceptableMediaTypes(), expand != null && expand.toLowerCase().equals(true));
             if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
             else return response;
         } catch (SQLException e) {
