@@ -32,4 +32,11 @@ public abstract class BARDResource implements IBARDResource {
     protected void postConstruct() {
         countRequested = Util.countRequested(headers);
     }
+
+    protected boolean expandEntries(String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+        return expandEntries;
+    }
 }

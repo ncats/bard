@@ -214,9 +214,6 @@ public class BARDCompoundResource extends BARDResource {
                                       @QueryParam("expand") String expand,
                                       @QueryParam("skip") Integer skip,
                                       @QueryParam("top") Integer top) {
-        boolean expandEntries = false;
-        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
-            expandEntries = true;
 
         DBUtils db = new DBUtils();
         String linkString = null;
@@ -234,13 +231,13 @@ public class BARDCompoundResource extends BARDResource {
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
-                if (expandEntries) expandClause = "expand=true";
+                if (expandEntries(expand)) expandClause = "expand=true";
                 if (skip + top <= experiemnt.getSubstances())
                     linkString = BARDConstants.API_BASE + "/compounds/" + resourceId + "/exptdata?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
 
             String json;
-            if (!expandEntries) {
+            if (!expandEntries(expand)) {
                 List<Long> edids = db.getCompoundDataIds(Long.valueOf(resourceId), skip, top);
                 if (countRequested) json = String.valueOf(edids.size());
                 else {
@@ -277,10 +274,6 @@ public class BARDCompoundResource extends BARDResource {
                                    @QueryParam("expand") String expand,
                                    @QueryParam("skip") Integer skip,
                                    @QueryParam("top") Integer top) {
-        boolean expandEntries = false;
-        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
-            expandEntries = true;
-
         DBUtils db = new DBUtils();
         String linkString = null;
 
@@ -297,13 +290,13 @@ public class BARDCompoundResource extends BARDResource {
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
-                if (expandEntries) expandClause = "expand=true";
+                if (expandEntries(expand)) expandClause = "expand=true";
                 if (skip + top <= experiemnt.getSubstances())
                     linkString = BARDConstants.API_BASE + "/compounds/" + resourceId + "/experiments?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
 
             String json;
-            if (!expandEntries) {
+            if (!expandEntries(expand)) {
                 List<Long> eids = db.getCompoundExperimentIds(Long.valueOf(resourceId), skip, top);
                 if (countRequested) json = String.valueOf(eids.size());
                 else {
