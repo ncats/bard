@@ -48,10 +48,6 @@ public class BARDDocumentResource extends BARDResource {
                                  @QueryParam("expand") String expand,
                                  @QueryParam("skip") Integer skip,
                                  @QueryParam("top") Integer top) {
-        boolean expandEntries = false;
-        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
-            expandEntries = true;
-
         // validate skip/top
         if (skip == null && top != null) {
             skip = 0;
@@ -70,7 +66,7 @@ public class BARDDocumentResource extends BARDResource {
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
-                if (expandEntries) expandClause = "expand=true";
+                if (expandEntries(expand)) expandClause = "expand=true";
                 if (skip + top <= db.getEntityCount(Publication.class))
                     linkString = BARDConstants.API_BASE + "/documents?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
 
@@ -85,7 +81,7 @@ public class BARDDocumentResource extends BARDResource {
             if (countRequested)
                 response = Response.ok(String.valueOf(publications.size()), MediaType.TEXT_PLAIN).build();
             else {
-                if (expandEntries) {
+                if (expandEntries(expand)) {
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(publications, linkString);
                     response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
                 } else {
