@@ -29,7 +29,7 @@ public class BARDSubstanceResourceTest extends EntityResourceTest {
 
 
     @Test
-    public void getCompoundByCid() throws IOException {
+    public void getSubstanceBySid() throws IOException {
         String url = prefix + resourceName + "/8144";
         WebResource resource = client.resource(url);
         ClientResponse response = resource.get(ClientResponse.class);
