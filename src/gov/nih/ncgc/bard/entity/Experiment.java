@@ -169,6 +169,19 @@ public class Experiment implements BardEntity {
         return BARDConstants.API_BASE + "/experiments/" + exptId;
     }
 
+    /**
+     * Set the resource path.
+     * <p/>
+     * In most cases, this can be an empty function as its primary purpose
+     * is to allow Jackson to deserialize a JSON entity to the relevant Java
+     * entity.
+     *
+     * @param resourcePath the resource path for this entity
+     */
+    public void setResourcePath(String resourcePath) {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
     public String getEntityTag() {
         StringBuilder sb = new StringBuilder();
         sb.append(exptId).append(category).append(type).append(summary).append(assays).append(classification).append(substances);

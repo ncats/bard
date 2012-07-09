@@ -93,4 +93,8 @@ public class Compound implements BardEntity {
     public String getResourcePath() {
         return BARDConstants.API_BASE + "/compounds/" + cid;
     }
+
+    // this is a dummy setter, so that Jackson is happy during deserialization
+    public void setResourcePath(String resourcePath) {
+    }
 }
