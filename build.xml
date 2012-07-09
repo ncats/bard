@@ -76,6 +76,19 @@
         </jar>
     </target>
 
+    <target name="jar-client" id='jar-client' depends="compile-rest">
+        <mkdir dir="${bard.deploy}"/>
+        <jar destfile="${bard.deploy}/bard-client.jar" duplicate="preserve">
+            <manifest>
+                <attribute name="Created-By" value="NCGC"/>
+                <attribute name="Manifest-Version" value="1.0"/>
+            </manifest>
+            <fileset dir="${bard.build}" casesensitive="yes">
+                <include name="gov/nih/ncgc/bard/entity/*"/>
+            </fileset>
+        </jar>
+    </target>
+
     <property name="bard.explode.dir" value="${bard.deploy}/exploded"/>
     <target name='explode-rest' depends='compile-rest'>
         <copy file="${basedir}/web/WEB-INF/web.xml" tofile="${bard.explode.dir}/WEB-INF/web.xml"/>
