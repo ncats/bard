@@ -4,6 +4,7 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.client.urlconnection.HTTPSProperties;
+import com.sun.jersey.core.util.FeaturesAndProperties;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -63,6 +64,9 @@ public class ClientHelper {
         } catch (Exception e) {
         }
 
+        // should be getting a better SAX parser, but there's only going to be
+        // a single source of XML documents
+        config.getFeatures().put(FeaturesAndProperties.FEATURE_DISABLE_XML_SECURITY, true);
         return config;
     }
 
