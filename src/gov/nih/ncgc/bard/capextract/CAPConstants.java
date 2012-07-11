@@ -47,6 +47,19 @@ public class CAPConstants {
         public String getMimeType() {
             return mimeType;
         }
+
+        /**
+         * Get a CapResource based on a mime type string.
+         *
+         * @param m the mime type string
+         * @return a CapResource if the specified mime type matches, otherwise null.
+         */
+        public CapResource getResource(String m) {
+            for (CapResource res : values()) {
+                if (res.mimeType.equals(m)) return res;
+            }
+            return null;
+        }
     }
 
 }
