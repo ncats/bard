@@ -93,4 +93,11 @@ public class Compound implements BardEntity {
     public String getResourcePath() {
         return BARDConstants.API_BASE + "/compounds/" + cid;
     }
+
+    // Method required for JSON -> POJO, even though redundant
+    public void setResourcePath(String resourcePath) throws Exception {
+	if (cid != 0 && !resourcePath.contains(cid.toString()))
+	   throw (new Exception("Illegal resource path:" + resourcePath + "  for compound cid:"+cid));
+        return;
+    }
 }
