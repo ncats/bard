@@ -3,6 +3,7 @@ package gov.nih.ncgc.bard.capextract.handler;
 import com.sun.jersey.api.client.ClientResponse;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.jaxb.Project;
 import gov.nih.ncgc.bard.capextract.jaxb.Projects;
 
 import java.io.IOException;
@@ -35,6 +36,10 @@ public class ProjectsHandler extends CapResourceHandler implements ICapResourceH
 
         // get the Projects object here
         Projects projects = response.getEntity(Projects.class);
-        System.out.println("projects = " + projects + " with " + projects.getProject().size() + " projects");
+        for (Project project : projects.getProject()) {
+            String readyToXtract = project.getReadyForExtraction();
+            String title = project.getProjectName();
+            System.out.println("\taurl = " + readyToXtract + " for " + title);
+        }
     }
 }
