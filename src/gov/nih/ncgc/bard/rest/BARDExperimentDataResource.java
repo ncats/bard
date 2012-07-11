@@ -72,6 +72,8 @@ public class BARDExperimentDataResource implements IBARDResource {
             return ret;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
         }
     }
 

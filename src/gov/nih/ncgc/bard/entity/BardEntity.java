@@ -19,4 +19,15 @@ public interface BardEntity {
      *         to be publically available via the REST API
      */
     public String getResourcePath();
+
+    /**
+     * Set the resource path.
+     * <p/>
+     * In most cases, this can be an empty function as its primary purpose
+     * is to allow Jackson to deserialize a JSON entity to the relevant Java
+     * entity.
+     *
+     * @param resourcePath the resource path for this entity
+     */
+    public void setResourcePath(String resourcePath);
 }

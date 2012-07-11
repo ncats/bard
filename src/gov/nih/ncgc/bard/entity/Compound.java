@@ -94,10 +94,7 @@ public class Compound implements BardEntity {
         return BARDConstants.API_BASE + "/compounds/" + cid;
     }
 
-    // Method required for JSON -> POJO, even though redundant
-    public void setResourcePath(String resourcePath) throws Exception {
-	if (cid != 0 && !resourcePath.contains(cid.toString()))
-	   throw (new Exception("Illegal resource path:" + resourcePath + "  for compound cid:"+cid));
-        return;
+    // this is a dummy setter, so that Jackson is happy during deserialization
+    public void setResourcePath(String resourcePath) {
     }
 }

@@ -95,4 +95,17 @@ public class ProteinTarget implements BardEntity {
     public String getResourcePath() {
         return BARDConstants.API_BASE + "/targets/accession/" + acc;
     }
+
+    /**
+     * Set the resource path.
+     * <p/>
+     * In most cases, this can be an empty function as its primary purpose
+     * is to allow Jackson to deserialize a JSON entity to the relevant Java
+     * entity.
+     *
+     * @param resourcePath the resource path for this entity
+     */
+    public void setResourcePath(String resourcePath) {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
 }

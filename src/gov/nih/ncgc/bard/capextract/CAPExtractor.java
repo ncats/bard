@@ -31,13 +31,22 @@ import javax.xml.bind.util.ValidationEventCollector;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.WebResource;
 
+import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
+import gov.nih.ncgc.bard.capextract.handler.BardexportHandler;
+import gov.nih.ncgc.bard.capextract.handler.DictionaryHandler;
+import gov.nih.ncgc.bard.capextract.handler.ProjectHandler;
+import gov.nih.ncgc.bard.capextract.handler.ProjectsHandler;
+
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+
 /**
  * Example code to play with the Broad CAP Data Export API.
  * CAP data export API defined at https://github.com/broadinstitute/BARD/wiki/BARD-Data-Export-API
  * @author Rajarshi Guha
  */
 public class CAPExtractor {
-    public static final String EXPORT_URL = "http://bard.nih.gov/bardexport";
+    private CapResourceHandlerRegistry registry;
 
     protected Client CAPclient;
     protected Unmarshaller unmarshaller;
@@ -221,7 +230,7 @@ public class CAPExtractor {
 	return;
     }
     
-    public static void main(String[] args) {
+    public static void Noelmain(String[] args) {
 
 	try {
 	    CAPExtractor cape = new CAPExtractor();	    
@@ -250,5 +259,30 @@ public class CAPExtractor {
 	    
 	} catch (Exception ex) {ex.printStackTrace();}
     }
+
+    public void run() throws IOException, NoSuchAlgorithmException {
+        registry.getHandler(CAPConstants.CapResource.BARDEXPORT).process(CAPConstants.CAP_ROOT, CAPConstants.CapResource.BARDEXPORT);
+    }
+
+    public void setHandlers() {
+        registry = CapResourceHandlerRegistry.getInstance();
+        registry.setHandler(CAPConstants.CapResource.PROJECTS, new ProjectsHandler());
+        registry.setHandler(CAPConstants.CapResource.PROJECT, new ProjectHandler());
+        registry.setHandler(CAPConstants.CapResource.ASSAYS, new AssaysHandler());
+        registry.setHandler(CAPConstants.CapResource.BARDEXPORT, new BardexportHandler());
+        registry.setHandler(CAPConstants.CapResource.DICTIONARY, new DictionaryHandler());
+    }
+
+
+    public static void main(String[] args) throws Exception {
+        CAPExtractor c = new CAPExtractor();
+
+        // before running the extractor, lets set our handlers
+        c.setHandlers();
+
+        // lets start pulling
+        c.run();
+    }
+
 
 }

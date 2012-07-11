@@ -22,4 +22,6 @@ public class BARDConstants {
     public static final int MAX_COMPOUND_COUNT = 500;
     public static final int MAX_DATA_COUNT = 500;
 
+    public static final String REQUEST_HEADER_COUNT = "x-count-entities";
+
 }

@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.rest;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
@@ -33,7 +34,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/v1/targets")
-public class BARDTargetResource implements IBARDResource {
+public class BARDTargetResource extends BARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -55,22 +56,6 @@ public class BARDTargetResource implements IBARDResource {
     }
 
     @GET
-    @Produces("text/plain")
-    @Path("/_count")
-    public String count(@QueryParam("filter") String filter) {
-        DBUtils db = new DBUtils();
-        try {
-            if (filter == null)
-                return String.valueOf(db.getEntityCount(ProteinTarget.class));
-            else return String.valueOf(db.searchForEntity(filter, -1, -1, ProteinTarget.class).size());
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
-        }
-    }
-
-    @GET
     public Response getResources(@QueryParam("filter") String filter,
                                  @QueryParam("expand") String expand,
                                  @QueryParam("skip") Integer skip,
@@ -87,6 +72,8 @@ public class BARDTargetResource implements IBARDResource {
         try {
             String linkString = null;
             if (filter == null) {
+                if (countRequested)
+                    return Response.ok(String.valueOf(db.getEntityCount(ProteinTarget.class)), MediaType.TEXT_PLAIN).build();
                 if ((top == -1)) { // top was not specified, so we start from the beginning
                     top = BARDConstants.MAX_COMPOUND_COUNT;
                 }
@@ -99,6 +86,8 @@ public class BARDTargetResource implements IBARDResource {
 
             List<ProteinTarget> targets = db.searchForEntity(filter, skip, top, ProteinTarget.class);
             db.closeConnection();
+
+            if (countRequested) return Response.ok(String.valueOf(targets.size()), MediaType.TEXT_PLAIN).build();
             if (expandEntries) {
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(targets, linkString);
                 return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
@@ -122,10 +111,14 @@ public class BARDTargetResource implements IBARDResource {
         DBUtils db = new DBUtils();
         ProteinTarget p;
         try {
-            p = db.getProteinTargetByAccession(resourceId);
-            db.closeConnection();
-            if (p.getAcc() == null) throw new WebApplicationException(404);
-            String json = p.toJson();
+            String json;
+            if (countRequested) json = "1";
+            else {
+                p = db.getProteinTargetByAccession(resourceId);
+                db.closeConnection();
+                if (p.getAcc() == null) throw new WebApplicationException(404);
+                json = p.toJson();
+            }
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
@@ -140,11 +133,15 @@ public class BARDTargetResource implements IBARDResource {
     public Response getByGeneid(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
         DBUtils db = new DBUtils();
         ProteinTarget p;
+        String json;
         try {
-            p = db.getProteinTargetByGeneid(Long.parseLong(resourceId));
-            db.closeConnection();
-            if (p.getAcc() == null) throw new WebApplicationException(404);
-            String json = Util.toJson(p);
+            if (countRequested) json = "1";
+            else {
+                p = db.getProteinTargetByGeneid(Long.parseLong(resourceId));
+                db.closeConnection();
+                if (p.getAcc() == null) throw new WebApplicationException(404);
+                json = Util.toJson(p);
+            }
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
@@ -168,7 +165,8 @@ public class BARDTargetResource implements IBARDResource {
         try {
             pubs = db.getProteinTargetPublications(resourceId);
             Response response;
-            if (expandEntries) {
+            if (countRequested) response = Response.ok(String.valueOf(pubs.size()), MediaType.TEXT_PLAIN).build();
+            else if (expandEntries) {
                 String json = Util.toJson(pubs);
                 response = Response.ok(json, MediaType.APPLICATION_JSON).build();
             } else {
@@ -191,5 +189,70 @@ public class BARDTargetResource implements IBARDResource {
         }
     }
 
+    @GET
+    @Path("/accession/{acc}/assays")
+    public Response getExperimentsForTarget(@PathParam("acc") String acc,
+                                            @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        DBUtils db = new DBUtils();
+        List<Assay> assays;
+        try {
+            assays = db.getAssaysByTargetAccession(acc);
+            Response response;
+            if (countRequested) response = Response.ok(String.valueOf(assays.size()), MediaType.TEXT_PLAIN).build();
+            else if (expandEntries) {
+                String json = Util.toJson(assays);
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Assay assay : assays)
+                    links.add(assay.getResourcePath());
+                String json = Util.toJson(links);
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
+            }
+            db.closeConnection();
+            return response;
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
+    @Path("/geneid/{geneid}/assays")
+    public Response getExperimentsForTargetByGeneid(@PathParam("geneid") Long geneid,
+                                                    @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        DBUtils db = new DBUtils();
+        List<Assay> assays;
+        try {
+            assays = db.getAssaysByTargetGeneid(geneid);
+            Response response;
+            if (countRequested) response = Response.ok(String.valueOf(assays.size()), MediaType.TEXT_PLAIN).build();
+            else if (expandEntries) {
+                String json = Util.toJson(assays);
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Assay assay : assays)
+                    links.add(assay.getResourcePath());
+                String json = Util.toJson(links);
+                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
+            }
+            db.closeConnection();
+            return response;
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
 
 }

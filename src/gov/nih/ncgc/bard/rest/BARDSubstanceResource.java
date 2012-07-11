@@ -1,25 +1,18 @@
 package gov.nih.ncgc.bard.rest;
 
-import chemaxon.formats.MolImporter;
-import chemaxon.struc.Molecule;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -36,17 +29,10 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/v1/substances")
-public class BARDSubstanceResource implements IBARDResource {
+public class BARDSubstanceResource extends BARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
-
-    @Context
-    ServletContext servletContext;
-    @Context
-    HttpServletRequest httpServletRequest;
-    @Context
-    HttpHeaders headers;
 
     @GET
     @Produces("text/plain")
@@ -58,26 +44,6 @@ public class BARDSubstanceResource implements IBARDResource {
         return msg.toString();
     }
 
-    /**
-     * Return a count of (possibly filtered) instances of a given resource.
-     *
-     * @param filter A query filter or null
-     * @return the number of instances
-     */
-    @GET
-    @Produces("text/plain")
-    @Path("/_count")
-    public String count(@QueryParam("filter") String filter) {
-        DBUtils db = new DBUtils();
-        try {
-            int n = db.getEntityCount(Substance.class);
-            db.closeConnection();
-            return String.valueOf(n);
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        }
-    }
-
     public Response getResources(@QueryParam("filter") String filter,
                                  @QueryParam("expand") String expand,
                                  @QueryParam("skip") Integer skip,
@@ -85,37 +51,64 @@ public class BARDSubstanceResource implements IBARDResource {
         return getResources(null, filter, expand);
     }
 
-    private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes) throws SQLException, IOException {
+    private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes, boolean expand) throws SQLException, IOException {
         if (!type.equals("cid") && !type.equals("sid")) throw new WebApplicationException(400);
 
         DBUtils db = new DBUtils();
-        Compound c = null;
+        Substance s = null;
+
         if (type.equals("cid")) {
             List<Long> sids = db.getSidsByCid(Long.parseLong(id));
-            List<String> paths = new ArrayList<String>();
-            for (Long sid : sids) paths.add(BARDConstants.API_BASE + "/substances/" + sid);
-            return Response.ok(Util.toJson(paths), MediaType.APPLICATION_JSON).build();
+            if (!expand) {
+                List<String> paths = new ArrayList<String>();
+                for (Long sid : sids) paths.add(BARDConstants.API_BASE + "/substances/" + sid);
+                return Response.ok(Util.toJson(paths), MediaType.APPLICATION_JSON).build();
+            } else { // TODO should be able to get multiple SIDs at one go
+                List<Substance> slist = new ArrayList<Substance>();
+                for (Long sid : sids) slist.add(db.getSubstanceBySid(sid));
+                return Response.ok(Util.toJson(slist), MediaType.APPLICATION_JSON).build();
+            }
         } else if (type.equals("sid"))
-            c = db.getCompoundBySid(Long.parseLong(id));   // TODO should be returning a Substance entity, not a compound entity
+            s = db.getSubstanceBySid(Long.parseLong(id));
         db.closeConnection();
 
-        if (c == null || c.getCid() == null) throw new WebApplicationException(404);
+        if (s == null || s.getSid() == null) throw new WebApplicationException(404);
 
+        Response response = null;
         if (mediaTypes.contains(BARDConstants.MIME_SMILES)) {
-            String smiles = c.getSmiles() + "\t" + id;
-            return Response.ok(smiles, BARDConstants.MIME_SMILES).build();
+//            String smiles = c.getSmiles() + "\t" + id;
+//            return Response.ok(smiles, BARDConstants.MIME_SMILES).build();
         } else if (mediaTypes.contains(BARDConstants.MIME_SDF)) {
-            Molecule mol = MolImporter.importMol(c.getSmiles());
-            mol.setProperty("cid", String.valueOf(c.getCid()));
-            mol.setProperty("probeId", c.getProbeId());
-            mol.setProperty("url", c.getUrl());
-            mol.setProperty("resourecePath", c.getResourcePath());
-            String sdf = mol.exportToFormat("sdf");
-            return Response.ok(sdf, BARDConstants.MIME_SDF).build();
+//            Molecule mol = MolImporter.importMol(c.getSmiles());
+//            mol.setProperty("cid", String.valueOf(c.getCid()));
+//            mol.setProperty("probeId", c.getProbeId());
+//            mol.setProperty("url", c.getUrl());
+//            mol.setProperty("resourecePath", c.getResourcePath());
+//            String sdf = mol.exportToFormat("sdf");
+//            return Response.ok(sdf, BARDConstants.MIME_SDF).build();
         } else {
-            String json = c.toJson();
-            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            String json = s.toJson();
+            response = Response.ok(json, MediaType.APPLICATION_JSON).build();
         }
+        return response;
+    }
+
+    @GET
+    public Response getAll(@QueryParam("filter") String filter,
+                           @QueryParam("expand") String expand,
+                           @QueryParam("skip") Integer skip,
+                           @QueryParam("top") Integer top) throws SQLException {
+        DBUtils db = new DBUtils();
+        Response response = null;
+        if (filter == null) {
+            if (countRequested)
+                response = Response.ok(String.valueOf(db.getEntityCount(Substance.class))).build();
+            else {
+                // make a paged response of all substances
+            }
+        }
+        db.closeConnection();
+        return response;
     }
 
     // return compound (via CID) for this SID
@@ -123,7 +116,9 @@ public class BARDSubstanceResource implements IBARDResource {
     @Path("/{sid}")
     public Response getResources(@PathParam("sid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            return getCompoundResponse(resourceId, "sid", headers.getAcceptableMediaTypes());
+            Response response = getCompoundResponse(resourceId, "sid", headers.getAcceptableMediaTypes(), expand != null && expand.equals("true"));
+            if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
+            else return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
@@ -136,7 +131,9 @@ public class BARDSubstanceResource implements IBARDResource {
     @Path("/cid/{cid}")
     public Response getCompoundBySid(@PathParam("cid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            return getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes());
+            Response response = getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes(), expand != null && expand.equals("true"));
+            if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
+            else return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
@@ -180,18 +177,24 @@ public class BARDSubstanceResource implements IBARDResource {
             String json;
             if (!expandEntries) {
                 List<Long> edids = db.getSubstanceDataIds(Long.valueOf(resourceId), skip, top);
-                List<String> links = new ArrayList<String>();
-                for (Long edid : edids) {
-                    ExperimentData ed = new ExperimentData();
-                    ed.setExptDataId(edid);
-                    links.add(ed.getResourcePath());
+                if (countRequested) json = String.valueOf(edids.size());
+                else {
+                    List<String> links = new ArrayList<String>();
+                    for (Long edid : edids) {
+                        ExperimentData ed = new ExperimentData();
+                        ed.setExptDataId(edid);
+                        links.add(ed.getResourcePath());
+                    }
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                    json = Util.toJson(linkedEntity);
                 }
-                BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
-                json = Util.toJson(linkedEntity);
             } else {
                 List<ExperimentData> data = db.getSubstanceData(Long.valueOf(resourceId), skip, top);
-                BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
-                json = Util.toJson(linkedEntity);
+                if (countRequested) json = String.valueOf(data.size());
+                else {
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
+                    json = Util.toJson(linkedEntity);
+                }
             }
             db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -215,6 +218,7 @@ public class BARDSubstanceResource implements IBARDResource {
 
         DBUtils db = new DBUtils();
         String linkString = null;
+        String json;
 
         if (skip == null) skip = -1;
         if (top == null) top = -1;
@@ -233,22 +237,25 @@ public class BARDSubstanceResource implements IBARDResource {
                 if (skip + top <= experiemnt.getSubstances())
                     linkString = BARDConstants.API_BASE + "/substances/" + resourceId + "/experiments?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
-
-            String json;
             if (!expandEntries) {
                 List<Long> eids = db.getSubstanceExperimentIds(Long.valueOf(resourceId), skip, top);
-                List<String> links = new ArrayList<String>();
-                for (Long eid : eids) {
-                    Experiment ed = new Experiment();
-                    ed.setExptId(eid);
-                    links.add(ed.getResourcePath());
+                if (countRequested) json = String.valueOf(eids.size());
+                else {
+                    List<String> links = new ArrayList<String>();
+                    for (Long eid : eids) {
+                        Experiment ed = new Experiment();
+                        ed.setExptId(eid);
+                        links.add(ed.getResourcePath());
+                    }
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                    json = Util.toJson(linkedEntity);
                 }
-                BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
-                json = Util.toJson(linkedEntity);
             } else {
                 List<Experiment> data = db.getSubstanceExperiment(Long.valueOf(resourceId), skip, top);
-                BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
-                json = Util.toJson(linkedEntity);
+                if (!countRequested) {
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
+                    json = Util.toJson(linkedEntity);
+                } else json = String.valueOf(data.size());
             }
             db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();

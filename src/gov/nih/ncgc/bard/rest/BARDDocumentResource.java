@@ -1,18 +1,16 @@
 package gov.nih.ncgc.bard.rest;
 
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -29,15 +27,10 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/v1/documents")
-public class BARDDocumentResource implements IBARDResource {
+public class BARDDocumentResource extends BARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
-
-    @Context
-    ServletContext servletContext;
-    @Context
-    HttpServletRequest httpServletRequest;
 
     @GET
     @Produces("text/plain")
@@ -50,41 +43,11 @@ public class BARDDocumentResource implements IBARDResource {
         return msg.toString();
     }
 
-    /**
-     * Return a count of (possibly filtered) instances of a given resource.
-     *
-     * @param filter A query filter or null
-     * @return the number of instances
-     */
-    @GET
-    @Produces("text/plain")
-    @Path("/_count")
-    public String count(@QueryParam("filter") String filter) {
-        DBUtils db = new DBUtils();
-        try {
-            if (filter == null) {
-                int n = db.getEntityCount(Publication.class);
-                return String.valueOf(n);
-            } else {
-                List<Publication> publications = db.searchForEntity(filter, -1, -1, Publication.class);
-                return String.valueOf(publications.size());
-            }
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
-        }
-    }
-
     @GET
     public Response getResources(@QueryParam("filter") String filter,
                                  @QueryParam("expand") String expand,
                                  @QueryParam("skip") Integer skip,
                                  @QueryParam("top") Integer top) {
-        boolean expandEntries = false;
-        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
-            expandEntries = true;
-
         // validate skip/top
         if (skip == null && top != null) {
             skip = 0;
@@ -94,17 +57,43 @@ public class BARDDocumentResource implements IBARDResource {
         }
 
         DBUtils db = new DBUtils();
+        Response response = null;
         try {
-            List<Publication> publications = db.searchForEntity(filter, skip, top, Publication.class);
-            if (expandEntries) {
-                String json = Util.toJson(publications);
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
-            } else {
-                List<String> links = new ArrayList<String>();
-                for (Publication a : publications) links.add(a.getResourcePath());
-                String json = Util.toJson(links);
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            String linkString = null;
+            if (filter == null) {
+                if ((top == -1)) { // top was not specified, so we start from the beginning
+                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                }
+                if (skip == -1) skip = 0;
+                String expandClause = "expand=false";
+                if (expandEntries(expand)) expandClause = "expand=true";
+                if (skip + top <= db.getEntityCount(Publication.class))
+                    linkString = BARDConstants.API_BASE + "/documents?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+
+                if (countRequested) {
+                    int n = db.getEntityCount(Publication.class);
+                    db.closeConnection();
+                    return Response.ok(String.valueOf(n), MediaType.TEXT_PLAIN).build();
+                }
             }
+
+            List<Publication> publications = db.searchForEntity(filter, skip, top, Publication.class);
+            if (countRequested)
+                response = Response.ok(String.valueOf(publications.size()), MediaType.TEXT_PLAIN).build();
+            else {
+                if (expandEntries(expand)) {
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(publications, linkString);
+                    response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+                } else {
+                    List<String> links = new ArrayList<String>();
+                    for (Publication a : publications) links.add(a.getResourcePath());
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                    response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+                }
+            }
+
+            db.closeConnection();
+            return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
@@ -125,6 +114,7 @@ public class BARDDocumentResource implements IBARDResource {
         DBUtils db = new DBUtils();
         try {
             Publication p = db.getPublicationByPmid(Long.parseLong(resourceId));
+            if (countRequested && p != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
             String json = Util.toJson(p);
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
@@ -140,6 +130,7 @@ public class BARDDocumentResource implements IBARDResource {
         DBUtils db = new DBUtils();
         try {
             Publication p = db.getPublicationByDoi(resourceId);
+            if (countRequested && p != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
             String json = Util.toJson(p);
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
