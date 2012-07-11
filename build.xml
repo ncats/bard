@@ -54,6 +54,16 @@
         </exec>
     </target>
 
+
+    <target name='compile-capextract' id='compile-capextract'>
+        <mkdir dir="${bard.build}"/>
+        <javac srcdir="${bard.src}" destdir="${bard.build}"
+               debug="yes" target="1.6"
+               includes="**/capextract/**">
+            <classpath refid="compile.classpath"/>
+        </javac>
+    </target>
+
     <target name='compile-rest' id='compile-rest'>
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
