@@ -1,10 +1,8 @@
 package gov.nih.ncgc.bard.capextract;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.filter.LoggingFilter;
-import gov.nih.ncgc.bard.capextract.jaxb.Bardexport;
+import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
+import gov.nih.ncgc.bard.capextract.handler.BardexportHandler;
+import gov.nih.ncgc.bard.capextract.handler.ProjectsHandler;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
@@ -15,30 +13,31 @@ import java.security.NoSuchAlgorithmException;
  * @author Rajarshi Guha
  */
 public class CAPExtractor {
+    private CapResourceHandlerRegistry registry;
 
     public CAPExtractor() {
     }
 
-    public void run(boolean logging) throws IOException, NoSuchAlgorithmException {
-        Client client = ClientHelper.createClient();
-        if (logging) client.addFilter(new LoggingFilter());
-
-        WebResource resource = client.resource(CAPConstants.CAP_ROOT);
-        ClientResponse response = resource.accept(CAPConstants.CAP_ROOT_MIMETYPE).
-                header(CAPConstants.CAP_APIKEY_HEADER, CAPConstants.getApiKey()).
-                get(ClientResponse.class);
-
-        int status = response.getStatus();
-        if (status != 200)
-            throw new IOException("Got HTTP " + status + " for the root resource of the data export API");
-
-        Bardexport s = response.getEntity(Bardexport.class);
-
+    public void run() throws IOException, NoSuchAlgorithmException {
+        registry.getHandler(CAPConstants.CapResource.BARDEXPORT).process(CAPConstants.CAP_ROOT, CAPConstants.CapResource.BARDEXPORT);
     }
+
+    public void setHandlers() {
+        registry = CapResourceHandlerRegistry.getInstance();
+        registry.setHandler(CAPConstants.CapResource.PROJECTS, new ProjectsHandler());
+        registry.setHandler(CAPConstants.CapResource.ASSAYS, new AssaysHandler());
+        registry.setHandler(CAPConstants.CapResource.BARDEXPORT, new BardexportHandler());
+    }
+
 
     public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
         CAPExtractor c = new CAPExtractor();
-        c.run(false);
+
+        // before running the extractor, lets set our handlers
+        c.setHandlers();
+
+        // lets start pulling
+        c.run();
     }
 
 

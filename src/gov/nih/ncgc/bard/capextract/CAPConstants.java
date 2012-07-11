@@ -24,6 +24,7 @@ public class CAPConstants {
     }
 
     public static enum CapResource {
+        BARDEXPORT("application/vnd.bard.cap+xml;type=bardexport"),
         DICTIONARY("application/vnd.bard.cap+xml;type=dictionary"),
         RESULT_TYPE("application/vnd.bard.cap+xml;type=resultType"),
         ELEMENT("application/vnd.bard.cap+xml;type=element"),
