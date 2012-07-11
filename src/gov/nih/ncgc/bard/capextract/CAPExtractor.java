@@ -19,9 +19,9 @@ public class CAPExtractor {
     public CAPExtractor() {
     }
 
-    public void run() throws IOException, NoSuchAlgorithmException {
+    public void run(boolean logging) throws IOException, NoSuchAlgorithmException {
         Client client = ClientHelper.createClient();
-        client.addFilter(new LoggingFilter());
+        if (logging) client.addFilter(new LoggingFilter());
 
         WebResource resource = client.resource(CAPConstants.CAP_ROOT);
         ClientResponse response = resource.accept(CAPConstants.CAP_ROOT_MIMETYPE).
@@ -29,7 +29,8 @@ public class CAPExtractor {
                 get(ClientResponse.class);
 
         int status = response.getStatus();
-        if (status != 200) throw new IOException("Got HTTP " + status + " from data export API");
+        if (status != 200)
+            throw new IOException("Got HTTP " + status + " for the root resource of the data export API");
 
         Bardexport s = response.getEntity(Bardexport.class);
 
@@ -37,7 +38,7 @@ public class CAPExtractor {
 
     public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
         CAPExtractor c = new CAPExtractor();
-        c.run();
+        c.run(false);
     }
 
 
