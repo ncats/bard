@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.capextract;
 
 import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
 import gov.nih.ncgc.bard.capextract.handler.BardexportHandler;
+import gov.nih.ncgc.bard.capextract.handler.ProjectHandler;
 import gov.nih.ncgc.bard.capextract.handler.ProjectsHandler;
 
 import java.io.IOException;
@@ -25,6 +26,7 @@ public class CAPExtractor {
     public void setHandlers() {
         registry = CapResourceHandlerRegistry.getInstance();
         registry.setHandler(CAPConstants.CapResource.PROJECTS, new ProjectsHandler());
+        registry.setHandler(CAPConstants.CapResource.PROJECT, new ProjectHandler());
         registry.setHandler(CAPConstants.CapResource.ASSAYS, new AssaysHandler());
         registry.setHandler(CAPConstants.CapResource.BARDEXPORT, new BardexportHandler());
     }
