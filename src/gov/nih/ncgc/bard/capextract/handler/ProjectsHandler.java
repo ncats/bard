@@ -27,6 +27,7 @@ public class ProjectsHandler extends CapResourceHandler implements ICapResourceH
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
         if (resource != CAPConstants.CapResource.PROJECTS) return;
+        System.out.println("Processing " + resource);
 
         ClientResponse response = getResponse(url, resource);
         if (response.getStatus() != 200)

@@ -26,11 +26,13 @@ public class AssaysHandler extends CapResourceHandler implements ICapResourceHan
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
         if (resource != CAPConstants.CapResource.ASSAYS) return;
+        System.out.println("Processing " + resource);
 
         ClientResponse response = getResponse(url, resource);
         if (response.getStatus() != 200)
             throw new IOException("Got HTTP " + response.getStatus() + " from CAP assays resource");
 
         // get the Assays object here
+
     }
 }
