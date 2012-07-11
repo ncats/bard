@@ -29,7 +29,7 @@ import javax.xml.bind.annotation.XmlType;
  *   &lt;complexContent>
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;sequence>
- *         &lt;element ref="{}project" maxOccurs="unbounded"/>
+ *         &lt;element ref="{}link" maxOccurs="unbounded"/>
  *       &lt;/sequence>
  *       &lt;attribute name="count" use="required" type="{http://www.w3.org/2001/XMLSchema}integer" />
  *     &lt;/restriction>
@@ -41,43 +41,43 @@ import javax.xml.bind.annotation.XmlType;
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = {
-    "project"
+    "link"
 })
-@XmlRootElement(name = "projects")
-public class Projects {
+@XmlRootElement(name = "assays")
+public class Assays {
 
     @XmlElement(required = true)
-    protected List<Project> project;
+    protected List<Link> link;
     @XmlAttribute(name = "count", required = true)
     protected BigInteger count;
 
     /**
-     * Gets the value of the project property.
+     * Gets the value of the link property.
      * 
      * <p>
      * This accessor method returns a reference to the live list,
      * not a snapshot. Therefore any modification you make to the
      * returned list will be present inside the JAXB object.
-     * This is why there is not a <CODE>set</CODE> method for the project property.
+     * This is why there is not a <CODE>set</CODE> method for the link property.
      * 
      * <p>
      * For example, to add a new item, do as follows:
      * <pre>
-     *    getProject().add(newItem);
+     *    getLink().add(newItem);
      * </pre>
      * 
      * 
      * <p>
      * Objects of the following type(s) are allowed in the list
-     * {@link Project }
+     * {@link Link }
      * 
      * 
      */
-    public List<Project> getProject() {
-        if (project == null) {
-            project = new ArrayList<Project>();
+    public List<Link> getLink() {
+        if (link == null) {
+            link = new ArrayList<Link>();
         }
-        return this.project;
+        return this.link;
     }
 
     /**

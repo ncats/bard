@@ -26,18 +26,28 @@ import javax.xml.bind.annotation.XmlType;
  *   &lt;complexContent>
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;sequence>
- *         &lt;element name="stageName">
+ *         &lt;element name="documentName">
  *           &lt;simpleType>
  *             &lt;restriction base="{http://www.w3.org/2001/XMLSchema}string">
- *               &lt;maxLength value="128"/>
+ *               &lt;maxLength value="500"/>
  *             &lt;/restriction>
  *           &lt;/simpleType>
  *         &lt;/element>
- *         &lt;element ref="{}description" minOccurs="0"/>
+ *         &lt;element name="documentContent" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/>
  *         &lt;element ref="{}link" minOccurs="0"/>
  *       &lt;/sequence>
- *       &lt;attribute name="stageElement" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
- *       &lt;attribute name="parentStageName" type="{http://www.w3.org/2001/XMLSchema}string" />
+ *       &lt;attribute name="documentType">
+ *         &lt;simpleType>
+ *           &lt;restriction base="{http://www.w3.org/2001/XMLSchema}string">
+ *             &lt;enumeration value="Description"/>
+ *             &lt;enumeration value="Protocol"/>
+ *             &lt;enumeration value="Comments"/>
+ *             &lt;enumeration value="Paper"/>
+ *             &lt;enumeration value="External URL"/>
+ *             &lt;enumeration value="Other"/>
+ *           &lt;/restriction>
+ *         &lt;/simpleType>
+ *       &lt;/attribute>
  *     &lt;/restriction>
  *   &lt;/complexContent>
  * &lt;/complexType>
@@ -47,70 +57,66 @@ import javax.xml.bind.annotation.XmlType;
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = {
-    "stageName",
-    "description",
+    "documentName",
+    "documentContent",
     "link"
 })
-@XmlRootElement(name = "stage")
-public class Stage {
+@XmlRootElement(name = "assayDocument")
+public class AssayDocument {
 
     @XmlElement(required = true)
-    protected String stageName;
-    @XmlElement(nillable = true)
-    protected String description;
+    protected String documentName;
+    protected String documentContent;
     protected Link link;
-    @XmlAttribute(name = "stageElement", required = true)
-    protected String stageElement;
-    @XmlAttribute(name = "parentStageName")
-    protected String parentStageName;
+    @XmlAttribute(name = "documentType")
+    protected String documentType;
 
     /**
-     * Gets the value of the stageName property.
+     * Gets the value of the documentName property.
      * 
      * @return
      *     possible object is
      *     {@link String }
      *     
      */
-    public String getStageName() {
-        return stageName;
+    public String getDocumentName() {
+        return documentName;
     }
 
     /**
-     * Sets the value of the stageName property.
+     * Sets the value of the documentName property.
      * 
      * @param value
      *     allowed object is
      *     {@link String }
      *     
      */
-    public void setStageName(String value) {
-        this.stageName = value;
+    public void setDocumentName(String value) {
+        this.documentName = value;
     }
 
     /**
-     * 
-     *                         
+     * Gets the value of the documentContent property.
      * 
      * @return
      *     possible object is
      *     {@link String }
      *     
      */
-    public String getDescription() {
-        return description;
+    public String getDocumentContent() {
+        return documentContent;
     }
 
     /**
-     * Sets the value of the description property.
+     * Sets the value of the documentContent property.
      * 
      * @param value
      *     allowed object is
      *     {@link String }
      *     
      */
-    public void setDescription(String value) {
-        this.description = value;
+    public void setDocumentContent(String value) {
+        this.documentContent = value;
     }
 
     /**
@@ -138,51 +144,27 @@ public class Stage {
     }
 
     /**
-     * Gets the value of the stageElement property.
+     * Gets the value of the documentType property.
      * 
      * @return
      *     possible object is
      *     {@link String }
      *     
      */
-    public String getStageElement() {
-        return stageElement;
+    public String getDocumentType() {
+        return documentType;
     }
 
     /**
-     * Sets the value of the stageElement property.
+     * Sets the value of the documentType property.
      * 
      * @param value
      *     allowed object is
      *     {@link String }
      *     
      */
-    public void setStageElement(String value) {
-        this.stageElement = value;
-    }
-
-    /**
-     * Gets the value of the parentStageName property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
-     */
-    public String getParentStageName() {
-        return parentStageName;
-    }
-
-    /**
-     * Sets the value of the parentStageName property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
-     */
-    public void setParentStageName(String value) {
-        this.parentStageName = value;
+    public void setDocumentType(String value) {
+        this.documentType = value;
     }
 
 }
