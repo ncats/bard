@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.rest;
 
-import chemaxon.formats.MolFormatException;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Project;
