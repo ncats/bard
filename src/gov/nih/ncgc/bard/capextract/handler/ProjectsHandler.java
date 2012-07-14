@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import com.sun.jersey.api.client.ClientResponse;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
@@ -34,12 +33,8 @@ public class ProjectsHandler extends CapResourceHandler implements ICapResourceH
         if (resource != CAPConstants.CapResource.PROJECTS) return;
         log.info("Processing " + resource);
 
-        ClientResponse response = getResponse(url, resource);
-        if (response.getStatus() != 200)
-            throw new IOException("Got HTTP " + response.getStatus() + " from CAP projects resource");
-
         // get the Projects object here
-        Projects projects = response.getEntity(Projects.class);
+        Projects projects = getResponse(url, resource);
         for (Project project : projects.getProject()) {
             String readyToXtract = project.getReadyForExtraction();
             String title = project.getProjectName();

@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import com.sun.jersey.api.client.ClientResponse;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
@@ -33,12 +32,8 @@ public class AssaysHandler extends CapResourceHandler implements ICapResourceHan
         if (resource != CAPConstants.CapResource.ASSAYS) return;
         log.info("Processing " + resource);
 
-        ClientResponse response = getResponse(url, resource);
-        if (response.getStatus() != 200)
-            throw new IOException("Got HTTP " + response.getStatus() + " from CAP assays resource");
-
         // get the Assays object here
-        Assays assays = response.getEntity(Assays.class);
+        Assays assays = getResponse(url, resource);
         BigInteger n = assays.getCount();
         log.info("\tWill be processing " + n + " assays");
         List<Link> links = assays.getLink();

@@ -1,10 +1,6 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
-import gov.nih.ncgc.bard.capextract.ClientHelper;
 import gov.nih.ncgc.bard.capextract.SslHttpClient;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -23,14 +19,11 @@ import java.io.IOException;
  * @author Rajarshi Guha
  */
 public abstract class CapResourceHandler {
-    private Client client;
     protected Logger log;
-
     private JAXBContext jc;
     private HttpClient httpClient;
 
     protected CapResourceHandler() {
-        client = ClientHelper.createClient();
         httpClient = SslHttpClient.getHttpClient();
         log = LoggerFactory.getLogger(this.getClass());
         try {
@@ -40,14 +33,7 @@ public abstract class CapResourceHandler {
         }
     }
 
-    protected ClientResponse getResponse(String url, CAPConstants.CapResource resource) {
-        WebResource wr = client.resource(url);
-        return wr.accept(resource.getMimeType()).
-                header(CAPConstants.CAP_APIKEY_HEADER, CAPConstants.getApiKey()).
-                get(ClientResponse.class);
-    }
-
-    protected <T> T getResponse2(String url, CAPConstants.CapResource resource) throws IOException {
+    protected <T> T getResponse(String url, CAPConstants.CapResource resource) throws IOException {
         HttpGet get = new HttpGet(url);
         get.setHeader("Accept", resource.getMimeType());
         get.setHeader(CAPConstants.CAP_APIKEY_HEADER, CAPConstants.getApiKey());

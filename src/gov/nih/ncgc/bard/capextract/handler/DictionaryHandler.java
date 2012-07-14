@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import com.sun.jersey.api.client.ClientResponse;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Dictionary;
@@ -29,11 +28,7 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
         if (resource != CAPConstants.CapResource.DICTIONARY) return;
         log.info("Processing " + resource);
 
-        ClientResponse response = getResponse(url, resource);
-        if (response.getStatus() != 200)
-            throw new IOException("Got HTTP " + response.getStatus() + " from CAP dictionary resource");
-
-        Dictionary d = response.getEntity(Dictionary.class);
+        Dictionary d = getResponse(url, resource);
         log.info("d = " + d);
     }
 }

@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import com.sun.jersey.api.client.ClientResponse;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
@@ -30,13 +29,7 @@ public class BardexportHandler extends CapResourceHandler implements ICapResourc
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
         if (resource != CAPConstants.CapResource.BARDEXPORT) return;
         log.info("Processing " + resource);
-
-        ClientResponse response = getResponse(url, resource);
-        if (response.getStatus() != 200)
-            throw new IOException("Got HTTP " + response.getStatus() + " from CAP bardexport resource");
-
-        Bardexport export = response.getEntity(Bardexport.class);
-
+        Bardexport export = getResponse(url, resource);
         for (Link link : export.getLink()) {
             String aurl = link.getHref();
             CAPConstants.CapResource res = CAPConstants.getResource(link.getType());
