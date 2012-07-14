@@ -334,6 +334,7 @@ public class DBUtils {
 
             ed.setResults(o);
         }
+        pst.close();
         return ed;
     }
 
