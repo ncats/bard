@@ -279,7 +279,7 @@ public class BARDExperimentResource implements IBARDResource {
                                       @QueryParam("filter") String filter,
                                       @QueryParam("expand") String expand,
                                       @QueryParam("skip") Integer skip,
-                                      @QueryParam("top") Integer top) {
+                                      @QueryParam("top") Integer top) throws SQLException {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
@@ -325,8 +325,10 @@ public class BARDExperimentResource implements IBARDResource {
             db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
+            db.closeConnection();
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
+            db.closeConnection();
             throw new WebApplicationException(e, 500);
         }
     }

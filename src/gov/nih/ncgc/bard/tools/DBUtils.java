@@ -97,7 +97,8 @@ public class DBUtils {
     }
 
     public void closeConnection() throws SQLException {
-        conn.close();
+        if (!conn.isClosed())
+            conn.close();
     }
 
     private Connection getConnection() {
