@@ -2,9 +2,14 @@ package gov.nih.ncgc.bard.capextract.handler;
 
 import com.sun.jersey.api.client.ClientResponse;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.jaxb.Assays;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
 
 import java.io.IOException;
+import java.math.BigInteger;
+import java.util.List;
 
 /**
  * A one line summary.
@@ -33,6 +38,18 @@ public class AssaysHandler extends CapResourceHandler implements ICapResourceHan
             throw new IOException("Got HTTP " + response.getStatus() + " from CAP assays resource");
 
         // get the Assays object here
+        Assays assays = response.getEntity(Assays.class);
+        BigInteger n = assays.getCount();
+        System.out.println("\tWill be processing " + n + " assays");
+        List<Link> links = assays.getLink();
+        for (Link link : links) {
+            String href = link.getHref();
+            String type = link.getType();
+            String title = link.getTitle();
+            System.out.println("\t" + title + "/" + type + "/ href = " + href);
+            ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.ASSAY);
+            if (handler != null) process(href, CAPConstants.CapResource.ASSAY);
+        }
 
     }
 }

@@ -86,7 +86,7 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar:///Users/guhar/src/tomcat/lib/mysql-connector-java-5.1.19-bin.jar!/" />
+          <root url="jar://$MODULE_DIR$/../tomcat/lib/mysql-connector-java-5.1.19-bin.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

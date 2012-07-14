@@ -2,11 +2,15 @@ package gov.nih.ncgc.bard.capextract.handler;
 
 import com.sun.jersey.api.client.ClientResponse;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Project;
 import gov.nih.ncgc.bard.capextract.jaxb.Projects;
 
 import java.io.IOException;
+import java.math.BigInteger;
+import java.util.List;
 
 /**
  * A one line summary.
@@ -39,7 +43,22 @@ public class ProjectsHandler extends CapResourceHandler implements ICapResourceH
         for (Project project : projects.getProject()) {
             String readyToXtract = project.getReadyForExtraction();
             String title = project.getProjectName();
-            System.out.println("\taurl = " + readyToXtract + " for " + title);
+            BigInteger pid = project.getProjectId();
+
+            System.out.println("\taurl = [" + readyToXtract + "] for " + title);
+            if (readyToXtract.equals("Ready")) {
+                System.out.println("\tExtracting " + title);
+
+                List<Link> links = project.getLink();
+                for (Link link : links) {
+                    String href = link.getHref();
+                    String type = link.getType();
+                    String ltitle = link.getTitle();
+                    if (CAPConstants.getResource(type) != CAPConstants.CapResource.PROJECT) continue;
+                    System.out.println("\t\t" + ltitle + "/" + type + "/ href = " + href);
+                    CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.PROJECT).process(href, CAPConstants.CapResource.PROJECT);
+                }
+            }
         }
     }
 }
