@@ -31,7 +31,7 @@ public class AssaysHandler extends CapResourceHandler implements ICapResourceHan
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
         if (resource != CAPConstants.CapResource.ASSAYS) return;
-        System.out.println("Processing " + resource);
+        log.info("Processing " + resource);
 
         ClientResponse response = getResponse(url, resource);
         if (response.getStatus() != 200)
@@ -40,13 +40,13 @@ public class AssaysHandler extends CapResourceHandler implements ICapResourceHan
         // get the Assays object here
         Assays assays = response.getEntity(Assays.class);
         BigInteger n = assays.getCount();
-        System.out.println("\tWill be processing " + n + " assays");
+        log.info("\tWill be processing " + n + " assays");
         List<Link> links = assays.getLink();
         for (Link link : links) {
             String href = link.getHref();
             String type = link.getType();
             String title = link.getTitle();
-            System.out.println("\t" + title + "/" + type + "/ href = " + href);
+            log.info("\t" + title + "/" + type + "/ href = " + href);
             ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.ASSAY);
             if (handler != null) process(href, CAPConstants.CapResource.ASSAY);
         }

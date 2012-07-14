@@ -27,7 +27,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
         if (resource != CAPConstants.CapResource.PROJECT) return;
-        System.out.println("Processing " + resource);
+        log.info("Processing " + resource);
 
         ClientResponse response = getResponse(url, resource);
         if (response.getStatus() != 200)
@@ -35,6 +35,6 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
         // get the Projects object here
         Project project = response.getEntity(Project.class);
-        System.out.println("project.getResourcePath() = " + project.getResourcePath());
+        log.info("project.getResourcePath() = " + project.getResourcePath());
     }
 }

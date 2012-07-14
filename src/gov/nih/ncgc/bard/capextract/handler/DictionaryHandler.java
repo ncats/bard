@@ -27,13 +27,13 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
         if (resource != CAPConstants.CapResource.DICTIONARY) return;
-        System.out.println("Processing " + resource);
+        log.info("Processing " + resource);
 
         ClientResponse response = getResponse(url, resource);
         if (response.getStatus() != 200)
             throw new IOException("Got HTTP " + response.getStatus() + " from CAP dictionary resource");
 
         Dictionary d = response.getEntity(Dictionary.class);
-        System.out.println("\td = " + d);
+        log.info("d = " + d);
     }
 }

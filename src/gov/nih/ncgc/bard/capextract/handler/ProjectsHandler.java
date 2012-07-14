@@ -32,7 +32,7 @@ public class ProjectsHandler extends CapResourceHandler implements ICapResourceH
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
         if (resource != CAPConstants.CapResource.PROJECTS) return;
-        System.out.println("Processing " + resource);
+        log.info("Processing " + resource);
 
         ClientResponse response = getResponse(url, resource);
         if (response.getStatus() != 200)
@@ -45,9 +45,9 @@ public class ProjectsHandler extends CapResourceHandler implements ICapResourceH
             String title = project.getProjectName();
             BigInteger pid = project.getProjectId();
 
-            System.out.println("\taurl = [" + readyToXtract + "] for " + title);
+            log.info("\taurl = [" + readyToXtract + "] for " + title);
             if (readyToXtract.equals("Ready")) {
-                System.out.println("\tExtracting " + title);
+                log.info("\tExtracting " + title);
 
                 List<Link> links = project.getLink();
                 for (Link link : links) {
@@ -55,7 +55,7 @@ public class ProjectsHandler extends CapResourceHandler implements ICapResourceH
                     String type = link.getType();
                     String ltitle = link.getTitle();
                     if (CAPConstants.getResource(type) != CAPConstants.CapResource.PROJECT) continue;
-                    System.out.println("\t\t" + ltitle + "/" + type + "/ href = " + href);
+                    log.info("\t\t" + ltitle + "/" + type + "/ href = " + href);
                     CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.PROJECT).process(href, CAPConstants.CapResource.PROJECT);
                 }
             }

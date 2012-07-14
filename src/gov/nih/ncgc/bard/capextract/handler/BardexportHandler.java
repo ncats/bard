@@ -29,7 +29,7 @@ public class BardexportHandler extends CapResourceHandler implements ICapResourc
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
         if (resource != CAPConstants.CapResource.BARDEXPORT) return;
-        System.out.println("Processing " + resource);
+        log.info("Processing " + resource);
 
         ClientResponse response = getResponse(url, resource);
         if (response.getStatus() != 200)
@@ -42,7 +42,7 @@ public class BardexportHandler extends CapResourceHandler implements ICapResourc
             CAPConstants.CapResource res = CAPConstants.getResource(link.getType());
             ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(res);
             if (handler == null) {
-                System.err.println("No handler for " + link.getType());
+                log.error("No handler for " + link.getType());
             } else handler.process(aurl, res);
         }
     }

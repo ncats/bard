@@ -5,6 +5,8 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.ClientHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A one line summary.
@@ -13,9 +15,11 @@ import gov.nih.ncgc.bard.capextract.ClientHelper;
  */
 public abstract class CapResourceHandler {
     private Client client;
+    protected Logger log;
 
     protected CapResourceHandler() {
         client = ClientHelper.createClient();
+        log = LoggerFactory.getLogger(this.getClass());
     }
 
     protected ClientResponse getResponse(String url, CAPConstants.CapResource resource) {
