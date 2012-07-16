@@ -2,7 +2,10 @@ package gov.nih.ncgc.bard.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
+import gov.nih.ncgc.search.SearchService2;
 
+import javax.naming.Context;
+import javax.naming.InitialContext;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
@@ -92,6 +95,22 @@ public class Util {
     static public byte[] getMD5(String s) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("MD5");
         return md.digest(s.getBytes());
+    }
+
+    /**
+     * Get an instance of the searching service.
+     *
+     * @return an instance of {@link SearchService2}
+     * @throws Exception if there was an error in getting an instance from the container.
+     */
+    static public SearchService2 getSearchService() throws Exception {
+        try {
+            InitialContext ctx = new InitialContext();
+            Context env = (Context) ctx.lookup("java:/comp/env");
+            return (SearchService2) env.lookup("bard/structure-search");
+        } catch (Exception ex) {
+            throw new Exception("Can't get the search service");
+        }
     }
 
 }
