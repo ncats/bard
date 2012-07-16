@@ -82,7 +82,7 @@ public class StructureSearchPlugin implements IPlugin {
                 throw new WebApplicationException(new Exception("Bogus similarity value specified"), 400);
             }
         }
-        if (!"search".equalsIgnoreCase(method) && "count".equalsIgnoreCase(method))
+        if (!"search".equalsIgnoreCase(method) && !"count".equalsIgnoreCase(method))
             throw new WebApplicationException(new Exception("Unsupport method " + method), 400);
 
         return Response.ok(doSearch(query, type, dcutoff, method)).build();
@@ -108,7 +108,7 @@ public class StructureSearchPlugin implements IPlugin {
                 throw new WebApplicationException(new Exception("Bogus similarity value specified"), 400);
             }
         }
-        if (!"search".equalsIgnoreCase(method) && "count".equalsIgnoreCase(method))
+        if (!"search".equalsIgnoreCase(method) && !"count".equalsIgnoreCase(method))
             throw new WebApplicationException(new Exception("Unsupport method " + method), 400);
 
         return Response.ok(doSearch(query, type, dcutoff, method)).build();
