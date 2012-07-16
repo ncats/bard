@@ -69,23 +69,7 @@ public class StructureSearchPlugin implements IPlugin {
                               @QueryParam("type") String type,
                               @QueryParam("cutoff") String cutoff,
                               @QueryParam("method") String method) {
-        if (search == null)
-            throw new WebApplicationException(new Exception("Did not get an instance of the search service"), 500);
-
-        if (query == null) throw new WebApplicationException(new Exception("Need to specify the q parameter"), 400);
-
-        Double dcutoff = null;
-        if (cutoff != null) {
-            try {
-                dcutoff = Double.parseDouble(cutoff);
-            } catch (NumberFormatException ex) {
-                throw new WebApplicationException(new Exception("Bogus similarity value specified"), 400);
-            }
-        }
-        if (!"search".equalsIgnoreCase(method) && !"count".equalsIgnoreCase(method))
-            throw new WebApplicationException(new Exception("Unsupport method " + method), 400);
-
-        return Response.ok(doSearch(query, type, dcutoff, method)).build();
+        return Response.ok(doSearch(query, type, cutoff, method)).build();
     }
 
     @POST
@@ -95,23 +79,7 @@ public class StructureSearchPlugin implements IPlugin {
                                @FormParam("type") String type,
                                @FormParam("cutoff") String cutoff,
                                @FormParam("method") String method) {
-        if (search == null)
-            throw new WebApplicationException(new Exception("Did not get an instance of the search service"), 500);
-
-        if (query == null) throw new WebApplicationException(new Exception("Need to specify the q parameter"), 400);
-
-        Double dcutoff = null;
-        if (cutoff != null) {
-            try {
-                dcutoff = Double.parseDouble(cutoff);
-            } catch (NumberFormatException ex) {
-                throw new WebApplicationException(new Exception("Bogus similarity value specified"), 400);
-            }
-        }
-        if (!"search".equalsIgnoreCase(method) && !"count".equalsIgnoreCase(method))
-            throw new WebApplicationException(new Exception("Unsupport method " + method), 400);
-
-        return Response.ok(doSearch(query, type, dcutoff, method)).build();
+        return Response.ok(doSearch(query, type, cutoff, method)).build();
     }
 
     /**
@@ -128,8 +96,13 @@ public class StructureSearchPlugin implements IPlugin {
      */
     private String doSearch(String query,
                             String type,
-                            double cutoff,
+                            String cutoff,
                             String method) {
+
+        if (search == null)
+            throw new WebApplicationException(new Exception("Did not get an instance of the search service"), 500);
+
+        if (query == null) throw new WebApplicationException(new Exception("Need to specify the q parameter"), 400);
 
         SearchParams params = null;
         if (type != null) {
@@ -139,7 +112,14 @@ public class StructureSearchPlugin implements IPlugin {
                 params = SearchParams.superstructure();
             } else if (type.startsWith("sim")) {
                 params = SearchParams.similarity();
-                params.setSimilarity(cutoff);
+                if (cutoff != null) {
+                    try {
+                        params.setSimilarity(Double.parseDouble(cutoff));
+                    } catch (NumberFormatException e) {
+                        throw new WebApplicationException(new Exception("Bogus similarity value specified"), 400);
+                    }
+                }
+
             }
         } else if (type.startsWith("exact")) {
             params = SearchParams.exact();
@@ -157,7 +137,8 @@ public class StructureSearchPlugin implements IPlugin {
             search.search(query, params, new SearchResultHandler(params, pw));
         } else if ("count".equalsIgnoreCase(method)) {
             pw.println(search.count(query, params));
-        }
+        } else
+            throw new WebApplicationException(new Exception("Unsupport method " + method), 400);
         return writer.toString();
     }
 
