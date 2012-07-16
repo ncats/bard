@@ -6,9 +6,10 @@ import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.search.SearchParams;
 import gov.nih.ncgc.search.SearchService2;
 
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
@@ -60,6 +61,59 @@ public class StructureSearchPlugin implements IPlugin {
         return "Provides a simple interface to chemical structure searches";
     }
 
+
+    @GET
+    @Produces("text/plain")
+    @Path("/")
+    public Response getSearch(@QueryParam("q") String query,
+                              @QueryParam("type") String type,
+                              @QueryParam("cutoff") String cutoff,
+                              @QueryParam("method") String method) {
+        if (search == null)
+            throw new WebApplicationException(new Exception("Did not get an instance of the search service"), 500);
+
+        if (query == null) throw new WebApplicationException(new Exception("Need to specify the q parameter"), 400);
+
+        Double dcutoff = null;
+        if (cutoff != null) {
+            try {
+                dcutoff = Double.parseDouble(cutoff);
+            } catch (NumberFormatException ex) {
+                throw new WebApplicationException(new Exception("Bogus similarity value specified"), 400);
+            }
+        }
+        if (!"search".equalsIgnoreCase(method) && "count".equalsIgnoreCase(method))
+            throw new WebApplicationException(new Exception("Unsupport method " + method), 400);
+
+        return Response.ok(doSearch(query, type, dcutoff, method)).build();
+    }
+
+    @POST
+    @Produces("text/plain")
+    @Path("/")
+    public Response postSearch(@FormParam("q") String query,
+                               @FormParam("type") String type,
+                               @FormParam("cutoff") String cutoff,
+                               @FormParam("method") String method) {
+        if (search == null)
+            throw new WebApplicationException(new Exception("Did not get an instance of the search service"), 500);
+
+        if (query == null) throw new WebApplicationException(new Exception("Need to specify the q parameter"), 400);
+
+        Double dcutoff = null;
+        if (cutoff != null) {
+            try {
+                dcutoff = Double.parseDouble(cutoff);
+            } catch (NumberFormatException ex) {
+                throw new WebApplicationException(new Exception("Bogus similarity value specified"), 400);
+            }
+        }
+        if (!"search".equalsIgnoreCase(method) && "count".equalsIgnoreCase(method))
+            throw new WebApplicationException(new Exception("Unsupport method " + method), 400);
+
+        return Response.ok(doSearch(query, type, dcutoff, method)).build();
+    }
+
     /**
      * oerform a chemical structure search.
      *
@@ -69,17 +123,13 @@ public class StructureSearchPlugin implements IPlugin {
      * @param method specifying 'search' returns matching molecules and
      *               specifying 'count' returns an approximate count of the
      *               matches
-     * @return an SDF formatted response with the matching molecules.
+     * @return an SDF formatted response with the matching molecules. The default
+     *         response will have a Content-type of text/plain.
      */
-    @GET
-    @Produces("chemical/x-mdl-sdfile")
-    @Path("/{q}")
-    public Response runSearch(@PathParam("q") String query,
-                              @QueryParam("type") String type,
-                              @QueryParam("cutoff") String cutoff,
-                              @QueryParam("method") String method) {
-        if (search == null)
-            throw new WebApplicationException(new Exception("Did not get an instance of the search service"), 500);
+    private String doSearch(String query,
+                            String type,
+                            double cutoff,
+                            String method) {
 
         SearchParams params = null;
         if (type != null) {
@@ -89,16 +139,10 @@ public class StructureSearchPlugin implements IPlugin {
                 params = SearchParams.superstructure();
             } else if (type.startsWith("sim")) {
                 params = SearchParams.similarity();
-                if (cutoff != null) {
-                    try {
-                        params.setSimilarity(Double.parseDouble(cutoff));
-                    } catch (NumberFormatException ex) {
-                        throw new WebApplicationException(new Exception("Bogus similarity value specified"), 400);
-                    }
-                }
-            } else if (type.startsWith("exact")) {
-                params = SearchParams.exact();
+                params.setSimilarity(cutoff);
             }
+        } else if (type.startsWith("exact")) {
+            params = SearchParams.exact();
         } else {
             params = SearchParams.substructure();
         }
@@ -113,11 +157,8 @@ public class StructureSearchPlugin implements IPlugin {
             search.search(query, params, new SearchResultHandler(params, pw));
         } else if ("count".equalsIgnoreCase(method)) {
             pw.println(search.count(query, params));
-        } else {
-            throw new WebApplicationException(new Exception("Unsupport method " + method), 400);
         }
-
-        return Response.ok(writer.toString()).build();
+        return writer.toString();
     }
 
     /**
@@ -129,6 +170,7 @@ public class StructureSearchPlugin implements IPlugin {
      *
      * @return an XML document containing the plugin manifest
      */
+
     public String getManifest() {
         return "";
     }
