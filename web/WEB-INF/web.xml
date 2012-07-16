@@ -22,7 +22,6 @@
 
         <init-param>
             <param-name>com.sun.jersey.spi.container.ContainerRequestFilters</param-name>
-            <param-name>com.sun.jersey.spi.container.servlet.ServletContainer</param-name>
             <param-value>gov.nih.ncgc.bard.rest.filter.CountFilter</param-value>
         </init-param>
     </servlet>
