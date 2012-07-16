@@ -17,12 +17,7 @@
         <description>BARD REST Services</description>
         <display-name>BARD REST Web Services</display-name>
         <servlet-name>ServletAdaptor</servlet-name>
-        <!--<servlet-class>com.sun.jersey.server.impl.container.servlet.ServletAdaptor</servlet-class>-->
         <servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
-        <!--<init-param>-->
-            <!--<param-name>com.sun.jersey.config.property.packages</param-name>-->
-            <!--<param-value>gov.nih.ncgc.bard.rest</param-value>-->
-        <!--</init-param>-->
         <load-on-startup>1</load-on-startup>
 
         <init-param>
