@@ -121,9 +121,9 @@ public class StructureSearchPlugin implements IPlugin {
                 }
 
             } else if (type.startsWith("exact")) {
-        	params = SearchParams.exact();
+                params = SearchParams.exact();
             } else {
-        	params = SearchParams.substructure();
+                params = SearchParams.substructure();
             }
         } else {
             params = SearchParams.substructure();
