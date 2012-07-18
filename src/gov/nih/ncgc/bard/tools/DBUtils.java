@@ -256,6 +256,31 @@ public class DBUtils {
         return c;
     }
 
+//    public List<Compound> getCompoundsByCids(List<Long> cids) throws SQLException {
+//        if (cids == null) return null;
+//        String cidlist = Util.join(cids, ",");
+//        String sql = "select c.*, s.sid from compound c, cid_sid s where c.cid in (" + cidlist + ") and c.cid = s.cid";
+//        PreparedStatement pst = conn.prepareStatement(sql);
+//        ResultSet rs = pst.executeQuery();
+//        List<Compound> cs = new ArrayList<Compound>();
+//        List<Long> sids = new ArrayList<Long>();
+//        Compound c = new Compound();
+//        Long oldcid = -1L;
+//        while (rs.next()) {
+//            Long newcid =rs.getLong("cid");
+//            if (oldcid != newcid) {
+//
+//            }
+//            c.setCid(rs.getLong("cid"));
+//            c.setProbeId(rs.getString("probe_id"));
+//            c.setSmiles(rs.getString("iso_smiles"));
+//            sids.add(rs.getLong("sid"));
+//        }
+//        c.setSids(sids);
+//        pst.close();
+//        return c;
+//    }
+
     public List<Compound> getCompoundByName(String name) throws SQLException {
         if (name == null || name.trim().equals("")) return null;
         PreparedStatement pst = conn.prepareStatement("select distinct id from synonyms where type = 1 and match(syn) against (? in boolean mode)");

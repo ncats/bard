@@ -4,8 +4,11 @@ import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.tools.CidSearchResultHandler;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
+import gov.nih.ncgc.search.SearchParams;
+import gov.nih.ncgc.search.SearchService2;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
@@ -61,7 +64,11 @@ public class BARDCompoundResource extends BARDResource {
     public Response getAll(@QueryParam("filter") String filter,
                            @QueryParam("expand") String expand,
                            @QueryParam("skip") Integer skip,
-                           @QueryParam("top") Integer top) throws SQLException {
+                           @QueryParam("top") Integer top,
+
+                           @QueryParam("method") String method,
+                           @QueryParam("type") String type,
+                           @QueryParam("cutoff") Double cutoff) throws SQLException, IOException {
         DBUtils db = new DBUtils();
         Response response = null;
         if (filter == null) {
@@ -69,6 +76,62 @@ public class BARDCompoundResource extends BARDResource {
                 response = Response.ok(String.valueOf(db.getEntityCount(Compound.class))).build();
             else {
                 // make a paged response of all substances
+            }
+        } else {
+
+            // examine the filter argument to see if we should do a structure search
+            if (filter.indexOf("[structure]") > 0) filter = filter.trim().replace("[structure]", "");
+            else
+                throw new WebApplicationException(new Exception("Currently filter only supports structure searches"), 400);
+
+            if ("count".equalsIgnoreCase(method)) countRequested = true;
+
+            SearchService2 search = null;
+            try {
+                search = Util.getSearchService();
+            } catch (Exception e) {
+                throw new WebApplicationException(new Exception("Error in getting a search service instance", e), 500);
+            }
+
+            SearchParams params;
+            if (type != null) {
+                if (type.startsWith("sub")) {
+                    params = SearchParams.substructure();
+                } else if (type.startsWith("super")) {
+                    params = SearchParams.superstructure();
+                } else if (type.startsWith("sim")) {
+                    params = SearchParams.similarity();
+                    if (cutoff != null) {
+                        try {
+                            params.setSimilarity(cutoff);
+                        } catch (NumberFormatException e) {
+                            throw new WebApplicationException(new Exception("Bogus similarity value specified"), 400);
+                        }
+                    } else
+                        throw new WebApplicationException(new Exception("If similarity search is requested must specify the cutoff"), 400);
+                } else if (type.startsWith("exact")) {
+                    params = SearchParams.exact();
+                } else {
+                    params = SearchParams.substructure();
+                }
+            } else {
+                params = SearchParams.substructure();
+            }
+
+            CidSearchResultHandler handler = new CidSearchResultHandler(params);
+            if (countRequested) {
+                int n = search.count(filter, params);
+                response = Response.ok(String.valueOf(n)).build();
+            } else {
+                search.search(filter, params, handler);
+                List<Long> cids = handler.getCids();
+                if (expand != null && expand.toLowerCase().equals("true")) {
+                    List<Compound> cs = new ArrayList<Compound>();
+                    for (Long cid : cids) cs.add(db.getCompoundByCid(cid));
+                    response = Response.ok(Util.toJson(cs), MediaType.APPLICATION_JSON).build();
+                } else {
+                    response = Response.ok(Util.toJson(cids), MediaType.APPLICATION_JSON).build();
+                }
             }
         }
         db.closeConnection();
