@@ -30,12 +30,11 @@ public class CountFilter implements ContainerRequestFilter {
 
     public ContainerRequest filter(ContainerRequest request) {
         String path = request.getPath();
-        if (path.endsWith("/_count")) {
+        if (path.endsWith("/_count")) { // make sure to strip out query params
             MultivaluedMap<String, String> headers = request.getRequestHeaders();
             headers.add(BARDConstants.REQUEST_HEADER_COUNT, "true");
             request.setHeaders((InBoundHeaders) headers);
-
-            String uriString = request.getRequestUri().getPath().replace("/_count", "");
+            String uriString = request.getRequestUri().toString().replace("/_count", "");
             try {
                 URI uri = new URI(uriString);
                 request.setUris(request.getBaseUri(), uri);

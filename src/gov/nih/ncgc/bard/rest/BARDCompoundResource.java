@@ -66,7 +66,6 @@ public class BARDCompoundResource extends BARDResource {
                            @QueryParam("skip") Integer skip,
                            @QueryParam("top") Integer top,
 
-                           @QueryParam("method") String method,
                            @QueryParam("type") String type,
                            @QueryParam("cutoff") Double cutoff) throws SQLException, IOException {
         DBUtils db = new DBUtils();
@@ -83,8 +82,6 @@ public class BARDCompoundResource extends BARDResource {
             if (filter.indexOf("[structure]") > 0) filter = filter.trim().replace("[structure]", "");
             else
                 throw new WebApplicationException(new Exception("Currently filter only supports structure searches"), 400);
-
-            if ("count".equalsIgnoreCase(method)) countRequested = true;
 
             SearchService2 search = null;
             try {
