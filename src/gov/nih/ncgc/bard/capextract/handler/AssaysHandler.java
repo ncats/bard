@@ -42,8 +42,12 @@ public class AssaysHandler extends CapResourceHandler implements ICapResourceHan
             String type = link.getType();
             String title = link.getTitle();
             log.info("\t" + title + "/" + type + "/ href = " + href);
-            ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.ASSAY);
-            if (handler != null) handler.process(href, CAPConstants.CapResource.ASSAY);
+
+            // for now lets just handle a few specific assays
+            if (href.endsWith("/1") || href.endsWith("/2") || href.endsWith("/1122")) {
+                ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.ASSAY);
+                if (handler != null) handler.process(href, CAPConstants.CapResource.ASSAY);
+            }
         }
     }
 }

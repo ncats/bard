@@ -4,6 +4,7 @@ import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Assay;
 import gov.nih.ncgc.bard.capextract.jaxb.AssayDocument;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -40,9 +41,9 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         String name = assay.getAssayName();
         String type = assay.getAssayType();
         String version = assay.getAssayVersion();
-        List<AssayDocument> docs = assay.getAssayDocuments().getAssayDocument();
+        List<AssayDocument> docs = assay.getAssayDocuments() != null ? assay.getAssayDocuments().getAssayDocument() : null;
 
-        log.info("status for " + name + " = " + status + ", and has " + docs.size() + " docs");
+        log.info("status for " + name + " = " + status + ", and has " + (docs != null ? docs.size() : 0) + " docs");
 
         /* Not sure what this is */
         if (assay.getMeasureContexts() != null) {
@@ -54,11 +55,16 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         }
 
         /* This block extracts the annotations for the assay */
-        List<Assay.MeasureContextItems.MeasureContextItem> mcis = assay.getMeasureContextItems().getMeasureContextItem();
-        for (Assay.MeasureContextItems.MeasureContextItem mci : mcis) {
-            String extId = mci.getExtValueId();
-            Assay.MeasureContextItems.MeasureContextItem.AttributeId attrid = mci.getAttributeId();
-            System.out.println("key = [" + attrid.getLabel() + "," + attrid.getAttributeType() + "," + attrid.getLink() + "] [extid = " + extId + "] value = " + mci.getValueDisplay());
+        List<Assay.MeasureContextItems.MeasureContextItem> mcis = null;
+        if (assay.getMeasureContextItems() != null) {
+            mcis = assay.getMeasureContextItems().getMeasureContextItem();
+            for (Assay.MeasureContextItems.MeasureContextItem mci : mcis) {
+                String extId = mci.getExtValueId();
+                Assay.MeasureContextItems.MeasureContextItem.AttributeId attrid = mci.getAttributeId();
+                Link link = attrid.getLink();
+                if (link.getHref().contains("dataExport/api/dictionary"))
+                    System.out.println("key = [" + attrid.getLabel() + "," + attrid.getAttributeType() + "," + attrid.getLink().getHref() + "] [extid = " + extId + "] value = " + mci.getValueDisplay());
+            }
         }
 
         /* looking at measures */
