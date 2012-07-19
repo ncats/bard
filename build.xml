@@ -182,7 +182,7 @@
     </target>
 
     <!-- Testing related targets -->
-    <target name='compile-test' id='compile-test' depends='compile-rest'>
+    <target name='compile-test' id='compile-test' depends='compile-rest, compile-capextract'>
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.test}" destdir="${bard.build}"
                debug="yes" target="1.6">
@@ -198,7 +198,7 @@
     <taskdef name="testng" classpathref="cp" classname="org.testng.TestNGAntTask"/>
     <target name='run-tests' id='run-test' depends='compile-test'>
         <testng classpathref="cp" outputDir="${bard.test.output}">
-            <classfileset dir="${bard.build}" includes="**/rest/*.class"/>
+            <classfileset dir="${bard.build}" includes="**/rest/*.class,**/capextract/*.class,"/>
         </testng>
     </target>
     <target name='run-db-tests' id='run-db-test' depends='compile-test'>
