@@ -60,7 +60,7 @@ public class CAPDictionary {
 
     public CAPDictionaryElement getNode(BigInteger id) {
         for (CAPDictionaryElement node : nodes) {
-            if (node.getId().equals(id)) return node;
+            if (node.getElementId().equals(id)) return node;
         }
         return null;
     }

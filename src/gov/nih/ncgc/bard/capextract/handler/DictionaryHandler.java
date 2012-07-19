@@ -6,7 +6,6 @@ import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Dictionary;
 import gov.nih.ncgc.bard.capextract.jaxb.Element;
-import gov.nih.ncgc.bard.capextract.jaxb.Link;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -40,17 +39,7 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
 
         List<Element> elems = d.getElements().getElement();
         for (Element elem : elems) {
-            CAPDictionaryElement delem = new CAPDictionaryElement();
-            delem.setDescription(elem.getDescription());
-            delem.setId(elem.getElementId());
-            delem.setLabel(elem.getLabel());
-
-            // TODO I'm assuming a single link is defined for a given dictionary element
-            List<Link> links = elem.getLink();
-            for (Link link : links) {
-                delem.setLink(link);
-            }
-            dict.addNode(delem);
+            dict.addNode(new CAPDictionaryElement(elem));
         }
         log.info("\tAdded " + dict.size() + " <element> entries");
 
