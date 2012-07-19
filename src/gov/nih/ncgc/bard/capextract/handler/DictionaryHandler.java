@@ -76,6 +76,8 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
 
         // ok'we got everything we need. Lets make it available globally
         CAPConstants.setDictionary(dict);
+
+        // TODO should handle resultType, units and descriptors
     }
 
     private BigInteger getElementId(String url) {
