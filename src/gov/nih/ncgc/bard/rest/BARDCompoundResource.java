@@ -70,13 +70,41 @@ public class BARDCompoundResource extends BARDResource {
                            @QueryParam("cutoff") Double cutoff) throws SQLException, IOException {
         DBUtils db = new DBUtils();
         Response response = null;
+
+        if (skip == null) skip = -1;
+        if (top == null) top = -1;
+
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
         if (filter == null) {
             if (countRequested)
                 response = Response.ok(String.valueOf(db.getEntityCount(Compound.class))).build();
             else {
-                // make a paged response of all substances
+                if ((top == -1)) { // top was not specified, so we start from the beginning
+                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                }
+                if (skip == -1) skip = 0;
+                String expandClause = "expand=false";
+                if (expandEntries) expandClause = "expand=true";
+
+                String linkString = null;
+                if (skip + top <= db.getEntityCount(Compound.class))
+                    linkString = BARDConstants.API_BASE + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+
+                List<Compound> compounds = db.searchForEntity(filter, skip, top, Compound.class);
+                if (expandEntries) {
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(compounds, linkString);
+                    response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+                } else {
+                    List<String> links = new ArrayList<String>();
+                    for (Compound a : compounds) links.add(a.getResourcePath());
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                    response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+                }
             }
-        } else {
+        } else {   // do a filtered search
 
             // examine the filter argument to see if we should do a structure search
             if (filter.indexOf("[structure]") > 0) filter = filter.trim().replace("[structure]", "");
@@ -122,7 +150,7 @@ public class BARDCompoundResource extends BARDResource {
             } else {
                 search.search(filter, params, handler);
                 List<Long> cids = handler.getCids();
-                if (expand != null && expand.toLowerCase().equals("true")) {
+                if (expandEntries) {
                     List<Compound> cs = new ArrayList<Compound>();
                     for (Long cid : cids) cs.add(db.getCompoundByCid(cid));
                     response = Response.ok(Util.toJson(cs), MediaType.APPLICATION_JSON).build();

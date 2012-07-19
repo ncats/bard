@@ -1120,6 +1120,24 @@ public class DBUtils {
         return (n);
     }
 
+    /**
+     * Search for entities.
+     * <p/>
+     * The <code>skip</code> and <code>top</code> arguments can be used to
+     * implement paging. This implies that the SQL query orders the result
+     * and this is currently pre-defined by the API.
+     *
+     * @param query The query string, possible suffixed by search fields. If <code>null</code>
+     *              the method returns all entities available. In such a case, the <code>skip</code>
+     *              and <code>top</code> parameters should be specified (though this is not currently
+     *              enforce)
+     * @param skip  How many entities to skip
+     * @param top   How many entities to return
+     * @param klass The class of the entity desired
+     * @return A list of entities matching the query
+     * @throws SQLException if there is an error during query
+     * @throws IOException  if there is an error during query
+     */
     public <T extends BardEntity> List<T> searchForEntity(String query, int skip, int top, Class<T> klass) throws SQLException, IOException {
         Query queryParams;
         if (fieldMap.containsKey(klass)) queryParams = fieldMap.get(klass);
@@ -1160,6 +1178,7 @@ public class DBUtils {
             else if (klass.equals(ProteinTarget.class)) entity = getProteinTargetByAccession((String) id);
             else if (klass.equals(Project.class)) entity = getProjectByAid((Long) id);
             else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
+            else if (klass.equals(Compound.class)) entity = getCompoundByCid((Long) id);
             if (entity != null) entities.add((T) entity);
         }
         pst.close();
