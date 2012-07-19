@@ -32,7 +32,7 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
         if (resource != CAPConstants.CapResource.DICTIONARY) return;
-        log.info("Processing " + resource);
+        log.info("Processing " + resource + " from " + url);
         Dictionary d = getResponse(url, resource);
         log.info("\tUnmarshalled dictionary");
 
