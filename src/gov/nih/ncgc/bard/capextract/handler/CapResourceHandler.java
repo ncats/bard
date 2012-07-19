@@ -11,7 +11,10 @@ import org.slf4j.LoggerFactory;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 /**
  * A one line summary.
@@ -41,13 +44,28 @@ public abstract class CapResourceHandler {
         if (response.getStatusLine().getStatusCode() != 200)
             throw new IOException("Got a HTTP " + response.getStatusLine().getStatusCode() + " for " + resource);
 
-        Unmarshaller unmarshaller = null;
+        Unmarshaller unmarshaller;
         try {
             unmarshaller = jc.createUnmarshaller();
             Object o = unmarshaller.unmarshal(response.getEntity().getContent());
             return (T) o;
         } catch (JAXBException e) {
-            throw new IOException("Error unmarshalling document from " + url);
+            throw new IOException("Error unmarshalling document from " + url, e);
         }
     }
+
+    // for debug purposes
+    private String read(InputStream in) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        BufferedReader r = new BufferedReader(new InputStreamReader(in), 1000);
+        int n = 0;
+        for (String line = r.readLine(); line != null; line = r.readLine()) {
+            n++;
+            sb.append(line);
+        }
+        in.close();
+        return sb.toString();
+
+    }
+
 }

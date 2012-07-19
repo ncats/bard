@@ -7,6 +7,8 @@ package gov.nih.ncgc.bard.capextract;
  */
 public class CAPConstants {
 
+    private static CAPDictionary dictionary = null;
+
     public static final String CAP_ROOT = "https://bard.broadinstitute.org/dataExport/api";
     public static final String CAP_ROOT_MIMETYPE = "application/vnd.bard.cap+xml;type=bardexport";
     public static final String CAP_APIKEY_HEADER = "APIKEY";
@@ -62,4 +64,11 @@ public class CAPConstants {
         return null;
     }
 
+    public static void setDictionary(CAPDictionary dict) {
+        dictionary = dict;
+    }
+
+    public static CAPDictionary getDictionary() {
+        return dictionary;
+    }
 }
