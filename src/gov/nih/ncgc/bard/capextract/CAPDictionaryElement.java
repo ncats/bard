@@ -3,8 +3,6 @@ package gov.nih.ncgc.bard.capextract;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * A one line summary.
@@ -15,27 +13,9 @@ public class CAPDictionaryElement {
     String label, description;
     Link link;
     BigInteger id;
-    List<CAPDictionaryElement> children;
-    List<CAPDictionaryElement> parents;
 
     public CAPDictionaryElement() {
-        children = new ArrayList<CAPDictionaryElement>();
-    }
 
-    public boolean isLeaf() {
-        return children.size() == 0;
-    }
-
-    public List<CAPDictionaryElement> getChildren() {
-        return children;
-    }
-
-    public void addChild(CAPDictionaryElement element) {
-        children.add(element);
-    }
-
-    public void addParent(CAPDictionaryElement element) {
-        parents.add(element);
     }
 
     public BigInteger getId() {
@@ -68,5 +48,19 @@ public class CAPDictionaryElement {
 
     public void setLink(Link link) {
         this.link = link;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o instanceof CAPDictionaryElement) {
+            CAPDictionaryElement e = (CAPDictionaryElement) o;
+            return e.getId().equals(id) && e.getLabel().equals(label);
+        }
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return label + "[" + id + "]";
     }
 }

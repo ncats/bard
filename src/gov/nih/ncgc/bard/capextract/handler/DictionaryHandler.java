@@ -50,25 +50,29 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
             for (Link link : links) {
                 delem.setLink(link);
             }
-            dict.put(delem.getId(), delem);
+            dict.addNode(delem);
         }
         log.info("\tAdded " + dict.size() + " <element> entries");
 
         int nrel = 0;
+        int nnoparent = 0;
         List<Dictionary.ElementHierarchies.ElementHierarchy> hierarchies = d.getElementHierarchies().getElementHierarchy();
         for (Dictionary.ElementHierarchies.ElementHierarchy h : hierarchies) {
+            String relType = h.getRelationshipType();
             BigInteger childId = getElementId(h.getChildElement().getLink().getHref());
-            BigInteger parentId = getElementId(h.getParentElement().getLink().getHref());
+            CAPDictionaryElement childElem = dict.getNode(childId);
 
-            CAPDictionaryElement childElem = dict.get(childId);
-            CAPDictionaryElement parentElem = dict.get(parentId);
-
-            childElem.addParent(parentElem);
-            parentElem.addChild(childElem);
+            // there may be an element with no parent
+            if (h.getParentElement() != null) {
+                BigInteger parentId = getElementId(h.getParentElement().getLink().getHref());
+                CAPDictionaryElement parentElem = dict.getNode(parentId);
+                dict.addOutgoingEdge(parentElem, childElem, null);
+                dict.addIncomingEdge(childElem, parentElem, relType);
+            } else nnoparent++;
 
             nrel++;
         }
-        log.info("\tAdded " + nrel + " parent/child relationships");
+        log.info("\tAdded " + nrel + " parent/child relationships with " + nnoparent + " elements having no parent");
 
         // ok'we got everything we need. Lets make it available globally
         CAPConstants.setDictionary(dict);
