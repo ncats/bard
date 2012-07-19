@@ -2,6 +2,7 @@
 <project name="bard">
 
     <property name="bard.src" value="src"/>
+    <property name="bard.doc" value="docs"/>
     <property name="bard.test" value="test"/>
     <property name="bard.test.output" value="test.out"/>
     <property name="bard.lib" value="lib"/>
@@ -165,6 +166,20 @@
         </jar>
     </target>
 
+    <target name="javadoc">
+        <mkdir dir="${bard.doc}"/>
+        <javadoc
+                destdir="${bard.doc}/api"
+                sourcepath="${bard.src}"
+                author="true"
+                version="true"
+                use="true"
+                defaultexcludes="yes"
+                windowtitle="BARD Backend API"
+                classpathref="compile.classpath"
+                excludepackagenames="gov.nih.ncgc.bard.capextract.jaxb">
+        </javadoc>
+    </target>
 
     <!-- Testing related targets -->
     <target name='compile-test' id='compile-test' depends='compile-rest'>

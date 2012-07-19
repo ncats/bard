@@ -13,9 +13,21 @@ import java.security.NoSuchAlgorithmException;
 /**
  * Example code to play with the Broad CAP Data Export API.
  * <p/>
- * CAP data export API defined at https://github.com/broadinstitute/BARD/wiki/BARD-Data-Export-API
+ * CAP data export API defined at <a href="https://github.com/broadinstitute/BARD/wiki/BARD-Data-Export-API">
+ * https://github.com/broadinstitute/BARD/wiki/BARD-Data-Export-API</a>. This class is primarily a driver
+ * and all the details of individual entities coming from the CAP are processed by individual handlers
+ * (such as {@link ProjectHandler}, {@link AssayHandler}, etc.). Depending on the nature of the entity, a
+ * handler may handle just the entity and invoke a different handler for its child entities, or else may
+ * choose to handle all the child entities.
  *
  * @author Rajarshi Guha
+ * @see CapResourceHandlerRegistry
+ * @see DictionaryHandler
+ * @see BardexportHandler
+ * @see AssayHandler
+ * @see AssaysHandler
+ * @see ProjectHandler
+ * @see ProjectsHandler
  */
 public class CAPExtractor {
     private CapResourceHandlerRegistry registry;

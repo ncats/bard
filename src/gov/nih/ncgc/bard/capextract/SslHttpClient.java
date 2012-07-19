@@ -22,8 +22,10 @@ import java.security.KeyStore;
  * We make this a singleton/factory so that we can reuse the client in
  * multiple threads. This will avoid us opening multiple connections to the same
  * server (and possible avoids time out/wait problems). Taken from
- * http://foo.jasonhudgins.com/2009/08/http-connection-reuse-in-android.html
- * but also see http://foo.jasonhudgins.com/2010/03/http-connections-revisited.html
+ * <a href="http://foo.jasonhudgins.com/2009/08/http-connection-reuse-in-android.html">
+ * http://foo.jasonhudgins.com/2009/08/http-connection-reuse-in-android.html</a>
+ * but also see <a href="http://foo.jasonhudgins.com/2010/03/http-connections-revisited.html">
+ * http://foo.jasonhudgins.com/2010/03/http-connections-revisited.html</a>
  *
  * @author Rajarshi Guha
  */

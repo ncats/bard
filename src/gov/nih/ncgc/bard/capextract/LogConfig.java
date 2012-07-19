@@ -13,7 +13,11 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
 /**
- * A one line summary.
+ * A simplistic, all-in-one-line, formatter for logging.
+ * <p/>
+ * This is primarily used by the CAP extraction code, but can be reused by
+ * other classes. If so it will probably move to the tools package in the
+ * future.
  *
  * @author Rajarshi Guha
  */

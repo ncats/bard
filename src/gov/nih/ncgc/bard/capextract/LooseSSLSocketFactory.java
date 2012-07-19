@@ -16,9 +16,10 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
 
 /**
- * SSL socket factory that accepts all certificates (including self signed ones)
+ * SSL socket factory that accepts all certificates (including self signed ones).
  * <p/>
- * taken from http://stackoverflow.com/a/4837230/58681
+ * Taken from <a href="http://stackoverflow.com/a/4837230/58681">
+ * http://stackoverflow.com/a/4837230/58681</a>
  */
 public class LooseSSLSocketFactory extends SSLSocketFactory {
     SSLContext sslContext = SSLContext.getInstance("TLS");
