@@ -15,6 +15,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 
 /**
  * A one line summary.
@@ -47,7 +48,8 @@ public abstract class CapResourceHandler {
         Unmarshaller unmarshaller;
         try {
             unmarshaller = jc.createUnmarshaller();
-            Object o = unmarshaller.unmarshal(response.getEntity().getContent());
+            Reader reader = new InputStreamReader(response.getEntity().getContent(), "UTF-8");
+            Object o = unmarshaller.unmarshal(reader);
             return (T) o;
         } catch (JAXBException e) {
             throw new IOException("Error unmarshalling document from " + url, e);
