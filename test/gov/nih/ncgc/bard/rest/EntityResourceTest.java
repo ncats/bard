@@ -13,7 +13,8 @@ import org.testng.annotations.Test;
  */
 public abstract class EntityResourceTest {
     String resourceName = null;
-    String prefix = "http://assay.nih.gov/bard/rest/v1/";
+    //    String prefix = "http://assay.nih.gov/bard/rest/v1/";
+    String prefix = "http://localhost:8080/bard/rest/v1";
 
     Client client;
 

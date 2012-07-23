@@ -358,6 +358,14 @@ public class DBUtils {
             ObjectMapper mapper = new ObjectMapper();
             DataResultObject[] o = mapper.readValue(s, DataResultObject[].class);
 
+            DoseResponseResultObject[] dro = null;
+            blob = rs.getBlob("json_dose_response");
+            if (blob != null) {
+                bytes = blob.getBytes(1, (int) blob.length());
+                s = new String(bytes);
+                dro = mapper.readValue(s, DoseResponseResultObject[].class);
+            }
+            ed.setDr(dro);
             ed.setResults(o);
         }
         pst.close();

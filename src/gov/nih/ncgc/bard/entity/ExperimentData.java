@@ -1,9 +1,13 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.tools.DataResultObject;
+import gov.nih.ncgc.bard.tools.DoseResponseResultObject;
 
 import java.sql.Date;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A representation of experiment data (ie measurements).
@@ -13,14 +17,89 @@ import java.sql.Date;
 public class ExperimentData implements BardEntity {
     Long exptDataId;
     Long eid, cid, sid;
+
+    @JsonIgnore
     Date updated;
+
     String runset = "default";
     int classification, outcome, score;
     float potency;
 
+    String concUnit, responseUnit;
+    List<FitModel> models;
+
+    @JsonIgnore
     DataResultObject[] results;
+    @JsonIgnore
+    DoseResponseResultObject[] dr = null;
 
     public ExperimentData() {
+    }
+
+    /**
+     * Convert the internal representation to a custom form, suitable for JSON output.
+     */
+    public void transform() {
+        models = new ArrayList<FitModel>();
+        if (dr != null) { // we have one or CRC layers
+            for (DoseResponseResultObject dro : dr) {
+                FitModel model = new FitModel("dose response", dro.getZeroAct(), dr[0].getInfAct(), dr[0].getHillCoef(), dr[0].getAc50());
+                Double[][] cr = new Double[dr[0].getDose().length][2];
+                for (int i = 0; i < dr[0].getDose().length; i++) {
+                    cr[i][0] = dr[0].getDose()[i];
+                    cr[i][1] = dr[0].getResponse()[i];
+                }
+                model.setCr(cr);
+                models.add(model);
+            }
+
+        } else {
+            // probably a single point
+            for (DataResultObject o : results) {
+                if (o.getResultName().equals("PERCENT_RESPONSE")) {
+                    FitModel model = new FitModel();
+                    model.setDescription("single point");
+                    Double[][] cr = new Double[1][2];
+                    cr[0][0] = null;
+                    cr[0][1] = ((String) o.getValue()).trim().equals("\"\"") ? null : Double.parseDouble((String) o.getValue());
+                    responseUnit = o.getResultName();
+                    concUnit = null;
+                    break;
+                }
+            }
+        }
+    }
+
+    public DoseResponseResultObject[] getDr() {
+        return dr;
+    }
+
+    public void setDr(DoseResponseResultObject[] dr) {
+        this.dr = dr;
+    }
+
+    public List<FitModel> getModels() {
+        return models;
+    }
+
+    public void setModels(List<FitModel> models) {
+        this.models = models;
+    }
+
+    public String getConcUnit() {
+        return concUnit;
+    }
+
+    public void setConcUnit(String unit) {
+        this.concUnit = unit;
+    }
+
+    public String getResponseUnit() {
+        return responseUnit;
+    }
+
+    public void setResponseUnit(String responseUnit) {
+        this.responseUnit = responseUnit;
     }
 
     public DataResultObject[] getResults() {
