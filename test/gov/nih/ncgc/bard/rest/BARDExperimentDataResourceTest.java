@@ -57,8 +57,31 @@ public class BARDExperimentDataResourceTest extends EntityResourceTest {
         Assert.assertTrue(ed.getModels().get(0).getDescription().equals("single point"));
         Assert.assertNull(ed.getModels().get(0).getAc50());
     }
+
+    @Test
+    public void getMultiLayer() throws IOException {
+        String url = prefix + resourceName + "/" + 639196;
+        WebResource resource = client.resource(url);
+        ClientResponse response = resource.get(ClientResponse.class);
+        int status = response.getStatus();
+        Assert.assertEquals(status, 200, "Response was " + status + " rather than 200");
+
+        MediaType type = response.getType();
+        Assert.assertTrue(type.toString().equals("application/json"));
+
+        String json = response.getEntity(String.class);
+        Assert.assertNotNull(json);
+        Assert.assertTrue(!json.trim().equals(""));
+
+        Object o = new ObjectMapper().readValue(json, ExperimentData.class);
+        Assert.assertTrue(o instanceof ExperimentData);
+        ExperimentData ed = (ExperimentData) o;
+        Assert.assertNotNull(ed.getModels());
+        Assert.assertEquals(3, ed.getModels().size());
+        Assert.assertTrue(ed.getModels().get(0).getDescription().equals("dose.response"));
+        Assert.assertNull(ed.getModels().get(0).getAc50());
+    }
     // http://localhost:8080/bard/rest/v1/exptdata/43351476
     // http://localhost:8080/bard/rest/v1/exptdata/17539469
-    // 639196 - multilayer
 
 }
