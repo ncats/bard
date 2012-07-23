@@ -345,11 +345,19 @@ public class DBUtils {
             ed.setEid(rs.getLong("eid"));
             ed.setSid(rs.getLong("sid"));
             ed.setCid(rs.getLong("cid"));
-            ed.setClassification(rs.getInt("classification"));
+
+            Integer classification = rs.getInt("classification");
+            if (rs.wasNull()) classification = null;
+            ed.setClassification(classification);
+
             ed.setUpdated(rs.getDate("updated"));
             ed.setOutcome(rs.getInt("outcome"));
             ed.setScore(rs.getInt("score"));
-            ed.setPotency(rs.getFloat("potency"));
+
+            Float potency = rs.getFloat("potency");
+            if (rs.wasNull()) potency = null;
+            System.out.println("potency = " + potency);
+            ed.setPotency(potency);
 
             Blob blob = rs.getBlob("json_data_array");
             byte[] bytes = blob.getBytes(1, (int) blob.length());

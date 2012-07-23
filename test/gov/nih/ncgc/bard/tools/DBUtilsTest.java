@@ -69,6 +69,15 @@ public class DBUtilsTest extends DBTest {
     }
 
     @Test
+    public void getSinglePointExperimentData2() throws IOException, SQLException {
+        Long edid = 639196L;
+        ExperimentData ed = db.getExperimentDataByDataId(edid);
+        Assert.assertNotNull(ed);
+        Assert.assertNull(ed.getPotency());
+    }
+
+
+    @Test
     public void getSubstance() throws SQLException {
         Long sid = 135010881L;
         Substance s = db.getSubstanceBySid(sid);
