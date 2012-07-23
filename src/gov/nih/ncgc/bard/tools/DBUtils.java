@@ -356,7 +356,6 @@ public class DBUtils {
 
             Float potency = rs.getFloat("potency");
             if (rs.wasNull()) potency = null;
-            System.out.println("potency = " + potency);
             ed.setPotency(potency);
 
             Blob blob = rs.getBlob("json_data_array");

@@ -22,8 +22,9 @@ public class ExperimentData implements BardEntity {
     Date updated;
 
     String runset = "default";
-    int classification, outcome, score;
-    float potency;
+    int outcome, score;
+    Integer classification;
+    Float potency;
 
     String concUnit, responseUnit;
     List<FitModel> models;
@@ -126,11 +127,11 @@ public class ExperimentData implements BardEntity {
         this.score = score;
     }
 
-    public float getPotency() {
+    public Float getPotency() {
         return potency;
     }
 
-    public void setPotency(float potency) {
+    public void setPotency(Float potency) {
         this.potency = potency;
     }
 
@@ -166,11 +167,11 @@ public class ExperimentData implements BardEntity {
         this.sid = sid;
     }
 
-    public int getClassification() {
+    public Integer getClassification() {
         return classification;
     }
 
-    public void setClassification(int classification) {
+    public void setClassification(Integer classification) {
         this.classification = classification;
     }
 
