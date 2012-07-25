@@ -2,8 +2,8 @@ package gov.nih.ncgc.bard.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
-import gov.nih.ncgc.bard.tools.DataResultObject;
-import gov.nih.ncgc.bard.tools.DoseResponseResultObject;
+import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
+import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 
 import java.sql.Date;
 import java.util.ArrayList;
@@ -27,7 +27,7 @@ public class ExperimentData implements BardEntity {
     Float potency;
 
     String concUnit, responseUnit;
-    List<FitModel> models;
+    List<FitModel> readouts;
 
     @JsonIgnore
     DataResultObject[] results;
@@ -41,7 +41,7 @@ public class ExperimentData implements BardEntity {
      * Convert the internal representation to a custom form, suitable for JSON output.
      */
     public void transform() {
-        models = new ArrayList<FitModel>();
+        readouts = new ArrayList<FitModel>();
         if (dr != null) { // we have one or CRC layers
             for (DoseResponseResultObject dro : dr) {
                 FitModel model = new FitModel("dose response", dro.getZeroAct(), dr[0].getInfAct(), dr[0].getHillCoef(), dr[0].getAc50());
@@ -51,7 +51,9 @@ public class ExperimentData implements BardEntity {
                     cr[i][1] = dr[0].getResponse()[i];
                 }
                 model.setCr(cr);
-                models.add(model);
+                model.setName(dro.getLabel());
+                model.setDescription(dro.getDescription());
+                readouts.add(model);
             }
 
         } else {
@@ -79,12 +81,12 @@ public class ExperimentData implements BardEntity {
         this.dr = dr;
     }
 
-    public List<FitModel> getModels() {
-        return models;
+    public List<FitModel> getReadouts() {
+        return readouts;
     }
 
-    public void setModels(List<FitModel> models) {
-        this.models = models;
+    public void setReadouts(List<FitModel> readouts) {
+        this.readouts = readouts;
     }
 
     public String getConcUnit() {

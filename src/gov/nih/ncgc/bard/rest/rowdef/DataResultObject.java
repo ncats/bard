@@ -1,4 +1,4 @@
-package gov.nih.ncgc.bard.tools;
+package gov.nih.ncgc.bard.rest.rowdef;
 
 public class DataResultObject implements Comparable {
     private int tid;

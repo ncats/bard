@@ -10,6 +10,9 @@ import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
+import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
+import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -336,7 +339,7 @@ public class DBUtils {
      */
     public ExperimentData getExperimentDataByDataId(Long edid) throws SQLException, IOException {
         if (edid == null || edid <= 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from experiment_data a, experiment_result b where a.expt_data_id = ? and a.expt_data_id = b.expt_data_id");
+        PreparedStatement pst = conn.prepareStatement("select * from experiment_data a, experiment_result b, experiment c where a.expt_data_id = ? and a.expt_data_id = b.expt_data_id and a.eid = c.expt_id");
         pst.setLong(1, edid);
         ResultSet rs = pst.executeQuery();
         ExperimentData ed = new ExperimentData();
@@ -365,12 +368,28 @@ public class DBUtils {
             ObjectMapper mapper = new ObjectMapper();
             DataResultObject[] o = mapper.readValue(s, DataResultObject[].class);
 
+            blob = rs.getBlob("assay_result_def");
+            s = new String(blob.getBytes(1, (int) blob.length()));
+            System.out.println("s = " + s);
+            AssayDefinitionObject[] ado = mapper.readValue(s, AssayDefinitionObject[].class);
+
             DoseResponseResultObject[] dro = null;
             blob = rs.getBlob("json_dose_response");
             if (blob != null) {
                 bytes = blob.getBytes(1, (int) blob.length());
                 s = new String(bytes);
                 dro = mapper.readValue(s, DoseResponseResultObject[].class);
+
+                // for each dose-response 'layer', try and pull a layer label from the assay definition.
+                for (DoseResponseResultObject adro : dro) {
+                    String tid = adro.getTid();
+                    for (AssayDefinitionObject aado : ado) {
+                        if (aado.getTid().equals(tid)) {
+                            adro.setLabel(aado.getName());
+                            adro.setDescription(aado.getDescription());
+                        }
+                    }
+                }
             }
             ed.setDr(dro);
             ed.setResults(o);

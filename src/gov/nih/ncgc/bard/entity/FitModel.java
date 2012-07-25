@@ -1,16 +1,26 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
- * A representation of the models used to fit dose-response data.
+ * A representation of the readouts used to fit dose-response data.
  * <p/>
- * Currently, this class supports single point (i.e., no models) and
- * 4-parameter logistic (Hill models).
+ * Currently, this class supports single point (i.e., no readouts) and
+ * 4-parameter logistic (Hill readouts).
  *
  * @author Rajarshi Guha
  */
 public class FitModel {
+    String name;
+
+    @JsonIgnore
     String description;
-    Double s0, sInf, hill, ac50;
+
+    Double s0 = null;
+    Double sInf = null;
+    Double hill = null;
+    Double ac50 = null;
+
     Double[][] cr;
 
     public FitModel() {
@@ -22,6 +32,14 @@ public class FitModel {
         this.sInf = sInf;
         this.hill = hill;
         this.ac50 = ac50;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public Double[][] getCr() {

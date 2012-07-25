@@ -1,4 +1,4 @@
-package gov.nih.ncgc.bard.tools;
+package gov.nih.ncgc.bard.rest.rowdef;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -13,7 +13,6 @@ public class DoseResponseResultObject {
     Double[] dose, response;
     Double hillCoef, zeroAct, infAct, ac50;
 
-    @JsonIgnore
     String tid;
     @JsonIgnore
     String value;
@@ -22,16 +21,25 @@ public class DoseResponseResultObject {
     @JsonIgnore
     String fittedDoseResponseCurve;
 
+    String label, description;
+
     public DoseResponseResultObject() {
     }
 
-    public DoseResponseResultObject(Double[] dose, Double[] response, Double hillCoef, Double zeroAct, Double infAct, Double ac50) {
-        this.dose = dose;
-        this.response = response;
-        this.hillCoef = hillCoef;
-        this.zeroAct = zeroAct;
-        this.infAct = infAct;
-        this.ac50 = ac50;
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
     }
 
     public Double[] getDose() {

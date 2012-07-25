@@ -53,9 +53,9 @@ public class BARDExperimentDataResourceTest extends EntityResourceTest {
         Object o = new ObjectMapper().readValue(json, ExperimentData.class);
         Assert.assertTrue(o instanceof ExperimentData);
         ExperimentData ed = (ExperimentData) o;
-        Assert.assertNotNull(ed.getModels());
-        Assert.assertTrue(ed.getModels().get(0).getDescription().equals("single point"));
-        Assert.assertNull(ed.getModels().get(0).getAc50());
+        Assert.assertNotNull(ed.getReadouts());
+        Assert.assertTrue(ed.getReadouts().get(0).getDescription().equals("single point"));
+        Assert.assertNull(ed.getReadouts().get(0).getAc50());
     }
 
     @Test
@@ -76,10 +76,10 @@ public class BARDExperimentDataResourceTest extends EntityResourceTest {
         Object o = new ObjectMapper().readValue(json, ExperimentData.class);
         Assert.assertTrue(o instanceof ExperimentData);
         ExperimentData ed = (ExperimentData) o;
-        Assert.assertNotNull(ed.getModels());
-        Assert.assertEquals(3, ed.getModels().size());
-        Assert.assertTrue(ed.getModels().get(0).getDescription().equals("dose.response"));
-        Assert.assertNull(ed.getModels().get(0).getAc50());
+        Assert.assertNotNull(ed.getReadouts());
+        Assert.assertEquals(3, ed.getReadouts().size());
+        Assert.assertTrue(ed.getReadouts().get(0).getDescription().equals("dose.response"));
+        Assert.assertNull(ed.getReadouts().get(0).getAc50());
     }
     // http://localhost:8080/bard/rest/v1/exptdata/43351476
     // http://localhost:8080/bard/rest/v1/exptdata/17539469
