@@ -11,6 +11,7 @@ public class BARDConstants {
     public static final MediaType MIME_SMILES = new MediaType("chemical", "x-daylight-smiles");
     public static final MediaType MIME_SDF = new MediaType("chemical", "x-mdl-sdfile");
     public static final MediaType MIME_MOL = new MediaType("chemical", "x-mdl-mol");
+    public static final MediaType MIME_PNG = new MediaType("image", "png");
 
     public static final String API_VERSION = "v1";
     public static final String API_BASE = "/bard/rest/" + API_VERSION;
