@@ -370,7 +370,6 @@ public class DBUtils {
 
             blob = rs.getBlob("assay_result_def");
             s = new String(blob.getBytes(1, (int) blob.length()));
-            System.out.println("s = " + s);
             AssayDefinitionObject[] ado = mapper.readValue(s, AssayDefinitionObject[].class);
 
             DoseResponseResultObject[] dro = null;
