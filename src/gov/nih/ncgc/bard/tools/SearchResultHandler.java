@@ -31,11 +31,21 @@ public class SearchResultHandler implements SearchCallback<SearchService2.MolEnt
 
         switch (params.getType()) {
             case Substructure: {
+                StringBuilder sb = new StringBuilder ();
+                
                 for (int[] h : hits) {
                     for (int i = 0; i < h.length; ++i) {
-                        mol.getAtom(h[i]).setAtomMap(i + 1);
+                        // can happen when the query contains explicit Hs
+                        if (h[i] < 0) { 
+                        }
+                        else {
+                            mol.getAtom(h[i]).setAtomMap(i + 1);
+                            if (sb.length() > 0) sb.append(",");
+                            sb.append(h[i]+1);
+                        }
                     }
                 }
+                mol.setProperty("AMAP", sb.toString());                    
             }
             break;
 
