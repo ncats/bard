@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
+import gov.nih.ncgc.search.MoleculeService;
 import gov.nih.ncgc.search.SearchService2;
 
 import javax.naming.Context;
@@ -108,6 +109,22 @@ public class Util {
             InitialContext ctx = new InitialContext();
             Context env = (Context) ctx.lookup("java:/comp/env");
             return (SearchService2) env.lookup("bard/structure-search");
+        } catch (Exception ex) {
+            throw new Exception("Can't get the search service");
+        }
+    }
+
+    /**
+     * Get an instance of the molecule retrieval service.
+     *
+     * @return and instance of {@link gov.nih.ncgc.search.MoleculeService}
+     * @throws Exception if there was an error in getting an instance from the container.
+     */
+    static public MoleculeService getMoleculeService() throws Exception {
+        try {
+            InitialContext ctx = new InitialContext();
+            Context env = (Context) ctx.lookup("java:/comp/env");
+            return (MoleculeService) env.lookup("bard/structure-search");
         } catch (Exception ex) {
             throw new Exception("Can't get the search service");
         }

@@ -1,19 +1,29 @@
 package gov.nih.ncgc.bard.plugin;
 
+import chemaxon.struc.Molecule;
+import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.tools.SearchResultHandler;
 import gov.nih.ncgc.bard.tools.Util;
+import gov.nih.ncgc.search.MoleculeService;
 import gov.nih.ncgc.search.SearchParams;
 import gov.nih.ncgc.search.SearchService2;
+import gov.nih.ncgc.util.MolRenderer;
 
+import javax.imageio.ImageIO;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -142,6 +152,67 @@ public class StructureSearchPlugin implements IPlugin {
         } else
             throw new WebApplicationException(new Exception("Unsupport method " + method), 400);
         return writer.toString();
+    }
+
+    /**
+     * Return a 2D depiction of a CID.
+     * <p/>
+     * This method serves to highlight how one can use the structure search service
+     * to obtain a molecule by CID (as opposed ot going via the DBUtils class.
+     *
+     * @param cid The CID of the structure
+     * @param s   the size (between 16 and 512)
+     * @param c   the background color (in hexadecimal form)
+     * @param a   a comma seperated list of atoms indices, to highlight. Useful for
+     *            displaying a substructure
+     * @return a PNG depiction
+     */
+    @GET
+    @Path("/image/{cid}")
+    public Response getImage(@PathParam("cid") String cid,
+                             @QueryParam("s") Integer s,
+                             @QueryParam("c") String c,
+                             @QueryParam("a") String a) throws IOException {
+
+        MoleculeService molsrv = (MoleculeService) search;
+        Molecule mol = molsrv.getMol(cid);
+        if (mol == null) throw new NotFoundException("No molecule for CID = " + cid);
+        String param;
+        MolRenderer renderer = new MolRenderer();
+
+        // size
+        int size = 120;
+
+        if (s != null && s >= 16 && s <= 512) size = s;
+        else throw new WebApplicationException(new Exception("Invalid size specified"), 400);
+
+        // atom        
+        if (a != null) {
+            for (String idx : a.split(",")) {
+                try {
+                    int i = Integer.parseInt(idx);
+                    if (i > 0 && i <= mol.getAtomCount()) {
+                        mol.getAtom(i - 1).setAtomMap(1);
+                    }
+                } catch (NumberFormatException ex) {
+                    throw new WebApplicationException(ex, 400);
+                }
+            }
+        }
+
+        if (c != null) {
+            try {
+                Color color = Color.decode(c);
+                renderer.setBackground(color);
+            } catch (NumberFormatException ex) {
+                throw new WebApplicationException(ex, 400);
+            }
+        }
+
+        BufferedImage img = renderer.createImage(mol, size);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(img, "png", baos);
+        return Response.ok(baos.toByteArray()).type("image/png").build();
     }
 
     /**
