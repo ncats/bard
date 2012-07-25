@@ -1,13 +1,14 @@
 package gov.nih.ncgc.bard.rest;
 
-import chemaxon.formats.MolImporter;
 import chemaxon.struc.Molecule;
+import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
+import gov.nih.ncgc.search.MoleculeService;
 import gov.nih.ncgc.util.MolRenderer;
 
 import javax.imageio.ImageIO;
@@ -155,10 +156,11 @@ public class BARDSubstanceResource extends BARDResource {
                              @QueryParam("c") String c,
                              @QueryParam("a") String a) {
         try {
-            DBUtils db = new DBUtils();
-            Substance substance = db.getSubstanceBySid(Long.parseLong(resourceId));
-            if (substance == null) throw new WebApplicationException(404);
-            Molecule molecule = MolImporter.importMol(substance.getSmiles());
+
+            MoleculeService molsrv = (MoleculeService) Util.getMoleculeService();
+            Molecule molecule = molsrv.getMol(resourceId);
+            if (molecule == null) throw new NotFoundException("No molecule for CID = " + resourceId);
+
             MolRenderer renderer = new MolRenderer();
 
             // size

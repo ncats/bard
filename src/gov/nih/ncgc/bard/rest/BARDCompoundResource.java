@@ -1,7 +1,7 @@
 package gov.nih.ncgc.bard.rest;
 
-import chemaxon.formats.MolImporter;
 import chemaxon.struc.Molecule;
+import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
@@ -9,6 +9,7 @@ import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.tools.CidSearchResultHandler;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
+import gov.nih.ncgc.search.MoleculeService;
 import gov.nih.ncgc.search.SearchParams;
 import gov.nih.ncgc.search.SearchService2;
 import gov.nih.ncgc.util.MolRenderer;
@@ -221,10 +222,11 @@ public class BARDCompoundResource extends BARDResource {
                              @QueryParam("c") String c,
                              @QueryParam("a") String a) {
         try {
-            DBUtils db = new DBUtils();
-            Compound compound = db.getCompoundByCid(Long.parseLong(resourceId));
-            if (compound == null) throw new WebApplicationException(404);
-            Molecule molecule = MolImporter.importMol(compound.getSmiles());
+
+            MoleculeService molsrv = (MoleculeService) Util.getMoleculeService();
+            Molecule molecule = molsrv.getMol(resourceId);
+            if (molecule == null) throw new NotFoundException("No molecule for CID = " + resourceId);
+
             MolRenderer renderer = new MolRenderer();
 
             // size
