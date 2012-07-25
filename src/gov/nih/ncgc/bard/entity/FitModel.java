@@ -22,6 +22,7 @@ public class FitModel {
     Double ac50 = null;
 
     Double[][] cr;
+    Integer npoint;
 
     public FitModel() {
     }
@@ -48,6 +49,7 @@ public class FitModel {
 
     public void setCr(Double[][] cr) {
         this.cr = cr;
+        npoint = cr.length;
     }
 
     public String getDescription() {

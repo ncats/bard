@@ -386,6 +386,7 @@ public class DBUtils {
                         if (aado.getTid().equals(tid)) {
                             adro.setLabel(aado.getName());
                             adro.setDescription(aado.getDescription());
+                            adro.setConcUnit(aado.getTestConcUnit());
                         }
                     }
                 }

@@ -22,8 +22,17 @@ public class DoseResponseResultObject {
     String fittedDoseResponseCurve;
 
     String label, description;
+    String concUnit;
 
     public DoseResponseResultObject() {
+    }
+
+    public String getConcUnit() {
+        return concUnit;
+    }
+
+    public void setConcUnit(String concUnit) {
+        this.concUnit = concUnit;
     }
 
     public String getDescription() {

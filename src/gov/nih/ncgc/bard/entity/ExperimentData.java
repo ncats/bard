@@ -53,6 +53,7 @@ public class ExperimentData implements BardEntity {
                 model.setCr(cr);
                 model.setName(dro.getLabel());
                 model.setDescription(dro.getDescription());
+                concUnit = dro.getConcUnit();
                 readouts.add(model);
             }
 
