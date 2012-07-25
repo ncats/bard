@@ -215,7 +215,7 @@ public class BARDCompoundResource extends BARDResource {
     }
 
     @GET
-    @Path("/image/{cid}")
+    @Path("/{cid}/image")
     public Response getImage(@PathParam("cid") String resourceId,
                              @QueryParam("s") Integer s,
                              @QueryParam("c") String c,

@@ -1,12 +1,16 @@
 package gov.nih.ncgc.bard.rest;
 
+import chemaxon.formats.MolImporter;
+import chemaxon.struc.Molecule;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
+import gov.nih.ncgc.util.MolRenderer;
 
+import javax.imageio.ImageIO;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -15,6 +19,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -137,6 +144,60 @@ public class BARDSubstanceResource extends BARDResource {
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
+    @Path("/{sid}/image")
+    public Response getImage(@PathParam("sid") String resourceId,
+                             @QueryParam("s") Integer s,
+                             @QueryParam("c") String c,
+                             @QueryParam("a") String a) {
+        try {
+            DBUtils db = new DBUtils();
+            Substance substance = db.getSubstanceBySid(Long.parseLong(resourceId));
+            if (substance == null) throw new WebApplicationException(404);
+            Molecule molecule = MolImporter.importMol(substance.getSmiles());
+            MolRenderer renderer = new MolRenderer();
+
+            // size
+            int size = 120;
+
+            if (s != null && s >= 16 && s <= 512) size = s;
+
+            // atom
+            if (a != null) {
+                for (String idx : a.split(",")) {
+                    try {
+                        int i = Integer.parseInt(idx);
+                        if (i > 0 && i <= molecule.getAtomCount()) {
+                            molecule.getAtom(i - 1).setAtomMap(1);
+                        }
+                    } catch (NumberFormatException ex) {
+                        throw new WebApplicationException(ex, 400);
+                    }
+                }
+            }
+
+            if (c != null) {
+                try {
+                    Color color = Color.decode(c);
+                    renderer.setBackground(color);
+                } catch (NumberFormatException ex) {
+                    throw new WebApplicationException(ex, 400);
+                }
+            }
+
+            BufferedImage img = renderer.createImage(molecule, size);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(img, "png", baos);
+            return Response.ok(baos.toByteArray()).type("image/png").build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (Exception e) {
             throw new WebApplicationException(e, 500);
         }
     }
