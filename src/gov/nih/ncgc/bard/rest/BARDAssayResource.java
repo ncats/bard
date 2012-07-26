@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.tools.DBUtils;
@@ -103,9 +102,9 @@ public class BARDAssayResource implements IBARDResource {
                     for (Long id : ids) links.add(BARDConstants.API_BASE + "/assays/" + id);
                     response = Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
                 } else {
-                    List<Project> projects = new ArrayList<Project>();
-                    for (Long id : ids) projects.add(db.getProjectByAid(id));
-                    response = Response.ok(Util.toJson(projects), MediaType.APPLICATION_JSON).build();
+                    List<Assay> assays = new ArrayList<Assay>();
+                    for (Long id : ids) assays.add(db.getAssayByAid(id));
+                    response = Response.ok(Util.toJson(assays), MediaType.APPLICATION_JSON).build();
                 }
             } else {
                 List<Assay> assays = db.searchForAssay(filter);
