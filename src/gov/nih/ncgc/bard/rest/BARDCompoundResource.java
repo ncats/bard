@@ -163,7 +163,13 @@ public class BARDCompoundResource extends BARDResource {
                     for (Long cid : cids) cs.add(db.getCompoundByCid(cid));
                     response = Response.ok(Util.toJson(cs), MediaType.APPLICATION_JSON).build();
                 } else {
-                    response = Response.ok(Util.toJson(cids), MediaType.APPLICATION_JSON).build();
+                    List<String> paths = new ArrayList<String>();
+                    for (Long cid : cids) {
+                        Compound c = new Compound();
+                        c.setCid(cid);
+                        paths.add(c.getResourcePath());
+                    }
+                    response = Response.ok(Util.toJson(paths), MediaType.APPLICATION_JSON).build();
                 }
             }
         }
