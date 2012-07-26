@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1049,45 +1050,56 @@ public class DBUtils {
         return ret;
     }
 
+    // TOOD handle depositor id - should resolve the integer to a string
+    public Project getProject(Long projectId) throws SQLException {
+        Project p = new Project();
+        p.setProjectId(projectId);
+
+        PreparedStatement pst = conn.prepareStatement("select * from project where proj_id = ?");
+        pst.setLong(1, projectId);
+        ResultSet rs = pst.executeQuery();
+        while (rs.next()) {
+            p.setDescription(rs.getString("description"));
+            p.setName(rs.getString("name"));
+            p.setDeposited(rs.getDate("create_date"));
+        }
+        pst.close();
+
+        // find all experiments for this project
+        pst = conn.prepareStatement("select expt_id from project_experiment where proj_id = ?");
+        pst.setLong(1, projectId);
+        rs = pst.executeQuery();
+        List<Long> eids = new ArrayList<Long>();
+        while (rs.next()) eids.add(rs.getLong(1));
+        p.setEids(eids);
+        pst.close();
+
+        return p;
+    }
+
     /**
-     * Return a project object based on its AID.
+     * Returns a list of {@link Project} objects that are associated with an experiment.
      * <p/>
-     * Currently projects are simply summary assays and therefore are very similar
-     * in structure to {@link Assay} objects. The key difference is that they will
-     * list AID's of assays associated with it.
+     * It is possible, that an experiment is not assigned to a project ("orphan"), in
+     * which case the project id is -1.
+     * <p/>
      *
-     * @param aid The AID for the summary assay
+     * @param eid The experiment id for the summary assay
      * @return A {@link Project} object
      * @throws SQLException
      */
-    public Project getProjectByAid(Long aid) throws SQLException {
-        Assay a = getAssayByAid(aid);
-        Project p = new Project();
-        p.setAid(a.getAid());
-        p.setCategory(a.getCategory());
-        p.setType(a.getType());
-        p.setTargets(a.getTargets());
-        p.setPublications(a.getPublications());
-        p.setGrantNo(a.getGrantNo());
-        p.setSource(a.getSource());
-        p.setDescription(a.getDescription());
-        p.setDeposited(a.getDeposited());
-        p.setUpdated(a.getUpdated());
+    public List<Project> getProjectByExperimentId(Long eid) throws SQLException {
 
-        // identify the assays that are part of this project
-        PreparedStatement pst = conn.prepareStatement("select assay_id from assay where summary = ?");
-        pst.setLong(1, aid);
+        PreparedStatement pst = conn.prepareStatement("select proj_id from project_experiment where expt_id = ?");
+        pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
-        List<Long> aids = new ArrayList<Long>();
-        while (rs.next()) aids.add(rs.getLong(1));
-        p.setAids(aids);
-
-        // get probe ids
-        List<Long> probeids = getProbesForProject(aid);
-        p.setProbeIds(probeids);
-
+        List<Project> ps = new ArrayList<Project>();
+        while (rs.next()) {
+            Long projectId = rs.getLong("proj_id");
+            ps.add(getProject(projectId));
+        }
         pst.close();
-        return p;
+        return ps;
     }
 
     public List<Long> getProbesForProject(Long aid) throws SQLException {
@@ -1099,12 +1111,9 @@ public class DBUtils {
         return probeids;
     }
 
-    /*****************/
-    /* Query methods */
-
-    /**
-     * *************
-     */
+    /* ****************/
+    /*  Query methods */
+    /* ****************/
 
     public List<ExperimentData> searchForExperimentData(String query, int skip, int top) throws SQLException, IOException {
         boolean freeTextQuery = false;
@@ -1207,13 +1216,16 @@ public class DBUtils {
         List<T> entities = new ArrayList<T>();
         while (rs.next()) {
             Object id = rs.getObject(queryParams.getIdField());
-            BardEntity entity = null;
+            Object entity = null;
             if (klass.equals(Publication.class)) entity = getPublicationByPmid((Long) id);
             else if (klass.equals(ProteinTarget.class)) entity = getProteinTargetByAccession((String) id);
-            else if (klass.equals(Project.class)) entity = getProjectByAid((Long) id);
+            else if (klass.equals(Project.class)) entity = getProjectByExperimentId((Long) id);
             else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
             else if (klass.equals(Compound.class)) entity = getCompoundByCid((Long) id);
-            if (entity != null) entities.add((T) entity);
+            if (entity != null) {
+                if (entity instanceof List) entities.addAll((Collection<T>) entity);
+                else if (entity instanceof BardEntity) entities.add((T) entity);
+            }
         }
         pst.close();
         return entities;

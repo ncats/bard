@@ -1,7 +1,7 @@
 package gov.nih.ncgc.bard.rest;
 
-import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.tools.DBUtils;
@@ -66,7 +66,7 @@ public class BARDProjectResource extends BARDResource {
                     response = Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
                 } else {
                     List<Project> projects = new ArrayList<Project>();
-                    for (Long id : ids) projects.add(db.getProjectByAid(id));
+                    for (Long id : ids) projects.addAll(db.getProjectByExperimentId(id));
                     response = Response.ok(Util.toJson(projects), MediaType.APPLICATION_JSON).build();
                 }
             } else {
@@ -97,8 +97,8 @@ public class BARDProjectResource extends BARDResource {
     public Response getResources(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         DBUtils db = new DBUtils();
         try {
-            Project p = db.getProjectByAid(Long.valueOf(resourceId));
-            if (p.getAid() == null) throw new WebApplicationException(404);
+            Project p = db.getProject(Long.valueOf(resourceId));
+            if (p == null) throw new WebApplicationException(404);
             String json = Util.toJson(p);
             if (countRequested) json = Util.toJson("1");
             db.closeConnection();
@@ -119,7 +119,7 @@ public class BARDProjectResource extends BARDResource {
             expandEntries = true;
         DBUtils db = new DBUtils();
         try {
-            Project project = db.getProjectByAid(Long.valueOf(resourceId));
+            Project project = db.getProject(Long.valueOf(resourceId));
             List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
             for (ProteinTarget target : project.getTargets())
                 targets.add(db.getProteinTargetByAccession(target.getAcc()));
@@ -141,22 +141,22 @@ public class BARDProjectResource extends BARDResource {
     }
 
     @GET
-    @Path("/{id}/assays")
+    @Path("/{id}/experiments")
     public Response getAssaysForProject(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
         DBUtils db = new DBUtils();
         try {
-            Project p = db.getProjectByAid(Long.valueOf(resourceId));
-            List<Assay> a = new ArrayList<Assay>();
-            for (Long aid : p.getAids()) a.add(db.getAssayByAid(aid));
+            Project p = db.getProject(Long.valueOf(resourceId));
+            List<Experiment> e = new ArrayList<Experiment>();
+            for (Long eid : p.getEids()) e.add(db.getExperimentByExptId(eid));
             String json;
-            if (countRequested) json = Util.toJson(a.size());
+            if (countRequested) json = Util.toJson(e.size());
             else if (expandEntries) json = Util.toJson(p);
             else {
                 List<String> links = new ArrayList<String>();
-                for (Assay anAssay : a) links.add(anAssay.getResourcePath());
+                for (Experiment experiment : e) links.add(experiment.getResourcePath());
                 json = Util.toJson(links);
             }
             db.closeConnection();
@@ -177,7 +177,6 @@ public class BARDProjectResource extends BARDResource {
      * @param expand
      * @return String representation of compounds. Format is specified via Accepts: header and can be
      *         chemical/x-daylight-smiles or chemical/x-mdl-sdfile for SMILES or SDF formats.
-     * @throws MolFormatException
      */
     @GET
     @Path("/{id}/probes")

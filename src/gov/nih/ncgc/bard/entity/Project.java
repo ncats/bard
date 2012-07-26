@@ -22,7 +22,7 @@ public class Project implements BardEntity {
      * <p/>
      * Currently the AID of the summary assay.
      */
-    Long aid;
+    Long projectId;
 
 
     int category, type, classification;
@@ -44,12 +44,12 @@ public class Project implements BardEntity {
     Date updated;
 
     List<Long> probeIds;
-    List<Long> aids;
+    List<Long> eids;
     List<Publication> publications;
     List<ProteinTarget> targets;
 
     public String toString() {
-        return aid + "[" + name + "]";
+        return projectId + "[" + name + "]";
     }
 
     public List<Long> getProbeIds() {
@@ -61,12 +61,12 @@ public class Project implements BardEntity {
     }
 
     public Project() {
-        aids = new ArrayList<Long>();
+        eids = new ArrayList<Long>();
         probeIds = new ArrayList<Long>();
     }
 
-    public int getAssayCount() {
-        return aids.size();
+    public int getExperimentCount() {
+        return eids.size();
     }
 
     public int getClassification() {
@@ -77,12 +77,12 @@ public class Project implements BardEntity {
         this.classification = classification;
     }
 
-    public List<Long> getAids() {
-        return aids;
+    public List<Long> getEids() {
+        return eids;
     }
 
-    public void setAids(List<Long> aids) {
-        this.aids = aids;
+    public void setEids(List<Long> eids) {
+        this.eids = eids;
     }
 
     public String getSource() {
@@ -109,12 +109,12 @@ public class Project implements BardEntity {
         this.targets = targets;
     }
 
-    public Long getAid() {
-        return aid;
+    public Long getProjectId() {
+        return projectId;
     }
 
-    public void setAid(Long aid) {
-        this.aid = aid;
+    public void setProjectId(Long projectId) {
+        this.projectId = projectId;
     }
 
     public Integer getCategory() {
@@ -183,7 +183,7 @@ public class Project implements BardEntity {
      *         to be publically available via the REST API
      */
     public String getResourcePath() {
-        return BARDConstants.API_BASE + "/projects/" + aid;
+        return BARDConstants.API_BASE + "/projects/" + projectId;
     }
 
     /**
