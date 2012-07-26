@@ -24,6 +24,8 @@ public class FitModel {
     Double[][] cr;
     Integer npoint;
 
+    String concUnit, responseUnit;
+
     public FitModel() {
     }
 
@@ -33,6 +35,34 @@ public class FitModel {
         this.sInf = sInf;
         this.hill = hill;
         this.ac50 = ac50;
+    }
+
+    protected boolean unfitted() {
+        return s0 == 0 && sInf == 0 && hill == 0 && ac50 == 0;
+    }
+
+    public String getConcUnit() {
+        return concUnit;
+    }
+
+    public void setConcUnit(String concUnit) {
+        this.concUnit = concUnit;
+    }
+
+    public String getResponseUnit() {
+        return responseUnit;
+    }
+
+    public void setResponseUnit(String responseUnit) {
+        this.responseUnit = responseUnit;
+    }
+
+    public Integer getNpoint() {
+        return npoint;
+    }
+
+    public void setNpoint(Integer npoint) {
+        this.npoint = npoint;
     }
 
     public String getName() {

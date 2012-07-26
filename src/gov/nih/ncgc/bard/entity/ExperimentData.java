@@ -26,7 +26,6 @@ public class ExperimentData implements BardEntity {
     Integer classification;
     Float potency;
 
-    String concUnit, responseUnit;
     List<FitModel> readouts;
 
     @JsonIgnore
@@ -53,7 +52,14 @@ public class ExperimentData implements BardEntity {
                 model.setCr(cr);
                 model.setName(dro.getLabel());
                 model.setDescription(dro.getDescription());
-                concUnit = dro.getConcUnit();
+                model.setConcUnit(dro.getConcUnit());
+
+                if (model.unfitted()) {
+                    model.setS0(null);
+                    model.setAc50(null);
+                    model.setsInf(null);
+                    model.setHill(null);
+                }
                 readouts.add(model);
             }
 
@@ -66,8 +72,6 @@ public class ExperimentData implements BardEntity {
                     Double[][] cr = new Double[1][2];
                     cr[0][0] = null;
                     cr[0][1] = ((String) o.getValue()).trim().equals("\"\"") ? null : Double.parseDouble((String) o.getValue());
-                    responseUnit = o.getResultName();
-                    concUnit = null;
                     break;
                 }
             }
@@ -88,22 +92,6 @@ public class ExperimentData implements BardEntity {
 
     public void setReadouts(List<FitModel> readouts) {
         this.readouts = readouts;
-    }
-
-    public String getConcUnit() {
-        return concUnit;
-    }
-
-    public void setConcUnit(String unit) {
-        this.concUnit = unit;
-    }
-
-    public String getResponseUnit() {
-        return responseUnit;
-    }
-
-    public void setResponseUnit(String responseUnit) {
-        this.responseUnit = responseUnit;
     }
 
     public DataResultObject[] getResults() {
