@@ -6,8 +6,8 @@ import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.tools.CidSearchResultHandler;
 import gov.nih.ncgc.bard.tools.DBUtils;
+import gov.nih.ncgc.bard.tools.OrderedSearchResultHandler;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.search.MoleculeService;
 import gov.nih.ncgc.search.SearchParams;
@@ -30,6 +30,9 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -151,13 +154,27 @@ public class BARDCompoundResource extends BARDResource {
                 params = SearchParams.substructure();
             }
 
-            CidSearchResultHandler handler = new CidSearchResultHandler(params);
+//            CidSearchResultHandler handler = new CidSearchResultHandler(params);
+            Writer writer = new StringWriter();
+            PrintWriter pw = new PrintWriter(writer);
+            if (skip == -1) skip = 0;
+            if (top == -1) top = 100;
+            OrderedSearchResultHandler handler = new OrderedSearchResultHandler(params, pw, skip, top);
             if (countRequested) {
                 int n = search.count(filter, params);
                 response = Response.ok(String.valueOf(n)).build();
             } else {
                 search.search(filter, params, handler);
-                List<Long> cids = handler.getCids();
+                String cidsStr = writer.toString();
+                System.out.println("writer.toString() = " + cidsStr);
+                String[] cidStrs = cidsStr.split("\n");
+                List<Long> cids = new ArrayList<Long>();
+                for (String cidstr : cidStrs) {
+                    if (cidstr.equals("")) continue;
+                    cids.add(Long.parseLong(cidstr));
+                }
+
+//                List<Long> cids = handler.getCids();
                 if (expandEntries) {
                     List<Compound> cs = new ArrayList<Compound>();
                     for (Long cid : cids) cs.add(db.getCompoundByCid(cid));
