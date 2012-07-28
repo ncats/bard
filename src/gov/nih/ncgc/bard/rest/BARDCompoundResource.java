@@ -32,7 +32,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.io.Writer;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -116,7 +115,6 @@ public class BARDCompoundResource extends BARDResource {
                 }
             }
         } else {   // do a filtered search
-
             // examine the filter argument to see if we should do a structure search
             if (filter.indexOf("[structure]") > 0) filter = filter.trim().replace("[structure]", "");
             else
@@ -154,8 +152,7 @@ public class BARDCompoundResource extends BARDResource {
                 params = SearchParams.substructure();
             }
 
-//            CidSearchResultHandler handler = new CidSearchResultHandler(params);
-            Writer writer = new StringWriter();
+            StringWriter writer = new StringWriter();
             PrintWriter pw = new PrintWriter(writer);
             if (skip == -1) skip = 0;
             if (top == -1) top = 100;
@@ -165,8 +162,10 @@ public class BARDCompoundResource extends BARDResource {
                 response = Response.ok(String.valueOf(n)).build();
             } else {
                 search.search(filter, params, handler);
-                String cidsStr = writer.toString();
-                System.out.println("writer.toString() = " + cidsStr);
+                handler.complete();
+
+                // TODO we should be directly getting a List of cid's rather than parsing a string
+                String cidsStr = writer.getBuffer().toString();
                 String[] cidStrs = cidsStr.split("\n");
                 List<Long> cids = new ArrayList<Long>();
                 for (String cidstr : cidStrs) {
@@ -186,7 +185,8 @@ public class BARDCompoundResource extends BARDResource {
                         c.setCid(cid);
                         paths.add(c.getResourcePath());
                     }
-                    response = Response.ok(Util.toJson(paths), MediaType.APPLICATION_JSON).build();
+                    String json = Util.toJson(paths);
+                    response = Response.ok(json, MediaType.APPLICATION_JSON).header("content-length", json.length()).build();
                 }
             }
         }

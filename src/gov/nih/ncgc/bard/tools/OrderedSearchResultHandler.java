@@ -129,7 +129,7 @@ public class OrderedSearchResultHandler implements SearchCallback<SearchService2
         return cids;
     }
 
-    private void complete() {
+    public void complete() {
         if (minRank != null) {
             for (int i = 0; i < minRank.length; i++) {
                 minRank[i] = Double.NEGATIVE_INFINITY;
