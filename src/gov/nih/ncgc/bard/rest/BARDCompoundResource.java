@@ -6,8 +6,8 @@ import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.tools.CidSearchResultHandler;
 import gov.nih.ncgc.bard.tools.DBUtils;
+import gov.nih.ncgc.bard.tools.OrderedSearchResultHandler;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.search.MoleculeService;
 import gov.nih.ncgc.search.SearchParams;
@@ -30,6 +30,8 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -113,7 +115,6 @@ public class BARDCompoundResource extends BARDResource {
                 }
             }
         } else {   // do a filtered search
-
             // examine the filter argument to see if we should do a structure search
             if (filter.indexOf("[structure]") > 0) filter = filter.trim().replace("[structure]", "");
             else
@@ -151,13 +152,28 @@ public class BARDCompoundResource extends BARDResource {
                 params = SearchParams.substructure();
             }
 
-            CidSearchResultHandler handler = new CidSearchResultHandler(params);
+            StringWriter writer = new StringWriter();
+            PrintWriter pw = new PrintWriter(writer);
+            if (skip == -1) skip = 0;
+            if (top == -1) top = 100;
+            OrderedSearchResultHandler handler = new OrderedSearchResultHandler(params, pw, skip, top);
             if (countRequested) {
                 int n = search.count(filter, params);
                 response = Response.ok(String.valueOf(n)).build();
             } else {
                 search.search(filter, params, handler);
-                List<Long> cids = handler.getCids();
+                handler.complete();
+
+                // TODO we should be directly getting a List of cid's rather than parsing a string
+                String cidsStr = writer.getBuffer().toString();
+                String[] cidStrs = cidsStr.split("\n");
+                List<Long> cids = new ArrayList<Long>();
+                for (String cidstr : cidStrs) {
+                    if (cidstr.equals("")) continue;
+                    cids.add(Long.parseLong(cidstr));
+                }
+
+//                List<Long> cids = handler.getCids();
                 if (expandEntries) {
                     List<Compound> cs = new ArrayList<Compound>();
                     for (Long cid : cids) cs.add(db.getCompoundByCid(cid));
@@ -169,7 +185,8 @@ public class BARDCompoundResource extends BARDResource {
                         c.setCid(cid);
                         paths.add(c.getResourcePath());
                     }
-                    response = Response.ok(Util.toJson(paths), MediaType.APPLICATION_JSON).build();
+                    String json = Util.toJson(paths);
+                    response = Response.ok(json, MediaType.APPLICATION_JSON).header("content-length", json.length()).build();
                 }
             }
         }
