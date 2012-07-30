@@ -45,6 +45,14 @@ public abstract class CapResourceHandler {
         if (response.getStatusLine().getStatusCode() != 200)
             throw new IOException("Got a HTTP " + response.getStatusLine().getStatusCode() + " for " + resource);
 
+//        if (resource == CAPConstants.CapResource.ASSAY) {
+//            String xml = read(response.getEntity().getContent());
+//            BufferedWriter writer = new BufferedWriter(new FileWriter("1122.xml"));
+//            writer.write(xml);
+//            writer.close();
+//            System.exit(-1);
+//        }
+
         Unmarshaller unmarshaller;
         try {
             unmarshaller = jc.createUnmarshaller();
