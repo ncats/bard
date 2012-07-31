@@ -195,8 +195,8 @@ public class BARDProjectResource extends BARDResource {
             else if (types.contains(BARDConstants.MIME_SMILES)) {
                 List<String> smiles = new ArrayList<String>();
                 for (Long probe : probes) {
-                    Compound c = db.getCompoundByCid(probe);
-                    smiles.add(c.getSmiles() + "\t" + probe);
+                    List<Compound> c = db.getCompoundsByCid(probes.toArray(new Long[]{}));
+                    for (Compound ac : c) smiles.add(ac.getSmiles());
                 }
                 response = Response.ok(Util.join(smiles, "\n"), BARDConstants.MIME_SMILES).build();
             } else if (types.contains(BARDConstants.MIME_SDF)) {

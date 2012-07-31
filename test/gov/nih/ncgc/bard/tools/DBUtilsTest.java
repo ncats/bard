@@ -11,6 +11,7 @@ import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * A one line summary.
@@ -98,9 +99,9 @@ public class DBUtilsTest extends DBTest {
 
     @Test(dataProvider = "probeIdProvider")
     public void getCompoundByProbeId(String probeId, Long cid) throws SQLException {
-        Compound c = db.getCompoundByProbeId(probeId);
+        List<Compound> c = db.getCompoundsByProbeId(probeId);
         Assert.assertNotNull(c);
-        Assert.assertEquals(c.getCid(), cid);
+        Assert.assertEquals(c.size(), 1);
 
     }
 }

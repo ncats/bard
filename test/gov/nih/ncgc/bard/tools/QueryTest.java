@@ -76,7 +76,7 @@ public class QueryTest extends DBTest {
     @Test
     public void getCompoundsByName() throws SQLException {
         String query = "lidocaine";
-        List<Compound> compounds = db.getCompoundByName(query);
+        List<Compound> compounds = db.getCompoundsByName(query);
         System.out.println("Querying compounds for '" + query + "' gave " + compounds.size() + " compounds");
         Assert.assertTrue(compounds.size() > 0);
 

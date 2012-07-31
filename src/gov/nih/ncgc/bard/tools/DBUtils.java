@@ -242,86 +242,139 @@ public class DBUtils {
         return sids;
     }
 
-    public Compound getCompoundByCid(Long cid) throws SQLException {
-        if (cid == null || cid < 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select c.*, s.sid from compound c, cid_sid s where c.cid = ? and c.cid = s.cid");
-        pst.setLong(1, cid);
-        ResultSet rs = pst.executeQuery();
-        Compound c = new Compound();
-        List<Long> sids = new ArrayList<Long>();
-        while (rs.next()) {
-            c.setCid(rs.getLong("cid"));
-            c.setProbeId(rs.getString("probe_id"));
-            c.setSmiles(rs.getString("iso_smiles"));
-            sids.add(rs.getLong("sid"));
+    /**
+     * Obtain compounds based on their CIDs.
+     *
+     * @param cids one or more CIDs. If any CID is null, then the function returns null
+     * @return a list of {@link Compound} objects
+     * @throws SQLException
+     */
+    public List<Compound> getCompoundsByCid(Long... cids) throws SQLException {
+        if (cids == null || cids.length < 0) return null;
+        for (Long acid : cids) {
+            if (acid == null) return null;
         }
-        c.setSids(sids);
-        pst.close();
-        return c;
+        List<List<Long>> chunks = Util.chunk(cids, 100);
+        List<Compound> compounds = new ArrayList<Compound>();
+        for (List<Long> chunk : chunks) {
+            String cidClause = Util.join(chunk, ",");
+            String sql = "select c.*, s.sid from compound c, cid_sid s where c.cid in (" + cidClause + ") and c.cid = s.cid order by c.cid";
+            PreparedStatement pst = conn.prepareStatement(sql);
+            ResultSet rs = pst.executeQuery();
+
+            List<Compound> tmp = new ArrayList<Compound>();
+            Compound c = new Compound();
+            List<Long> sids = new ArrayList<Long>();
+            Long oldCid = -1L;
+            boolean first = true;
+            while (rs.next()) {
+                Long cid = rs.getLong("cid");
+                String probeId = rs.getString("probe_id");
+                String smiles = rs.getString("iso_smiles");
+
+                if (!first && !cid.equals(oldCid)) {
+                    c.setSids(sids);
+                    tmp.add(c);
+                    sids = new ArrayList<Long>();
+                }
+                c.setCid(cid);
+                c.setProbeId(probeId);
+                c.setSmiles(smiles);
+                sids.add(rs.getLong("sid"));
+
+                if (first) {
+                    oldCid = cid;
+                    first = false;
+                }
+            }
+            pst.close();
+            compounds.addAll(tmp);
+        }
+        return compounds;
     }
 
-//    public List<Compound> getCompoundsByCids(List<Long> cids) throws SQLException {
-//        if (cids == null) return null;
-//        String cidlist = Util.join(cids, ",");
-//        String sql = "select c.*, s.sid from compound c, cid_sid s where c.cid in (" + cidlist + ") and c.cid = s.cid";
-//        PreparedStatement pst = conn.prepareStatement(sql);
-//        ResultSet rs = pst.executeQuery();
-//        List<Compound> cs = new ArrayList<Compound>();
-//        List<Long> sids = new ArrayList<Long>();
-//        Compound c = new Compound();
-//        Long oldcid = -1L;
-//        while (rs.next()) {
-//            Long newcid =rs.getLong("cid");
-//            if (oldcid != newcid) {
-//
-//            }
-//            c.setCid(rs.getLong("cid"));
-//            c.setProbeId(rs.getString("probe_id"));
-//            c.setSmiles(rs.getString("iso_smiles"));
-//            sids.add(rs.getLong("sid"));
-//        }
-//        c.setSids(sids);
-//        pst.close();
-//        return c;
-//    }
+    /**
+     * Get {@link Compound} instances based on names.
+     * <p/>
+     * <b>TODO</b>
+     * In this case, we have to perform an SQL query for each supplied name as
+     * we are employing the full text query facility. It might be possible to
+     * enhance the performance by OR'ing the supplied names together.
+     *
+     * @param names an array of names
+     * @return a list of {@link Compound} objects
+     * @throws SQLException
+     */
 
-    public List<Compound> getCompoundByName(String name) throws SQLException {
-        if (name == null || name.trim().equals("")) return null;
-        PreparedStatement pst = conn.prepareStatement("select distinct id from synonyms where type = 1 and match(syn) against (? in boolean mode)");
-        pst.setString(1, name);
-        ResultSet rs = pst.executeQuery();
+    public List<Compound> getCompoundsByName(String... names) throws SQLException {
+        if (names == null || names.length == 0) return null;
         List<Compound> cmpds = new ArrayList<Compound>();
-        while (rs.next()) cmpds.add(getCompoundByCid(rs.getLong(1)));
+        PreparedStatement pst = conn.prepareStatement("select distinct id from synonyms where type = 1 and match(syn) against (? in boolean mode)");
+        ResultSet rs;
+        for (String name : names) {
+            pst.setString(1, name);
+            rs = pst.executeQuery();
+            while (rs.next()) cmpds.addAll(getCompoundsByCid(new Long[]{rs.getLong(1)}));
+        }
         return cmpds;
     }
 
-    public Compound getCompoundBySid(Long sid) throws SQLException {
-        if (sid == null || sid < 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select cid from cid_sid s where s.sid = ?");
-        pst.setLong(1, sid);
-        ResultSet rs = pst.executeQuery();
-        Long cid = -1L;
-        while (rs.next()) cid = rs.getLong("cid");
-        pst.close();
-        return getCompoundByCid(cid);
+    public List<Compound> getCompoundsBySid(Long... sids) throws SQLException {
+        if (sids == null || sids.length == 0) return null;
+        List<List<Long>> chunks = Util.chunk(sids, 100);
+        List<Compound> cmpds = new ArrayList<Compound>();
+        for (List<Long> chunk : chunks) {
+            String sidClause = Util.join(chunk, ",");
+            String sql = "select cid from cid_sid s where s.sid in (" + sidClause + ")";
+            PreparedStatement pst = conn.prepareStatement(sql);
+            List<Long> cids = new ArrayList<Long>();
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) cids.add(rs.getLong("cid"));
+            cmpds.addAll(getCompoundsByCid(cids.toArray(new Long[]{})));
+            pst.close();
+        }
+        return cmpds;
     }
 
-    public Compound getCompoundByProbeId(String probeid) throws SQLException {
-        if (probeid == null || probeid.trim().equals("")) return null;
-        PreparedStatement pst = conn.prepareStatement("select c.*, s.sid from compound c, cid_sid s where probe_id = ? and c.cid = s.cid");
-        pst.setString(1, probeid.trim());
-        ResultSet rs = pst.executeQuery();
-        Compound c = new Compound();
-        List<Long> sids = new ArrayList<Long>();
-        while (rs.next()) {
-            c.setCid(rs.getLong("cid"));
-            c.setProbeId(rs.getString("probe_id"));
-            c.setSmiles(rs.getString("iso_smiles"));
-            sids.add(rs.getLong("sid"));
+    public List<Compound> getCompoundsByProbeId(String... probeids) throws SQLException {
+        if (probeids == null || probeids.length == 0) return null;
+        List<List<String>> chunks = Util.chunk(probeids, 100);
+        List<Compound> compounds = new ArrayList<Compound>();
+        for (List<String> chunk : chunks) {
+            String probeidClause = Util.join(chunk, ",");
+            String sql = "select c.*, s.sid from compound c, cid_sid s where probe_id in (" + probeidClause + ") and c.cid = s.cid order by c.cid";
+            PreparedStatement pst = conn.prepareStatement(sql);
+            ResultSet rs = pst.executeQuery();
+
+            List<Compound> tmp = new ArrayList<Compound>();
+            Compound c = new Compound();
+            List<Long> sids = new ArrayList<Long>();
+            Long oldCid = -1L;
+            boolean first = true;
+            while (rs.next()) {
+                Long cid = rs.getLong("cid");
+                String probeId = rs.getString("probe_id");
+                String smiles = rs.getString("iso_smiles");
+
+                if (!first && !cid.equals(oldCid)) {
+                    c.setSids(sids);
+                    tmp.add(c);
+                    sids = new ArrayList<Long>();
+                }
+                c.setCid(cid);
+                c.setProbeId(probeId);
+                c.setSmiles(smiles);
+                sids.add(rs.getLong("sid"));
+
+                if (first) {
+                    oldCid = cid;
+                    first = false;
+                }
+            }
+            pst.close();
+            compounds.addAll(tmp);
         }
-        c.setSids(sids);
-        pst.close();
-        return c;
+        return compounds;
     }
 
     /**
@@ -852,8 +905,7 @@ public class DBUtils {
         List<Compound> ret = new ArrayList<Compound>();
 
         while (rs.next()) {
-            Compound c = getCompoundByCid(rs.getLong("cid"));
-            ret.add(c);
+            ret.addAll(getCompoundsByCid(rs.getLong("cid")));
         }
         pst.close();
         return ret;
@@ -883,8 +935,8 @@ public class DBUtils {
         List<Compound> ret = new ArrayList<Compound>();
 
         while (rs.next()) {
-            Compound c = getCompoundBySid(rs.getLong("sid"));  // TODO should return a Substance entity
-            ret.add(c);
+            // TODO should return a Substance entity
+            ret.addAll(getCompoundsBySid(rs.getLong("sid")));
         }
         pst.close();
         return ret;
@@ -1221,7 +1273,7 @@ public class DBUtils {
             else if (klass.equals(ProteinTarget.class)) entity = getProteinTargetByAccession((String) id);
             else if (klass.equals(Project.class)) entity = getProjectByExperimentId((Long) id);
             else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
-            else if (klass.equals(Compound.class)) entity = getCompoundByCid((Long) id);
+            else if (klass.equals(Compound.class)) entity = getCompoundsByCid((Long) id);
             if (entity != null) {
                 if (entity instanceof List) entities.addAll((Collection<T>) entity);
                 else if (entity instanceof BardEntity) entities.add((T) entity);

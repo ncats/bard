@@ -47,7 +47,7 @@ public abstract class CapResourceHandler {
 
 //        if (resource == CAPConstants.CapResource.ASSAY) {
 //            String xml = read(response.getEntity().getContent());
-//            BufferedWriter writer = new BufferedWriter(new FileWriter("1122.xml"));
+//            BufferedWriter writer = new BufferedWriter(new FileWriter("1640.xml"));
 //            writer.write(xml);
 //            writer.close();
 //            System.exit(-1);

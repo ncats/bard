@@ -175,8 +175,7 @@ public class BARDCompoundResource extends BARDResource {
 
 //                List<Long> cids = handler.getCids();
                 if (expandEntries) {
-                    List<Compound> cs = new ArrayList<Compound>();
-                    for (Long cid : cids) cs.add(db.getCompoundByCid(cid));
+                    List<Compound> cs = db.getCompoundsByCid(cids.toArray(new Long[]{}));
                     response = Response.ok(Util.toJson(cs), MediaType.APPLICATION_JSON).build();
                 } else {
                     List<String> paths = new ArrayList<String>();
@@ -201,10 +200,10 @@ public class BARDCompoundResource extends BARDResource {
 
         if (!validTypes.contains(type)) return null;
         List<Compound> c = new ArrayList<Compound>();
-        if (type.equals("cid")) c.add(db.getCompoundByCid(Long.parseLong(id)));
-        else if (type.equals("probeid")) c.add(db.getCompoundByProbeId(id));
-        else if (type.equals("sid")) c.add(db.getCompoundBySid(Long.parseLong(id)));
-        else if (type.equals("name")) c.addAll(db.getCompoundByName(id));
+        if (type.equals("cid")) c.addAll(db.getCompoundsByCid(Long.parseLong(id)));
+        else if (type.equals("probeid")) c.addAll(db.getCompoundsByProbeId(id));
+        else if (type.equals("sid")) c.addAll(db.getCompoundsBySid(Long.parseLong(id)));
+        else if (type.equals("name")) c.addAll(db.getCompoundsByName(id));
         db.closeConnection();
 
         if (c.size() == 0) throw new WebApplicationException(404);
@@ -359,7 +358,7 @@ public class BARDCompoundResource extends BARDResource {
         DBUtils db = new DBUtils();
         Response response = null;
         try {
-            for (String tok : toks) map.put(tok.trim(), db.getCompoundByName(tok.trim()));
+            for (String tok : toks) map.put(tok.trim(), db.getCompoundsByName(tok.trim()));
             db.closeConnection();
             if (expandEntries(expand)) response = Response.ok(Util.toJson(map), MediaType.APPLICATION_JSON).build();
             else {
