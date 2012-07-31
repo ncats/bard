@@ -18,9 +18,21 @@ public class UtilsTest {
         Assert.assertEquals(5, chunks.size());
         Assert.assertEquals(2, chunks.get(0).size());
         Assert.assertEquals(2, chunks.get(1).size());
+    }
 
-        chunks = Util.chunk(array, 3);
+    @Test
+    public void testChunkUneven() {
+        Integer[] array = new Integer[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        List<List<Integer>> chunks = Util.chunk(array, 3);
         Assert.assertEquals(4, chunks.size());
         Assert.assertEquals(1, chunks.get(3).size());
+    }
+
+    @Test
+    public void testChunkSingle() {
+        Integer[] array = new Integer[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        List<List<Integer>> chunks = Util.chunk(array, 100);
+        Assert.assertEquals(1, chunks.size());
+        Assert.assertEquals(10, chunks.get(0).size());
     }
 }
