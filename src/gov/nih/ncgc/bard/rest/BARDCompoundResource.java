@@ -198,15 +198,30 @@ public class BARDCompoundResource extends BARDResource {
 
         List<String> validTypes = Arrays.asList("cid", "sid", "probeid", "name");
 
+        boolean isIdList = id.indexOf(",") >= 0;
+
         if (!validTypes.contains(type)) return null;
         List<Compound> c = new ArrayList<Compound>();
-        if (type.equals("cid")) c.addAll(db.getCompoundsByCid(Long.parseLong(id)));
-        else if (type.equals("probeid")) c.addAll(db.getCompoundsByProbeId(id));
-        else if (type.equals("sid")) c.addAll(db.getCompoundsBySid(Long.parseLong(id)));
-        else if (type.equals("name")) c.addAll(db.getCompoundsByName(id));
+
+        if (!isIdList) {
+            if (type.equals("cid")) c.addAll(db.getCompoundsByCid(Long.parseLong(id)));
+            else if (type.equals("probeid")) c.addAll(db.getCompoundsByProbeId(id));
+            else if (type.equals("sid")) c.addAll(db.getCompoundsBySid(Long.parseLong(id)));
+            else if (type.equals("name")) c.addAll(db.getCompoundsByName(id));
+        } else {
+            String[] s = id.split(",");
+            if (type.equals("cid") || type.equals("sid")) {
+                Long[] ids = new Long[s.length];
+                for (int i = 0; i < s.length; i++) ids[i] = Long.parseLong(s[i].trim());
+                if (type.equals("cid")) c.addAll(db.getCompoundsByCid(ids));
+                else if (type.equals("sid")) c.addAll(db.getCompoundsBySid(ids));
+            } else if (type.equals("probeid")) c.addAll(db.getCompoundsByProbeId(s));
+            else if (type.equals("name")) c.addAll(db.getCompoundsByProbeId(s));
+        }
         db.closeConnection();
 
         if (c.size() == 0) throw new WebApplicationException(404);
+        if (countRequested) return Response.ok(String.valueOf(c.size()), MediaType.TEXT_PLAIN).build();
 
         if (mediaTypes.contains(BARDConstants.MIME_SMILES)) {
             StringBuilder s = new StringBuilder();
@@ -296,9 +311,25 @@ public class BARDCompoundResource extends BARDResource {
     @Path("/{cid}")
     public Response getResources(@PathParam("cid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            Response response = getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes(), true);
-            if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
-            else return response;
+            Response response = getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes(), expand != null && expand.toLowerCase().equals("true"));
+            return response;
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @POST
+    @Path("/")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response getResources(@FormParam("cids") String cids, @QueryParam("expand") String expand) {
+        try {
+
+            if (cids == null)
+                throw new WebApplicationException(new Exception("POST request must specify the cids form parameter, which should be a comma separated string of CIDs"), 400);
+            Response response = getCompoundResponse(cids, "cid", headers.getAcceptableMediaTypes(), expand != null && expand.toLowerCase().equals("true"));
+            return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
@@ -310,9 +341,24 @@ public class BARDCompoundResource extends BARDResource {
     @Path("/sid/{sid}")
     public Response getCompoundBySid(@PathParam("sid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            Response response = getCompoundResponse(resourceId, "sid", headers.getAcceptableMediaTypes(), true);
-            if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
-            else return response;
+            Response response = getCompoundResponse(resourceId, "sid", headers.getAcceptableMediaTypes(), expand != null && expand.toLowerCase().equals("true"));
+            return response;
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @POST
+    @Path("/sid/")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response getCompoundBySid(@FormParam("sids") String sids, @QueryParam("expand") String expand) {
+        try {
+            if (sids == null)
+                throw new WebApplicationException(new Exception("POST request must specify the sids form parameter, which should be a comma separated string of SIDs"), 400);
+            Response response = getCompoundResponse(sids, "sid", headers.getAcceptableMediaTypes(), expand != null && expand.toLowerCase().equals("true"));
+            return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
@@ -324,9 +370,24 @@ public class BARDCompoundResource extends BARDResource {
     @Path("/probeid/{pid}")
     public Response getCompoundByProbeid(@PathParam("pid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
-            Response response = getCompoundResponse(resourceId, "probeid", headers.getAcceptableMediaTypes(), true);
-            if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
-            else return response;
+            Response response = getCompoundResponse(resourceId, "probeid", headers.getAcceptableMediaTypes(), expand != null && expand.toLowerCase().equals("true"));
+            return response;
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @POST
+    @Path("/probeid/{pid}")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response getCompoundByProbeid(@FormParam("pids") String pids, @QueryParam("expand") String expand) {
+        try {
+            if (pids == null)
+                throw new WebApplicationException(new Exception("POST request must specify the pids form parameter, which should be a comma separated string of probe id's"), 400);
+            Response response = getCompoundResponse(pids, "probeid", headers.getAcceptableMediaTypes(), expand != null && expand.toLowerCase().equals("true"));
+            return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
@@ -339,8 +400,7 @@ public class BARDCompoundResource extends BARDResource {
     public Response getCompoundByName(@PathParam("name") String name, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {
             Response response = getCompoundResponse(name, "name", headers.getAcceptableMediaTypes(), expand != null && expand.toLowerCase().equals("true"));
-            if (countRequested && response != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
-            else return response;
+            return response;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
@@ -379,7 +439,7 @@ public class BARDCompoundResource extends BARDResource {
         return response;
     }
 
-    // return alle xperiment data for this CID
+    // return all experiment data for this CID
     @GET
     @Path("/{cid}/exptdata")
     public Response getExperimentData(@PathParam("cid") String resourceId,

@@ -102,6 +102,25 @@ public class DBUtilsTest extends DBTest {
         List<Compound> c = db.getCompoundsByProbeId(probeId);
         Assert.assertNotNull(c);
         Assert.assertEquals(c.size(), 1);
+    }
 
+    @Test
+    public void getMultipleCompoundsByCid() throws SQLException {
+        Long[] ids = new Long[]{419533L, 667555L};
+        List<Compound> c = db.getCompoundsByCid(ids);
+        Assert.assertNotNull(c);
+        Assert.assertEquals(c.size(), 2);
+        Assert.assertEquals((Object) c.get(0).getCid(), 419533L);
+        Assert.assertEquals((Object) c.get(1).getCid(), 667555L);
+    }
+
+    @Test
+    public void getMultipleCompoundsBySid() throws SQLException {
+        Long[] ids = new Long[]{4237471L, 4237472L};
+        List<Compound> c = db.getCompoundsBySid(ids);
+        Assert.assertNotNull(c);
+        Assert.assertEquals(c.size(), 2);
+        Assert.assertEquals((Object) c.get(0).getCid(), 3232584L);
+        Assert.assertEquals((Object) c.get(1).getCid(), 3232585L);
     }
 }

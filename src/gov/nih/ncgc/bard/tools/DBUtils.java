@@ -114,7 +114,6 @@ public class DBUtils {
             return ds.getConnection();
         } catch (Exception e) {
             System.err.println("Not running in Tomcat/Jetty/Glassfish or other app container?");
-            e.printStackTrace();
             return null;
         }
     }
@@ -257,6 +256,7 @@ public class DBUtils {
         List<List<Long>> chunks = Util.chunk(cids, 100);
         List<Compound> compounds = new ArrayList<Compound>();
         for (List<Long> chunk : chunks) {
+
             String cidClause = Util.join(chunk, ",");
             String sql = "select c.*, s.sid from compound c, cid_sid s where c.cid in (" + cidClause + ") and c.cid = s.cid order by c.cid";
             PreparedStatement pst = conn.prepareStatement(sql);
@@ -273,9 +273,11 @@ public class DBUtils {
                 String smiles = rs.getString("iso_smiles");
 
                 if (!first && !cid.equals(oldCid)) {
+                    oldCid = cid;
                     c.setSids(sids);
                     tmp.add(c);
                     sids = new ArrayList<Long>();
+                    c = new Compound();
                 }
                 c.setCid(cid);
                 c.setProbeId(probeId);
@@ -287,6 +289,12 @@ public class DBUtils {
                     first = false;
                 }
             }
+
+            if (sids.size() > 0) {
+                c.setSids(sids);
+                tmp.add(c);
+            }
+
             pst.close();
             compounds.addAll(tmp);
         }
@@ -359,9 +367,11 @@ public class DBUtils {
                 String smiles = rs.getString("iso_smiles");
 
                 if (!first && !cid.equals(oldCid)) {
+                    oldCid = cid;
                     c.setSids(sids);
                     tmp.add(c);
                     sids = new ArrayList<Long>();
+                    c = new Compound();
                 }
                 c.setCid(cid);
                 c.setProbeId(probeId);
@@ -373,6 +383,12 @@ public class DBUtils {
                     first = false;
                 }
             }
+
+            if (sids.size() > 0) {
+                c.setSids(sids);
+                tmp.add(c);
+            }
+
             pst.close();
             compounds.addAll(tmp);
         }
