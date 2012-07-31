@@ -341,7 +341,9 @@ public class DBUtils {
         List<List<String>> chunks = Util.chunk(probeids, 100);
         List<Compound> compounds = new ArrayList<Compound>();
         for (List<String> chunk : chunks) {
-            String probeidClause = Util.join(chunk, ",");
+            List<String> qprobeids = new ArrayList<String>();
+            for (String pid : probeids) qprobeids.add("'" + pid + "'");
+            String probeidClause = Util.join(qprobeids, ",");
             String sql = "select c.*, s.sid from compound c, cid_sid s where probe_id in (" + probeidClause + ") and c.cid = s.cid order by c.cid";
             PreparedStatement pst = conn.prepareStatement(sql);
             ResultSet rs = pst.executeQuery();
