@@ -30,6 +30,24 @@ public class Util {
         return (headers.getRequestHeaders().containsKey(BARDConstants.REQUEST_HEADER_COUNT));
     }
 
+    public static <T> List<List<T>> chunk(T[] array, int chunkSize) {
+        List<List<T>> chunkList = new ArrayList<List<T>>();
+        int n = 0, i = 0;
+        List<T> chunk = new ArrayList<T>();
+        while (n < array.length) {
+            if (i < chunkSize) {
+                chunk.add(array[n++]);
+                i++;
+            } else {
+                chunkList.add(chunk);
+                chunk = new ArrayList<T>();
+                i = 0;
+            }
+        }
+        if (chunk.size() > 0) chunkList.add(chunk);
+        return chunkList;
+    }
+
     public static String toJson(Object o) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         Writer writer = new StringWriter();
