@@ -1147,6 +1147,12 @@ public class DBUtils {
         return p;
     }
 
+    public List<Project> getProjects(Long... projectIds) throws SQLException {
+        List<Project> p = new ArrayList<Project>();
+        for (Long pid : projectIds) p.add(getProject(pid));
+        return p;
+    }
+
     /**
      * Returns a list of {@link Project} objects that are associated with an experiment.
      * <p/>
@@ -1170,6 +1176,16 @@ public class DBUtils {
         }
         pst.close();
         return ps;
+    }
+
+    public List<Project> getProjectByCompoundId(Long cid) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select p.proj_id from project p, experiment e where e.expt_id in (select distinct ed.eid from experiment_data ed, experiment e, compound a where a.cid = ? and ed.cid = a.cid and ed.eid = e.expt_id) and e.proj_id = p.proj_id");
+        pst.setLong(1, cid);
+        ResultSet rs = pst.executeQuery();
+        List<Long> pids = new ArrayList<Long>();
+        while (rs.next()) pids.add(rs.getLong("proj_id"));
+        pst.close();
+        return getProjects(pids.toArray(new Long[]{}));
     }
 
     public List<Long> getProbesForProject(Long aid) throws SQLException {
