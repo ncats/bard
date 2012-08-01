@@ -48,6 +48,24 @@ public class Util {
         return chunkList;
     }
 
+    public static <T> List<List<T>> chunk(List<T> array, int chunkSize) {
+        List<List<T>> chunkList = new ArrayList<List<T>>();
+        int n = 0, i = 0;
+        List<T> chunk = new ArrayList<T>();
+        while (n < array.size()) {
+            if (i < chunkSize) {
+                chunk.add(array.get(n++));
+                i++;
+            } else {
+                chunkList.add(chunk);
+                chunk = new ArrayList<T>();
+                i = 0;
+            }
+        }
+        if (chunk.size() > 0) chunkList.add(chunk);
+        return chunkList;
+    }
+
     public static String toJson(Object o) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         Writer writer = new StringWriter();
