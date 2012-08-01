@@ -6,6 +6,7 @@ import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.OrderedSearchResultHandler;
 import gov.nih.ncgc.bard.tools.Util;
@@ -13,6 +14,8 @@ import gov.nih.ncgc.search.MoleculeService;
 import gov.nih.ncgc.search.SearchParams;
 import gov.nih.ncgc.search.SearchService2;
 import gov.nih.ncgc.util.MolRenderer;
+import gov.nih.ncgc.util.functional.Functional;
+import gov.nih.ncgc.util.functional.IApplyFunction;
 
 import javax.imageio.ImageIO;
 import javax.ws.rs.Consumes;
@@ -436,6 +439,45 @@ public class BARDCompoundResource extends BARDResource {
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
+        return response;
+    }
+
+    @GET
+    @Path("/{cid}/projects")
+    public Response getProjectsForCompound(@PathParam("cid") Long cid, String expand,
+                                           @QueryParam("skip") Integer skip,
+                                           @QueryParam("top") Integer top) throws SQLException, IOException {
+        DBUtils db = new DBUtils();
+        Response response;
+        String linkString = null;
+        List<Project> p = db.getProjectByCompoundId(cid);
+        if (countRequested) response = Response.ok(String.valueOf(p.size())).type(MediaType.TEXT_PLAIN).build();
+
+        if (p.size() > BARDConstants.MAX_DATA_COUNT) {
+            if ((top == -1)) { // top was not specified, so we start from the beginning
+                top = BARDConstants.MAX_DATA_COUNT;
+            }
+            if (skip == -1) skip = 0;
+            String expandClause = "expand=false";
+            if (expandEntries(expand)) expandClause = "expand=true";
+            if (skip + top <= p.size())
+                linkString = BARDConstants.API_BASE + "/compounds/" + cid + "/projects?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+        }
+
+        if (!expandEntries(expand)) {
+            List<String> links = Functional.Apply(p, new IApplyFunction<Project, String>() {
+                public String eval(Project project) {
+                    return project.getResourcePath();
+                }
+            });
+            BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+            response = Response.ok(Util.toJson(linkedEntity)).type(MediaType.APPLICATION_JSON).build();
+        } else {
+            BardLinkedEntity linkedEntity = new BardLinkedEntity(p, linkString);
+            response = Response.ok(Util.toJson(linkedEntity)).type(MediaType.APPLICATION_JSON).build();
+        }
+
+        db.closeConnection();
         return response;
     }
 

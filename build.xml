@@ -110,6 +110,7 @@
         <!--<copy file="${bard.lib}/jersey-server-1.12.jar" tofile="${bard.explode.dir}/WEB-INF/lib/jersey-server-1.12.jar"/>-->
         <!--<copy file="${bard.lib}/jsr311-api-1.1.1.jar" tofile="${bard.explode.dir}/WEB-INF/lib/jsr311-api-1.1.1.jar"/>-->
         <copy file="${bard.lib}/molrenderer.jar" tofile="${bard.explode.dir}/WEB-INF/lib/molrenderer.jar"/>
+        <copy file="${bard.lib}/functional.jar" tofile="${bard.explode.dir}/WEB-INF/lib/functional.jar"/>
         <copy file="${bard.lib}/xom-1.2.5.jar" tofile="${bard.explode.dir}/WEB-INF/lib/xom-1.2.5.jar"/>
         <copy file="${bard.lib}/asm-3.1.jar" tofile="${bard.explode.dir}/WEB-INF/lib/asm-3.1.jar"/>
         <copy file="${bard.lib}/jackson-core-2.0.0.jar"
