@@ -497,31 +497,31 @@ public class BARDCompoundResource extends BARDResource {
         if (top == null) top = -1;
 
         try {
-            Experiment experiemnt = db.getExperimentByExptId(Long.valueOf(resourceId));
+            List<Long> edids = db.getCompoundDataIds(Long.valueOf(resourceId), skip, top);
 
-            // set up skip and top params
-            if (experiemnt.getSubstances() > BARDConstants.MAX_DATA_COUNT) {
-                if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_DATA_COUNT;
-                }
-                if (skip == -1) skip = 0;
-                String expandClause = "expand=false";
-                if (expandEntries(expand)) expandClause = "expand=true";
-                if (skip + top <= experiemnt.getSubstances())
-                    linkString = BARDConstants.API_BASE + "/compounds/" + resourceId + "/exptdata?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
-            }
+//            // set up skip and top params
+//            if (experiemnt.getSubstances() > BARDConstants.MAX_DATA_COUNT) {
+//                if ((top == -1)) { // top was not specified, so we start from the beginning
+//                    top = BARDConstants.MAX_DATA_COUNT;
+//                }
+//                if (skip == -1) skip = 0;
+//                String expandClause = "expand=false";
+//                if (expandEntries(expand)) expandClause = "expand=true";
+//                if (skip + top <= experiemnt.getSubstances())
+//                    linkString = BARDConstants.API_BASE + "/compounds/" + resourceId + "/exptdata?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+//            }
 
             String json;
             if (!expandEntries(expand)) {
-                List<Long> edids = db.getCompoundDataIds(Long.valueOf(resourceId), skip, top);
                 if (countRequested) json = String.valueOf(edids.size());
                 else {
-                    List<String> links = new ArrayList<String>();
-                    for (Long edid : edids) {
-                        ExperimentData ed = new ExperimentData();
-                        ed.setExptDataId(edid);
-                        links.add(ed.getResourcePath());
-                    }
+                    List<String> links = Functional.Apply(edids, new IApplyFunction<Long, String>() {
+                        public String eval(Long aLong) {
+                            ExperimentData ed = new ExperimentData();
+                            ed.setExptDataId(aLong);
+                            return ed.getResourcePath();
+                        }
+                    });
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
                     json = Util.toJson(linkedEntity);
                 }
