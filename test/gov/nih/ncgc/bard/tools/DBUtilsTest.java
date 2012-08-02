@@ -123,4 +123,14 @@ public class DBUtilsTest extends DBTest {
         Assert.assertEquals((Object) c.get(0).getCid(), 3232584L);
         Assert.assertEquals((Object) c.get(1).getCid(), 3232585L);
     }
+
+    @Test
+    public void getExplainInfo() throws SQLException {
+        int n1 = db.getEstimatedRowCount("explain select * from compound");
+        int n2 = db.getEstimatedRowCount("explain select * from compound where mw < 100");
+        System.out.println("n1 = " + n1);
+        System.out.println("n2 = " + n2);
+        Assert.assertTrue(n1 > 0);
+        Assert.assertTrue(n2 > 0);
+    }
 }

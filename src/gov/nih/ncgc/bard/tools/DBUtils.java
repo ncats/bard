@@ -1317,4 +1317,42 @@ public class DBUtils {
         return entities;
     }
 
+    /**
+     * Get an estimated of the rows to be returned by a query.
+     * <p/>
+     * This obtains a rough row count via MySQL's EXPLAIN functionality
+     *
+     * @param query The SQL query
+     * @return the number of estimated rows
+     * @throws SQLException
+     */
+    public int getEstimatedRowCount(String query) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement(query);
+        ResultSet rs = pst.executeQuery();
+        int nrow = -1;
+        while (rs.next()) {
+            nrow = rs.getInt("rows");
+        }
+        pst.close();
+        return nrow;
+    }
+
+    /**
+     * Get an estimated of the rows to be returned by a query.
+     * <p/>
+     * This obtains a rough row count via MySQL's EXPLAIN functionality
+     *
+     * @param query The SQL query
+     * @return the number of estimated rows
+     * @throws SQLException
+     */
+    public int getEstimatedRowCount(PreparedStatement query) throws SQLException {
+        ResultSet rs = query.executeQuery();
+        int nrow = -1;
+        while (rs.next()) {
+            nrow = rs.getInt("rows");
+        }
+        return nrow;
+    }
+
 }
