@@ -127,9 +127,7 @@ public class DBUtilsTest extends DBTest {
     @Test
     public void getExplainInfo() throws SQLException {
         int n1 = db.getEstimatedRowCount("explain select * from compound");
-        int n2 = db.getEstimatedRowCount("explain select * from compound where mw < 100");
-        System.out.println("n1 = " + n1);
-        System.out.println("n2 = " + n2);
+        int n2 = db.getEstimatedRowCount("explain select * from compound where cid < 100");
         Assert.assertTrue(n1 > 0);
         Assert.assertTrue(n2 > 0);
     }
