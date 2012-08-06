@@ -63,6 +63,19 @@
             <classpath refid="compile.classpath"/>
         </javac>
     </target>
+    <target name='jar-capextract' id='jar-capextract' depends="compile-capextract">
+        <jar destfile="${bard.deploy}/capextract.jar" duplicate="preserve">
+            <manifest>
+                <attribute name="Created-By" value="NCGC"/>
+                <attribute name="Manifest-Version" value="1.0"/>
+                <attribute name="Main-Class" value="gov.nih.ncgc.bard.capextract.CAPExtractor"/>
+            </manifest>
+            <fileset dir="${bard.build}" casesensitive="yes">
+                <include name="**/*"/>
+            </fileset>
+        </jar>
+    </target>
+
 
     <target name='compile-rest' id='compile-rest'>
         <mkdir dir="${bard.build}"/>
