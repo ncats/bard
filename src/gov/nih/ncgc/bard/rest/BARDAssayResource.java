@@ -35,7 +35,7 @@ import java.util.List;
  *
  * @author Rajarshi Guha
  */
-@Path("/v1/assays")
+@Path("/assays")
 public class BARDAssayResource implements IBARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";

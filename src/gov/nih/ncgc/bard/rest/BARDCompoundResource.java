@@ -50,7 +50,7 @@ import java.util.Map;
  *
  * @author Rajarshi Guha
  */
-@Path("/v1/compounds")
+@Path("/compounds")
 public class BARDCompoundResource extends BARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";

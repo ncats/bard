@@ -28,7 +28,7 @@ import java.util.List;
  *
  * @author Rajarshi Guha
  */
-@Path("/v1/projects")
+@Path("/projects")
 public class BARDProjectResource extends BARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";

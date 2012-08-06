@@ -15,7 +15,7 @@ import java.util.List;
  *
  * @author Rajarshi Guha
  */
-@Path("/v1/plugins/registry")
+@Path("/plugins/registry")
 public class BARDPluginRegistryResource implements IBARDResource {
 
     @GET

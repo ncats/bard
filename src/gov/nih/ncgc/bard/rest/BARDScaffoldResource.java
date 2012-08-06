@@ -21,7 +21,7 @@ import java.util.List;
  *
  * @author Rajarshi Guha
  */
-@Path("/v1/scaffolds")
+@Path("/scaffolds")
 public class BARDScaffoldResource implements IBARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";

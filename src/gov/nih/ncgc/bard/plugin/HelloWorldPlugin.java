@@ -15,7 +15,7 @@ import java.util.List;
  *
  * @author Rajarshi Guha
  */
-@Path("/v1/plugins/hworld")
+@Path("/plugins/hworld")
 public class HelloWorldPlugin implements IPlugin {
     private static final String VERSION = "1.0";
 

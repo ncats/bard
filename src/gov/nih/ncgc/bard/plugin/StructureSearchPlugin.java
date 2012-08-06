@@ -39,7 +39,7 @@ import java.util.List;
  *
  * @author Rajarshi Guha
  */
-@Path("/v1/plugins/ss")
+@Path("/plugins/ss")
 public class StructureSearchPlugin implements IPlugin {
     static final String VERSION = "1.0";
 

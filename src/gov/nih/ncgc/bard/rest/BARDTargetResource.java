@@ -33,7 +33,7 @@ import java.util.List;
  *
  * @author Rajarshi Guha
  */
-@Path("/v1/targets")
+@Path("/targets")
 public class BARDTargetResource extends BARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";

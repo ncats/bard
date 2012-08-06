@@ -30,7 +30,7 @@ import java.util.List;
  *
  * @author Rajarshi Guha
  */
-@Path("/v1/plugins/csls")
+@Path("/plugins/csls")
 public class CSLSPlugin implements IPlugin {
     private static final String VERSION = "1.0";
 
