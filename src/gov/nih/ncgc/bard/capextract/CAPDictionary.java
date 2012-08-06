@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.capextract;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Set;
@@ -14,7 +15,9 @@ import java.util.Set;
  *
  * @author Rajarshi Guha
  */
-public class CAPDictionary {
+public class CAPDictionary implements Serializable {
+    static final long serialVersionUID = 5435103181432997247L;
+
     Set<CAPDictionaryElement> nodes;
     Set<Edge> inEdges, outEdges;
 
@@ -107,7 +110,9 @@ public class CAPDictionary {
     }
 
 
-    class Edge {
+    class Edge implements Serializable {
+        static final long serialVersionUID = -964324348571286627L;
+
         CAPDictionaryElement from, to;
         Object data;
 

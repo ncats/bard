@@ -3,12 +3,16 @@ package gov.nih.ncgc.bard.capextract.handler;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Dictionary;
 import gov.nih.ncgc.bard.capextract.jaxb.Element;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -65,6 +69,29 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
 
         // ok'we got everything we need. Lets make it available globally
         CAPConstants.setDictionary(dict);
+
+        // serialize this to the db
+        Connection conn = null;
+        PreparedStatement pst;
+        java.util.Date today = null;
+        try {
+            conn = CAPUtil.connectToBARD();
+            pst = conn.prepareStatement("INSERT INTO cap_dict(ins_date, dict) VALUES (?, ?)");
+            today = new java.util.Date();
+            pst.setDate(1, new java.sql.Date(today.getTime()));
+            pst.setObject(2, dict);
+            pst.executeUpdate();
+            pst.close();
+            conn.commit();
+            conn.close();
+            log.info("Serialized dictionary to database");
+        } catch (com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException e) {
+            if (e.getMessage().indexOf("Duplicate entry") >= 0) {
+                log.warn("Already have a serialized dictionary for " + today + ", so not inserting");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
 
         // TODO should handle resultType, units and descriptors
     }

@@ -2,12 +2,15 @@ package gov.nih.ncgc.bard.capextract;
 
 import gov.nih.ncgc.bard.capextract.jaxb.Element;
 
+import java.io.Serializable;
+
 /**
  * A one line summary.
  *
  * @author Rajarshi Guha
  */
-public class CAPDictionaryElement extends Element {
+public class CAPDictionaryElement extends Element implements Serializable {
+    static final long serialVersionUID = -2501351369113941117L;
 
     public CAPDictionaryElement(Element e) {
         abbreviation = e.getAbbreviation();
