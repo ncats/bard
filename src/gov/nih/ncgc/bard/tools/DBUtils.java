@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardEntity;
 import gov.nih.ncgc.bard.entity.Compound;
@@ -15,7 +16,9 @@ import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 
 import javax.sql.DataSource;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Reader;
 import java.sql.Blob;
 import java.sql.Connection;
@@ -1315,6 +1318,20 @@ public class DBUtils {
         }
         pst.close();
         return entities;
+    }
+
+    public CAPDictionary getCAPDictionary() throws SQLException, IOException, ClassNotFoundException {
+        PreparedStatement pst = conn.prepareStatement("select dict from cap_dict order by ins_date desc");
+        ResultSet rs = pst.executeQuery();
+        rs.next();
+        byte[] buf = rs.getBytes(1);
+        ObjectInputStream objectIn = null;
+        if (buf != null)
+            objectIn = new ObjectInputStream(new ByteArrayInputStream(buf));
+        Object o = objectIn.readObject();
+        pst.close();
+        if (!(o instanceof CAPDictionary)) return null;
+        return (CAPDictionary) o;
     }
 
     /**

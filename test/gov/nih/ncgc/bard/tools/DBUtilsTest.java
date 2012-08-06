@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.tools;
 
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardEntity;
 import gov.nih.ncgc.bard.entity.Compound;
@@ -130,5 +131,12 @@ public class DBUtilsTest extends DBTest {
         int n2 = db.getEstimatedRowCount("explain select * from compound where cid < 100");
         Assert.assertTrue(n1 > 0);
         Assert.assertTrue(n2 > 0);
+    }
+
+    @Test
+    public void getCAPDict() throws SQLException, ClassNotFoundException, IOException {
+        CAPDictionary d = db.getCAPDictionary();
+        Assert.assertNotNull(d);
+        Assert.assertEquals(678, d.getNodes().size());
     }
 }
