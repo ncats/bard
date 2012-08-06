@@ -44,7 +44,8 @@ public class AssaysHandler extends CapResourceHandler implements ICapResourceHan
             log.info("\t" + title + "/" + type + "/ href = " + href);
 
             // for now lets just handle a few specific assays
-            if (href.endsWith("/1640")) {
+//            if (href.endsWith("/1640")) {
+            if (true) {
                 ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.ASSAY);
                 if (handler != null) handler.process(href, CAPConstants.CapResource.ASSAY);
             }

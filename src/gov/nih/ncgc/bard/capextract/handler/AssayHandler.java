@@ -1,12 +1,17 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Assay;
 import gov.nih.ncgc.bard.capextract.jaxb.AssayDocument;
+import gov.nih.ncgc.bard.tools.Util;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,7 +57,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             List<Assay.MeasureContexts.MeasureContext> mcs = assay.getMeasureContexts().getMeasureContext();
             for (Assay.MeasureContexts.MeasureContext mc : mcs) {
                 String contextName = mc.getContextName();
-                System.out.println("contextName = " + contextName);
+//                System.out.println("contextName = " + contextName);
             }
         }
 
@@ -75,13 +80,10 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 if (mciaid != null) attrid = mciaid.getLink().getHref();
                 String extid = mci.getExtValueId();
 
-                CAPAssayAnnotation anno = new CAPAssayAnnotation(id.toString(), refid.toString(), displayValue, contextref, attrid, valueid, extid);
+                CAPAssayAnnotation anno = new CAPAssayAnnotation(id.toString(), refid != null ? refid.toString() : null, displayValue, contextref, attrid, valueid, extid);
                 annos.put(id.toString(), anno);
-
-                System.out.println(anno);
             }
         }
-        System.out.println("------------");
         log.info("\tGot " + annos.size() + " annotations");
 
         // ok, we have a list of annotations, now we reconstruct the groups
@@ -90,7 +92,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             String id = anno.id;
             String refid = anno.refId;
 
-            if (refid.equals(id)) refid = null;
+            if (refid != null && refid.equals(id)) refid = null;
 
             if (refid != null) {
                 if (annogrps.containsKey(refid)) {
@@ -107,13 +109,11 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             }
         }
         log.info("\tReconstructed annotation groups and got " + annogrps.size() + " groups");
-        for (String key : annogrps.keySet()) {
-            System.out.print(key + ": ");
-            for (String s : annogrps.get(key)) System.out.print(s + " ");
-            System.out.println("\n");
-        }
-        System.out.println("----------");
-
+//        for (String key : annogrps.keySet()) {
+//            System.out.print(key + ": ");
+//            for (String s : annogrps.get(key)) System.out.print(s + " ");
+//            System.out.println("\n");
+//        }
 
         // at this stage we have a list of annotations and we have groups of annotations
         // as we write each annotation to the db, we want to list the other annotations in
@@ -126,16 +126,59 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             tmp.addAll(annogrps.get(key));
             flatgrps.add(tmp);
         }
-        for (List<String> ls : flatgrps) {
-            for (String s : ls) System.out.print(s + " ");
-            System.out.println();
-        }
+//        for (List<String> ls : flatgrps) {
+//            for (String s : ls) System.out.print(s + " ");
+//            System.out.println();
+//        }
         log.info("\tFlattened annotations into " + flatgrps.size() + " groups");
 
         // at this point we can dump annos to the db. Importantly, we store annotations
         // such that instead of the MeasureContextItemId identifiers, we resolve the
         // annotations to sets of dictionary identifiers. This means when recording related
         // annotations, we actually record related dictionary identifiers
+        try {
+            Connection conn = CAPUtil.connectToBARD();
+            PreparedStatement pst = conn.prepareStatement("insert into cap_annotation (entity, source,  assay_id, anno_id, anno_key, anno_value, anno_display, related) values('assay', 'cap', ?,?,?, ?,?,?)");
+            for (CAPAssayAnnotation anno : annos.values()) {
+                if (anno.contextRef != null) continue;
+
+                pst.setInt(1, aid.intValue());
+                pst.setString(2, anno.id);
+
+                String[] toks = anno.attrId.split("/");
+                pst.setString(3, toks[toks.length - 1]);
+
+                String value = null;
+                if (anno.valueId != null) {
+                    toks = anno.valueId.split("/");
+                    value = toks[toks.length - 1];
+                }
+                pst.setString(4, value);
+
+                pst.setString(5, anno.display);
+
+                String related = null;
+                for (List<String> ls : flatgrps) {
+                    if (ls.contains(anno.id)) {
+                        related = Util.join(ls, ",");
+                        break;
+                    }
+                }
+                pst.setString(6, related);
+
+                pst.addBatch();
+            }
+            int[] updateCounts = pst.executeBatch();
+            conn.commit();
+            pst.close();
+            conn.close();
+            log.info("\tInserted " + updateCounts.length + " annotations (non context-ref) for aid " + aid);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            log.error("Error inserting annotations for aid " + aid + "\n" + e.getMessage());
+        }
+
+
         /* looking at measures */
         Assay.Measures measures = assay.getMeasures();
         if (measures != null) {
