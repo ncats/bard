@@ -2,6 +2,9 @@ package gov.nih.ncgc.bard.rest;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
@@ -23,6 +26,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -135,6 +139,36 @@ public class BARDAssayResource implements IBARDResource {
         try {
             a = db.getAssayByAid(Long.valueOf(resourceId));
             if (a.getAid() == null) throw new WebApplicationException(404);
+            String json = Util.toJson(a);
+            db.closeConnection();
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
+    @Path("/{aid}/annotations")
+    public Response getAnnotations(@PathParam("aid") Long resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
+        DBUtils db = new DBUtils();
+        List<CAPAssayAnnotation> a;
+        CAPDictionary dict = db.getCAPDictionary();
+        try {
+            a = db.getAssayAnnotation(resourceId);
+            if (a == null) throw new WebApplicationException(404);
+            CAPDictionaryElement node;
+            for (CAPAssayAnnotation as : a) {
+                if (as.attrId != null) {
+                    node = dict.getNode(new BigInteger(as.attrId));
+                    as.attrId = node != null ? node.getLabel() : as.attrId;
+                }
+                if (as.valueId != null) {
+                    node = dict.getNode(new BigInteger(as.valueId));
+                    as.valueId = node != null ? node.getLabel() : as.valueId;
+                }
+            }
             String json = Util.toJson(a);
             db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();

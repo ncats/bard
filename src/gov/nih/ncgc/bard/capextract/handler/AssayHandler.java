@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
+import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
@@ -189,35 +190,35 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
     }
 
 
-    static class CAPAssayAnnotation {
-        String id, refId = null, display;
-        String contextRef = null;
-        String attrId, valueId; // refers to a dict element
-        String extValueId = null; // when dict element points to ext resource (e.g. Entrez Gene) this is the identifier within that resource
-
-        CAPAssayAnnotation(String id, String refId, String display, String contextRef, String attrId, String valueId, String extValueId) {
-            this.id = id;
-            this.refId = refId;
-            this.display = display;
-            this.contextRef = contextRef;
-            this.attrId = attrId;
-            this.valueId = valueId;
-            this.extValueId = extValueId;
-        }
-
-        CAPAssayAnnotation() {
-        }
-
-        @Override
-        public String toString() {
-            return "CAPAssayAnnotation{" +
-                    "id='" + id + '\'' +
-                    ", refId='" + refId + '\'' +
-                    ", display='" + display + '\'' +
-                    ", contextRef='" + contextRef + '\'' +
-                    ", attrId='" + attrId + '\'' +
-                    ", valueId='" + valueId + '\'' +
-                    '}';
-        }
-    }
+//    static class CAPAssayAnnotation {
+//        String id, refId = null, display;
+//        String contextRef = null;
+//        String attrId, valueId; // refers to a dict element
+//        String extValueId = null; // when dict element points to ext resource (e.g. Entrez Gene) this is the identifier within that resource
+//
+//        CAPAssayAnnotation(String id, String refId, String display, String contextRef, String attrId, String valueId, String extValueId) {
+//            this.id = id;
+//            this.refId = refId;
+//            this.display = display;
+//            this.contextRef = contextRef;
+//            this.attrId = attrId;
+//            this.valueId = valueId;
+//            this.extValueId = extValueId;
+//        }
+//
+//        CAPAssayAnnotation() {
+//        }
+//
+//        @Override
+//        public String toString() {
+//            return "CAPAssayAnnotation{" +
+//                    "id='" + id + '\'' +
+//                    ", refId='" + refId + '\'' +
+//                    ", display='" + display + '\'' +
+//                    ", contextRef='" + contextRef + '\'' +
+//                    ", attrId='" + attrId + '\'' +
+//                    ", valueId='" + valueId + '\'' +
+//                    '}';
+//        }
+//    }
 }
