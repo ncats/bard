@@ -19,7 +19,23 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A one line summary.
+ * Process CAP <code>Assay</code> elements.
+ * <p/>
+ * Currently, the class focuses on extracting and inserting assay annotations (and furthermore, ignores
+ * those annotations that have non-null measureContext's associated with them).
+ * <p/>
+ * Since annotations from CAP contain more information that just key/value pairs, we dump the extra stuff
+ * into the <code>related</code> field in the <code>cap_annotation</code> table. Specifically, the field is
+ * a '|' separated string. The first element will be a comma separated list of related annotation id's (for
+ * the given assay id) and the second element, if present, is an external identifier that is relevant for
+ * dictionary elements that point to external resources. An example would be an external identifier of
+ * <code>9606</code> that is associated with the dictionary element for taxon, which uses the Entrez T
+ * Taxonomy database to resolve these identifiers.
+ * <p/>
+ * In general it appears that these external identifiers are associated with the attrId dictionary element.
+ * <p/>
+ * Thus annotation key/value identifiers should be resolved
+ * using the {@link gov.nih.ncgc.bard.capextract.CAPDictionary}.
  *
  * @author Rajarshi Guha
  */
@@ -110,11 +126,6 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             }
         }
         log.info("\tReconstructed annotation groups and got " + annogrps.size() + " groups");
-//        for (String key : annogrps.keySet()) {
-//            System.out.print(key + ": ");
-//            for (String s : annogrps.get(key)) System.out.print(s + " ");
-//            System.out.println("\n");
-//        }
 
         // at this stage we have a list of annotations and we have groups of annotations
         // as we write each annotation to the db, we want to list the other annotations in
@@ -127,10 +138,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             tmp.addAll(annogrps.get(key));
             flatgrps.add(tmp);
         }
-//        for (List<String> ls : flatgrps) {
-//            for (String s : ls) System.out.print(s + " ");
-//            System.out.println();
-//        }
+
         log.info("\tFlattened annotations into " + flatgrps.size() + " groups");
 
         // at this point we can dump annos to the db. Importantly, we store annotations
@@ -165,6 +173,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                         break;
                     }
                 }
+                if (anno.extValueId != null) related = related + "|" + anno.extValueId;
                 pst.setString(6, related);
 
                 pst.addBatch();
@@ -188,37 +197,4 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             }
         }
     }
-
-
-//    static class CAPAssayAnnotation {
-//        String id, refId = null, display;
-//        String contextRef = null;
-//        String attrId, valueId; // refers to a dict element
-//        String extValueId = null; // when dict element points to ext resource (e.g. Entrez Gene) this is the identifier within that resource
-//
-//        CAPAssayAnnotation(String id, String refId, String display, String contextRef, String attrId, String valueId, String extValueId) {
-//            this.id = id;
-//            this.refId = refId;
-//            this.display = display;
-//            this.contextRef = contextRef;
-//            this.attrId = attrId;
-//            this.valueId = valueId;
-//            this.extValueId = extValueId;
-//        }
-//
-//        CAPAssayAnnotation() {
-//        }
-//
-//        @Override
-//        public String toString() {
-//            return "CAPAssayAnnotation{" +
-//                    "id='" + id + '\'' +
-//                    ", refId='" + refId + '\'' +
-//                    ", display='" + display + '\'' +
-//                    ", contextRef='" + contextRef + '\'' +
-//                    ", attrId='" + attrId + '\'' +
-//                    ", valueId='" + valueId + '\'' +
-//                    '}';
-//        }
-//    }
 }

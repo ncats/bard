@@ -148,7 +148,7 @@ public class DBUtilsTest extends DBTest {
 
     @Test
     public void getCAPAnnots() throws SQLException {
-        List<CAPAssayAnnotation> as = db.getAssayAnnotation(75L);
+        List<CAPAssayAnnotation> as = db.getAssayAnnotations(75L);
         Assert.assertNotNull(as);
         Assert.assertEquals(8, as.size());
     }

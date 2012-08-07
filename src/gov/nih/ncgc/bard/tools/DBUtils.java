@@ -1329,7 +1329,7 @@ public class DBUtils {
      * ************************************************************************
      */
 
-    public List<CAPAssayAnnotation> getAssayAnnotation(Long assayId) throws SQLException {
+    public List<CAPAssayAnnotation> getAssayAnnotations(Long assayId) throws SQLException {
         PreparedStatement pst = conn.prepareStatement("select * from cap_annotation where assay_id = ?");
         pst.setLong(1, assayId);
         ResultSet rs = pst.executeQuery();
@@ -1339,7 +1339,15 @@ public class DBUtils {
             String anno_key = rs.getString("anno_key");
             String anno_value = rs.getString("anno_value");
             String anno_display = rs.getString("anno_display");
-            CAPAssayAnnotation anno = new CAPAssayAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, null);
+            String source = rs.getString("source");
+
+            String related = rs.getString("related");
+            String extValueId = null;
+            if (related != null && !related.trim().equals("")) {
+                String[] toks = related.split("\\|");
+                if (toks.length == 2) extValueId = toks[1];
+            }
+            CAPAssayAnnotation anno = new CAPAssayAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source);
             annos.add(anno);
         }
         pst.close();

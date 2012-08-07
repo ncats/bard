@@ -156,7 +156,7 @@ public class BARDAssayResource implements IBARDResource {
         List<CAPAssayAnnotation> a;
         CAPDictionary dict = db.getCAPDictionary();
         try {
-            a = db.getAssayAnnotation(resourceId);
+            a = db.getAssayAnnotations(resourceId);
             if (a == null) throw new WebApplicationException(404);
             CAPDictionaryElement node;
             for (CAPAssayAnnotation as : a) {
