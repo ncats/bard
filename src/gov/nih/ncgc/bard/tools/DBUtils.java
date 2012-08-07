@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardEntity;
@@ -1318,6 +1319,31 @@ public class DBUtils {
         }
         pst.close();
         return entities;
+    }
+
+    /**
+     * **********************************************************************
+     * <p/>
+     * CAP related methods (dictionary, annotations)
+     * <p/>
+     * ************************************************************************
+     */
+
+    public List<CAPAssayAnnotation> getAssayAnnotation(Long assayId) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select * from cap_annotation where assay_id = ?");
+        pst.setLong(1, assayId);
+        ResultSet rs = pst.executeQuery();
+        List<CAPAssayAnnotation> annos = new ArrayList<CAPAssayAnnotation>();
+        while (rs.next()) {
+            String anno_id = rs.getString("anno_id");
+            String anno_key = rs.getString("anno_key");
+            String anno_value = rs.getString("anno_value");
+            String anno_display = rs.getString("anno_display");
+            CAPAssayAnnotation anno = new CAPAssayAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, null);
+            annos.add(anno);
+        }
+        pst.close();
+        return annos;
     }
 
     public CAPDictionary getCAPDictionary() throws SQLException, IOException, ClassNotFoundException {

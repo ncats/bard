@@ -1,6 +1,8 @@
 package gov.nih.ncgc.bard.tools;
 
+import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardEntity;
 import gov.nih.ncgc.bard.entity.Compound;
@@ -13,6 +15,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A one line summary.
@@ -138,5 +141,15 @@ public class DBUtilsTest extends DBTest {
         CAPDictionary d = db.getCAPDictionary();
         Assert.assertNotNull(d);
         Assert.assertEquals(678, d.getNodes().size());
+
+        Set<CAPDictionaryElement> nodes = d.getNodes();
+        for (CAPDictionaryElement node : nodes) Assert.assertNotNull(node.getLabel());
+    }
+
+    @Test
+    public void getCAPAnnots() throws SQLException {
+        List<CAPAssayAnnotation> as = db.getAssayAnnotation(75L);
+        Assert.assertNotNull(as);
+        Assert.assertEquals(8, as.size());
     }
 }

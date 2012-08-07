@@ -62,8 +62,9 @@ public class CAPDictionary implements Serializable {
     }
 
     public CAPDictionaryElement getNode(BigInteger id) {
+        if (nodes == null || id == null) return null;
         for (CAPDictionaryElement node : nodes) {
-            if (node.getElementId().equals(id)) return node;
+            if (node.getElementId() != null && node.getElementId().equals(id)) return node;
         }
         return null;
     }
