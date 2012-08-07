@@ -160,13 +160,13 @@ public class BARDAssayResource implements IBARDResource {
             if (a == null) throw new WebApplicationException(404);
             CAPDictionaryElement node;
             for (CAPAssayAnnotation as : a) {
-                if (as.attrId != null) {
-                    node = dict.getNode(new BigInteger(as.attrId));
-                    as.attrId = node != null ? node.getLabel() : as.attrId;
+                if (as.key != null) {
+                    node = dict.getNode(new BigInteger(as.key));
+                    as.key = node != null ? node.getLabel() : as.key;
                 }
-                if (as.valueId != null) {
-                    node = dict.getNode(new BigInteger(as.valueId));
-                    as.valueId = node != null ? node.getLabel() : as.valueId;
+                if (as.value != null) {
+                    node = dict.getNode(new BigInteger(as.value));
+                    as.value = node != null ? node.getLabel() : as.value;
                 }
             }
             String json = Util.toJson(a);

@@ -32,7 +32,7 @@ import java.util.Map;
  * <code>9606</code> that is associated with the dictionary element for taxon, which uses the Entrez T
  * Taxonomy database to resolve these identifiers.
  * <p/>
- * In general it appears that these external identifiers are associated with the attrId dictionary element.
+ * In general it appears that these external identifiers are associated with the key dictionary element.
  * <p/>
  * Thus annotation key/value identifiers should be resolved
  * using the {@link gov.nih.ncgc.bard.capextract.CAPDictionary}.
@@ -97,7 +97,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 if (mciaid != null) attrid = mciaid.getLink().getHref();
                 String extid = mci.getExtValueId();
 
-                CAPAssayAnnotation anno = new CAPAssayAnnotation(id.toString(), refid != null ? refid.toString() : null, displayValue, contextref, attrid, valueid, extid);
+                CAPAssayAnnotation anno = new CAPAssayAnnotation(id.toString(), refid != null ? refid.toString() : null, displayValue, contextref, attrid, valueid, extid, "cap");
                 annos.put(id.toString(), anno);
             }
         }
@@ -154,12 +154,12 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 pst.setInt(1, aid.intValue());
                 pst.setString(2, anno.id);
 
-                String[] toks = anno.attrId.split("/");
+                String[] toks = anno.key.split("/");
                 pst.setString(3, toks[toks.length - 1]);
 
                 String value = null;
-                if (anno.valueId != null) {
-                    toks = anno.valueId.split("/");
+                if (anno.value != null) {
+                    toks = anno.value.split("/");
                     value = toks[toks.length - 1];
                 }
                 pst.setString(4, value);

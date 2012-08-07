@@ -8,22 +8,22 @@
 
 package gov.nih.ncgc.bard.capextract.jaxb;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
  * <p>Java class for anonymous complex type.
- * 
+ * <p/>
  * <p>The following schema fragment specifies the expected content contained within this class.
- * 
+ * <p/>
  * <pre>
  * &lt;complexType>
  *   &lt;complexContent>
@@ -114,7 +114,7 @@ import javax.xml.bind.annotation.XmlType;
  *                       &lt;complexContent>
  *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *                           &lt;sequence>
- *                             &lt;element name="valueId" minOccurs="0">
+ *                             &lt;element name="value" minOccurs="0">
  *                               &lt;complexType>
  *                                 &lt;complexContent>
  *                                   &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
@@ -212,18 +212,16 @@ import javax.xml.bind.annotation.XmlType;
  *   &lt;/complexContent>
  * &lt;/complexType>
  * </pre>
- * 
- * 
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = {
-    "assayName",
-    "designedBy",
-    "measureContexts",
-    "measures",
-    "measureContextItems",
-    "assayDocuments",
-    "link"
+        "assayName",
+        "designedBy",
+        "measureContexts",
+        "measures",
+        "measureContextItems",
+        "assayDocuments",
+        "link"
 })
 @XmlRootElement(name = "assay")
 public class Assay {
@@ -250,11 +248,9 @@ public class Assay {
 
     /**
      * Gets the value of the assayName property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
+     *
+     * @return possible object is
+     *         {@link String }
      */
     public String getAssayName() {
         return assayName;
@@ -262,11 +258,9 @@ public class Assay {
 
     /**
      * Sets the value of the assayName property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
+     *
+     * @param value allowed object is
+     *              {@link String }
      */
     public void setAssayName(String value) {
         this.assayName = value;
@@ -274,11 +268,9 @@ public class Assay {
 
     /**
      * Gets the value of the designedBy property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
+     *
+     * @return possible object is
+     *         {@link String }
      */
     public String getDesignedBy() {
         return designedBy;
@@ -286,11 +278,9 @@ public class Assay {
 
     /**
      * Sets the value of the designedBy property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
+     *
+     * @param value allowed object is
+     *              {@link String }
      */
     public void setDesignedBy(String value) {
         this.designedBy = value;
@@ -298,11 +288,9 @@ public class Assay {
 
     /**
      * Gets the value of the measureContexts property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link Assay.MeasureContexts }
-     *     
+     *
+     * @return possible object is
+     *         {@link Assay.MeasureContexts }
      */
     public Assay.MeasureContexts getMeasureContexts() {
         return measureContexts;
@@ -310,11 +298,9 @@ public class Assay {
 
     /**
      * Sets the value of the measureContexts property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link Assay.MeasureContexts }
-     *     
+     *
+     * @param value allowed object is
+     *              {@link Assay.MeasureContexts }
      */
     public void setMeasureContexts(Assay.MeasureContexts value) {
         this.measureContexts = value;
@@ -322,11 +308,9 @@ public class Assay {
 
     /**
      * Gets the value of the measures property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link Assay.Measures }
-     *     
+     *
+     * @return possible object is
+     *         {@link Assay.Measures }
      */
     public Assay.Measures getMeasures() {
         return measures;
@@ -334,11 +318,9 @@ public class Assay {
 
     /**
      * Sets the value of the measures property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link Assay.Measures }
-     *     
+     *
+     * @param value allowed object is
+     *              {@link Assay.Measures }
      */
     public void setMeasures(Assay.Measures value) {
         this.measures = value;
@@ -346,11 +328,9 @@ public class Assay {
 
     /**
      * Gets the value of the measureContextItems property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link Assay.MeasureContextItems }
-     *     
+     *
+     * @return possible object is
+     *         {@link Assay.MeasureContextItems }
      */
     public Assay.MeasureContextItems getMeasureContextItems() {
         return measureContextItems;
@@ -358,11 +338,9 @@ public class Assay {
 
     /**
      * Sets the value of the measureContextItems property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link Assay.MeasureContextItems }
-     *     
+     *
+     * @param value allowed object is
+     *              {@link Assay.MeasureContextItems }
      */
     public void setMeasureContextItems(Assay.MeasureContextItems value) {
         this.measureContextItems = value;
@@ -370,11 +348,9 @@ public class Assay {
 
     /**
      * Gets the value of the assayDocuments property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link Assay.AssayDocuments }
-     *     
+     *
+     * @return possible object is
+     *         {@link Assay.AssayDocuments }
      */
     public Assay.AssayDocuments getAssayDocuments() {
         return assayDocuments;
@@ -382,11 +358,9 @@ public class Assay {
 
     /**
      * Sets the value of the assayDocuments property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link Assay.AssayDocuments }
-     *     
+     *
+     * @param value allowed object is
+     *              {@link Assay.AssayDocuments }
      */
     public void setAssayDocuments(Assay.AssayDocuments value) {
         this.assayDocuments = value;
@@ -394,25 +368,23 @@ public class Assay {
 
     /**
      * Gets the value of the link property.
-     * 
-     * <p>
+     * <p/>
+     * <p/>
      * This accessor method returns a reference to the live list,
      * not a snapshot. Therefore any modification you make to the
      * returned list will be present inside the JAXB object.
      * This is why there is not a <CODE>set</CODE> method for the link property.
-     * 
-     * <p>
+     * <p/>
+     * <p/>
      * For example, to add a new item, do as follows:
      * <pre>
      *    getLink().add(newItem);
      * </pre>
-     * 
-     * 
-     * <p>
+     * <p/>
+     * <p/>
+     * <p/>
      * Objects of the following type(s) are allowed in the list
      * {@link Link }
-     * 
-     * 
      */
     public List<Link> getLink() {
         if (link == null) {
@@ -423,11 +395,9 @@ public class Assay {
 
     /**
      * Gets the value of the assayId property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link BigInteger }
-     *     
+     *
+     * @return possible object is
+     *         {@link BigInteger }
      */
     public BigInteger getAssayId() {
         return assayId;
@@ -435,11 +405,9 @@ public class Assay {
 
     /**
      * Sets the value of the assayId property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link BigInteger }
-     *     
+     *
+     * @param value allowed object is
+     *              {@link BigInteger }
      */
     public void setAssayId(BigInteger value) {
         this.assayId = value;
@@ -447,11 +415,9 @@ public class Assay {
 
     /**
      * Gets the value of the assayVersion property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
+     *
+     * @return possible object is
+     *         {@link String }
      */
     public String getAssayVersion() {
         if (assayVersion == null) {
@@ -463,11 +429,9 @@ public class Assay {
 
     /**
      * Sets the value of the assayVersion property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
+     *
+     * @param value allowed object is
+     *              {@link String }
      */
     public void setAssayVersion(String value) {
         this.assayVersion = value;
@@ -475,11 +439,9 @@ public class Assay {
 
     /**
      * Gets the value of the status property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
+     *
+     * @return possible object is
+     *         {@link String }
      */
     public String getStatus() {
         return status;
@@ -487,11 +449,9 @@ public class Assay {
 
     /**
      * Sets the value of the status property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
+     *
+     * @param value allowed object is
+     *              {@link String }
      */
     public void setStatus(String value) {
         this.status = value;
@@ -499,11 +459,9 @@ public class Assay {
 
     /**
      * Gets the value of the readyForExtraction property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
+     *
+     * @return possible object is
+     *         {@link String }
      */
     public String getReadyForExtraction() {
         return readyForExtraction;
@@ -511,11 +469,9 @@ public class Assay {
 
     /**
      * Sets the value of the readyForExtraction property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
+     *
+     * @param value allowed object is
+     *              {@link String }
      */
     public void setReadyForExtraction(String value) {
         this.readyForExtraction = value;
@@ -523,11 +479,9 @@ public class Assay {
 
     /**
      * Gets the value of the assayType property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
+     *
+     * @return possible object is
+     *         {@link String }
      */
     public String getAssayType() {
         return assayType;
@@ -535,11 +489,9 @@ public class Assay {
 
     /**
      * Sets the value of the assayType property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
+     *
+     * @param value allowed object is
+     *              {@link String }
      */
     public void setAssayType(String value) {
         this.assayType = value;
@@ -548,9 +500,9 @@ public class Assay {
 
     /**
      * <p>Java class for anonymous complex type.
-     * 
+     * <p/>
      * <p>The following schema fragment specifies the expected content contained within this class.
-     * 
+     * <p/>
      * <pre>
      * &lt;complexType>
      *   &lt;complexContent>
@@ -562,12 +514,10 @@ public class Assay {
      *   &lt;/complexContent>
      * &lt;/complexType>
      * </pre>
-     * 
-     * 
      */
     @XmlAccessorType(XmlAccessType.FIELD)
     @XmlType(name = "", propOrder = {
-        "assayDocument"
+            "assayDocument"
     })
     public static class AssayDocuments {
 
@@ -576,25 +526,23 @@ public class Assay {
 
         /**
          * Gets the value of the assayDocument property.
-         * 
-         * <p>
+         * <p/>
+         * <p/>
          * This accessor method returns a reference to the live list,
          * not a snapshot. Therefore any modification you make to the
          * returned list will be present inside the JAXB object.
          * This is why there is not a <CODE>set</CODE> method for the assayDocument property.
-         * 
-         * <p>
+         * <p/>
+         * <p/>
          * For example, to add a new item, do as follows:
          * <pre>
          *    getAssayDocument().add(newItem);
          * </pre>
-         * 
-         * 
-         * <p>
+         * <p/>
+         * <p/>
+         * <p/>
          * Objects of the following type(s) are allowed in the list
          * {@link AssayDocument }
-         * 
-         * 
          */
         public List<AssayDocument> getAssayDocument() {
             if (assayDocument == null) {
@@ -608,9 +556,9 @@ public class Assay {
 
     /**
      * <p>Java class for anonymous complex type.
-     * 
+     * <p/>
      * <p>The following schema fragment specifies the expected content contained within this class.
-     * 
+     * <p/>
      * <pre>
      * &lt;complexType>
      *   &lt;complexContent>
@@ -621,7 +569,7 @@ public class Assay {
      *             &lt;complexContent>
      *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
      *                 &lt;sequence>
-     *                   &lt;element name="valueId" minOccurs="0">
+     *                   &lt;element name="value" minOccurs="0">
      *                     &lt;complexType>
      *                       &lt;complexContent>
      *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
@@ -674,12 +622,10 @@ public class Assay {
      *   &lt;/complexContent>
      * &lt;/complexType>
      * </pre>
-     * 
-     * 
      */
     @XmlAccessorType(XmlAccessType.FIELD)
     @XmlType(name = "", propOrder = {
-        "measureContextItem"
+            "measureContextItem"
     })
     public static class MeasureContextItems {
 
@@ -688,25 +634,23 @@ public class Assay {
 
         /**
          * Gets the value of the measureContextItem property.
-         * 
-         * <p>
+         * <p/>
+         * <p/>
          * This accessor method returns a reference to the live list,
          * not a snapshot. Therefore any modification you make to the
          * returned list will be present inside the JAXB object.
          * This is why there is not a <CODE>set</CODE> method for the measureContextItem property.
-         * 
-         * <p>
+         * <p/>
+         * <p/>
          * For example, to add a new item, do as follows:
          * <pre>
          *    getMeasureContextItem().add(newItem);
          * </pre>
-         * 
-         * 
-         * <p>
+         * <p/>
+         * <p/>
+         * <p/>
          * Objects of the following type(s) are allowed in the list
          * {@link Assay.MeasureContextItems.MeasureContextItem }
-         * 
-         * 
          */
         public List<Assay.MeasureContextItems.MeasureContextItem> getMeasureContextItem() {
             if (measureContextItem == null) {
@@ -718,15 +662,15 @@ public class Assay {
 
         /**
          * <p>Java class for anonymous complex type.
-         * 
+         * <p/>
          * <p>The following schema fragment specifies the expected content contained within this class.
-         * 
+         * <p/>
          * <pre>
          * &lt;complexType>
          *   &lt;complexContent>
          *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
          *       &lt;sequence>
-         *         &lt;element name="valueId" minOccurs="0">
+         *         &lt;element name="value" minOccurs="0">
          *           &lt;complexType>
          *             &lt;complexContent>
          *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
@@ -774,14 +718,12 @@ public class Assay {
          *   &lt;/complexContent>
          * &lt;/complexType>
          * </pre>
-         * 
-         * 
          */
         @XmlAccessorType(XmlAccessType.FIELD)
         @XmlType(name = "", propOrder = {
-            "valueId",
-            "attributeId",
-            "extValueId"
+                "value",
+                "attributeId",
+                "extValueId"
         })
         public static class MeasureContextItem {
 
@@ -806,24 +748,20 @@ public class Assay {
             protected String valueDisplay;
 
             /**
-             * Gets the value of the valueId property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link Assay.MeasureContextItems.MeasureContextItem.ValueId }
-             *     
+             * Gets the value of the value property.
+             *
+             * @return possible object is
+             *         {@link Assay.MeasureContextItems.MeasureContextItem.ValueId }
              */
             public Assay.MeasureContextItems.MeasureContextItem.ValueId getValueId() {
                 return valueId;
             }
 
             /**
-             * Sets the value of the valueId property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link Assay.MeasureContextItems.MeasureContextItem.ValueId }
-             *     
+             * Sets the value of the value property.
+             *
+             * @param value allowed object is
+             *              {@link Assay.MeasureContextItems.MeasureContextItem.ValueId }
              */
             public void setValueId(Assay.MeasureContextItems.MeasureContextItem.ValueId value) {
                 this.valueId = value;
@@ -831,11 +769,9 @@ public class Assay {
 
             /**
              * Gets the value of the attributeId property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link Assay.MeasureContextItems.MeasureContextItem.AttributeId }
-             *     
+             *
+             * @return possible object is
+             *         {@link Assay.MeasureContextItems.MeasureContextItem.AttributeId }
              */
             public Assay.MeasureContextItems.MeasureContextItem.AttributeId getAttributeId() {
                 return attributeId;
@@ -843,11 +779,9 @@ public class Assay {
 
             /**
              * Sets the value of the attributeId property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link Assay.MeasureContextItems.MeasureContextItem.AttributeId }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link Assay.MeasureContextItems.MeasureContextItem.AttributeId }
              */
             public void setAttributeId(Assay.MeasureContextItems.MeasureContextItem.AttributeId value) {
                 this.attributeId = value;
@@ -855,11 +789,9 @@ public class Assay {
 
             /**
              * Gets the value of the extValueId property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link String }
-             *     
+             *
+             * @return possible object is
+             *         {@link String }
              */
             public String getExtValueId() {
                 return extValueId;
@@ -867,11 +799,9 @@ public class Assay {
 
             /**
              * Sets the value of the extValueId property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link String }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link String }
              */
             public void setExtValueId(String value) {
                 this.extValueId = value;
@@ -879,11 +809,9 @@ public class Assay {
 
             /**
              * Gets the value of the measureContextItemId property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link BigInteger }
-             *     
+             *
+             * @return possible object is
+             *         {@link BigInteger }
              */
             public BigInteger getMeasureContextItemId() {
                 return measureContextItemId;
@@ -891,11 +819,9 @@ public class Assay {
 
             /**
              * Sets the value of the measureContextItemId property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link BigInteger }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link BigInteger }
              */
             public void setMeasureContextItemId(BigInteger value) {
                 this.measureContextItemId = value;
@@ -903,11 +829,9 @@ public class Assay {
 
             /**
              * Gets the value of the measureContextItemRef property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link BigInteger }
-             *     
+             *
+             * @return possible object is
+             *         {@link BigInteger }
              */
             public BigInteger getMeasureContextItemRef() {
                 return measureContextItemRef;
@@ -915,11 +839,9 @@ public class Assay {
 
             /**
              * Sets the value of the measureContextItemRef property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link BigInteger }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link BigInteger }
              */
             public void setMeasureContextItemRef(BigInteger value) {
                 this.measureContextItemRef = value;
@@ -927,11 +849,9 @@ public class Assay {
 
             /**
              * Gets the value of the measureContextRef property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link String }
-             *     
+             *
+             * @return possible object is
+             *         {@link String }
              */
             public String getMeasureContextRef() {
                 return measureContextRef;
@@ -939,11 +859,9 @@ public class Assay {
 
             /**
              * Sets the value of the measureContextRef property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link String }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link String }
              */
             public void setMeasureContextRef(String value) {
                 this.measureContextRef = value;
@@ -951,11 +869,9 @@ public class Assay {
 
             /**
              * Gets the value of the qualifier property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link String }
-             *     
+             *
+             * @return possible object is
+             *         {@link String }
              */
             public String getQualifier() {
                 return qualifier;
@@ -963,11 +879,9 @@ public class Assay {
 
             /**
              * Sets the value of the qualifier property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link String }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link String }
              */
             public void setQualifier(String value) {
                 this.qualifier = value;
@@ -975,11 +889,9 @@ public class Assay {
 
             /**
              * Gets the value of the valueNum property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link Double }
-             *     
+             *
+             * @return possible object is
+             *         {@link Double }
              */
             public Double getValueNum() {
                 return valueNum;
@@ -987,11 +899,9 @@ public class Assay {
 
             /**
              * Sets the value of the valueNum property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link Double }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link Double }
              */
             public void setValueNum(Double value) {
                 this.valueNum = value;
@@ -999,11 +909,9 @@ public class Assay {
 
             /**
              * Gets the value of the valueMin property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link Double }
-             *     
+             *
+             * @return possible object is
+             *         {@link Double }
              */
             public Double getValueMin() {
                 return valueMin;
@@ -1011,11 +919,9 @@ public class Assay {
 
             /**
              * Sets the value of the valueMin property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link Double }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link Double }
              */
             public void setValueMin(Double value) {
                 this.valueMin = value;
@@ -1023,11 +929,9 @@ public class Assay {
 
             /**
              * Gets the value of the valueMax property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link Double }
-             *     
+             *
+             * @return possible object is
+             *         {@link Double }
              */
             public Double getValueMax() {
                 return valueMax;
@@ -1035,11 +939,9 @@ public class Assay {
 
             /**
              * Sets the value of the valueMax property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link Double }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link Double }
              */
             public void setValueMax(Double value) {
                 this.valueMax = value;
@@ -1047,11 +949,9 @@ public class Assay {
 
             /**
              * Gets the value of the valueDisplay property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link String }
-             *     
+             *
+             * @return possible object is
+             *         {@link String }
              */
             public String getValueDisplay() {
                 return valueDisplay;
@@ -1059,11 +959,9 @@ public class Assay {
 
             /**
              * Sets the value of the valueDisplay property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link String }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link String }
              */
             public void setValueDisplay(String value) {
                 this.valueDisplay = value;
@@ -1072,9 +970,9 @@ public class Assay {
 
             /**
              * <p>Java class for anonymous complex type.
-             * 
+             * <p/>
              * <p>The following schema fragment specifies the expected content contained within this class.
-             * 
+             * <p/>
              * <pre>
              * &lt;complexType>
              *   &lt;complexContent>
@@ -1097,12 +995,10 @@ public class Assay {
              *   &lt;/complexContent>
              * &lt;/complexType>
              * </pre>
-             * 
-             * 
              */
             @XmlAccessorType(XmlAccessType.FIELD)
             @XmlType(name = "", propOrder = {
-                "link"
+                    "link"
             })
             public static class AttributeId {
 
@@ -1114,11 +1010,9 @@ public class Assay {
 
                 /**
                  * Gets the value of the link property.
-                 * 
-                 * @return
-                 *     possible object is
-                 *     {@link Link }
-                 *     
+                 *
+                 * @return possible object is
+                 *         {@link Link }
                  */
                 public Link getLink() {
                     return link;
@@ -1126,11 +1020,9 @@ public class Assay {
 
                 /**
                  * Sets the value of the link property.
-                 * 
-                 * @param value
-                 *     allowed object is
-                 *     {@link Link }
-                 *     
+                 *
+                 * @param value allowed object is
+                 *              {@link Link }
                  */
                 public void setLink(Link value) {
                     this.link = value;
@@ -1138,11 +1030,9 @@ public class Assay {
 
                 /**
                  * Gets the value of the attributeType property.
-                 * 
-                 * @return
-                 *     possible object is
-                 *     {@link String }
-                 *     
+                 *
+                 * @return possible object is
+                 *         {@link String }
                  */
                 public String getAttributeType() {
                     return attributeType;
@@ -1150,11 +1040,9 @@ public class Assay {
 
                 /**
                  * Sets the value of the attributeType property.
-                 * 
-                 * @param value
-                 *     allowed object is
-                 *     {@link String }
-                 *     
+                 *
+                 * @param value allowed object is
+                 *              {@link String }
                  */
                 public void setAttributeType(String value) {
                     this.attributeType = value;
@@ -1162,11 +1050,9 @@ public class Assay {
 
                 /**
                  * Gets the value of the label property.
-                 * 
-                 * @return
-                 *     possible object is
-                 *     {@link String }
-                 *     
+                 *
+                 * @return possible object is
+                 *         {@link String }
                  */
                 public String getLabel() {
                     return label;
@@ -1174,11 +1060,9 @@ public class Assay {
 
                 /**
                  * Sets the value of the label property.
-                 * 
-                 * @param value
-                 *     allowed object is
-                 *     {@link String }
-                 *     
+                 *
+                 * @param value allowed object is
+                 *              {@link String }
                  */
                 public void setLabel(String value) {
                     this.label = value;
@@ -1189,9 +1073,9 @@ public class Assay {
 
             /**
              * <p>Java class for anonymous complex type.
-             * 
+             * <p/>
              * <p>The following schema fragment specifies the expected content contained within this class.
-             * 
+             * <p/>
              * <pre>
              * &lt;complexType>
              *   &lt;complexContent>
@@ -1204,12 +1088,10 @@ public class Assay {
              *   &lt;/complexContent>
              * &lt;/complexType>
              * </pre>
-             * 
-             * 
              */
             @XmlAccessorType(XmlAccessType.FIELD)
             @XmlType(name = "", propOrder = {
-                "link"
+                    "link"
             })
             public static class ValueId {
 
@@ -1219,11 +1101,9 @@ public class Assay {
 
                 /**
                  * Gets the value of the link property.
-                 * 
-                 * @return
-                 *     possible object is
-                 *     {@link Link }
-                 *     
+                 *
+                 * @return possible object is
+                 *         {@link Link }
                  */
                 public Link getLink() {
                     return link;
@@ -1231,11 +1111,9 @@ public class Assay {
 
                 /**
                  * Sets the value of the link property.
-                 * 
-                 * @param value
-                 *     allowed object is
-                 *     {@link Link }
-                 *     
+                 *
+                 * @param value allowed object is
+                 *              {@link Link }
                  */
                 public void setLink(Link value) {
                     this.link = value;
@@ -1243,11 +1121,9 @@ public class Assay {
 
                 /**
                  * Gets the value of the label property.
-                 * 
-                 * @return
-                 *     possible object is
-                 *     {@link String }
-                 *     
+                 *
+                 * @return possible object is
+                 *         {@link String }
                  */
                 public String getLabel() {
                     return label;
@@ -1255,11 +1131,9 @@ public class Assay {
 
                 /**
                  * Sets the value of the label property.
-                 * 
-                 * @param value
-                 *     allowed object is
-                 *     {@link String }
-                 *     
+                 *
+                 * @param value allowed object is
+                 *              {@link String }
                  */
                 public void setLabel(String value) {
                     this.label = value;
@@ -1274,9 +1148,9 @@ public class Assay {
 
     /**
      * <p>Java class for anonymous complex type.
-     * 
+     * <p/>
      * <p>The following schema fragment specifies the expected content contained within this class.
-     * 
+     * <p/>
      * <pre>
      * &lt;complexType>
      *   &lt;complexContent>
@@ -1298,12 +1172,10 @@ public class Assay {
      *   &lt;/complexContent>
      * &lt;/complexType>
      * </pre>
-     * 
-     * 
      */
     @XmlAccessorType(XmlAccessType.FIELD)
     @XmlType(name = "", propOrder = {
-        "measureContext"
+            "measureContext"
     })
     public static class MeasureContexts {
 
@@ -1312,25 +1184,23 @@ public class Assay {
 
         /**
          * Gets the value of the measureContext property.
-         * 
-         * <p>
+         * <p/>
+         * <p/>
          * This accessor method returns a reference to the live list,
          * not a snapshot. Therefore any modification you make to the
          * returned list will be present inside the JAXB object.
          * This is why there is not a <CODE>set</CODE> method for the measureContext property.
-         * 
-         * <p>
+         * <p/>
+         * <p/>
          * For example, to add a new item, do as follows:
          * <pre>
          *    getMeasureContext().add(newItem);
          * </pre>
-         * 
-         * 
-         * <p>
+         * <p/>
+         * <p/>
+         * <p/>
          * Objects of the following type(s) are allowed in the list
          * {@link Assay.MeasureContexts.MeasureContext }
-         * 
-         * 
          */
         public List<Assay.MeasureContexts.MeasureContext> getMeasureContext() {
             if (measureContext == null) {
@@ -1342,9 +1212,9 @@ public class Assay {
 
         /**
          * <p>Java class for anonymous complex type.
-         * 
+         * <p/>
          * <p>The following schema fragment specifies the expected content contained within this class.
-         * 
+         * <p/>
          * <pre>
          * &lt;complexType>
          *   &lt;complexContent>
@@ -1356,12 +1226,10 @@ public class Assay {
          *   &lt;/complexContent>
          * &lt;/complexType>
          * </pre>
-         * 
-         * 
          */
         @XmlAccessorType(XmlAccessType.FIELD)
         @XmlType(name = "", propOrder = {
-            "contextName"
+                "contextName"
         })
         public static class MeasureContext {
 
@@ -1370,11 +1238,9 @@ public class Assay {
 
             /**
              * Gets the value of the contextName property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link String }
-             *     
+             *
+             * @return possible object is
+             *         {@link String }
              */
             public String getContextName() {
                 return contextName;
@@ -1382,11 +1248,9 @@ public class Assay {
 
             /**
              * Sets the value of the contextName property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link String }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link String }
              */
             public void setContextName(String value) {
                 this.contextName = value;
@@ -1399,9 +1263,9 @@ public class Assay {
 
     /**
      * <p>Java class for anonymous complex type.
-     * 
+     * <p/>
      * <p>The following schema fragment specifies the expected content contained within this class.
-     * 
+     * <p/>
      * <pre>
      * &lt;complexType>
      *   &lt;complexContent>
@@ -1448,12 +1312,10 @@ public class Assay {
      *   &lt;/complexContent>
      * &lt;/complexType>
      * </pre>
-     * 
-     * 
      */
     @XmlAccessorType(XmlAccessType.FIELD)
     @XmlType(name = "", propOrder = {
-        "measure"
+            "measure"
     })
     public static class Measures {
 
@@ -1462,25 +1324,23 @@ public class Assay {
 
         /**
          * Gets the value of the measure property.
-         * 
-         * <p>
+         * <p/>
+         * <p/>
          * This accessor method returns a reference to the live list,
          * not a snapshot. Therefore any modification you make to the
          * returned list will be present inside the JAXB object.
          * This is why there is not a <CODE>set</CODE> method for the measure property.
-         * 
-         * <p>
+         * <p/>
+         * <p/>
          * For example, to add a new item, do as follows:
          * <pre>
          *    getMeasure().add(newItem);
          * </pre>
-         * 
-         * 
-         * <p>
+         * <p/>
+         * <p/>
+         * <p/>
          * Objects of the following type(s) are allowed in the list
          * {@link Assay.Measures.Measure }
-         * 
-         * 
          */
         public List<Assay.Measures.Measure> getMeasure() {
             if (measure == null) {
@@ -1492,9 +1352,9 @@ public class Assay {
 
         /**
          * <p>Java class for anonymous complex type.
-         * 
+         * <p/>
          * <p>The following schema fragment specifies the expected content contained within this class.
-         * 
+         * <p/>
          * <pre>
          * &lt;complexType>
          *   &lt;complexContent>
@@ -1531,13 +1391,11 @@ public class Assay {
          *   &lt;/complexContent>
          * &lt;/complexType>
          * </pre>
-         * 
-         * 
          */
         @XmlAccessorType(XmlAccessType.FIELD)
         @XmlType(name = "", propOrder = {
-            "resultTypeRef",
-            "entryUnit"
+                "resultTypeRef",
+                "entryUnit"
         })
         public static class Measure {
 
@@ -1551,11 +1409,9 @@ public class Assay {
 
             /**
              * Gets the value of the resultTypeRef property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link Assay.Measures.Measure.ResultTypeRef }
-             *     
+             *
+             * @return possible object is
+             *         {@link Assay.Measures.Measure.ResultTypeRef }
              */
             public Assay.Measures.Measure.ResultTypeRef getResultTypeRef() {
                 return resultTypeRef;
@@ -1563,11 +1419,9 @@ public class Assay {
 
             /**
              * Sets the value of the resultTypeRef property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link Assay.Measures.Measure.ResultTypeRef }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link Assay.Measures.Measure.ResultTypeRef }
              */
             public void setResultTypeRef(Assay.Measures.Measure.ResultTypeRef value) {
                 this.resultTypeRef = value;
@@ -1575,11 +1429,9 @@ public class Assay {
 
             /**
              * Gets the value of the entryUnit property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link Assay.Measures.Measure.EntryUnit }
-             *     
+             *
+             * @return possible object is
+             *         {@link Assay.Measures.Measure.EntryUnit }
              */
             public Assay.Measures.Measure.EntryUnit getEntryUnit() {
                 return entryUnit;
@@ -1587,11 +1439,9 @@ public class Assay {
 
             /**
              * Sets the value of the entryUnit property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link Assay.Measures.Measure.EntryUnit }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link Assay.Measures.Measure.EntryUnit }
              */
             public void setEntryUnit(Assay.Measures.Measure.EntryUnit value) {
                 this.entryUnit = value;
@@ -1599,11 +1449,9 @@ public class Assay {
 
             /**
              * Gets the value of the measureContextRef property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link String }
-             *     
+             *
+             * @return possible object is
+             *         {@link String }
              */
             public String getMeasureContextRef() {
                 return measureContextRef;
@@ -1611,11 +1459,9 @@ public class Assay {
 
             /**
              * Sets the value of the measureContextRef property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link String }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link String }
              */
             public void setMeasureContextRef(String value) {
                 this.measureContextRef = value;
@@ -1623,11 +1469,9 @@ public class Assay {
 
             /**
              * Gets the value of the parentMeasure property.
-             * 
-             * @return
-             *     possible object is
-             *     {@link BigInteger }
-             *     
+             *
+             * @return possible object is
+             *         {@link BigInteger }
              */
             public BigInteger getParentMeasure() {
                 return parentMeasure;
@@ -1635,11 +1479,9 @@ public class Assay {
 
             /**
              * Sets the value of the parentMeasure property.
-             * 
-             * @param value
-             *     allowed object is
-             *     {@link BigInteger }
-             *     
+             *
+             * @param value allowed object is
+             *              {@link BigInteger }
              */
             public void setParentMeasure(BigInteger value) {
                 this.parentMeasure = value;
@@ -1648,9 +1490,9 @@ public class Assay {
 
             /**
              * <p>Java class for anonymous complex type.
-             * 
+             * <p/>
              * <p>The following schema fragment specifies the expected content contained within this class.
-             * 
+             * <p/>
              * <pre>
              * &lt;complexType>
              *   &lt;complexContent>
@@ -1663,12 +1505,10 @@ public class Assay {
              *   &lt;/complexContent>
              * &lt;/complexType>
              * </pre>
-             * 
-             * 
              */
             @XmlAccessorType(XmlAccessType.FIELD)
             @XmlType(name = "", propOrder = {
-                "link"
+                    "link"
             })
             public static class EntryUnit {
 
@@ -1678,11 +1518,9 @@ public class Assay {
 
                 /**
                  * Gets the value of the link property.
-                 * 
-                 * @return
-                 *     possible object is
-                 *     {@link Link }
-                 *     
+                 *
+                 * @return possible object is
+                 *         {@link Link }
                  */
                 public Link getLink() {
                     return link;
@@ -1690,11 +1528,9 @@ public class Assay {
 
                 /**
                  * Sets the value of the link property.
-                 * 
-                 * @param value
-                 *     allowed object is
-                 *     {@link Link }
-                 *     
+                 *
+                 * @param value allowed object is
+                 *              {@link Link }
                  */
                 public void setLink(Link value) {
                     this.link = value;
@@ -1702,11 +1538,9 @@ public class Assay {
 
                 /**
                  * Gets the value of the unit property.
-                 * 
-                 * @return
-                 *     possible object is
-                 *     {@link String }
-                 *     
+                 *
+                 * @return possible object is
+                 *         {@link String }
                  */
                 public String getUnit() {
                     return unit;
@@ -1714,11 +1548,9 @@ public class Assay {
 
                 /**
                  * Sets the value of the unit property.
-                 * 
-                 * @param value
-                 *     allowed object is
-                 *     {@link String }
-                 *     
+                 *
+                 * @param value allowed object is
+                 *              {@link String }
                  */
                 public void setUnit(String value) {
                     this.unit = value;
@@ -1729,9 +1561,9 @@ public class Assay {
 
             /**
              * <p>Java class for anonymous complex type.
-             * 
+             * <p/>
              * <p>The following schema fragment specifies the expected content contained within this class.
-             * 
+             * <p/>
              * <pre>
              * &lt;complexType>
              *   &lt;complexContent>
@@ -1744,12 +1576,10 @@ public class Assay {
              *   &lt;/complexContent>
              * &lt;/complexType>
              * </pre>
-             * 
-             * 
              */
             @XmlAccessorType(XmlAccessType.FIELD)
             @XmlType(name = "", propOrder = {
-                "link"
+                    "link"
             })
             public static class ResultTypeRef {
 
@@ -1759,11 +1589,9 @@ public class Assay {
 
                 /**
                  * Gets the value of the link property.
-                 * 
-                 * @return
-                 *     possible object is
-                 *     {@link Link }
-                 *     
+                 *
+                 * @return possible object is
+                 *         {@link Link }
                  */
                 public Link getLink() {
                     return link;
@@ -1771,11 +1599,9 @@ public class Assay {
 
                 /**
                  * Sets the value of the link property.
-                 * 
-                 * @param value
-                 *     allowed object is
-                 *     {@link Link }
-                 *     
+                 *
+                 * @param value allowed object is
+                 *              {@link Link }
                  */
                 public void setLink(Link value) {
                     this.link = value;
@@ -1783,11 +1609,9 @@ public class Assay {
 
                 /**
                  * Gets the value of the label property.
-                 * 
-                 * @return
-                 *     possible object is
-                 *     {@link String }
-                 *     
+                 *
+                 * @return possible object is
+                 *         {@link String }
                  */
                 public String getLabel() {
                     return label;
@@ -1795,11 +1619,9 @@ public class Assay {
 
                 /**
                  * Sets the value of the label property.
-                 * 
-                 * @param value
-                 *     allowed object is
-                 *     {@link String }
-                 *     
+                 *
+                 * @param value allowed object is
+                 *              {@link String }
                  */
                 public void setLabel(String value) {
                     this.label = value;
