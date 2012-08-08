@@ -4,6 +4,8 @@ import gov.nih.ncgc.bard.capextract.handler.AssayHandler;
 import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
 import gov.nih.ncgc.bard.capextract.handler.BardexportHandler;
 import gov.nih.ncgc.bard.capextract.handler.DictionaryHandler;
+import gov.nih.ncgc.bard.capextract.handler.ExperimentHandler;
+import gov.nih.ncgc.bard.capextract.handler.ExperimentsHandler;
 import gov.nih.ncgc.bard.capextract.handler.ProjectHandler;
 import gov.nih.ncgc.bard.capextract.handler.ProjectsHandler;
 
@@ -43,6 +45,8 @@ public class CAPExtractor {
         registry.setHandler(CAPConstants.CapResource.PROJECT, new ProjectHandler());
         registry.setHandler(CAPConstants.CapResource.ASSAYS, new AssaysHandler());
         registry.setHandler(CAPConstants.CapResource.ASSAY, new AssayHandler());
+        registry.setHandler(CAPConstants.CapResource.EXPERIMENTS, new ExperimentsHandler());
+        registry.setHandler(CAPConstants.CapResource.EXPERIMENT, new ExperimentHandler());
         registry.setHandler(CAPConstants.CapResource.BARDEXPORT, new BardexportHandler());
         registry.setHandler(CAPConstants.CapResource.DICTIONARY, new DictionaryHandler());
     }
