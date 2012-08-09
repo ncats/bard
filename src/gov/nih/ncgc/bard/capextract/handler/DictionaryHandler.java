@@ -76,15 +76,29 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
         java.util.Date today = null;
         try {
             conn = CAPUtil.connectToBARD();
-            pst = conn.prepareStatement("INSERT INTO cap_dict(ins_date, dict) VALUES (?, ?)");
+            pst = conn.prepareStatement("INSERT INTO cap_dict_obj(ins_date, dict) VALUES (?, ?)");
             today = new java.util.Date();
             pst.setDate(1, new java.sql.Date(today.getTime()));
             pst.setObject(2, dict);
             pst.executeUpdate();
             pst.close();
             conn.commit();
+            log.info("\tSerialized dictionary object to database");
+
+            // now we dump in the dict elements (a partial representation) that will be useful
+            // for SQL queries
+            pst = conn.prepareStatement("insert into cap_dict_elem (ins_date, dictid, label, description) values (?,?,?,?)");
+            for (CAPDictionaryElement elem : dict.getNodes()) {
+                pst.setDate(1, new java.sql.Date(today.getTime()));
+                pst.setInt(2, elem.getElementId().intValue());
+                pst.setString(3, elem.getLabel());
+                pst.setString(4, elem.getDescription());
+                pst.addBatch();
+            }
+            pst.executeBatch();
+            conn.commit();
+            log.info("\tStored (partial) dictionary elements to database");
             conn.close();
-            log.info("Serialized dictionary to database");
         } catch (com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException e) {
             if (e.getMessage().indexOf("Duplicate entry") >= 0) {
                 log.warn("Already have a serialized dictionary for " + today + ", so not inserting");
