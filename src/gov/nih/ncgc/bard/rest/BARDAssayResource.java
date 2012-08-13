@@ -6,11 +6,14 @@ import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -40,7 +43,8 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/assays")
-public class BARDAssayResource implements IBARDResource {
+public class BARDAssayResource extends BARDResource {
+    Logger log;
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -52,6 +56,9 @@ public class BARDAssayResource implements IBARDResource {
     @Context
     HttpHeaders headers;
 
+    public BARDAssayResource() {
+        log = LoggerFactory.getLogger(this.getClass());
+    }
 
     @GET
     @Produces("text/plain")
@@ -95,35 +102,43 @@ public class BARDAssayResource implements IBARDResource {
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
+        if (skip == null) skip = -1;
+        if (top == null) top = -1;
+
+        String linkString = null;
         DBUtils db = new DBUtils();
         Response response;
         try {
 
-            if (filter == null) {
-                List<Long> ids = db.getAssayCount();
-                if (!expandEntries) {
-                    List<String> links = new ArrayList<String>();
-                    for (Long id : ids) links.add(BARDConstants.API_BASE + "/assays/" + id);
-                    response = Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
-                } else {
-                    List<Assay> assays = new ArrayList<Assay>();
-                    for (Long id : ids) assays.add(db.getAssayByAid(id));
-                    response = Response.ok(Util.toJson(assays), MediaType.APPLICATION_JSON).build();
+            if (filter == null) { //  page all assays
+                if (countRequested) {
+                    return Response.ok(String.valueOf(db.getEntityCount(Assay.class)), MediaType.TEXT_PLAIN).build();
                 }
-            } else {
-                List<Assay> assays = db.searchForAssay(filter);
-                if (expandEntries) {
-                    String json = Util.toJson(assays);
-                    response = Response.ok(json, MediaType.APPLICATION_JSON).build();
-                } else {
-                    List<String> links = new ArrayList<String>();
-                    for (Assay a : assays) links.add(a.getResourcePath());
-                    String json = Util.toJson(links);
-                    response = Response.ok(json, MediaType.APPLICATION_JSON).build();
+                if ((top == -1)) { // top was not specified, so we start from the beginning
+                    top = BARDConstants.MAX_COMPOUND_COUNT;
                 }
+                if (skip == -1) skip = 0;
+                String expandClause = "expand=false";
+                if (expandEntries) expandClause = "expand=true";
+                if (skip + top <= db.getEntityCount(ProteinTarget.class))
+                    linkString = BARDConstants.API_BASE + "/assays?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
+            log.info("Request had skip = " + skip + ", top = " + top + ", filter = " + filter);
+
+            List<Assay> assays = db.searchForEntity(filter, skip, top, Assay.class);
             db.closeConnection();
-            return response;
+
+            if (countRequested) return Response.ok(String.valueOf(assays.size()), MediaType.TEXT_PLAIN).build();
+            if (expandEntries) {
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(assays, linkString);
+                return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Assay a : assays) links.add(a.getResourcePath());
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+            }
+
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {

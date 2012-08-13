@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.tools;
 
+import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
@@ -79,7 +80,14 @@ public class QueryTest extends DBTest {
         List<Compound> compounds = db.getCompoundsByName(query);
         System.out.println("Querying compounds for '" + query + "' gave " + compounds.size() + " compounds");
         Assert.assertTrue(compounds.size() > 0);
+    }
 
+    @Test
+    public void getAssaysWithNoFilter() throws SQLException, IOException {
+        String filter = null;
+        List<Assay> assays = db.searchForEntity(filter, 0, 10, Assay.class);
+        System.out.println("Querying assays for null gave " + assays.size() + " assays");
+        Assert.assertEquals(assays.size(), 10);
     }
 
 }

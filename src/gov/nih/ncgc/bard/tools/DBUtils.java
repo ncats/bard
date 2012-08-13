@@ -1020,11 +1020,12 @@ public class DBUtils {
      * <p/>
      * Queries should in the form of query_string[field_name]
      * <p/>
-     * The current implementation of free text search is pretty stupid. We should enable the
-     * full text search functionality in the database.
+     * This method is limited and should not be used. Instead consider the <code>/search</code>
+     * resource ({@link gov.nih.ncgc.bard.rest.BARDSearchResource})
      *
      * @param query the query to use
      * @return A list of {@link Assay} objects, whuich may be empty if no assays match the query.
+     * @deprecated
      */
     public List<Assay> searchForAssay(String query) throws SQLException {
         boolean freeTextQuery = false;
@@ -1312,6 +1313,7 @@ public class DBUtils {
             else if (klass.equals(Project.class)) entity = getProjectByExperimentId((Long) id);
             else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
             else if (klass.equals(Compound.class)) entity = getCompoundsByCid((Long) id);
+            else if (klass.equals(Assay.class)) entity = getAssayByAid((Long) id);
             if (entity != null) {
                 if (entity instanceof List) entities.addAll((Collection<T>) entity);
                 else if (entity instanceof BardEntity) entities.add((T) entity);
