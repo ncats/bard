@@ -16,6 +16,9 @@
         <fileset dir="${bard.lib}">
             <include name="*.jar"/>
         </fileset>
+        <fileset dir="${bard.lib}/solr">
+            <include name="*.jar"/>
+        </fileset>
     </path>
 
     <target name="clean">
@@ -117,15 +120,26 @@
         <copy file="${basedir}/web/WEB-INF/web.xml" tofile="${bard.explode.dir}/WEB-INF/web.xml"/>
         <copy file="${basedir}/web/META-INF/context.xml" tofile="${bard.explode.dir}/META-INF/context.xml"/>
         <copy file="${basedir}/web/WEB-INF/web.xml" tofile="${bard.explode.dir}/WEB-INF/web.xml"/>
-        <!--<copy file="${bard.lib}/jersey-client-1.12.jar" tofile="${bard.explode.dir}/WEB-INF/lib/jersey-client-1.12.jar"/>-->
-        <!--<copy file="${bard.lib}/jersey-core-1.12.jar" tofile="${bard.explode.dir}/WEB-INF/lib/jersey-core-1.12.jar"/>-->
-        <!--<copy file="${bard.lib}/jersey-json-1.12.jar" tofile="${bard.explode.dir}/WEB-INF/lib/jersey-json-1.12.jar"/>-->
-        <!--<copy file="${bard.lib}/jersey-server-1.12.jar" tofile="${bard.explode.dir}/WEB-INF/lib/jersey-server-1.12.jar"/>-->
-        <!--<copy file="${bard.lib}/jsr311-api-1.1.1.jar" tofile="${bard.explode.dir}/WEB-INF/lib/jsr311-api-1.1.1.jar"/>-->
         <copy file="${bard.lib}/molrenderer.jar" tofile="${bard.explode.dir}/WEB-INF/lib/molrenderer.jar"/>
         <copy file="${bard.lib}/functional.jar" tofile="${bard.explode.dir}/WEB-INF/lib/functional.jar"/>
         <copy file="${bard.lib}/xom-1.2.5.jar" tofile="${bard.explode.dir}/WEB-INF/lib/xom-1.2.5.jar"/>
         <copy file="${bard.lib}/asm-3.1.jar" tofile="${bard.explode.dir}/WEB-INF/lib/asm-3.1.jar"/>
+
+        <copy file="${bard.lib}/solr/apache-solr-solrj-3.6.1.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/apache-solr-solrj-3.6.1.jar"/>
+        <copy file="${bard.lib}/solr/commons-codec-1.6.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/commons-codec-1.6.jar"/>
+        <copy file="${bard.lib}/solr/commons-httpclient-3.1.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/commons-httpclient-3.1.jar"/>
+        <copy file="${bard.lib}/solr/commons-io-2.1.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/commons-io-2.1.jar"/>
+        <copy file="${bard.lib}/solr/geronimo-stax-api_1.0_spec-1.0.1.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/geronimo-stax-api_1.0_spec-1.0.1.jar"/>
+        <copy file="${bard.lib}/solr/jcl-over-slf4j-1.6.1.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/jcl-over-slf4j-1.6.1.jar"/>
+        <copy file="${bard.lib}/solr/wstx-asl-3.2.7.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/wstx-asl-3.2.7.jar"/>
+
         <copy file="${bard.lib}/jackson-core-2.0.0.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/jackson-core-2.0.0.jar"/>
         <copy file="${bard.lib}/jackson-annotations-2.0.0.jar"
