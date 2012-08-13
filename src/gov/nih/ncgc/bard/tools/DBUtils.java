@@ -15,6 +15,8 @@ import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
@@ -39,6 +41,7 @@ import java.util.Map;
  * @author Rajarshi Guha
  */
 public class DBUtils {
+    Logger log;
     Connection conn;
     Map<Class, Query> fieldMap;
 
@@ -72,6 +75,8 @@ public class DBUtils {
     }
 
     public DBUtils() {
+        log = LoggerFactory.getLogger(this.getClass());
+
         final List<String> publicationFields = Arrays.asList("pmid", "title", "abstract", "doi");
         final List<String> projectFields = Arrays.asList("name", "description");
         final List<String> targetFields = Arrays.asList("accession", "name", "description", "uniprot_status");
@@ -1331,8 +1336,22 @@ public class DBUtils {
      * ************************************************************************
      */
 
+    /**
+     * Get annotations for an assay.
+     * <p/>
+     * The assay tables currently use Pubchem AID as the primary identifier, whereas
+     * CAP annotations use the CAP assay ID to refer to assays. Thus when retrieving
+     * annotations (at least from CAP annotations on CAP assays), we must map Pubchem
+     * AID to CAP AID.
+     * <p/>
+     * Currently the annotations are restricted to CAP derived annotations only.
+     *
+     * @param assayId The assay identifier. This is currently a PubChem AID.
+     * @return A list of assay annotations
+     * @throws SQLException
+     */
     public List<CAPAssayAnnotation> getAssayAnnotations(Long assayId) throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select * from cap_annotation where assay_id = ?");
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a, cap_pubchem_map b where b.pubchem_aid = ? and a.assay_id = b.bard_assay_id;");
         pst.setLong(1, assayId);
         ResultSet rs = pst.executeQuery();
         List<CAPAssayAnnotation> annos = new ArrayList<CAPAssayAnnotation>();
