@@ -8,7 +8,7 @@ import java.util.Map;
  * @author Rajarshi Guha
  */
 public abstract class SolrSearch implements ISolrSearch {
-    protected static String SOLR_URL = "http://localhost:8090/solr/";
+    protected final String SOLR_BASE = "http://localhost:8090/solr";
     protected String query = null;
     protected int numHit = -1;
     protected Map<String, Integer> facetCounts = null;

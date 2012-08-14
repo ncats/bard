@@ -20,6 +20,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class AssaySearch extends SolrSearch {
+    private final String SOLR_URL = SOLR_BASE + "/core-assay/";
 
     Logger log;
 
