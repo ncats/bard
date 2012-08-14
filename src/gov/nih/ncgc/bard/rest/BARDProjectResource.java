@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.rest;
 
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.Project;
@@ -41,7 +42,7 @@ public class BARDProjectResource extends BARDResource {
         StringBuilder msg = new StringBuilder("Returns project information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
-        msg.append("/v1/projects/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
+        msg.append("/projects/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
         return msg.toString();
     }
 
@@ -54,37 +55,41 @@ public class BARDProjectResource extends BARDResource {
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
+        if (skip == null) skip = -1;
+        if (top == null) top = -1;
+
         DBUtils db = new DBUtils();
         Response response = null;
         try {
+            String linkString = null;
             if (filter == null) { // just list all projects
-                List<Long> ids = db.getProjectIds();
-                if (countRequested) response = Response.ok(String.valueOf(ids.size()), MediaType.TEXT_PLAIN).build();
-                else if (!expandEntries) {
-                    List<String> links = new ArrayList<String>();
-                    for (Long id : ids) links.add(BARDConstants.API_BASE + "/projects/" + id);
-                    response = Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
-                } else {
-                    List<Project> projects = new ArrayList<Project>();
-                    for (Long id : ids) projects.addAll(db.getProjectByExperimentId(id));
-                    response = Response.ok(Util.toJson(projects), MediaType.APPLICATION_JSON).build();
+
+                if (countRequested)
+                    return Response.ok(String.valueOf(db.getEntityCount(Project.class)), MediaType.TEXT_PLAIN).build();
+                if ((top == -1)) { // top was not specified, so we start from the beginning
+                    top = BARDConstants.MAX_COMPOUND_COUNT;
                 }
-            } else {
-                List<Project> projects = db.searchForEntity(filter, skip, top, Project.class);
-                if (countRequested) response = Response.ok(projects.size(), MediaType.TEXT_PLAIN).build();
-                else if (expandEntries) {
-                    String json = Util.toJson(projects);
-                    response = Response.ok(json, MediaType.APPLICATION_JSON).build();
-                } else {
-                    List<String> links = new ArrayList<String>();
-                    for (Project a : projects)
-                        links.add(a.getResourcePath());
-                    String json = Util.toJson(links);
-                    response = Response.ok(json, MediaType.APPLICATION_JSON).build();
-                }
+                if (skip == -1) skip = 0;
+                String expandClause = "expand=false";
+                if (expandEntries) expandClause = "expand=true";
+                if (skip + top <= db.getEntityCount(ProteinTarget.class))
+                    linkString = BARDConstants.API_BASE + "/projects?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
+
+            List<Project> projects = db.searchForEntity(filter, skip, top, Project.class);
             db.closeConnection();
-            return response;
+
+            if (countRequested) return Response.ok(String.valueOf(projects.size()), MediaType.TEXT_PLAIN).build();
+            if (expandEntries) {
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(projects, linkString);
+                return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Project project : projects) links.add(project.getResourcePath());
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+            }
+
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
