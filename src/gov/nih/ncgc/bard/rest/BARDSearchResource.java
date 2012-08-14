@@ -13,12 +13,14 @@ import org.apache.solr.common.SolrDocumentList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,10 +33,12 @@ import java.util.List;
  */
 @Path("/search")
 public class BARDSearchResource extends BARDResource {
+    @Context
+    ServletContext servletContext;
 
     // TODO in the future we will have multiple Solr cores, that should
     // be queries simultaneously
-    private static final String SOLR_URL = "http://assay.nih.gov:8080/solr/";
+    private static String SOLR_URL = "http://tripod.nih.gov/servlet/solr/";
 
     Logger log;
 
@@ -66,7 +70,7 @@ public class BARDSearchResource extends BARDResource {
     public Response runSearch(@PathParam("q") String q,
                               @QueryParam("skip") Integer skip,
                               @QueryParam("top") Integer top,
-                              @QueryParam("detail") String detail) throws IOException {
+                              @QueryParam("expand") String expand) throws IOException {
         SearchResult s = new SearchResult();
 
         SolrServer solr = new CommonsHttpSolrServer(SOLR_URL);
@@ -76,7 +80,7 @@ public class BARDSearchResource extends BARDResource {
             sq = sq.setHighlight(true).setHighlightSnippets(1);
             if (top != null) sq = sq.setRows(top);
             if (skip != null) sq = sq.setStart(skip);
-            if (detail != null && !detail.toLowerCase().equals("true")) {
+            if (expand != null && !expand.toLowerCase().equals("true")) {
                 sq = sq.setFields("assay_id", "name");
             }
             response = solr.query(sq);

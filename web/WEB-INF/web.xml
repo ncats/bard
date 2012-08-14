@@ -24,6 +24,12 @@
             <param-name>com.sun.jersey.spi.container.ContainerRequestFilters</param-name>
             <param-value>gov.nih.ncgc.bard.rest.filter.CountFilter</param-value>
         </init-param>
+
+        <init-param>
+            <param-name>solr_server</param-name>
+            <param-value>http://tripod.nih.gov/servlet/solr/</param-value>
+        </init-param>
+
     </servlet>
 
     <servlet-mapping>
