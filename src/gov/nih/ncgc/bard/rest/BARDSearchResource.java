@@ -1,15 +1,10 @@
 package gov.nih.ncgc.bard.rest;
 
-import gov.nih.ncgc.bard.entity.SearchMeta;
-import gov.nih.ncgc.bard.entity.SearchResult;
+import gov.nih.ncgc.bard.search.AssaySearch;
+import gov.nih.ncgc.bard.search.ISolrSearch;
+import gov.nih.ncgc.bard.search.SearchResult;
 import gov.nih.ncgc.bard.tools.Util;
-import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
-import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.common.SolrDocument;
-import org.apache.solr.common.SolrDocumentList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,11 +14,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,10 +28,6 @@ import java.util.List;
 public class BARDSearchResource extends BARDResource {
     @Context
     ServletContext servletContext;
-
-    // TODO in the future we will have multiple Solr cores, that should
-    // be queries simultaneously
-    private static String SOLR_URL = "http://tripod.nih.gov/servlet/solr/";
 
     Logger log;
 
@@ -70,36 +59,11 @@ public class BARDSearchResource extends BARDResource {
     public Response runSearch(@PathParam("q") String q,
                               @QueryParam("skip") Integer skip,
                               @QueryParam("top") Integer top,
-                              @QueryParam("expand") String expand) throws IOException {
-        SearchResult s = new SearchResult();
+                              @QueryParam("expand") String expand) throws IOException, SolrServerException {
 
-        SolrServer solr = new CommonsHttpSolrServer(SOLR_URL);
-        QueryResponse response = null;
-        try {
-            SolrQuery sq = new SolrQuery(q);
-            sq = sq.setHighlight(true).setHighlightSnippets(1);
-            if (top != null) sq = sq.setRows(top);
-            if (skip != null) sq = sq.setStart(skip);
-            if (expand != null && !expand.toLowerCase().equals("true")) {
-                sq = sq.setFields("assay_id", "name");
-            }
-            response = solr.query(sq);
-        } catch (SolrServerException e) {
-            throw new WebApplicationException(e, 500);
-        }
-
-        List<SolrDocument> docs = new ArrayList<SolrDocument>();
-        SolrDocumentList results = response.getResults();
-        for (SolrDocument doc : results) {
-            docs.add(doc);
-        }
-
-        SearchMeta meta = new SearchMeta();
-        meta.setNhit(results.getNumFound());
-
-        s.setDocs(docs);
-        s.setMetaData(meta);
-
+        ISolrSearch as = new AssaySearch(q);
+        as.run(expand != null && expand.toLowerCase().equals("true"), top, skip);
+        SearchResult s = as.getSearchResults();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 

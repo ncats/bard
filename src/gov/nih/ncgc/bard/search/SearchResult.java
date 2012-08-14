@@ -1,4 +1,4 @@
-package gov.nih.ncgc.bard.entity;
+package gov.nih.ncgc.bard.search;
 
 import org.apache.solr.common.SolrDocument;
 
