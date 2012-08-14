@@ -5,6 +5,7 @@ import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -34,7 +35,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/experiments")
-public class BARDExperimentResource implements IBARDResource {
+public class BARDExperimentResource extends BARDResource {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -54,7 +55,7 @@ public class BARDExperimentResource implements IBARDResource {
         StringBuilder msg = new StringBuilder("Returns experiment information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
-        msg.append("/v1/experiments/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
+        msg.append("/experiments/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
         return msg.toString();
 
     }
@@ -90,34 +91,38 @@ public class BARDExperimentResource implements IBARDResource {
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
+        if (skip == null) skip = -1;
+        if (top == null) top = -1;
+
         DBUtils db = new DBUtils();
         try {
-
+            String linkString = null;
             if (filter == null) {
-                List<Long> ids = db.getExperimentIds();
-                db.closeConnection();
-                if (!expandEntries) {
-                    List<String> links = new ArrayList<String>();
-                    for (Long id : ids) links.add(BARDConstants.API_BASE + "/experiments/" + id);
-                    return Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
-                } else {
-                    List<Experiment> experiments = new ArrayList<Experiment>();
-                    for (Long id : ids) experiments.add(db.getExperimentByExptId(id));
-                    return Response.ok(Util.toJson(experiments), MediaType.APPLICATION_JSON).build();
+                if (countRequested)
+                    return Response.ok(String.valueOf(db.getEntityCount(Experiment.class)), MediaType.TEXT_PLAIN).build();
+                if ((top == -1)) { // top was not specified, so we start from the beginning
+                    top = BARDConstants.MAX_COMPOUND_COUNT;
                 }
-            } else {
-                List<Experiment> experiments = db.searchForEntity(filter, skip, top, Experiment.class);
-                db.closeConnection();
-                if (expandEntries) {
-                    String json = Util.toJson(experiments);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
-                } else {
-                    List<String> links = new ArrayList<String>();
-                    for (Experiment a : experiments) links.add(a.getResourcePath());
-                    String json = Util.toJson(links);
-                    return Response.ok(json, MediaType.APPLICATION_JSON).build();
-                }
+                if (skip == -1) skip = 0;
+                String expandClause = "expand=false";
+                if (expandEntries) expandClause = "expand=true";
+                if (skip + top <= db.getEntityCount(ProteinTarget.class))
+                    linkString = BARDConstants.API_BASE + "/experiments?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
+            List<Experiment> experiments = db.searchForEntity(filter, skip, top, Experiment.class);
+            db.closeConnection();
+
+            if (countRequested) return Response.ok(String.valueOf(experiments.size()), MediaType.TEXT_PLAIN).build();
+            if (expandEntries) {
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(experiments, linkString);
+                return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Experiment experiment : experiments) links.add(experiment.getResourcePath());
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+            }
+
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
