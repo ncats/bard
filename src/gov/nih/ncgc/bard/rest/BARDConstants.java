@@ -14,7 +14,7 @@ public class BARDConstants {
     public static final MediaType MIME_PNG = new MediaType("image", "png");
 
     public static final String API_VERSION = "v1";
-    public static final String API_BASE = "/bard/rest/" + API_VERSION;
+    public static final String API_BASE = "";
     public static final String API_EXTRA_PARAM_SPEC = "?filter=query_string[field]&expand=true|false&skip=N&top=M";
 
     /**
