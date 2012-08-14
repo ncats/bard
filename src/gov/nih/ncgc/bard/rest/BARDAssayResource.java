@@ -120,7 +120,7 @@ public class BARDAssayResource extends BARDResource {
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
                 if (expandEntries) expandClause = "expand=true";
-                if (skip + top <= db.getEntityCount(ProteinTarget.class))
+                if (skip + top <= db.getEntityCount(Assay.class))
                     linkString = BARDConstants.API_BASE + "/assays?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
             log.info("Request had skip = " + skip + ", top = " + top + ", filter = " + filter);

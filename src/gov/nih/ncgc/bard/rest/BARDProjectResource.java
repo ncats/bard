@@ -72,7 +72,7 @@ public class BARDProjectResource extends BARDResource {
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
                 if (expandEntries) expandClause = "expand=true";
-                if (skip + top <= db.getEntityCount(ProteinTarget.class))
+                if (skip + top <= db.getEntityCount(Project.class))
                     linkString = BARDConstants.API_BASE + "/projects?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
 

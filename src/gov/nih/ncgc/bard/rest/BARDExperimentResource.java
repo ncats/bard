@@ -5,7 +5,6 @@ import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Substance;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -106,7 +105,7 @@ public class BARDExperimentResource extends BARDResource {
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
                 if (expandEntries) expandClause = "expand=true";
-                if (skip + top <= db.getEntityCount(ProteinTarget.class))
+                if (skip + top <= db.getEntityCount(Experiment.class))
                     linkString = BARDConstants.API_BASE + "/experiments?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
             List<Experiment> experiments = db.searchForEntity(filter, skip, top, Experiment.class);
