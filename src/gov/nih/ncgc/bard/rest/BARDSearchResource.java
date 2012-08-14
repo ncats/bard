@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.rest;
 
 import gov.nih.ncgc.bard.search.AssaySearch;
+import gov.nih.ncgc.bard.search.CompoundSearch;
 import gov.nih.ncgc.bard.search.ISolrSearch;
 import gov.nih.ncgc.bard.search.SearchResult;
 import gov.nih.ncgc.bard.tools.Util;
@@ -68,4 +69,29 @@ public class BARDSearchResource extends BARDResource {
     }
 
 
+    @GET
+    @Path("/compounds/{q}")
+    public Response runCompoundSearch(@PathParam("q") String q,
+                                      @QueryParam("skip") Integer skip,
+                                      @QueryParam("top") Integer top,
+                                      @QueryParam("expand") String expand) throws IOException, SolrServerException {
+
+        ISolrSearch as = new CompoundSearch(q);
+        as.run(expand != null && expand.toLowerCase().equals("true"), top, skip);
+        SearchResult s = as.getSearchResults();
+        return Response.ok(Util.toJson(s)).type("application/json").build();
+    }
+
+    @GET
+    @Path("/assays/{q}")
+    public Response runAssaySearch(@PathParam("q") String q,
+                                   @QueryParam("skip") Integer skip,
+                                   @QueryParam("top") Integer top,
+                                   @QueryParam("expand") String expand) throws IOException, SolrServerException {
+
+        ISolrSearch as = new AssaySearch(q);
+        as.run(expand != null && expand.toLowerCase().equals("true"), top, skip);
+        SearchResult s = as.getSearchResults();
+        return Response.ok(Util.toJson(s)).type("application/json").build();
+    }
 }
