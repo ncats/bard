@@ -1315,7 +1315,7 @@ public class DBUtils {
             Object entity = null;
             if (klass.equals(Publication.class)) entity = getPublicationByPmid((Long) id);
             else if (klass.equals(ProteinTarget.class)) entity = getProteinTargetByAccession((String) id);
-            else if (klass.equals(Project.class)) entity = getProjectByExperimentId((Long) id);
+            else if (klass.equals(Project.class)) entity = getProject((Long) id);
             else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
             else if (klass.equals(Compound.class)) entity = getCompoundsByCid((Long) id);
             else if (klass.equals(Assay.class)) entity = getAssayByAid((Long) id);
