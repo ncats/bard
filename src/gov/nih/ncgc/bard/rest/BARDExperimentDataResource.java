@@ -50,7 +50,7 @@ public class BARDExperimentDataResource implements IBARDResource {
         StringBuilder msg = new StringBuilder("Returns experiment data information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
-        msg.append("/v1/exptdata/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
+        msg.append("/exptdata/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
         return msg.toString();
 
     }

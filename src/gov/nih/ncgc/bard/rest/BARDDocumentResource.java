@@ -39,7 +39,7 @@ public class BARDDocumentResource extends BARDResource {
         StringBuilder msg = new StringBuilder("Returns publication information\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
-        msg.append("/v1/documents/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
+        msg.append("/documents/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
         return msg.toString();
     }
 

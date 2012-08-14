@@ -25,7 +25,7 @@ public class BARDPluginRegistryResource implements IBARDResource {
         StringBuilder msg = new StringBuilder("Lists available plugins\n\nAvailable resources:\n");
         List<String> paths = Util.getResourcePaths(this.getClass());
         for (String path : paths) msg.append(path).append("\n");
-        msg.append("/v1/plguins/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
+        msg.append("/plguins/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
         return msg.toString();
     }
 
