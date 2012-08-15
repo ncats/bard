@@ -3,6 +3,7 @@ package gov.nih.ncgc.bard.rest;
 import gov.nih.ncgc.bard.search.AssaySearch;
 import gov.nih.ncgc.bard.search.CompoundSearch;
 import gov.nih.ncgc.bard.search.ISolrSearch;
+import gov.nih.ncgc.bard.search.ProjectSearch;
 import gov.nih.ncgc.bard.search.SearchResult;
 import gov.nih.ncgc.bard.tools.Util;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -63,7 +64,7 @@ public class BARDSearchResource extends BARDResource {
                               @QueryParam("expand") String expand) throws IOException, SolrServerException {
 
         ISolrSearch as = new AssaySearch(q);
-        as.run(expand != null && expand.toLowerCase().equals("true"), top, skip);
+        as.run(expand != null && expand.toLowerCase().equals("true"), null, top, skip);
         SearchResult s = as.getSearchResults();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
@@ -77,7 +78,7 @@ public class BARDSearchResource extends BARDResource {
                                       @QueryParam("expand") String expand) throws IOException, SolrServerException {
 
         ISolrSearch as = new CompoundSearch(q);
-        as.run(expand != null && expand.toLowerCase().equals("true"), top, skip);
+        as.run(expand != null && expand.toLowerCase().equals("true"), null, top, skip);
         SearchResult s = as.getSearchResults();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
@@ -90,7 +91,20 @@ public class BARDSearchResource extends BARDResource {
                                    @QueryParam("expand") String expand) throws IOException, SolrServerException {
 
         ISolrSearch as = new AssaySearch(q);
-        as.run(expand != null && expand.toLowerCase().equals("true"), top, skip);
+        as.run(expand != null && expand.toLowerCase().equals("true"), null, top, skip);
+        SearchResult s = as.getSearchResults();
+        return Response.ok(Util.toJson(s)).type("application/json").build();
+    }
+
+    @GET
+    @Path("/projects/{q}")
+    public Response runProjectSearch(@PathParam("q") String q,
+                                     @QueryParam("skip") Integer skip,
+                                     @QueryParam("top") Integer top,
+                                     @QueryParam("expand") String expand) throws IOException, SolrServerException {
+
+        ISolrSearch as = new ProjectSearch(q);
+        as.run(expand != null && expand.toLowerCase().equals("true"), null, top, skip);
         SearchResult s = as.getSearchResults();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }

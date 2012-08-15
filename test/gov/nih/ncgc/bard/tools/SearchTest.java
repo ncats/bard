@@ -4,6 +4,7 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
+import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
@@ -52,6 +53,27 @@ public class SearchTest {
         Map<String, Integer> fq = response.getFacetQuery();
         for (String key : fq.keySet()) {
             System.out.println(key + " => " + fq.get(key));
+        }
+    }
+
+    @Test
+    public void testFacetField() throws MalformedURLException, SolrServerException {
+        String url = "http://tripod.nih.gov/servlet/solr/core-assay/";
+        SolrServer solr = new HttpSolrServer(url);
+        SolrQuery sq = new SolrQuery("dna+repair");
+
+        sq.setFacet(true);
+        sq.addFacetField("target_name");
+
+        QueryResponse response = solr.query(sq);
+        List<SolrDocument> docs = new ArrayList<SolrDocument>();
+        SolrDocumentList sdl = response.getResults();
+        System.out.println("sdl.getNumFound() = " + sdl.getNumFound());
+
+        FacetField targetFacet = response.getFacetField("target_name");
+        List<FacetField.Count> fcounts = targetFacet.getValues();
+        for (FacetField.Count fcount : fcounts) {
+            System.out.println(fcount.getName() + "=>" + fcount.getCount());
         }
     }
 

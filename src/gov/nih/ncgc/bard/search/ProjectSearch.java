@@ -4,7 +4,6 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
-import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
@@ -13,22 +12,22 @@ import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Full text search for assay entities.
+ * Full text search for project entities.
  *
  * @author Rajarshi Guha
  */
-public class AssaySearch extends SolrSearch {
-    private final String SOLR_URL = SOLR_BASE + "/core-assay/";
+public class ProjectSearch extends SolrSearch {
+    private final String SOLR_URL = SOLR_BASE + "/core-project/";
 
     Logger log;
 
-    String[] facetNames = {"assay component", "assay mode", "assay type", "Cell line", "detection method type", "target_name"};
+    String[] facetNames = {"num_expt"};
 
-    public AssaySearch(String query) {
+    public ProjectSearch(String query) {
         super(query);
         log = LoggerFactory.getLogger(this.getClass());
     }
@@ -44,7 +43,10 @@ public class AssaySearch extends SolrSearch {
         SolrQuery sq = new SolrQuery(query);
         sq = sq.setHighlight(true).setHighlightSnippets(1).setRows(10000);
         sq.setFacet(true);
-        sq.addFacetField("target_name");
+        sq.addFacetQuery("num_expt:[* TO 1]");
+        sq.addFacetQuery("num_expt:[1 TO 5]");
+        sq.addFacetQuery("num_expt:[5 TO 10]");
+        sq.addFacetQuery("num_expt:[10 TO *]");
 
         response = solr.query(sq);
 
@@ -59,39 +61,36 @@ public class AssaySearch extends SolrSearch {
         facets = new ArrayList<Facet>();
         for (String f : facetNames) facets.add(new Facet(f));
 
-        // first pull in direct facet counts via Solr
-        Facet f = null;
-        for (Facet aFacet : facets) {
-            if (aFacet.getFacetName().equals("target_name")) {
-                f = aFacet;
-                break;
-            }
-        }
-        FacetField targetFacet = response.getFacetField("target_name");
-        List<FacetField.Count> fcounts = targetFacet.getValues();
-        for (FacetField.Count fcount : fcounts) {
-            f.counts.put(fcount.getName(), (int) fcount.getCount());
-        }
-
-        // now process annotations to get remaining facet counts
-        for (SolrDocument doc : docs) {
-
-            Collection<Object> keys = doc.getFieldValues("ak_dict_label");
-            Collection<Object> values = doc.getFieldValues("av_dict_label");
-            if (keys == null || values == null) continue;
-            if (keys.size() != values.size())
-                log.error("for assay_id = " + doc.getFieldValue("assay_id") + " keys had " + keys.size() + " elements and values had " + values.size() + " elements");
-
-            List<Object> keyList = new ArrayList<Object>(keys);
-            List<Object> valueList = new ArrayList<Object>(values);
-            for (Facet facet : facets) {
-                for (int i = 0; i < keyList.size(); i++) {
-                    if (keyList.get(i).equals(facet.getFacetName()))
-                        if (i < valueList.size()) {
-                            facet.addFacetValue((String) valueList.get(i));
-                        }
+        Map<String, Integer> solrf = response.getFacetQuery();
+        if (solrf != null) {
+            for (Facet f : facets) {
+                for (String key : solrf.keySet()) {
+                    if (key.startsWith(f.getFacetName())) {
+                        f.counts.put(key.replace(f.getFacetName() + ":", ""), solrf.get(key));
+                    }
                 }
             }
+        }
+
+        // TODO in the future facet on project annotations
+        for (SolrDocument doc : docs) {
+
+//            Collection<Object> keys = doc.getFieldValues("ak_dict_label");
+//            Collection<Object> values = doc.getFieldValues("av_dict_label");
+//            if (keys == null || values == null) continue;
+//            if (keys.size() != values.size())
+//                log.error("for assay_id = " + doc.getFieldValue("assay_id") + " keys had " + keys.size() + " elements and values had " + values.size() + " elements");
+//
+//            List<Object> keyList = new ArrayList<Object>(keys);
+//            List<Object> valueList = new ArrayList<Object>(values);
+//            for (Facet facet : facets) {
+//                for (int i = 0; i < keyList.size(); i++) {
+//                    if (keyList.get(i).equals(facet.getFacetName()))
+//                        if (i < valueList.size()) {
+//                            facet.addFacetValue((String) valueList.get(i));
+//                        }
+//                }
+//            }
 
         }
         long end = System.currentTimeMillis();
@@ -107,10 +106,9 @@ public class AssaySearch extends SolrSearch {
         if (top == null) top = 10;
         if (skip == null) skip = 0;
         for (int i = skip; i <= top; i++) {
-            if (i >= docs.size()) break;
             if (!detailed) {
                 SolrDocument newDoc = new SolrDocument();
-                newDoc.addField("assay_id", docs.get(i).getFieldValue("assay_id"));
+                newDoc.addField("proj_id", docs.get(i).getFieldValue("proj_id"));
                 newDoc.addField("name", docs.get(i).getFieldValue("name"));
                 ret.add(newDoc);
             } else ret.add(docs.get(i));
@@ -119,4 +117,5 @@ public class AssaySearch extends SolrSearch {
         results.setDocs(ret);
         results.setMetaData(meta);
     }
+
 }
