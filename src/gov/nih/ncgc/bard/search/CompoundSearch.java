@@ -114,14 +114,16 @@ public class CompoundSearch extends SolrSearch {
         List<SolrDocument> ret = new ArrayList<SolrDocument>();
         if (top == null) top = 10;
         if (skip == null) skip = 0;
-        for (int i = skip; i <= top; i++) {
-            if (!detailed) {
-                SolrDocument newDoc = new SolrDocument();
-                newDoc.addField("cid", docs.get(i).getFieldValue("cid"));
-                newDoc.addField("iso_smiles", docs.get(i).getFieldValue("iso_smiles"));
-                newDoc.addField("iupac_name", docs.get(i).getFieldValue("iupac_name"));
-                ret.add(newDoc);
-            } else ret.add(docs.get(i));
+        if (skip < docs.size()) {
+            for (int i = skip; i <= top; i++) {
+                if (!detailed) {
+                    SolrDocument newDoc = new SolrDocument();
+                    newDoc.addField("cid", docs.get(i).getFieldValue("cid"));
+                    newDoc.addField("iso_smiles", docs.get(i).getFieldValue("iso_smiles"));
+                    newDoc.addField("iupac_name", docs.get(i).getFieldValue("iupac_name"));
+                    ret.add(newDoc);
+                } else ret.add(docs.get(i));
+            }
         }
 
         SearchMeta meta = new SearchMeta();
