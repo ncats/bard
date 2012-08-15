@@ -90,6 +90,7 @@ public class AssaySearch extends SolrSearch {
         meta.setFacets(facets);
 
         // only return the requested number of docs, from the requested starting point
+        // and generate reduced representation if required
         List<SolrDocument> ret = new ArrayList<SolrDocument>();
         if (top == null) top = 10;
         if (skip == null) skip = 0;

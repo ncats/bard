@@ -113,6 +113,7 @@ public class CompoundSearch extends SolrSearch {
         log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
 
         // only return the requested number of docs, from the requested starting point
+        // and generate reduced representation if required
         List<SolrDocument> ret = new ArrayList<SolrDocument>();
         if (top == null) top = 10;
         if (skip == null) skip = 0;
