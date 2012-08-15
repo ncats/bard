@@ -32,7 +32,7 @@ public class AssaySearch extends SolrSearch {
         log = LoggerFactory.getLogger(this.getClass());
     }
 
-    public void run(boolean detailed, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
+    public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
         results = new SearchResult();
 
         SolrServer solr = null;
@@ -77,13 +77,6 @@ public class AssaySearch extends SolrSearch {
         }
         long end = System.currentTimeMillis();
         log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
-
-        for (Facet f : facets) {
-            log.info("FACET: " + f.getFacetName());
-            for (String key : f.getCounts().keySet()) {
-                log.info("\t" + key + "=" + f.getCounts().get(key));
-            }
-        }
 
         SearchMeta meta = new SearchMeta();
         meta.setNhit(sdl.getNumFound());

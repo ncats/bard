@@ -32,7 +32,7 @@ public class CompoundSearch extends SolrSearch {
         log = LoggerFactory.getLogger(this.getClass());
     }
 
-    public void run(boolean detailed, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
+    public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
         results = new SearchResult();
 
         SolrServer solr = null;
