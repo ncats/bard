@@ -1,5 +1,7 @@
 package gov.nih.ncgc.bard.search;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,11 +14,15 @@ public class Facet {
     String facetName;
     Map<String, Integer> counts;
 
+    public Facet() {
+    }
+
     public Facet(String facetName) {
         this.facetName = facetName;
         counts = new HashMap<String, Integer>();
     }
 
+    @JsonIgnore
     public void addFacetValue(String value) {
         if (counts.containsKey(value)) {
             int n = counts.get(value);
@@ -32,5 +38,13 @@ public class Facet {
 
     public Map<String, Integer> getCounts() {
         return counts;
+    }
+
+    public void setFacetName(String facetName) {
+        this.facetName = facetName;
+    }
+
+    public void setCounts(Map<String, Integer> counts) {
+        this.counts = counts;
     }
 }

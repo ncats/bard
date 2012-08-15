@@ -91,6 +91,7 @@ public class AssaySearch extends SolrSearch {
 
         SearchMeta meta = new SearchMeta();
         meta.setNhit(sdl.getNumFound());
+        meta.setFacets(facets);
 
         // only return the requested number of docs, from the requested starting point
         List<SolrDocument> ret = new ArrayList<SolrDocument>();

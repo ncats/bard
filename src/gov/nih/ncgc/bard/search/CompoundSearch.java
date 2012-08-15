@@ -102,23 +102,15 @@ public class CompoundSearch extends SolrSearch {
                 for (int i = 0; i < keyList.size(); i++) {
                     if (keyList.get(i).equals(facet.getFacetName())) {
                         String v = ((String) valueList.get(i)).trim();
-                        if (v.equals("")) continue;
+                        if (v.length() == 0 || v.equals("")) continue;
                         if (v.indexOf("|") >= 0) v = v.split("|")[0];
                         facet.addFacetValue(v);
                     }
                 }
             }
-
         }
         long end = System.currentTimeMillis();
         log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
-
-        for (Facet f : facets) {
-            log.info("FACET: " + f.getFacetName());
-            for (String key : f.getCounts().keySet()) {
-                log.info("\t" + key + "=" + f.getCounts().get(key));
-            }
-        }
 
         // only return the requested number of docs, from the requested starting point
         List<SolrDocument> ret = new ArrayList<SolrDocument>();
@@ -128,6 +120,7 @@ public class CompoundSearch extends SolrSearch {
 
         SearchMeta meta = new SearchMeta();
         meta.setNhit(sdl.getNumFound());
+        meta.setFacets(facets);
 
         results.setDocs(ret);
         results.setMetaData(meta);
