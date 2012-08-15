@@ -42,10 +42,6 @@ public class AssaySearch extends SolrSearch {
 
         SolrQuery sq = new SolrQuery(query);
         sq = sq.setHighlight(true).setHighlightSnippets(1).setRows(10000);
-//        if (skip != null) sq = sq.setStart(skip);
-        if (!detailed) {
-            sq = sq.setFields("assay_id", "name");
-        }
         response = solr.query(sq);
 
         List<SolrDocument> docs = new ArrayList<SolrDocument>();
@@ -97,7 +93,14 @@ public class AssaySearch extends SolrSearch {
         List<SolrDocument> ret = new ArrayList<SolrDocument>();
         if (top == null) top = 10;
         if (skip == null) skip = 0;
-        for (int i = skip; i <= top; i++) ret.add(docs.get(i));
+        for (int i = skip; i <= top; i++) {
+            if (!detailed) {
+                SolrDocument newDoc = new SolrDocument();
+                newDoc.addField("assay_id", docs.get(i).getFieldValue("assay_id"));
+                newDoc.addField("name", docs.get(i).getFieldValue("name"));
+                ret.add(newDoc);
+            } else ret.add(docs.get(i));
+        }
 
         results.setDocs(ret);
         results.setMetaData(meta);
