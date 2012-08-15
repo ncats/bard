@@ -116,6 +116,7 @@ public class CompoundSearch extends SolrSearch {
         if (skip == null) skip = 0;
         if (skip < docs.size()) {
             for (int i = skip; i <= top; i++) {
+                if (i >= docs.size()) break;
                 if (!detailed) {
                     SolrDocument newDoc = new SolrDocument();
                     newDoc.addField("cid", docs.get(i).getFieldValue("cid"));
