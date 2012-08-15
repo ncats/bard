@@ -42,9 +42,6 @@ public class CompoundSearch extends SolrSearch {
 
         SolrQuery sq = new SolrQuery(query);
         sq = sq.setHighlight(true).setHighlightSnippets(1).setRows(10000);
-        if (!detailed) {
-            sq = sq.setFields("cid", "iupac_name", "iso_smiles");
-        }
 
         // add in some default faceting stuff
         sq.setFacet(true);
