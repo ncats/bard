@@ -1,6 +1,6 @@
 package gov.nih.ncgc.bard.search;
 
-import java.util.Map;
+import java.util.List;
 
 /**
  * A one line summary.
@@ -11,15 +11,15 @@ public abstract class SolrSearch implements ISolrSearch {
     protected final String SOLR_BASE = "http://localhost:8090/solr";
     protected String query = null;
     protected int numHit = -1;
-    protected Map<String, Integer> facetCounts = null;
+    protected List<Facet> facets;
     protected SearchResult results = null;
 
     protected SolrSearch(String query) {
         this.query = query;
     }
 
-    public Map<String, Integer> getFacetCounts() {
-        return facetCounts;
+    public List<Facet> getFacets() {
+        return facets;
     }
 
     public int getHitCount() {

@@ -12,7 +12,9 @@ import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Full text search for compound entities.
@@ -23,6 +25,7 @@ public class CompoundSearch extends SolrSearch {
     private final String SOLR_URL = SOLR_BASE + "/core-compound/";
 
     Logger log;
+    String[] facetNames = {"COLLECTION", "mw", "tpsa", "xlogp"};
 
     public CompoundSearch(String query) {
         super(query);
@@ -38,12 +41,28 @@ public class CompoundSearch extends SolrSearch {
         QueryResponse response = null;
 
         SolrQuery sq = new SolrQuery(query);
-        sq = sq.setHighlight(true).setHighlightSnippets(1);
-        if (top != null) sq = sq.setRows(top);
-        if (skip != null) sq = sq.setStart(skip);
+        sq = sq.setHighlight(true).setHighlightSnippets(1).setRows(10000);
         if (!detailed) {
-            sq = sq.setFields("cid", "iupac_name");
+            sq = sq.setFields("cid", "iupac_name", "iso_smiles");
         }
+
+        // add in some default faceting stuff
+        sq.setFacet(true);
+        sq.addFacetQuery("mw:[* TO 100]");
+        sq.addFacetQuery("mw:[100 TO 200]");
+        sq.addFacetQuery("mw:[200 TO 300]");
+        sq.addFacetQuery("mw:[300 TO *]");
+
+        sq.addFacetQuery("tpsa:[* TO 40]");
+        sq.addFacetQuery("tpsa:[40 TO 120]");
+        sq.addFacetQuery("tpsa:[120 TO 180]");
+        sq.addFacetQuery("tpsa:[180 TO *]");
+
+        sq.addFacetQuery("xlogp:[* TO 1]");
+        sq.addFacetQuery("xlogp:[1 TO 3]");
+        sq.addFacetQuery("xlogp:[3 TO 5]");
+        sq.addFacetQuery("xlogp:[5 TO *]");
+
         response = solr.query(sq);
 
         List<SolrDocument> docs = new ArrayList<SolrDocument>();
@@ -52,10 +71,65 @@ public class CompoundSearch extends SolrSearch {
             docs.add(doc);
         }
 
+        // get facet counts
+        long start = System.currentTimeMillis();
+        facets = new ArrayList<Facet>();
+        for (String f : facetNames) facets.add(new Facet(f));
+
+        // before doing some manual faceting, we extract the
+        // facets that we set irectly in the query
+        Map<String, Integer> solrf = response.getFacetQuery();
+        if (solrf != null) {
+            for (Facet f : facets) {
+                for (String key : solrf.keySet()) {
+                    if (key.startsWith(f.getFacetName())) {
+                        f.counts.put(key.replace(f.getFacetName() + ":", ""), solrf.get(key));
+                    }
+                }
+            }
+        }
+
+        for (SolrDocument doc : docs) {
+
+            Collection<Object> keys = doc.getFieldValues("anno_key");
+            Collection<Object> values = doc.getFieldValues("anno_val");
+
+            if (keys == null || values == null) continue;
+
+            List<Object> keyList = new ArrayList<Object>(keys);
+            List<Object> valueList = new ArrayList<Object>(values);
+            for (Facet facet : facets) {
+                for (int i = 0; i < keyList.size(); i++) {
+                    if (keyList.get(i).equals(facet.getFacetName())) {
+                        String v = ((String) valueList.get(i)).trim();
+                        if (v.equals("")) continue;
+                        if (v.indexOf("|") >= 0) v = v.split("|")[0];
+                        facet.addFacetValue(v);
+                    }
+                }
+            }
+
+        }
+        long end = System.currentTimeMillis();
+        log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
+
+        for (Facet f : facets) {
+            log.info("FACET: " + f.getFacetName());
+            for (String key : f.getCounts().keySet()) {
+                log.info("\t" + key + "=" + f.getCounts().get(key));
+            }
+        }
+
+        // only return the requested number of docs, from the requested starting point
+        List<SolrDocument> ret = new ArrayList<SolrDocument>();
+        if (top == null) top = 10;
+        if (skip == null) skip = 0;
+        for (int i = skip; i <= top; i++) ret.add(docs.get(i));
+
         SearchMeta meta = new SearchMeta();
         meta.setNhit(sdl.getNumFound());
 
-        results.setDocs(docs);
+        results.setDocs(ret);
         results.setMetaData(meta);
     }
 
