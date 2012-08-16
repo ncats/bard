@@ -8,6 +8,7 @@ import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.net.MalformedURLException;
@@ -72,9 +73,11 @@ public class SearchTest {
 
         FacetField targetFacet = response.getFacetField("target_name");
         List<FacetField.Count> fcounts = targetFacet.getValues();
+        int n = 0;
         for (FacetField.Count fcount : fcounts) {
-            System.out.println(fcount.getName() + "=>" + fcount.getCount());
+            n++;
         }
+        Assert.assertTrue(n > 0);
     }
 
 
