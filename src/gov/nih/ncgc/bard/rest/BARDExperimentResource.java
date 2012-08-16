@@ -288,7 +288,6 @@ public class BARDExperimentResource extends BARDResource {
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
-        List<MediaType> types = headers.getAcceptableMediaTypes();
         DBUtils db = new DBUtils();
         String linkString = null;
 
@@ -323,6 +322,7 @@ public class BARDExperimentResource extends BARDResource {
                 json = Util.toJson(linkedEntity);
             } else {
                 List<ExperimentData> data = db.getExperimentData(Long.valueOf(resourceId), skip, top);
+                for (ExperimentData d : data) d.transform();
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
                 json = Util.toJson(linkedEntity);
             }
