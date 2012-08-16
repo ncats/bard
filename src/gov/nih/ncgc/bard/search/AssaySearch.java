@@ -69,8 +69,10 @@ public class AssaySearch extends SolrSearch {
         }
         FacetField targetFacet = response.getFacetField("target_name");
         List<FacetField.Count> fcounts = targetFacet.getValues();
-        for (FacetField.Count fcount : fcounts) {
-            f.counts.put(fcount.getName(), (int) fcount.getCount());
+        if (fcounts != null) {
+            for (FacetField.Count fcount : fcounts) {
+                f.counts.put(fcount.getName(), (int) fcount.getCount());
+            }
         }
 
         // now process annotations to get remaining facet counts
