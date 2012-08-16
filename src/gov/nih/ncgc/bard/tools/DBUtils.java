@@ -1197,6 +1197,16 @@ public class DBUtils {
         return ps;
     }
 
+    public List<Project> getProjectByAssayId(Long aid) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select distinct b.proj_id from experiment a, project b, assay c where c.assay_id = ? and a.assay_id = c.assay_id and a.proj_id = b.proj_id");
+        pst.setLong(1, aid);
+        ResultSet rs = pst.executeQuery();
+        List<Long> pids = new ArrayList<Long>();
+        while (rs.next()) pids.add(rs.getLong("proj_id"));
+        pst.close();
+        return getProjects(pids.toArray(new Long[]{}));
+    }
+
     public List<Project> getProjectByCompoundId(Long cid) throws SQLException {
         PreparedStatement pst = conn.prepareStatement("select p.proj_id from project p, experiment e where e.expt_id in (select distinct ed.eid from experiment_data ed, experiment e, compound a where a.cid = ? and ed.cid = a.cid and ed.eid = e.expt_id) and e.proj_id = p.proj_id");
         pst.setLong(1, cid);

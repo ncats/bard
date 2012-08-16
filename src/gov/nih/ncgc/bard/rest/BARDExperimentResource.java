@@ -4,9 +4,12 @@ import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
+import gov.nih.ncgc.util.functional.Functional;
+import gov.nih.ncgc.util.functional.IApplyFunction;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -150,6 +153,29 @@ public class BARDExperimentResource extends BARDResource {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
+    @Path("/{eid}/projects")
+    public Response getProjects(@PathParam("eid") Long eid, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws SQLException, IOException {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        DBUtils db = new DBUtils();
+        List<Project> projects = db.getProjectByExperimentId(eid);
+        if (!expandEntries) {
+            List<String> links = Functional.Apply(projects, new IApplyFunction<Project, String>() {
+                public String eval(Project project) {
+                    return project.getResourcePath();
+                }
+            });
+            BardLinkedEntity linkedEntity = new BardLinkedEntity(links, null);
+            return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+        } else {
+            BardLinkedEntity linkedEntity = new BardLinkedEntity(projects, null);
+            return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
         }
     }
 
