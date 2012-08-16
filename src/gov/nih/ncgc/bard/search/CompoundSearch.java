@@ -111,26 +111,10 @@ public class CompoundSearch extends SolrSearch {
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
-        List<SolrDocument> ret = new ArrayList<SolrDocument>();
-        if (top == null) top = 10;
-        if (skip == null) skip = 0;
-        if (skip < docs.size()) {
-            for (int i = skip; i <= top; i++) {
-                if (i >= docs.size()) break;
-                if (!detailed) {
-                    SolrDocument newDoc = new SolrDocument();
-                    newDoc.addField("cid", docs.get(i).getFieldValue("cid"));
-                    newDoc.addField("iso_smiles", docs.get(i).getFieldValue("iso_smiles"));
-                    newDoc.addField("iupac_name", docs.get(i).getFieldValue("iupac_name"));
-                    ret.add(newDoc);
-                } else ret.add(docs.get(i));
-            }
-        }
-
+        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "cid", "iso_smiles", "iupac_name");
         SearchMeta meta = new SearchMeta();
         meta.setNhit(sdl.getNumFound());
         meta.setFacets(facets);
-
         results.setDocs(ret);
         results.setMetaData(meta);
     }

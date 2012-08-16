@@ -12,6 +12,7 @@ import java.util.List;
 public class SearchResult {
     List<SolrDocument> docs;
     SearchMeta metaData;
+    String link = null;
 
     public SearchResult() {
     }
@@ -31,4 +32,13 @@ public class SearchResult {
     public void setMetaData(SearchMeta metaData) {
         this.metaData = metaData;
     }
+
+    public String getLink() {
+        return link;
+    }
+
+    public void setLink(String link) {
+        this.link = link;
+    }
+
 }

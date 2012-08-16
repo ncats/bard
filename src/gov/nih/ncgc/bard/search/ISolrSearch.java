@@ -18,4 +18,6 @@ public interface ISolrSearch {
     public int getHitCount();
 
     public SearchResult getSearchResults();
+
+    public String getQuery();
 }

@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.search;
 
+import org.apache.solr.common.SolrDocument;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -26,7 +29,25 @@ public abstract class SolrSearch implements ISolrSearch {
         return numHit;
     }
 
+    public String getQuery() {
+        return query;
+    }
+
     public SearchResult getSearchResults() {
         return results;
+    }
+
+    protected List<SolrDocument> copyRange(List<SolrDocument> docs, Integer skip, Integer top, boolean detailed, String... fields) {
+        List<SolrDocument> ret = new ArrayList<SolrDocument>();
+        if (top == null) top = 10;
+        if (skip == null) skip = 0;
+        for (int i = skip; i < (skip + top); i++) {
+            if (!detailed) {
+                SolrDocument newDoc = new SolrDocument();
+                for (String field : fields) newDoc.addField(field, docs.get(i).getFieldValue(field));
+                ret.add(newDoc);
+            } else ret.add(docs.get(i));
+        }
+        return ret;
     }
 }

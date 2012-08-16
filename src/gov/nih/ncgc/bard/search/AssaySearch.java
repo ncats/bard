@@ -105,20 +105,9 @@ public class AssaySearch extends SolrSearch {
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
-        List<SolrDocument> ret = new ArrayList<SolrDocument>();
-        if (top == null) top = 10;
-        if (skip == null) skip = 0;
-        for (int i = skip; i <= top; i++) {
-            if (i >= docs.size()) break;
-            if (!detailed) {
-                SolrDocument newDoc = new SolrDocument();
-                newDoc.addField("assay_id", docs.get(i).getFieldValue("assay_id"));
-                newDoc.addField("name", docs.get(i).getFieldValue("name"));
-                ret.add(newDoc);
-            } else ret.add(docs.get(i));
-        }
-
+        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "assay_id", "name");
         results.setDocs(ret);
         results.setMetaData(meta);
+
     }
 }

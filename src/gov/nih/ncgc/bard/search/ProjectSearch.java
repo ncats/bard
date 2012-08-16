@@ -102,18 +102,7 @@ public class ProjectSearch extends SolrSearch {
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
-        List<SolrDocument> ret = new ArrayList<SolrDocument>();
-        if (top == null) top = 10;
-        if (skip == null) skip = 0;
-        for (int i = skip; i <= top; i++) {
-            if (!detailed) {
-                SolrDocument newDoc = new SolrDocument();
-                newDoc.addField("proj_id", docs.get(i).getFieldValue("proj_id"));
-                newDoc.addField("name", docs.get(i).getFieldValue("name"));
-                ret.add(newDoc);
-            } else ret.add(docs.get(i));
-        }
-
+        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "proj_id", "name");
         results.setDocs(ret);
         results.setMetaData(meta);
     }

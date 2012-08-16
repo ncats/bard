@@ -19,6 +19,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.List;
 
 /**
@@ -77,9 +78,7 @@ public class BARDSearchResource extends BARDResource {
                                       @QueryParam("top") Integer top,
                                       @QueryParam("expand") String expand) throws IOException, SolrServerException {
 
-        ISolrSearch as = new CompoundSearch(q);
-        as.run(expand != null && expand.toLowerCase().equals("true"), null, top, skip);
-        SearchResult s = as.getSearchResults();
+        SearchResult s = doSearch(new CompoundSearch(q), skip, top, expand, null);
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
@@ -90,9 +89,7 @@ public class BARDSearchResource extends BARDResource {
                                    @QueryParam("top") Integer top,
                                    @QueryParam("expand") String expand) throws IOException, SolrServerException {
 
-        ISolrSearch as = new AssaySearch(q);
-        as.run(expand != null && expand.toLowerCase().equals("true"), null, top, skip);
-        SearchResult s = as.getSearchResults();
+        SearchResult s = doSearch(new AssaySearch(q), skip, top, expand, null);
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
@@ -103,9 +100,32 @@ public class BARDSearchResource extends BARDResource {
                                      @QueryParam("top") Integer top,
                                      @QueryParam("expand") String expand) throws IOException, SolrServerException {
 
-        ISolrSearch as = new ProjectSearch(q);
-        as.run(expand != null && expand.toLowerCase().equals("true"), null, top, skip);
-        SearchResult s = as.getSearchResults();
+        SearchResult s = doSearch(new ProjectSearch(q), skip, top, expand, null);
         return Response.ok(Util.toJson(s)).type("application/json").build();
+    }
+
+    private SearchResult doSearch(ISolrSearch s, Integer skip, Integer top, String expand, String filter) throws MalformedURLException, SolrServerException {
+        if (top == null) top = 10;
+        if (skip == null) skip = 0;
+
+        s.run(expand != null && expand.toLowerCase().equals("true"), null, top, skip);
+        SearchResult sr = s.getSearchResults();
+
+        String link = null;
+        if (skip + top <= sr.getMetaData().getNhit()) {
+            if (s instanceof AssaySearch) link = "/search/assays/" + s.getQuery();
+            else if (s instanceof CompoundSearch) link = "/search/compounds/" + s.getQuery();
+            else if (s instanceof ProjectSearch) link = "/search/projects/" + s.getQuery();
+
+            if (filter == null) filter = "";
+            else filter = "&" + filter;
+            link = link + "?skip=" + (skip + top) + "&top=" + top + filter;
+
+            if (expand == null) expand = "&expand=false";
+            else expand = "&expand=" + expand;
+            link += expand;
+        }
+        sr.setLink(link);
+        return sr;
     }
 }
