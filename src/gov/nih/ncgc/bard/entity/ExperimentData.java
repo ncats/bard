@@ -15,7 +15,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class ExperimentData implements BardEntity {
-    Long exptDataId;
+    String exptDataId;
     Long eid, cid, sid;
 
     @JsonIgnore
@@ -126,11 +126,11 @@ public class ExperimentData implements BardEntity {
         this.potency = potency;
     }
 
-    public Long getExptDataId() {
+    public String getExptDataId() {
         return exptDataId;
     }
 
-    public void setExptDataId(Long exptDataId) {
+    public void setExptDataId(String exptDataId) {
         this.exptDataId = exptDataId;
     }
 

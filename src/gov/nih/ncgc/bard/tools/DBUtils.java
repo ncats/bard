@@ -414,14 +414,20 @@ public class DBUtils {
      * result (score, potency, outcome etc) as well as the actual measured data which may be single
      * point or dose response.
      *
-     * @param edid The experiment data identifier
+     * @param edid The experiment data identifier  (of the form EXPT_ID.SID)
      * @return
      * @throws SQLException
      */
-    public ExperimentData getExperimentDataByDataId(Long edid) throws SQLException, IOException {
-        if (edid == null || edid <= 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from experiment_data a, experiment_result b, experiment c where a.expt_data_id = ? and a.expt_data_id = b.expt_data_id and a.eid = c.expt_id");
-        pst.setLong(1, edid);
+    public ExperimentData getExperimentDataByDataId(String edid) throws SQLException, IOException {
+        if (edid == null || !edid.contains(".")) return null;
+
+        String[] toks = edid.split("\\.");
+        Long eid = Long.parseLong(toks[0]);
+        Long sid = Long.parseLong(toks[1]);
+
+        PreparedStatement pst = conn.prepareStatement("select * from experiment_data a, experiment_result b, experiment c where a.eid = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.eid = c.expt_id");
+        pst.setLong(1, eid);
+        pst.setLong(2, sid);
         ResultSet rs = pst.executeQuery();
         ExperimentData ed = new ExperimentData();
         ed.setExptDataId(edid);
@@ -582,6 +588,9 @@ public class DBUtils {
 
     /**
      * Return experiment data ids for an experiment.
+     * <p/>
+     * The identifiers used to refer to experiment data are a combination of the
+     * experiment id and the substance identifier in the form <code>EXPT_ID.SID</code>.
      *
      * @param eid  The experiment id (AKA Pubchem AID for experiments taken from Pubchem)
      * @param skip how many records to skip
@@ -589,7 +598,7 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<Long> getExperimentDataIds(Long eid, int skip, int top) throws SQLException {
+    public List<String> getExperimentDataIds(Long eid, int skip, int top) throws SQLException {
         if (eid == null || eid < 0) return null;
 
         String limitClause = "";
@@ -598,11 +607,11 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select expt_data_id from experiment_data where eid = ? order by expt_data_id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where eid = ? order by id " + limitClause);
         pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
-        List<Long> ret = new ArrayList<Long>();
-        while (rs.next()) ret.add(rs.getLong("expt_data_id"));
+        List<String> ret = new ArrayList<String>();
+        while (rs.next()) ret.add(rs.getString(1));
         pst.close();
         return ret;
     }
@@ -625,11 +634,11 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select expt_data_id from experiment_data where eid = ? order by expt_data_id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where eid = ? order by eid, sid " + limitClause);
         pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
         List<ExperimentData> ret = new ArrayList<ExperimentData>();
-        while (rs.next()) ret.add(getExperimentDataByDataId(rs.getLong(1)));
+        while (rs.next()) ret.add(getExperimentDataByDataId(rs.getString(1)));
         pst.close();
         return ret;
     }
@@ -643,7 +652,7 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<Long> getSubstanceDataIds(Long sid, int skip, int top) throws SQLException {
+    public List<String> getSubstanceDataIds(Long sid, int skip, int top) throws SQLException {
         if (sid == null || sid < 0) return null;
 
         String limitClause = "";
@@ -652,11 +661,11 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select expt_data_id from experiment_data where sid = ? order by expt_data_id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where sid = ? order by id " + limitClause);
         pst.setLong(1, sid);
         ResultSet rs = pst.executeQuery();
-        List<Long> ret = new ArrayList<Long>();
-        while (rs.next()) ret.add(rs.getLong("expt_data_id"));
+        List<String> ret = new ArrayList<String>();
+        while (rs.next()) ret.add(rs.getString(1));
         pst.close();
         return ret;
     }
@@ -709,11 +718,11 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select expt_data_id from experiment_data where sid = ? order by expt_data_id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where sid = ? order by id " + limitClause);
         pst.setLong(1, sid);
         ResultSet rs = pst.executeQuery();
         List<ExperimentData> ret = new ArrayList<ExperimentData>();
-        while (rs.next()) ret.add(getExperimentDataByDataId(rs.getLong(1)));
+        while (rs.next()) ret.add(getExperimentDataByDataId(rs.getString(1)));
         pst.close();
         return ret;
     }
@@ -727,7 +736,7 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<Long> getCompoundDataIds(Long cid, int skip, int top) throws SQLException {
+    public List<String> getCompoundDataIds(Long cid, int skip, int top) throws SQLException {
         if (cid == null || cid < 0) return null;
 
         String limitClause = "";
@@ -736,11 +745,11 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select expt_data_id from experiment_data where cid = ? order by expt_data_id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where cid = ? order by id " + limitClause);
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
-        List<Long> ret = new ArrayList<Long>();
-        while (rs.next()) ret.add(rs.getLong("expt_data_id"));
+        List<String> ret = new ArrayList<String>();
+        while (rs.next()) ret.add(rs.getString(1));
         pst.close();
         return ret;
     }
@@ -871,11 +880,11 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select expt_data_id from experiment_data where cid = ? order by expt_data_id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where cid = ? order by expt_data_id " + limitClause);
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         List<ExperimentData> ret = new ArrayList<ExperimentData>();
-        while (rs.next()) ret.add(getExperimentDataByDataId(rs.getLong(1)));
+        while (rs.next()) ret.add(getExperimentDataByDataId(rs.getString(1)));
         pst.close();
         return ret;
     }
@@ -1224,14 +1233,14 @@ public class DBUtils {
             String q = toks[0].trim();
             String field = toks[1].trim().replace("]", "");
 
-            String sql = "select expt_data_id from experiment_data where " + field + " = " + q + "";
+            String sql = "select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where " + field + " = " + q + "";
             pst = conn.prepareStatement(sql);
         }
 
         ResultSet rs = pst.executeQuery();
         List<ExperimentData> experimentData = new ArrayList<ExperimentData>();
         while (rs.next()) {
-            Long exptId = rs.getLong("expt_id");
+            String exptId = rs.getString(1);
             experimentData.add(getExperimentDataByDataId(exptId));
         }
         pst.close();

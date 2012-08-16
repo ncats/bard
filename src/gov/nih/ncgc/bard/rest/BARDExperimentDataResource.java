@@ -118,7 +118,7 @@ public class BARDExperimentDataResource implements IBARDResource {
         DBUtils db = new DBUtils();
         ExperimentData experimentData;
         try {
-            experimentData = db.getExperimentDataByDataId(Long.valueOf(resourceId));
+            experimentData = db.getExperimentDataByDataId(resourceId);
             db.closeConnection();
             if (experimentData == null || experimentData.getExptDataId() == null)
                 throw new WebApplicationException(404);

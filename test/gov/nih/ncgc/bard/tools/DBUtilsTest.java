@@ -67,7 +67,7 @@ public class DBUtilsTest extends DBTest {
 
     @Test
     public void getSinglePointExperimentData() throws IOException, SQLException {
-        Long edid = 3891279L;
+        String edid = "3888.7964547";
         ExperimentData ed = db.getExperimentDataByDataId(edid);
         Assert.assertNotNull(ed);
         Assert.assertEquals(ed.getResults().length, 21);
@@ -75,7 +75,7 @@ public class DBUtilsTest extends DBTest {
 
     @Test
     public void getSinglePointExperimentData2() throws IOException, SQLException {
-        Long edid = 639196L;
+        String edid = "450.842121";
         ExperimentData ed = db.getExperimentDataByDataId(edid);
         Assert.assertNotNull(ed);
         Assert.assertNull(ed.getPotency());

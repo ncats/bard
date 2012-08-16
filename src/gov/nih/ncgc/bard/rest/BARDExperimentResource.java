@@ -312,9 +312,9 @@ public class BARDExperimentResource extends BARDResource {
 
             String json;
             if (!expandEntries) {
-                List<Long> edids = db.getExperimentDataIds(Long.valueOf(resourceId), skip, top);
+                List<String> edids = db.getExperimentDataIds(Long.valueOf(resourceId), skip, top);
                 List<String> links = new ArrayList<String>();
-                for (Long edid : edids) {
+                for (String edid : edids) {
                     ExperimentData ed = new ExperimentData();
                     ed.setExptDataId(edid);
                     links.add(ed.getResourcePath());
