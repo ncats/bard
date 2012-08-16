@@ -42,6 +42,7 @@ public abstract class SolrSearch implements ISolrSearch {
         if (top == null) top = 10;
         if (skip == null) skip = 0;
         for (int i = skip; i < (skip + top); i++) {
+            if (i >= docs.size()) continue;
             if (!detailed) {
                 SolrDocument newDoc = new SolrDocument();
                 for (String field : fields) newDoc.addField(field, docs.get(i).getFieldValue(field));
