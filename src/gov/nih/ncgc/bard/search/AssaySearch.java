@@ -32,6 +32,8 @@ import java.util.Set;
  */
 public class AssaySearch extends SolrSearch {
     private final String SOLR_URL = SOLR_BASE + "/core-assay/";
+    private final String HL_FIELD = "text";
+    private final String PKEY_ASSAY_DOC = "assay_id";
 
     Logger log;
 
@@ -77,21 +79,33 @@ public class AssaySearch extends SolrSearch {
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
         results = new SearchResult();
 
-        SolrServer solr = null;
-        solr = new CommonsHttpSolrServer(SOLR_URL);
-
-        QueryResponse response = null;
+        SolrServer solr = new CommonsHttpSolrServer(SOLR_URL);
 
         SolrQuery sq = new SolrQuery(query);
-        sq = sq.setHighlight(true).setHighlightSnippets(1).setRows(10000);
+        sq = sq.setHighlight(true).
+                addHighlightField(HL_FIELD).
+                setHighlightSnippets(1).
+                setHighlightFragsize(300).
+                setHighlightSimplePre("<b>").
+                setHighlightSimplePost("</b>");
+
+        sq.setRows(10000);
+
         sq.setFacet(true);
         sq.addFacetField("target_name");
 
-        response = solr.query(sq);
+        QueryResponse response = solr.query(sq);
 
         List<SolrDocument> docs = new ArrayList<SolrDocument>();
         SolrDocumentList sdl = response.getResults();
         for (SolrDocument doc : sdl) {
+
+            String pkey = (String) doc.getFieldValue(PKEY_ASSAY_DOC);
+            List<String> hls = response.getHighlighting().get(pkey).get(HL_FIELD);
+            if (hls != null) {
+                doc.addField("highlight", hls.get(0));
+            }
+
             docs.add(doc);
         }
 
@@ -144,7 +158,7 @@ public class AssaySearch extends SolrSearch {
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
-        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "assay_id", "name");
+        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "assay_id", "name", "highlight");
         results.setDocs(ret);
         results.setMetaData(meta);
 
