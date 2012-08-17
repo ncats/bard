@@ -114,13 +114,13 @@ public class BARDSearchResource extends BARDResource {
 
         String link = null;
         if (skip + top <= sr.getMetaData().getNhit()) {
-            if (s instanceof AssaySearch) link = "/search/assays/" + s.getQuery();
-            else if (s instanceof CompoundSearch) link = "/search/compounds/" + s.getQuery();
-            else if (s instanceof ProjectSearch) link = "/search/projects/" + s.getQuery();
+            if (s instanceof AssaySearch) link = "/search/assays?q=" + s.getQuery();
+            else if (s instanceof CompoundSearch) link = "/search/compounds?q=" + s.getQuery();
+            else if (s instanceof ProjectSearch) link = "/search/projects?q=" + s.getQuery();
 
             if (filter == null) filter = "";
             else filter = "&" + filter;
-            link = link + "?skip=" + (skip + top) + "&top=" + top + filter;
+            link = link + "&skip=" + (skip + top) + "&top=" + top + filter;
 
             if (expand == null) expand = "&expand=false";
             else expand = "&expand=" + expand;
