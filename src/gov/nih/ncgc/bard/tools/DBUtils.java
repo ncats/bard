@@ -836,33 +836,6 @@ public class DBUtils {
     }
 
     /**
-     * Return {@link Assay} objects for a compound.
-     *
-     * @param cid  The Pubchem CID
-     * @param skip how many records to skip
-     * @param top  how many records to return
-     * @return
-     * @throws SQLException
-     */
-    public List<Assay> getCompoundAssays(Long cid, int skip, int top) throws SQLException {
-        if (cid == null || cid < 0) return null;
-
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
-
-        PreparedStatement pst = conn.prepareStatement("select distinct assay_id from experiment_data a, experiment b where a.cid = ? and a.eid = b.expt_id  " + limitClause);
-        pst.setLong(1, cid);
-        ResultSet rs = pst.executeQuery();
-        List<Assay> ret = new ArrayList<Assay>();
-        while (rs.next()) ret.add(getAssayByAid(rs.getLong(1)));
-        pst.close();
-        return ret;
-    }
-
-    /**
      * Return experiment objects for a subtstance.
      *
      * @param sid  The Pubchem SID
@@ -1261,16 +1234,6 @@ public class DBUtils {
         return getProjects(pids.toArray(new Long[]{}));
     }
 
-    public List<Project> getProjectByCompoundId(Long cid) throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select p.proj_id from project p, experiment e where e.expt_id in (select distinct ed.eid from experiment_data ed, experiment e, compound a where a.cid = ? and ed.cid = a.cid and ed.eid = e.expt_id) and e.proj_id = p.proj_id");
-        pst.setLong(1, cid);
-        ResultSet rs = pst.executeQuery();
-        List<Long> pids = new ArrayList<Long>();
-        while (rs.next()) pids.add(rs.getLong("proj_id"));
-        pst.close();
-        return getProjects(pids.toArray(new Long[]{}));
-    }
-
     public List<Long> getProbesForProject(Long aid) throws SQLException {
         PreparedStatement pst = conn.prepareStatement("select a.cid from experiment_data a, compound b where b.probe_id is not null and a.eid = ? and a.cid = b.cid");
         pst.setLong(1, aid);
@@ -1480,6 +1443,37 @@ public class DBUtils {
         }
         pst.close();
         return nrow;
+    }
+
+    public <T> List<T> getEntitiesByCid(Long cid, Class<T> entity, Integer skip, Integer top) throws SQLException {
+        String sql = null;
+        PreparedStatement pst;
+
+        if (cid == null || cid < 0) return null;
+        String limitClause = "";
+        if (skip == null) skip = -1;
+        if (top == null) top = -1;
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        if (entity.isAssignableFrom(Assay.class)) {
+            sql = "select distinct assay_id from experiment_data a, experiment b where a.cid = ? and a.eid = b.expt_id  " + limitClause;
+        } else if (entity.isAssignableFrom(Project.class)) {
+            sql = "select p.proj_id from project p, experiment e where e.expt_id in (select distinct ed.eid from experiment_data ed, experiment e, compound a where a.cid = ? and ed.cid = a.cid and ed.eid = e.expt_id) and e.proj_id = p.proj_id";
+        }
+
+        pst = conn.prepareStatement(sql);
+        pst.setLong(1, cid);
+        ResultSet rs = pst.executeQuery();
+        List<T> ret = new ArrayList<T>();
+        while (rs.next()) {
+            if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(rs.getLong(1)));
+            else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(rs.getLong(1)));
+        }
+        pst.close();
+        return ret;
     }
 
 }

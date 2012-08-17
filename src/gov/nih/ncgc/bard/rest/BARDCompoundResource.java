@@ -451,7 +451,7 @@ public class BARDCompoundResource extends BARDResource {
         DBUtils db = new DBUtils();
         Response response;
         String linkString = null;
-        List<Project> p = db.getProjectByCompoundId(cid);
+        List<Project> p = db.getEntitiesByCid(cid, Project.class, skip, top);
         if (countRequested) response = Response.ok(String.valueOf(p.size())).type(MediaType.TEXT_PLAIN).build();
 
         if (p.size() > BARDConstants.MAX_DATA_COUNT) {
@@ -490,7 +490,8 @@ public class BARDCompoundResource extends BARDResource {
         DBUtils db = new DBUtils();
         Response response;
         String linkString = null;
-        List<Assay> p = db.getCompoundAssays(cid, -1, -1);
+//        List<Assay> p = db.getCompoundAssays(cid, -1, -1);
+        List<Assay> p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
         if (p == null) p = new ArrayList<Assay>();
         if (countRequested) response = Response.ok(String.valueOf(p.size())).type(MediaType.TEXT_PLAIN).build();
 
