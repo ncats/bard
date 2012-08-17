@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.rest;
 
 import chemaxon.struc.Molecule;
 import com.sun.jersey.api.NotFoundException;
+import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
@@ -481,6 +482,47 @@ public class BARDCompoundResource extends BARDResource {
         return response;
     }
 
+    @GET
+    @Path("/{cid}/assays")
+    public Response getAssaysForCompound(@PathParam("cid") Long cid, String expand,
+                                         @QueryParam("skip") Integer skip,
+                                         @QueryParam("top") Integer top) throws SQLException, IOException {
+        DBUtils db = new DBUtils();
+        Response response;
+        String linkString = null;
+        List<Assay> p = db.getCompoundAssays(cid, -1, -1);
+        if (p == null) p = new ArrayList<Assay>();
+        if (countRequested) response = Response.ok(String.valueOf(p.size())).type(MediaType.TEXT_PLAIN).build();
+
+        if (p.size() > BARDConstants.MAX_DATA_COUNT) {
+            if ((top == -1)) { // top was not specified, so we start from the beginning
+                top = BARDConstants.MAX_DATA_COUNT;
+            }
+            if (skip == -1) skip = 0;
+            String expandClause = "expand=false";
+            if (expandEntries(expand)) expandClause = "expand=true";
+            if (skip + top <= p.size())
+                linkString = BARDConstants.API_BASE + "/compounds/" + cid + "/assays?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+        }
+
+        if (!expandEntries(expand)) {
+            List<String> links = Functional.Apply(p, new IApplyFunction<Assay, String>() {
+                public String eval(Assay assay) {
+                    return assay.getResourcePath();
+                }
+            });
+            BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+            response = Response.ok(Util.toJson(linkedEntity)).type(MediaType.APPLICATION_JSON).build();
+        } else {
+            BardLinkedEntity linkedEntity = new BardLinkedEntity(p, linkString);
+            response = Response.ok(Util.toJson(linkedEntity)).type(MediaType.APPLICATION_JSON).build();
+        }
+
+        db.closeConnection();
+        return response;
+    }
+
+
     // return all experiment data for this CID
     @GET
     @Path("/{cid}/exptdata")
@@ -599,5 +641,41 @@ public class BARDCompoundResource extends BARDResource {
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
+    }
+
+    @GET
+    @Path("/{cid}/summary")
+    public Response getSummary(@PathParam("cid") Long cid,
+                               @QueryParam("expand") String expand,
+                               @QueryParam("skip") Integer skip,
+                               @QueryParam("top") Integer top) throws IOException, SQLException {
+        Map<String, Object> s = new HashMap<String, Object>();
+        DBUtils db = new DBUtils();
+
+        if (skip == null) skip = -1;
+        if (top == null) top = -1;
+
+        List<ExperimentData> data = db.getCompoundData(cid, skip, top);
+        int nhit = 0;
+        List<String> hitExpts = new ArrayList<String>();
+        List<String> hitAssays = new ArrayList<String>();
+        for (ExperimentData ed : data) {
+            Long eid = ed.getEid();
+            Experiment expt = db.getExperimentByExptId(eid);
+
+            // if cid was active in experiment_data (outcome = 2) and experiment was a confirmatory screen, we call it a hit
+            if (ed.getOutcome() == 2 && expt.getType() == 2) {
+                nhit++;
+                hitExpts.add(expt.getResourcePath());
+                hitAssays.add(db.getAssayByAid(expt.getAssayId()).getResourcePath());
+            }
+        }
+        s.put("ntest", String.valueOf(data.size()));
+        s.put("nhit", String.valueOf(nhit));
+        s.put("hitExperiments", hitExpts);
+        s.put("hitAssays", hitAssays);
+
+        return Response.ok(Util.toJson(s), MediaType.APPLICATION_JSON).build();
+
     }
 }

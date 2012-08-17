@@ -836,6 +836,33 @@ public class DBUtils {
     }
 
     /**
+     * Return {@link Assay} objects for a compound.
+     *
+     * @param cid  The Pubchem CID
+     * @param skip how many records to skip
+     * @param top  how many records to return
+     * @return
+     * @throws SQLException
+     */
+    public List<Assay> getCompoundAssays(Long cid, int skip, int top) throws SQLException {
+        if (cid == null || cid < 0) return null;
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select distinct assay_id from experiment_data a, experiment b where a.cid = ? and a.eid = b.expt_id  " + limitClause);
+        pst.setLong(1, cid);
+        ResultSet rs = pst.executeQuery();
+        List<Assay> ret = new ArrayList<Assay>();
+        while (rs.next()) ret.add(getAssayByAid(rs.getLong(1)));
+        pst.close();
+        return ret;
+    }
+
+    /**
      * Return experiment objects for a subtstance.
      *
      * @param sid  The Pubchem SID
