@@ -16,6 +16,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -58,12 +59,12 @@ public class BARDSearchResource extends BARDResource {
     }
 
     @GET
-    @Path("/{q}")
-    public Response runSearch(@PathParam("q") String q,
+    @Path("/")
+    public Response runSearch(@QueryParam("q") String q,
                               @QueryParam("skip") Integer skip,
                               @QueryParam("top") Integer top,
                               @QueryParam("expand") String expand) throws IOException, SolrServerException {
-
+        if (q == null) throw new WebApplicationException(400);
         ISolrSearch as = new AssaySearch(q);
         as.run(expand != null && expand.toLowerCase().equals("true"), null, top, skip);
         SearchResult s = as.getSearchResults();
@@ -72,34 +73,34 @@ public class BARDSearchResource extends BARDResource {
 
 
     @GET
-    @Path("/compounds/{q}")
-    public Response runCompoundSearch(@PathParam("q") String q,
+    @Path("/compounds")
+    public Response runCompoundSearch(@QueryParam("q") String q,
                                       @QueryParam("skip") Integer skip,
                                       @QueryParam("top") Integer top,
                                       @QueryParam("expand") String expand) throws IOException, SolrServerException {
-
+        if (q == null) throw new WebApplicationException(400);
         SearchResult s = doSearch(new CompoundSearch(q), skip, top, expand, null);
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
     @GET
-    @Path("/assays/{q}")
-    public Response runAssaySearch(@PathParam("q") String q,
+    @Path("/assays")
+    public Response runAssaySearch(@QueryParam("q") String q,
                                    @QueryParam("skip") Integer skip,
                                    @QueryParam("top") Integer top,
                                    @QueryParam("expand") String expand) throws IOException, SolrServerException {
-
+        if (q == null) throw new WebApplicationException(400);
         SearchResult s = doSearch(new AssaySearch(q), skip, top, expand, null);
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
     @GET
-    @Path("/projects/{q}")
-    public Response runProjectSearch(@PathParam("q") String q,
+    @Path("/projects")
+    public Response runProjectSearch(@QueryParam("q") String q,
                                      @QueryParam("skip") Integer skip,
                                      @QueryParam("top") Integer top,
                                      @QueryParam("expand") String expand) throws IOException, SolrServerException {
-
+        if (q == null) throw new WebApplicationException(400);
         SearchResult s = doSearch(new ProjectSearch(q), skip, top, expand, null);
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
