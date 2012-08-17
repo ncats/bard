@@ -1462,6 +1462,8 @@ public class DBUtils {
             sql = "select distinct assay_id from experiment_data a, experiment b where a.cid = ? and a.eid = b.expt_id  " + limitClause;
         } else if (entity.isAssignableFrom(Project.class)) {
             sql = "select p.proj_id from project p, experiment e where e.expt_id in (select distinct ed.eid from experiment_data ed, experiment e, compound a where a.cid = ? and ed.cid = a.cid and ed.eid = e.expt_id) and e.proj_id = p.proj_id";
+        } else if (entity.isAssignableFrom(Substance.class)) {
+            sql = "select sid from cid_sid where cid = ?";
         }
 
         pst = conn.prepareStatement(sql);
@@ -1471,6 +1473,7 @@ public class DBUtils {
         while (rs.next()) {
             if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(rs.getLong(1)));
             else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(rs.getLong(1)));
+            else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(rs.getLong(1)));
         }
         pst.close();
         return ret;
