@@ -61,12 +61,13 @@ public class BARDSearchResource extends BARDResource {
     @GET
     @Path("/")
     public Response runSearch(@QueryParam("q") String q,
+                              @QueryParam("filter") String filter,
                               @QueryParam("skip") Integer skip,
                               @QueryParam("top") Integer top,
                               @QueryParam("expand") String expand) throws IOException, SolrServerException {
         if (q == null) throw new WebApplicationException(400);
         ISolrSearch as = new AssaySearch(q);
-        as.run(expand != null && expand.toLowerCase().equals("true"), null, top, skip);
+        as.run(expand != null && expand.toLowerCase().equals("true"), filter, top, skip);
         SearchResult s = as.getSearchResults();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
@@ -75,33 +76,36 @@ public class BARDSearchResource extends BARDResource {
     @GET
     @Path("/compounds")
     public Response runCompoundSearch(@QueryParam("q") String q,
+                                      @QueryParam("filter") String filter,
                                       @QueryParam("skip") Integer skip,
                                       @QueryParam("top") Integer top,
                                       @QueryParam("expand") String expand) throws IOException, SolrServerException {
         if (q == null) throw new WebApplicationException(400);
-        SearchResult s = doSearch(new CompoundSearch(q), skip, top, expand, null);
+        SearchResult s = doSearch(new CompoundSearch(q), skip, top, expand, filter);
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
     @GET
     @Path("/assays")
     public Response runAssaySearch(@QueryParam("q") String q,
+                                   @QueryParam("filter") String filter,
                                    @QueryParam("skip") Integer skip,
                                    @QueryParam("top") Integer top,
                                    @QueryParam("expand") String expand) throws IOException, SolrServerException {
         if (q == null) throw new WebApplicationException(400);
-        SearchResult s = doSearch(new AssaySearch(q), skip, top, expand, null);
+        SearchResult s = doSearch(new AssaySearch(q), skip, top, expand, filter);
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
     @GET
     @Path("/projects")
     public Response runProjectSearch(@QueryParam("q") String q,
+                                     @QueryParam("filter") String filter,
                                      @QueryParam("skip") Integer skip,
                                      @QueryParam("top") Integer top,
                                      @QueryParam("expand") String expand) throws IOException, SolrServerException {
         if (q == null) throw new WebApplicationException(400);
-        SearchResult s = doSearch(new ProjectSearch(q), skip, top, expand, null);
+        SearchResult s = doSearch(new ProjectSearch(q), skip, top, expand, filter);
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
@@ -109,7 +113,7 @@ public class BARDSearchResource extends BARDResource {
         if (top == null) top = 10;
         if (skip == null) skip = 0;
 
-        s.run(expand != null && expand.toLowerCase().equals("true"), null, top, skip);
+        s.run(expand != null && expand.toLowerCase().equals("true"), filter, top, skip);
         SearchResult sr = s.getSearchResults();
 
         String link = null;
@@ -119,7 +123,7 @@ public class BARDSearchResource extends BARDResource {
             else if (s instanceof ProjectSearch) link = "/search/projects?q=" + s.getQuery();
 
             if (filter == null) filter = "";
-            else filter = "&" + filter;
+            else filter = "&filter=" + filter;
             link = link + "&skip=" + (skip + top) + "&top=" + top + filter;
 
             if (expand == null) expand = "&expand=false";

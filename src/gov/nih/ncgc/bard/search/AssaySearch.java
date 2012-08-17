@@ -83,29 +83,41 @@ public class AssaySearch extends SolrSearch {
 
         SolrQuery sq = new SolrQuery(query);
         sq = sq.setHighlight(true).
-                addHighlightField(HL_FIELD).
                 setHighlightSnippets(1).
                 setHighlightFragsize(300).
                 setHighlightSimplePre("<b>").
                 setHighlightSimplePost("</b>");
 
+        if (filter == null) sq.addHighlightField(HL_FIELD);
+        else {
+            // we highlight on the specified fields (can we highlight multiple fields?)
+        }
         sq.setRows(10000);
 
         sq.setFacet(true);
         sq.addFacetField("target_name");
+
+        // do we have filter queries to include?
+        // do we have filter queries to include?
+        if (filter != null) {
+            Map<String, String> fq = SearchUtil.extractFilterQueries(filter);
+            for (String fname : fq.keySet()) {
+                String fvalue = fq.get(fname);
+                if (fvalue.contains("[")) sq.addFilterQuery(fname + ":" + fvalue);
+                else sq.addFilterQuery(fname + ":\"" + fvalue + "\"");
+            }
+        }
 
         QueryResponse response = solr.query(sq);
 
         List<SolrDocument> docs = new ArrayList<SolrDocument>();
         SolrDocumentList sdl = response.getResults();
         for (SolrDocument doc : sdl) {
-
             String pkey = (String) doc.getFieldValue(PKEY_ASSAY_DOC);
             List<String> hls = response.getHighlighting().get(pkey).get(HL_FIELD);
             if (hls != null) {
                 doc.addField("highlight", hls.get(0));
             }
-
             docs.add(doc);
         }
 
@@ -134,8 +146,8 @@ public class AssaySearch extends SolrSearch {
             Collection<Object> keys = doc.getFieldValues("ak_dict_label");
             Collection<Object> values = doc.getFieldValues("av_dict_label");
             if (keys == null || values == null) continue;
-            if (keys.size() != values.size())
-                log.error("for assay_id = " + doc.getFieldValue("assay_id") + " keys had " + keys.size() + " elements and values had " + values.size() + " elements");
+//            if (keys.size() != values.size())
+//                log.error("for assay_id = " + doc.getFieldValue("assay_id") + " keys had " + keys.size() + " elements and values had " + values.size() + " elements");
 
             List<Object> keyList = new ArrayList<Object>(keys);
             List<Object> valueList = new ArrayList<Object>(values);

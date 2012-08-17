@@ -48,6 +48,16 @@ public class ProjectSearch extends SolrSearch {
         sq.addFacetQuery("num_expt:[5 TO 10]");
         sq.addFacetQuery("num_expt:[10 TO *]");
 
+        // do we have filter queries to include?
+        if (filter != null) {
+            Map<String, String> fq = SearchUtil.extractFilterQueries(filter);
+            for (String fname : fq.keySet()) {
+                String fvalue = fq.get(fname);
+                if (fvalue.contains("[")) sq.addFilterQuery(fname + ":" + fvalue);
+                else sq.addFilterQuery(fname + ":\"" + fvalue + "\"");
+            }
+        }
+
         response = solr.query(sq);
 
         List<SolrDocument> docs = new ArrayList<SolrDocument>();

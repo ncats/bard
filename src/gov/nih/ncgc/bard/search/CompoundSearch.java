@@ -60,6 +60,16 @@ public class CompoundSearch extends SolrSearch {
         sq.addFacetQuery("xlogp:[3 TO 5]");
         sq.addFacetQuery("xlogp:[5 TO *]");
 
+        // do we have filter queries to include?
+        if (filter != null) {
+            Map<String, String> fq = SearchUtil.extractFilterQueries(filter);
+            for (String fname : fq.keySet()) {
+                String fvalue = fq.get(fname);
+                if (fvalue.contains("[")) sq.addFilterQuery(fname + ":" + fvalue);
+                else sq.addFilterQuery(fname + ":\"" + fvalue + "\"");
+            }
+        }
+
         response = solr.query(sq);
 
         List<SolrDocument> docs = new ArrayList<SolrDocument>();
