@@ -73,6 +73,10 @@ public class CAPDictionary implements Serializable {
         return getChildren(getNode(nodeId));
     }
 
+    public Set<CAPDictionaryElement> getChildren(String label) {
+        return getChildren(getNode(label));
+    }
+
     /**
      * Is this a lead node (i.e., no child nodes).
      *

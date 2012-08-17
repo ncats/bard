@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.search;
 
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
+import gov.nih.ncgc.bard.tools.DBUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -11,10 +14,16 @@ import org.apache.solr.common.SolrDocumentList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Full text search for assay entities.
@@ -31,6 +40,38 @@ public class AssaySearch extends SolrSearch {
     public AssaySearch(String query) {
         super(query);
         log = LoggerFactory.getLogger(this.getClass());
+
+        // since we currently facte on dictionary terms, lets pre-populate the facet
+        // values with the children of the terms, setting their counts to 0
+        facets = new ArrayList<Facet>();
+        DBUtils db = new DBUtils();
+        CAPDictionary dict = null;
+        try {
+            dict = db.getCAPDictionary();
+            db.closeConnection();
+        } catch (SQLException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+
+        if (dict != null) {
+            log.info("Got CAP dictionary with " + dict.getNodes().size() + " elements");
+            for (String name : facetNames) {
+                Set<CAPDictionaryElement> childs = dict.getChildren(name);
+                if (childs == null) childs = new HashSet<CAPDictionaryElement>();
+                Map<String, Integer> counts = new HashMap<String, Integer>();
+                for (CAPDictionaryElement child : childs) {
+                    counts.put(child.getLabel(), 0);
+                }
+
+                Facet f = new Facet(name);
+                f.setCounts(counts);
+                facets.add(f);
+            }
+        } else log.error("CAP dictionary was null. Strange!");
     }
 
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
@@ -56,8 +97,6 @@ public class AssaySearch extends SolrSearch {
 
         // get facet counts
         long start = System.currentTimeMillis();
-        facets = new ArrayList<Facet>();
-        for (String f : facetNames) facets.add(new Facet(f));
 
         // first pull in direct facet counts via Solr
         Facet f = null;
