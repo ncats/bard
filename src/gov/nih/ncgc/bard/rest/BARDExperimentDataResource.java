@@ -3,6 +3,8 @@ package gov.nih.ncgc.bard.rest;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
+import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
+import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -20,6 +22,11 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import java.io.StringWriter;
+import com.fasterxml.jackson.databind.node.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonFactory;
 
 /**
  * Prototype of MLBD REST resources.
@@ -118,16 +125,88 @@ public class BARDExperimentDataResource implements IBARDResource {
         DBUtils db = new DBUtils();
         ExperimentData experimentData;
         try {
-            experimentData = db.getExperimentDataByDataId(resourceId);
-            db.closeConnection();
+            String exptId = "";
+            String[] tokens = resourceId.split("\\.");
+            if (tokens.length < 2) {
+                throw new IllegalArgumentException 
+                    ("Bogus experiment data id: "+resourceId);
+            }
+            else if (tokens.length == 2) {
+                exptId = resourceId;
+            }
+            else {
+                exptId = tokens[0]+"."+tokens[1];
+            }
+            //System.err.println("** "+httpServletRequest.getPathInfo()+": resourceId="+resourceId+" exptId="+exptId);
+
+            experimentData = db.getExperimentDataByDataId(exptId);
+
             if (experimentData == null || experimentData.getExptDataId() == null)
                 throw new WebApplicationException(404);
+
             experimentData.transform();
-            String json = Util.toJson(experimentData);
+            if (tokens.length == 2) {
+                String json = Util.toJson(experimentData);
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            }
+
+            //System.err.println("*** "+ Util.toJson(experimentData));
+
+            ObjectMapper mapper = new ObjectMapper ();
+            ObjectNode root = mapper.createObjectNode();
+            root.putPOJO("exptdata", experimentData);
+
+            ArrayNode array = root.putArray("results");
+            AssayDefinitionObject[] ado = experimentData.getDefs();
+            DataResultObject[] results = experimentData.getResults();
+
+            // check the tid
+            int tid = Integer.parseInt(tokens[2]);
+            if (tid == 0) { // return all?
+                for (AssayDefinitionObject d : ado) {
+                    tid = Integer.parseInt(d.getTid());
+                    DataResultObject res = null;
+                    for (DataResultObject r : results) {
+                        if (tid == r.getTid()) {
+                            res = r;
+                            break;
+                        }
+                    }
+
+                    ObjectNode node = array.addObject();
+                    node.putPOJO("type", d);
+                    node.putPOJO("value", res);
+                }
+            }
+            else {
+                AssayDefinitionObject def = null;
+                for (AssayDefinitionObject d : ado) {
+                    if (tid == Integer.parseInt(d.getTid())) {
+                        def = d;
+                        break;
+                    }
+                }
+
+                DataResultObject res = null;
+                for (DataResultObject r : results) {
+                    if (tid == r.getTid()) {
+                        res = r;
+                        break;
+                    }
+                }
+
+                ObjectNode node = array.addObject();
+                node.putPOJO("type", def);
+                node.putPOJO("value", res);
+            }
+
+            String json = mapper.writeValueAsString(root);
+            //System.err.println("** JSON: "+json);
+            
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
+        } 
+        catch (Exception e) {
+            e.printStackTrace();
             throw new WebApplicationException(e, 500);
         }
     }

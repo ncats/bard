@@ -480,9 +480,34 @@ public class DBUtils {
             }
             ed.setDr(dro);
             ed.setResults(o);
+            ed.setDefs(ado);
         }
         pst.close();
         return ed;
+    }
+
+    public String getExperimentMetadataByExptId (Long exptId) 
+        throws SQLException {
+
+        if (exptId == null || exptId <= 0) return null;
+        PreparedStatement pst = conn.prepareStatement
+            ("select assay_result_def from experiment where expt_id = ?");
+        pst.setLong(1, exptId);
+        ResultSet rs = pst.executeQuery();
+
+        String json = null;
+        try {
+            if (rs.next()) {
+                Blob blob = rs.getBlob("assay_result_def");
+                json = new String(blob.getBytes(1, (int) blob.length()));
+            }
+
+            return json;
+        }
+        finally {
+            rs.close();
+            pst.close();
+        }
     }
 
     public Experiment getExperimentByExptId(Long exptId) throws SQLException {

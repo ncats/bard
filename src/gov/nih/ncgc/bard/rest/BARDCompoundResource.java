@@ -312,6 +312,35 @@ public class BARDCompoundResource extends BARDResource {
     }
 
     @GET
+    @Path("/{cid}/{format}")
+    public Response getImage(@PathParam("cid") String resourceId,
+                             @PathParam("format") String format) {
+        try {
+            MoleculeService molsrv = 
+                (MoleculeService) Util.getMoleculeService();
+            Molecule molecule = molsrv.getMol(resourceId);
+            if (molecule == null) 
+                throw new NotFoundException
+                    ("No molecule for CID = " + resourceId);
+
+            String molstr = "";
+            if (format.startsWith("mol")) {
+                molstr = molecule.toFormat("mol");
+            }
+            else if (format.startsWith("sdf")) {
+                molstr = molecule.toFormat("sdf");
+            }
+            else if (format.startsWith("smi")) {
+                molstr = molecule.toFormat("smiles:q");
+            }
+            return Response.ok(molstr).type("text/plain").build();
+        }
+        catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
     @Path("/{cid}")
     public Response getResources(@PathParam("cid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         try {

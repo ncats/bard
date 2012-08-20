@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
+import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 
 import java.sql.Date;
 import java.util.ArrayList;
@@ -32,6 +33,8 @@ public class ExperimentData implements BardEntity {
     DataResultObject[] results;
     @JsonIgnore
     DoseResponseResultObject[] dr = null;
+    @JsonIgnore
+    AssayDefinitionObject[] ado;
 
     public ExperimentData() {
     }
@@ -100,6 +103,16 @@ public class ExperimentData implements BardEntity {
 
     public void setResults(DataResultObject[] results) {
         this.results = results;
+    }
+
+    @JsonIgnore
+    public AssayDefinitionObject[] getDefs () {
+        return ado;
+    }
+
+    @JsonIgnore
+    public void setDefs (AssayDefinitionObject[] ado) {
+        this.ado = ado;
     }
 
     public int getOutcome() {

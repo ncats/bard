@@ -304,6 +304,25 @@ public class BARDExperimentResource extends BARDResource {
     }
 
     @GET
+    @Path("/{eid}/metadata")
+    public Response getExperimentData(@PathParam("eid") String resourceId)
+        throws SQLException {
+        
+        DBUtils db = new DBUtils();
+        try {
+            String json = db.getExperimentMetadataByExptId
+                (Long.parseLong(resourceId));
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } 
+        catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        }
+        finally {
+            db.closeConnection();
+        }
+    }
+
+    @GET
     @Path("/{eid}/exptdata")
     public Response getExperimentData(@PathParam("eid") String resourceId,
                                       @QueryParam("filter") String filter,
