@@ -89,10 +89,17 @@ public class BARDAssayResource extends BARDResource {
                 List<Assay> assays = db.searchForAssay(filter);
                 ret = String.valueOf(assays.size());
             }
-            db.closeConnection();
             return ret;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (SQLException ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
@@ -129,7 +136,6 @@ public class BARDAssayResource extends BARDResource {
             log.info("Request had skip = " + skip + ", top = " + top + ", filter = " + filter);
 
             List<Assay> assays = db.searchForEntity(filter, skip, top, Assay.class);
-            db.closeConnection();
 
             if (countRequested) return Response.ok(String.valueOf(assays.size()), MediaType.TEXT_PLAIN).build();
             if (expandEntries) {
@@ -147,6 +153,14 @@ public class BARDAssayResource extends BARDResource {
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 
     @GET
@@ -158,12 +172,19 @@ public class BARDAssayResource extends BARDResource {
             a = db.getAssayByAid(Long.valueOf(resourceId));
             if (a.getAid() == null) throw new WebApplicationException(404);
             String json = Util.toJson(a);
-            db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (SQLException ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
@@ -188,12 +209,19 @@ public class BARDAssayResource extends BARDResource {
                 }
             }
             String json = Util.toJson(a);
-            db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (SQLException ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
@@ -209,7 +237,6 @@ public class BARDAssayResource extends BARDResource {
         Response response;
         try {
             targets = db.getAssayTargets(Long.valueOf(resourceId));
-            db.closeConnection();
             if (expandEntries) {
                 String json = Util.toJson(targets);
                 response = Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -230,6 +257,14 @@ public class BARDAssayResource extends BARDResource {
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 
     @GET
@@ -243,7 +278,6 @@ public class BARDAssayResource extends BARDResource {
         List<Publication> targets = null;
         try {
             targets = db.getAssayPublications(Long.valueOf(resourceId));
-            db.closeConnection();
             if (expandEntries) {
                 String json = Util.toJson(targets);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -263,6 +297,14 @@ public class BARDAssayResource extends BARDResource {
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 
     @GET
@@ -273,20 +315,25 @@ public class BARDAssayResource extends BARDResource {
             expandEntries = true;
 
         DBUtils db = new DBUtils();
-        List<Project> projects = db.getProjectByAssayId(aid);
-        if (!expandEntries) {
-            List<String> links = Functional.Apply(projects, new IApplyFunction<Project, String>() {
-                public String eval(Project project) {
-                    return project.getResourcePath();
-                }
-            });
-            BardLinkedEntity linkedEntity = new BardLinkedEntity(links, null);
-            return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
-        } else {
-            BardLinkedEntity linkedEntity = new BardLinkedEntity(projects, null);
-            return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+        try {
+            List<Project> projects = db.getProjectByAssayId(aid);
+            if (!expandEntries) {
+                List<String> links = Functional.Apply
+                    (projects, new IApplyFunction<Project, String>() {
+                        public String eval(Project project) {
+                            return project.getResourcePath();
+                        }
+                    });
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(links, null);
+                return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+            } else {
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(projects, null);
+                return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+            }
         }
-
+        finally {
+            db.closeConnection();
+        }
     }
 
     @GET
@@ -300,7 +347,6 @@ public class BARDAssayResource extends BARDResource {
         List<Experiment> experiments = null;
         try {
             experiments = db.getExperimentByAssayId(Long.valueOf(resourceId));
-            db.closeConnection();
             if (expandEntries) {
                 String json = Util.toJson(experiments);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -319,6 +365,14 @@ public class BARDAssayResource extends BARDResource {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (SQLException ex) {
+                ex.printStackTrace();
+            }
         }
     }
 

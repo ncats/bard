@@ -126,8 +126,10 @@ public class BARDProjectResource extends BARDResource {
         try {
             Project project = db.getProject(Long.valueOf(resourceId));
             List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
-            for (ProteinTarget target : project.getTargets())
-                targets.add(db.getProteinTargetByAccession(target.getAcc()));
+            if (project.getTargets() != null) {
+                for (ProteinTarget target : project.getTargets())
+                    targets.add(db.getProteinTargetByAccession(target.getAcc()));
+            }
             String json;
             if (countRequested) json = Util.toJson(targets.size());
             else if (expandEntries) json = Util.toJson(targets);

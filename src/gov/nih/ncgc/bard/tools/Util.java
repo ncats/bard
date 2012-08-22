@@ -30,6 +30,12 @@ public class Util {
         return (headers.getRequestHeaders().containsKey(BARDConstants.REQUEST_HEADER_COUNT));
     }
 
+    public static String getETag (HttpHeaders headers) {
+        List<String> etags = headers.getRequestHeader(HttpHeaders.ETAG);
+        return etags != null && !etags.isEmpty() 
+            ? etags.iterator().next() : null;
+    }
+
     public static <T> List<List<T>> chunk(T[] array, int chunkSize) {
         List<List<T>> chunkList = new ArrayList<List<T>>();
         int n = 0, i = 0;
@@ -71,6 +77,18 @@ public class Util {
         Writer writer = new StringWriter();
         mapper.writeValue(writer, o);
         return writer.toString();
+    }
+
+    public static String toString (byte[] bytes) {
+        return toString (bytes, bytes.length);
+    }
+
+    public static String toString (byte[] bytes, int length) {
+        StringBuilder sb = new StringBuilder ();
+        for (int i = 0; i < length; ++i) {
+            sb.append(String.format("%1$02x", bytes[i] & 0xff));
+        }
+        return sb.toString();
     }
 
     public static String join(Object[] x, String delim) {

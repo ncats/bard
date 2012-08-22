@@ -5,6 +5,7 @@ import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
+import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -160,22 +161,35 @@ public class BARDExperimentDataResource implements IBARDResource {
             AssayDefinitionObject[] ado = experimentData.getDefs();
             DataResultObject[] results = experimentData.getResults();
 
-            // check the tid
+            // check the tid; data tid are stored in column coordinate,
+            //  so we need to offset by 8
             int tid = Integer.parseInt(tokens[2]);
             if (tid == 0) { // return all?
                 for (AssayDefinitionObject d : ado) {
+                    if ("DoseResponse".equals(d.getType())) {
+                        // ignore dose response
+                        continue;
+                    }
+
                     tid = Integer.parseInt(d.getTid());
                     DataResultObject res = null;
                     for (DataResultObject r : results) {
-                        if (tid == r.getTid()) {
+                        if (tid == r.getTid() - 7) {
                             res = r;
                             break;
                         }
                     }
 
                     ObjectNode node = array.addObject();
-                    node.putPOJO("type", d);
-                    node.putPOJO("value", res);
+                    node.putPOJO("result", d);
+                    Object value = res.getValue();
+                    if (value instanceof String) {
+                        value = ((String)value).replaceAll("\"", "");
+                        if ("".equals(value)) {
+                            value = null;
+                        }
+                    }
+                    node.putPOJO("value", value);
                 }
             }
             else {
@@ -189,15 +203,37 @@ public class BARDExperimentDataResource implements IBARDResource {
 
                 DataResultObject res = null;
                 for (DataResultObject r : results) {
-                    if (tid == r.getTid()) {
+                    if (tid == r.getTid()-7) {
                         res = r;
                         break;
                     }
                 }
 
                 ObjectNode node = array.addObject();
-                node.putPOJO("type", def);
-                node.putPOJO("value", res);
+                node.putPOJO("result", def);
+
+                if ("DoseResponse".equals(def.getType())) {
+                    DoseResponseResultObject drObj= null;
+                    for (DoseResponseResultObject dr : 
+                             experimentData.getDr()) {
+                        if (tid == Integer.parseInt(dr.getTid())) {
+                            drObj = dr;
+                            break;
+                        }
+                    }
+
+                    node.putPOJO("value", drObj);
+                }
+                else {
+                    Object value = res.getValue();
+                    if (value instanceof String) {
+                        value = ((String)value).replaceAll("\"", "");
+                        if ("".equals(value)) {
+                            value = null;
+                        }
+                    }
+                    node.putPOJO("value", value);
+                }
             }
 
             String json = mapper.writeValueAsString(root);

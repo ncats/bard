@@ -24,6 +24,15 @@ public class Compound implements BardEntity {
     String probeId = null;
     String url = null;
     String smiles = null;
+    String name;
+    Double mwt;
+    Double tpsa;
+    Double exactMass;
+    Double xlogp;
+    Integer complexity;
+    Integer rotatable;
+    Integer hbondAcceptor;
+    Integer hbondDonor;
 
     public Compound(Long cid, String probeId, String url) {
         this.cid = cid;
@@ -73,6 +82,41 @@ public class Compound implements BardEntity {
     public void setUrl(String url) {
         this.url = url;
     }
+
+    public void setName (String name) { this.name = name; }
+    public String getName () { return name; }
+
+    public void setMwt (Double mwt) { this.mwt = mwt; }
+    public Double getMwt () { return mwt; }
+
+    public void setTpsa (Double tpsa) { this.tpsa = tpsa; }
+    public Double getTpsa () { return tpsa; }
+
+    public void setExactMass (Double exactMass) { this.exactMass= exactMass; }
+    public Double getExactMass () { return exactMass; }
+
+    public void setXlogp (Double xlogp) { this.xlogp = xlogp; }
+    public Double getXlogp () { return xlogp; }
+
+    public void setComplexity (Integer complexity) { 
+        this.complexity = complexity; 
+    }
+    public Integer getComplexity () { return complexity; }
+
+    public void setRotatable (Integer rotatable) { 
+        this.rotatable = rotatable; 
+    }
+    public Integer getRotatable () { return rotatable; }
+
+    public void setHbondAcceptor (Integer hbondAcceptor) {
+        this.hbondAcceptor = hbondAcceptor;
+    }
+    public Integer getHbonAcceptor () { return hbondAcceptor; }
+
+    public void setHbondDonor (Integer hbondDonor) {
+        this.hbondDonor = hbondDonor;
+    }
+    public Integer getHbondDonor () { return hbondDonor; }
 
     public String toJson() throws IOException {
         ObjectMapper mapper = new ObjectMapper();

@@ -8,6 +8,7 @@ import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.OrderedSearchResultHandler;
 import gov.nih.ncgc.bard.tools.Util;
@@ -30,6 +31,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.EntityTag;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -177,10 +179,21 @@ public class BARDCompoundResource extends BARDResource {
                     cids.add(Long.parseLong(cidstr));
                 }
 
+                EntityTag etag = new EntityTag 
+                    (db.newETag(getRequestURI (), Compound.class.getName()));
+
+                Long[] ids = cids.toArray(new Long[0]);
+                int cnt = db.putETag(etag.getValue(), ids);
+                log ("** ETag: "+etag.getValue()+" "+cnt);
+                for (EntityTag e : getETagsRequested()) {
+                    cnt = db.putETag(e.getValue(), ids);
+                    log (" ** Updating "+e.getValue()+": "+cnt);
+                }
+
 //                List<Long> cids = handler.getCids();
                 if (expandEntries) {
-                    List<Compound> cs = db.getCompoundsByCid(cids.toArray(new Long[]{}));
-                    response = Response.ok(Util.toJson(cs), MediaType.APPLICATION_JSON).build();
+                    List<Compound> cs = db.getCompoundsByCid(ids);
+                    response = Response.ok(Util.toJson(cs), MediaType.APPLICATION_JSON).tag(etag).build();
                 } else {
                     List<String> paths = new ArrayList<String>();
                     for (Long cid : cids) {
@@ -189,7 +202,7 @@ public class BARDCompoundResource extends BARDResource {
                         paths.add(c.getResourcePath());
                     }
                     String json = Util.toJson(paths);
-                    response = Response.ok(json, MediaType.APPLICATION_JSON).header("content-length", json.length()).build();
+                    response = Response.ok(json, MediaType.APPLICATION_JSON).header("content-length", json.length()).tag(etag).build();
                 }
             }
         }
@@ -207,52 +220,72 @@ public class BARDCompoundResource extends BARDResource {
         if (!validTypes.contains(type)) return null;
         List<Compound> c = new ArrayList<Compound>();
 
-        if (!isIdList) {
-            if (type.equals("cid")) c.addAll(db.getCompoundsByCid(Long.parseLong(id)));
-            else if (type.equals("probeid")) c.addAll(db.getCompoundsByProbeId(id));
-            else if (type.equals("sid")) c.addAll(db.getCompoundsBySid(Long.parseLong(id)));
-            else if (type.equals("name")) c.addAll(db.getCompoundsByName(id));
-        } else {
-            String[] s = id.split(",");
-            if (type.equals("cid") || type.equals("sid")) {
-                Long[] ids = new Long[s.length];
-                for (int i = 0; i < s.length; i++) ids[i] = Long.parseLong(s[i].trim());
-                if (type.equals("cid")) c.addAll(db.getCompoundsByCid(ids));
-                else if (type.equals("sid")) c.addAll(db.getCompoundsBySid(ids));
-            } else if (type.equals("probeid")) c.addAll(db.getCompoundsByProbeId(s));
-            else if (type.equals("name")) c.addAll(db.getCompoundsByProbeId(s));
-        }
-        db.closeConnection();
+        try {
+            if (!isIdList) {
+                if (type.equals("cid")) c.addAll(db.getCompoundsByCid(Long.parseLong(id)));
+                else if (type.equals("probeid")) c.addAll(db.getCompoundsByProbeId(id));
+                else if (type.equals("sid")) c.addAll(db.getCompoundsBySid(Long.parseLong(id)));
+                else if (type.equals("name")) c.addAll(db.getCompoundsByName(id));
+            } else {
+                String[] s = id.split(",");
+                if (type.equals("cid") || type.equals("sid")) {
+                    Long[] ids = new Long[s.length];
+                    for (int i = 0; i < s.length; i++) ids[i] = Long.parseLong(s[i].trim());
+                    if (type.equals("cid")) c.addAll(db.getCompoundsByCid(ids));
+                    else if (type.equals("sid")) c.addAll(db.getCompoundsBySid(ids));
+                } else if (type.equals("probeid")) c.addAll(db.getCompoundsByProbeId(s));
+                else if (type.equals("name")) c.addAll(db.getCompoundsByProbeId(s));
+            }
+            
+            if (c.size() == 0) throw new WebApplicationException(404);
+            if (countRequested) return Response.ok(String.valueOf(c.size()), MediaType.TEXT_PLAIN).build();
+            
+            EntityTag etag = new EntityTag
+                (db.newETag(getRequestURI (), Compound.class.getName()));
+            Long[] ids = new Long[c.size()];
+            for (int i = 0; i < ids.length; ++i) {
+                ids[i] = c.get(i).getCid();
+            }
+            int cnt = db.putETag(etag.getValue(), ids);
+            log ("** ETag "+etag.getValue()+" "+cnt);
 
-        if (c.size() == 0) throw new WebApplicationException(404);
-        if (countRequested) return Response.ok(String.valueOf(c.size()), MediaType.TEXT_PLAIN).build();
-
-        if (mediaTypes.contains(BARDConstants.MIME_SMILES)) {
-            StringBuilder s = new StringBuilder();
-            for (Compound ac : c) s.append(ac.getSmiles() + "\t" + ac.getCid());
-            return Response.ok(s, BARDConstants.MIME_SMILES).build();
-        } else if (mediaTypes.contains(BARDConstants.MIME_SDF)) {   // TODO handle multi-molecule SDFs
-            throw new WebApplicationException(406);
-//            Molecule mol = MolImporter.importMol(c.getSmiles());
-//            mol.setProperty("cid", String.valueOf(c.getCid()));
-//            mol.setProperty("probeId", c.getProbeId());
-//            mol.setProperty("url", c.getUrl());
-//            mol.setProperty("resourecePath", c.getResourcePath());
-//            String sdf = mol.exportToFormat("sdf");
-//            return Response.ok(sdf, BARDConstants.MIME_SDF).build();
-        } else {
-            String json;
-            if (!type.equals("name") && c.size() == 1) json = c.get(0).toJson();
-            else {
-                if (expand) json = Util.toJson(c);
-                else {
-                    List<String> links = new ArrayList<String>();
-                    for (Compound ac : c) links.add(ac.getResourcePath());
-                    json = Util.toJson(links);
-                }
+            for (EntityTag e : getETagsRequested ()) {
+                cnt = db.putETag(e.getValue(), ids);
+                log (" ** Updating "+e.getValue()+" "+cnt);
             }
 
-            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+            if (mediaTypes.contains(BARDConstants.MIME_SMILES)) {
+                StringBuilder s = new StringBuilder();
+                for (Compound ac : c) s.append(ac.getSmiles() + "\t" + ac.getCid());
+                return Response.ok(s, BARDConstants.MIME_SMILES)
+                    .tag(etag).build();
+            } else if (mediaTypes.contains(BARDConstants.MIME_SDF)) {   // TODO handle multi-molecule SDFs
+                throw new WebApplicationException(406);
+                //            Molecule mol = MolImporter.importMol(c.getSmiles());
+                //            mol.setProperty("cid", String.valueOf(c.getCid()));
+                //            mol.setProperty("probeId", c.getProbeId());
+                //            mol.setProperty("url", c.getUrl());
+                //            mol.setProperty("resourecePath", c.getResourcePath());
+                //            String sdf = mol.exportToFormat("sdf");
+                //            return Response.ok(sdf, BARDConstants.MIME_SDF).build();
+            } else {
+                String json;
+                if (!type.equals("name") && c.size() == 1) json = c.get(0).toJson();
+                else {
+                    if (expand) json = Util.toJson(c);
+                    else {
+                        List<String> links = new ArrayList<String>();
+                        for (Compound ac : c) links.add(ac.getResourcePath());
+                        json = Util.toJson(links);
+                    }
+                }
+
+                return Response.ok(json, MediaType.APPLICATION_JSON)
+                    .tag(etag).build();
+            }
+        }
+        finally {
+            db.closeConnection();
         }
     }
 
@@ -324,16 +357,20 @@ public class BARDCompoundResource extends BARDResource {
                     ("No molecule for CID = " + resourceId);
 
             String molstr = "";
+            String type = "text/plain";
             if (format.startsWith("mol")) {
                 molstr = molecule.toFormat("mol");
+                type = "chemical/x-mdl-mol";
             }
             else if (format.startsWith("sdf")) {
                 molstr = molecule.toFormat("sdf");
+                type = "chemical/x-mdl-sdffile";
             }
             else if (format.startsWith("smi")) {
                 molstr = molecule.toFormat("smiles:q");
+                type = "chemical/x-daylight-smiles";
             }
-            return Response.ok(molstr).type("text/plain").build();
+            return Response.ok(molstr).type(type).build();
         }
         catch (Exception e) {
             throw new WebApplicationException(e, 500);
@@ -342,13 +379,17 @@ public class BARDCompoundResource extends BARDResource {
 
     @GET
     @Path("/{cid}")
-    public Response getResources(@PathParam("cid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+    public Response getResources(@PathParam("cid") String resourceId, 
+                                 @QueryParam("filter") String filter, 
+                                 @QueryParam("expand") String expand) {
         try {
             Response response = getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes(), expand != null && expand.toLowerCase().equals("true"));
             return response;
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
+        } 
+        catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
     }
@@ -367,6 +408,77 @@ public class BARDCompoundResource extends BARDResource {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
+    @Path("/etag/{etag}")
+    public Response getCompoundsByETag(@PathParam("etag") String resourceId,
+                                       @QueryParam("filter") String filter, 
+                                       @QueryParam("expand") String expand,
+                                       @QueryParam("skip") Integer skip,
+                                       @QueryParam("top") Integer top) {
+        DBUtils db = new DBUtils ();
+        try {
+            List<Compound> c = db.getCompoundsByETags
+                (skip != null ? skip : -1, top != null ? top : -1, resourceId);
+            String json = Util.toJson(c);
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        }
+        catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @GET
+    @Path("/etag/{etag}/info")
+    public Response getETagInfo (@PathParam("etag") String resourceId) {
+        DBUtils db = new DBUtils ();
+        try {
+            Map info = db.getETagInfo(resourceId);
+            return Response.ok(Util.toJson(info), 
+                               MediaType.APPLICATION_JSON).build();
+        }
+        catch (Exception ex) {
+            throw new WebApplicationException(ex, 500);
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @GET
+    @Path("/etag/{etag}/facets")
+    public Response getFacets (@PathParam("etag") String resourceId) {
+        DBUtils db = new DBUtils ();
+        try {
+            List<Facet> facets = db.getCompoundFacets(resourceId);
+            return Response.ok(Util.toJson(facets), 
+                               MediaType.APPLICATION_JSON).build();
+        }
+        catch (Exception ex) {
+            throw new WebApplicationException(ex, 500);
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
