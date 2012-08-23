@@ -45,6 +45,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.*;
+
 /**
  * Prototype of MLBD REST resources.
  * <p/>
@@ -270,9 +273,22 @@ public class BARDCompoundResource extends BARDResource {
                 //            return Response.ok(sdf, BARDConstants.MIME_SDF).build();
             } else {
                 String json;
-                if (!type.equals("name") && c.size() == 1) json = c.get(0).toJson();
+                ObjectMapper mapper = new ObjectMapper ();
+                if (!type.equals("name") && c.size() == 1) {
+                    ObjectNode node = (ObjectNode)mapper
+                        .valueToTree(c.iterator().next());
+                    Map anno = db.getCompoundAnnotations 
+                        (node.get("cid").asLong());
+                    for (Object key : anno.entrySet()) {
+                        Map.Entry me = (Map.Entry)key;
+                        node.putPOJO((String)me.getKey(), me.getValue());
+                    }
+                    json = mapper.writeValueAsString(node);
+                }
                 else {
-                    if (expand) json = Util.toJson(c);
+                    if (expand) {
+                        json = toJson (db, c, true);
+                    }
                     else {
                         List<String> links = new ArrayList<String>();
                         for (Compound ac : c) links.add(ac.getResourcePath());
@@ -287,6 +303,33 @@ public class BARDCompoundResource extends BARDResource {
         finally {
             db.closeConnection();
         }
+    }
+
+    String toJson (DBUtils db, List<Compound> compounds, 
+                   boolean annotation) throws SQLException, IOException {
+
+        if (!annotation) {
+            return Util.toJson(compounds);
+        }
+
+        ObjectMapper mapper = new ObjectMapper ();        
+        ArrayNode node = (ArrayNode)mapper.valueToTree(compounds);
+        for (int i = 0; i < node.size(); ++i) {
+            ObjectNode n = (ObjectNode)node.get(i);
+
+            Map anno = db.getCompoundAnnotations (n.get("cid").asLong());
+            if (anno.isEmpty()) {
+                n.putNull("anno_key");
+                n.putNull("anno_val");
+            }
+            else {
+                for (Object key : anno.entrySet()) {
+                    Map.Entry me = (Map.Entry)key;
+                    n.putPOJO((String)me.getKey(), me.getValue());
+                }
+            }
+        }
+        return mapper.writeValueAsString(node);
     }
 
     @GET
@@ -422,7 +465,9 @@ public class BARDCompoundResource extends BARDResource {
         try {
             List<Compound> c = db.getCompoundsByETags
                 (skip != null ? skip : -1, top != null ? top : -1, resourceId);
-            String json = Util.toJson(c);
+            String json = toJson (db, c, expand != null 
+                                  && expand.toLowerCase().equals("true"));
+
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         }
         catch (Exception e) {
@@ -621,6 +666,36 @@ public class BARDCompoundResource extends BARDResource {
 
         db.closeConnection();
         return response;
+    }
+
+    @GET
+    @Path("/{cid}/annotations")
+    public Response getCompoundAnnotations (@PathParam("cid") Long cid) 
+        throws SQLException, IOException {
+        DBUtils db = new DBUtils ();
+        try {
+            Map anno = db.getCompoundAnnotations(cid);
+            return Response.ok(Util.toJson(anno))
+                .type(MediaType.APPLICATION_JSON).build();
+        }
+        finally {
+            db.closeConnection();
+        }
+    }
+        
+    @GET
+    @Path("/{cid}/sids")
+    public Response getSidsForCompound(@PathParam("cid") Long cid) 
+        throws SQLException, IOException {
+        DBUtils db = new DBUtils ();
+        try {
+            List<Long> sids = db.getSidsByCid (cid);
+            return Response.ok(Util.toJson(sids))
+                .type(MediaType.APPLICATION_JSON).build();
+        }
+        finally {
+            db.closeConnection();
+        }
     }
 
     @GET

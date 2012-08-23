@@ -30,18 +30,12 @@ import java.io.Reader;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.HashSet;
+import java.util.*;
 
 import java.security.SecureRandom;
 import java.security.MessageDigest;
@@ -99,15 +93,15 @@ public class DBUtils {
         final List<String> edFields = Arrays.asList();
 
         fieldMap = new HashMap<Class, Query>() {{
-            put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
-            put(Project.class, new Query(projectFields, "proj_id", null, "project"));
-            put(ProteinTarget.class, new Query(targetFields, "accession", null, "protein_target"));
-            put(Experiment.class, new Query(experimentFields, "expt_id", null, "experiment"));
-            put(Compound.class, new Query(compoundFields, "cid", null, "compound"));
-            put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
-            put(Assay.class, new Query(assayFields, "assay_id", null, "assay"));
-            put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "experiment_data"));
-        }};
+                put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
+                put(Project.class, new Query(projectFields, "proj_id", null, "project"));
+                put(ProteinTarget.class, new Query(targetFields, "accession", null, "protein_target"));
+                put(Experiment.class, new Query(experimentFields, "expt_id", null, "experiment"));
+                put(Compound.class, new Query(compoundFields, "cid", null, "compound"));
+                put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
+                put(Assay.class, new Query(assayFields, "assay_id", null, "assay"));
+                put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "experiment_data"));
+            }};
 
         conn = getConnection();
     }
@@ -261,6 +255,7 @@ public class DBUtils {
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         while (rs.next()) sids.add(rs.getLong(1));
+        rs.close();
         pst.close();
         return sids;
     }
@@ -273,7 +268,9 @@ public class DBUtils {
      * @return a list of {@link Compound} objects
      * @throws SQLException
      */
-    public List<Compound> getCompoundsByCid (Long... cids) throws SQLException {
+    public List<Compound> getCompoundsByCid (Long... cids) 
+        throws SQLException {
+
         if (cids == null || cids.length < 0) return null;
         for (Long acid : cids) {
             if (acid == null) return null;
@@ -281,52 +278,26 @@ public class DBUtils {
         List<List<Long>> chunks = Util.chunk(cids, 100);
         List<Compound> compounds = new ArrayList<Compound>();
         for (List<Long> chunk : chunks) {
-
             String cidClause = Util.join(chunk, ",");
-            String sql = ("select c.*, s.sid from compound c, cid_sid s "
-                          +"where c.cid in (" + cidClause 
-                          +") and c.cid = s.cid order by c.cid");
-
-            PreparedStatement pst = conn.prepareStatement(sql);
-            ResultSet rs = pst.executeQuery();
-
-            List<Compound> tmp = new ArrayList<Compound>();
-            Compound c = new Compound();
-            List<Long> sids = new ArrayList<Long>();
-            Long oldCid = -1L;
-            boolean first = true;
-            while (rs.next()) {
-                Long cid = rs.getLong("cid");
-                String probeId = rs.getString("probe_id");
-                String smiles = rs.getString("iso_smiles");
-
-                if (!first && !cid.equals(oldCid)) {
-                    oldCid = cid;
-                    c.setSids(sids);
-                    tmp.add(c);
-                    sids = new ArrayList<Long>();
-                    c = new Compound();
+            String sql = ("select a.*,b.* from compound a, compound_props b "
+                          +"where a.cid in ("+cidClause+") and "
+                          +"b.pubchem_compound_cid = a.cid");
+            Statement stm = conn.createStatement();
+            try {
+                ResultSet rs = stm.executeQuery(sql);
+                while (rs.next()) {
+                    Compound c = new Compound ();
+                    c.setCid(rs.getLong("cid"));
+                    fillCompound (rs, c);
+                    compounds.add(c);
                 }
-                c.setCid(cid);
-                c.setProbeId(probeId);
-                c.setSmiles(smiles);
-                sids.add(rs.getLong("sid"));
-
-                if (first) {
-                    oldCid = cid;
-                    first = false;
-                }
+                rs.close();
             }
-            rs.close();
-
-            if (sids.size() > 0) {
-                c.setSids(sids);
-                tmp.add(c);
+            finally {
+                stm.close();
             }
-
-            pst.close();
-            compounds.addAll(tmp);
         }
+
         return compounds;
     }
 
@@ -367,8 +338,15 @@ public class DBUtils {
             String sql = "select cid from cid_sid s where s.sid in (" + sidClause + ")";
             PreparedStatement pst = conn.prepareStatement(sql);
             List<Long> cids = new ArrayList<Long>();
+            Set<Long> unique = new HashSet<Long>();
             ResultSet rs = pst.executeQuery();
-            while (rs.next()) cids.add(rs.getLong("cid"));
+            while (rs.next()) {
+                long cid = rs.getLong("cid");
+                if (!unique.contains(cid)) {
+                    unique.add(cid);
+                    cids.add(cid);
+                }
+            }
             rs.close();
             cmpds.addAll(getCompoundsByCid(cids.toArray(new Long[]{})));
             pst.close();
@@ -408,16 +386,16 @@ public class DBUtils {
                         etag = null;
                         break;
                     }
-
-                    conn.commit();
                 }
                 catch (SQLException ex) { // etag already exists
                     //ex.printStackTrace();
                     log.info("** ETag "+etag
                              +" already exists; generating a new one!");
+                    etag = null;
                 }
             }
             while (etag == null);
+            conn.commit();
 
             return etag;
         }
@@ -490,7 +468,9 @@ public class DBUtils {
         }
     }
 
-    public List<Compound> getCompoundsByProbeId(String... probeids) throws SQLException {
+    public List<Compound> getCompoundsByProbeId(String... probeids) 
+        throws SQLException {
+
         if (probeids == null || probeids.length == 0) return null;
         List<List<String>> chunks = Util.chunk(probeids, 100);
         List<Compound> compounds = new ArrayList<Compound>();
@@ -498,47 +478,24 @@ public class DBUtils {
             List<String> qprobeids = new ArrayList<String>();
             for (String pid : probeids) qprobeids.add("'" + pid + "'");
             String probeidClause = Util.join(qprobeids, ",");
-            String sql = "select c.*, s.sid from compound c, cid_sid s where probe_id in (" + probeidClause + ") and c.cid = s.cid order by c.cid";
+            String sql = "select * from compound a, compound_props b "
+                +"where probe_id in (" + probeidClause + ") "
+                +"and a.cid = b.pubchem_compound_cid";
             PreparedStatement pst = conn.prepareStatement(sql);
-            ResultSet rs = pst.executeQuery();
-
-            List<Compound> tmp = new ArrayList<Compound>();
-            Compound c = new Compound();
-            List<Long> sids = new ArrayList<Long>();
-            Long oldCid = -1L;
-            boolean first = true;
-            while (rs.next()) {
-                Long cid = rs.getLong("cid");
-                String probeId = rs.getString("probe_id");
-                String smiles = rs.getString("iso_smiles");
-
-                if (!first && !cid.equals(oldCid)) {
-                    oldCid = cid;
-                    c.setSids(sids);
-                    tmp.add(c);
-                    sids = new ArrayList<Long>();
-                    c = new Compound();
+            try {
+                ResultSet rs = pst.executeQuery();
+                while (rs.next()) {
+                    Compound c = new Compound ();
+                    fillCompound (rs, c);
+                    compounds.add(c);
                 }
-                c.setCid(cid);
-                c.setProbeId(probeId);
-                c.setSmiles(smiles);
-                sids.add(rs.getLong("sid"));
-
-                if (first) {
-                    oldCid = cid;
-                    first = false;
-                }
+                rs.close();
             }
-            rs.close();
-
-            if (sids.size() > 0) {
-                c.setSids(sids);
-                tmp.add(c);
+            finally {
+                pst.close();
             }
-
-            pst.close();
-            compounds.addAll(tmp);
         }
+
         return compounds;
     }
 
@@ -583,7 +540,8 @@ public class DBUtils {
         String[] wtf = new String[]{
             "NPC screening",
             "DrugBank v3.0",
-            "NPC informatics"
+            "NPC informatics",
+            "INN"
         };
 
         try {
@@ -660,27 +618,54 @@ public class DBUtils {
              +"from compound_props a, etag_data b\n"
              +"where b.etag_id = ?\n"
              +"and b.data_id = a.pubchem_compound_cid\n"
-             +"group by bucket");
+             +"group by bucket\n"
+             +"order by bucket");
 
         try {
             pst.setString(1, etag);
-            Map<String, Integer> counts = new HashMap<String, Integer>();
             
             ResultSet rs = pst.executeQuery();
+            List<Integer[]> buckets = new ArrayList<Integer[]>();
             while (rs.next()) {
-                String range = rs.getString("bucket");
-                if (range == null) {
-                    range = "";
+                Integer range = rs.getInt("bucket");
+                if (rs.wasNull()) {
+                    range = null;
                 }
-                int cnt = rs.getInt("count");
-                Integer c = counts.get(range);
-                counts.put(range, c != null ? (c+cnt) : cnt);
+                int count = rs.getInt("count");
+                buckets.add(new Integer[]{range, count});
             }
             rs.close();
 
             //System.err.println(name+" => "+counts);
             
             Facet f = new Facet (name);
+            Map<String, Integer> counts = new TreeMap<String, Integer>();
+            if (!buckets.isEmpty()) {
+                if (false) { // generate bins
+                    for (int i = 0; i < buckets.size() - 1; ++i) {
+                        Integer[] bin = buckets.get(i);
+                        if (bin[0] == null) {
+                            counts.put("", bin[1]);
+                        }
+                        else {
+                            Integer range = buckets.get(i+1)[0];
+                            counts.put("["+bin[0]+", "+range+")", bin[1]);
+                        }
+                    }
+                    Integer[] bin = buckets.get(buckets.size()-1);
+                    counts.put(">= "+bin[0], bin[1]);
+                }
+                else { 
+                    // return the lower range and let the client create 
+                    //  the bins
+                    for (Iterator<Integer[]> iter = buckets.iterator();
+                         iter.hasNext(); ) {
+                        Integer[] bin = iter.next();
+                        counts.put(bin[0] != null 
+                                   ? bin[0].toString() : "", bin[1]);
+                    }
+                }
+            }
             f.setCounts(counts);
 
             return f;
@@ -736,52 +721,14 @@ public class DBUtils {
                         compounds.add(c);
 
                         c.setCid(cid);
-                        c.setProbeId(rs.getString("probe_id"));
-                        c.setSmiles(rs.getString("iso_smiles"));
-                        // not what we want... place holder for now
-                        c.setName(rs.getString("pubchem_iupac_name"));
-                        c.setMwt(rs.getDouble("pubchem_molecular_weight"));
-                        if (rs.wasNull()) {
-                            c.setMwt(null);
-                        }
-                        c.setTpsa(rs.getDouble("pubchem_cactvs_tpsa"));
-                        if (rs.wasNull()) {
-                            c.setTpsa(null);
-                        }
-                        c.setExactMass(rs.getDouble("pubchem_exact_mass"));
-                        if (rs.wasNull()) {
-                            c.setExactMass(null);
-                        }
-                        c.setXlogp(rs.getDouble("pubchem_xlogp3_aa"));
-                        if (rs.wasNull()) {
-                            c.setXlogp(null);
-                        }
-                        c.setComplexity
-                            (rs.getInt("pubchem_cactvs_complexity"));
-                        if (rs.wasNull()) {
-                            c.setComplexity(null);
-                        }
-                        c.setRotatable
-                            (rs.getInt("pubchem_cactvs_rotatable_bond"));
-                        if (rs.wasNull()) {
-                            c.setRotatable(null);
-                        }
-                        c.setHbondAcceptor
-                            (rs.getInt("pubchem_cactvs_hbond_acceptor"));
-                        if (rs.wasNull()) {
-                            c.setHbondAcceptor(null);
-                        }
-                        c.setHbondDonor
-                            (rs.getInt("pubchem_cactvs_hbond_donor"));
-                        if (rs.wasNull()) {
-                            c.setHbondDonor(null);
-                        }
+                        fillCompound (rs, c);
                     }
                 }
                 rs.close();
                 touchETag (e);
             }
 
+            /*
             for (Compound c : compounds) {
                 pst2.setLong(1, c.getCid());
                 List<Long> sids = new ArrayList<Long>();
@@ -792,6 +739,7 @@ public class DBUtils {
                 rs.close();
                 c.setSids(sids);
             }
+            */
 
             return compounds;
         }
@@ -799,6 +747,78 @@ public class DBUtils {
             pst1.close();
             pst2.close();
         }
+    }
+
+    public Map getCompoundAnnotations (Long cid) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement
+            ("select * from compound_annot where cid = ?");
+        try {
+            pst.setLong(1, cid);
+
+            List<String> keys = new ArrayList<String>();
+            List<String> vals = new ArrayList<String>();
+
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                String key = rs.getString("annot_key");
+                String val = rs.getString("val");
+                if (val != null) {
+                    keys.add(key);
+                    vals.add(val.trim());
+                }
+            }
+            rs.close();
+
+            Map anno = new TreeMap ();
+            anno.put("anno_key", keys.toArray(new String[0]));
+            anno.put("anno_val", vals.toArray(new String[0]));
+
+            return anno;
+        }
+        finally {
+            pst.close();
+        }
+    }
+
+    protected void fillCompound (ResultSet rs, Compound c) 
+        throws SQLException {
+        c.setCid(rs.getLong("cid"));
+        c.setProbeId(rs.getString("probe_id"));
+        c.setSmiles(rs.getString("iso_smiles"));
+        // not what we want... place holder for now
+        c.setName(rs.getString("pubchem_iupac_name"));
+        c.setMwt(rs.getDouble("pubchem_molecular_weight"));
+        if (rs.wasNull()) {
+            c.setMwt(null);
+        }
+        c.setTpsa(rs.getDouble("pubchem_cactvs_tpsa"));
+        if (rs.wasNull()) {
+            c.setTpsa(null);
+        }
+        c.setExactMass(rs.getDouble("pubchem_exact_mass"));
+        if (rs.wasNull()) {
+            c.setExactMass(null);
+        }
+        c.setXlogp(rs.getDouble("pubchem_xlogp3_aa"));
+        if (rs.wasNull()) {
+            c.setXlogp(null);
+        }
+        c.setComplexity(rs.getInt("pubchem_cactvs_complexity"));
+        if (rs.wasNull()) {
+            c.setComplexity(null);
+        }
+        c.setRotatable(rs.getInt("pubchem_cactvs_rotatable_bond"));
+        if (rs.wasNull()) {
+            c.setRotatable(null);
+        }
+        c.setHbondAcceptor(rs.getInt("pubchem_cactvs_hbond_acceptor"));
+        if (rs.wasNull()) {
+            c.setHbondAcceptor(null);
+        }
+        c.setHbondDonor(rs.getInt("pubchem_cactvs_hbond_donor"));
+        if (rs.wasNull()) {
+            c.setHbondDonor(null);
+        }        
     }
 
     /**
@@ -1109,7 +1129,7 @@ public class DBUtils {
     public Substance getSubstanceBySid(Long sid) throws SQLException {
         if (sid == null || sid < 0) return null;
         PreparedStatement pst = conn.prepareStatement("select a.*, b.cid, c.iso_smiles from substance a, cid_sid b, compound c where a.sid = ? and a.sid = b.sid and b.rel_type = 1 and c.cid = b.cid");
-//        PreparedStatement pst = conn.prepareStatement("select a.* from substance a where a.sid = ? ");
+        //        PreparedStatement pst = conn.prepareStatement("select a.* from substance a where a.sid = ? ");
         pst.setLong(1, sid);
         ResultSet rs = pst.executeQuery();
         Substance s = new Substance();
