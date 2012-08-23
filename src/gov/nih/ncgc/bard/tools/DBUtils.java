@@ -16,29 +16,34 @@ import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.search.Facet;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.DriverManager;
-import java.sql.ResultSetMetaData;
 import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Reader;
+import java.security.SecureRandom;
 import java.sql.Blob;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.*;
-
-import java.security.SecureRandom;
-import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * Utility methods to interact with the database backend.
@@ -49,7 +54,7 @@ public class DBUtils {
     Logger log;
     Connection conn;
     Map<Class, Query> fieldMap;
-    SecureRandom rand = new SecureRandom ();
+    SecureRandom rand = new SecureRandom();
 
     class Query {
         List<String> validFields;
@@ -93,15 +98,15 @@ public class DBUtils {
         final List<String> edFields = Arrays.asList();
 
         fieldMap = new HashMap<Class, Query>() {{
-                put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
-                put(Project.class, new Query(projectFields, "proj_id", null, "project"));
-                put(ProteinTarget.class, new Query(targetFields, "accession", null, "protein_target"));
-                put(Experiment.class, new Query(experimentFields, "expt_id", null, "experiment"));
-                put(Compound.class, new Query(compoundFields, "cid", null, "compound"));
-                put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
-                put(Assay.class, new Query(assayFields, "assay_id", null, "assay"));
-                put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "experiment_data"));
-            }};
+            put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
+            put(Project.class, new Query(projectFields, "proj_id", null, "project"));
+            put(ProteinTarget.class, new Query(targetFields, "accession", null, "protein_target"));
+            put(Experiment.class, new Query(experimentFields, "expt_id", null, "experiment"));
+            put(Compound.class, new Query(compoundFields, "cid", null, "compound"));
+            put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
+            put(Assay.class, new Query(assayFields, "assay_id", null, "assay"));
+            put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "experiment_data"));
+        }};
 
         conn = getConnection();
     }
@@ -125,8 +130,8 @@ public class DBUtils {
         try {
             initContext = new javax.naming.InitialContext();
             javax.naming.Context envContext = (javax.naming.Context) initContext.lookup("java:/comp/env");
-            DataSource ds = (javax.sql.DataSource) 
-                envContext.lookup("jdbc/bardman");
+            DataSource ds = (javax.sql.DataSource)
+                    envContext.lookup("jdbc/bardman");
             Connection con = ds.getConnection();
             con.setAutoCommit(false);
             return con;
@@ -268,8 +273,8 @@ public class DBUtils {
      * @return a list of {@link Compound} objects
      * @throws SQLException
      */
-    public List<Compound> getCompoundsByCid (Long... cids) 
-        throws SQLException {
+    public List<Compound> getCompoundsByCid(Long... cids)
+            throws SQLException {
 
         if (cids == null || cids.length < 0) return null;
         for (Long acid : cids) {
@@ -280,20 +285,19 @@ public class DBUtils {
         for (List<Long> chunk : chunks) {
             String cidClause = Util.join(chunk, ",");
             String sql = ("select a.*,b.* from compound a, compound_props b "
-                          +"where a.cid in ("+cidClause+") and "
-                          +"b.pubchem_compound_cid = a.cid");
+                    + "where a.cid in (" + cidClause + ") and "
+                    + "b.pubchem_compound_cid = a.cid");
             Statement stm = conn.createStatement();
             try {
                 ResultSet rs = stm.executeQuery(sql);
                 while (rs.next()) {
-                    Compound c = new Compound ();
+                    Compound c = new Compound();
                     c.setCid(rs.getLong("cid"));
-                    fillCompound (rs, c);
+                    fillCompound(rs, c);
                     compounds.add(c);
                 }
                 rs.close();
-            }
-            finally {
+            } finally {
                 stm.close();
             }
         }
@@ -322,7 +326,7 @@ public class DBUtils {
         for (String name : names) {
             pst.setString(1, name);
             rs = pst.executeQuery();
-            while (rs.next()) 
+            while (rs.next())
                 cmpds.addAll(getCompoundsByCid(new Long[]{rs.getLong(1)}));
             rs.close();
         }
@@ -354,14 +358,14 @@ public class DBUtils {
         return cmpds;
     }
 
-    public String newETag (String name, String clazz) throws SQLException {
+    public String newETag(String name, String clazz) throws SQLException {
         if (clazz == null) {
-            throw new IllegalArgumentException ("Please specify the class!");
+            throw new IllegalArgumentException("Please specify the class!");
         }
 
         PreparedStatement pst = conn.prepareStatement
-            ("insert into etag(etag_id,name,type,created,accessed,modified) "
-             +"values (?,?,?,?,?,?)");
+                ("insert into etag(etag_id,name,type,created,accessed,modified) "
+                        + "values (?,?,?,?,?,?)");
         try {
             String etag = null;
             do {
@@ -369,28 +373,26 @@ public class DBUtils {
                     byte[] id = new byte[8];
                     rand.nextBytes(id);
                     etag = Util.toString(id);
-                    
+
                     pst.setString(1, etag);
                     pst.setString(2, name);
                     pst.setString(3, clazz);
                     Timestamp ts = new Timestamp
-                        (new java.util.Date().getTime());
+                            (new java.util.Date().getTime());
                     pst.setTimestamp(4, ts);
                     pst.setTimestamp(5, ts);
                     pst.setTimestamp(6, ts);
 
                     if (pst.executeUpdate() > 0) {
-                    }
-                    else {
-                        log.info("** Couldn't insert ETag "+etag);
+                    } else {
+                        log.info("** Couldn't insert ETag " + etag);
                         etag = null;
                         break;
                     }
-                }
-                catch (SQLException ex) { // etag already exists
+                } catch (SQLException ex) { // etag already exists
                     //ex.printStackTrace();
-                    log.info("** ETag "+etag
-                             +" already exists; generating a new one!");
+                    log.info("** ETag " + etag
+                            + " already exists; generating a new one!");
                     etag = null;
                 }
             }
@@ -398,26 +400,25 @@ public class DBUtils {
             conn.commit();
 
             return etag;
-        }
-        finally {
+        } finally {
             pst.close();
         }
     }
 
-    public int putETag (String etag, Long... ids) throws SQLException {
+    public int putETag(String etag, Long... ids) throws SQLException {
         PreparedStatement pst = null;
         int cnt = 0;
         try {
             pst = conn.prepareStatement
-                ("update etag set modified = ? where etag_id = ?");
+                    ("update etag set modified = ? where etag_id = ?");
             pst.setTimestamp(1, new java.sql.Timestamp
-                             (new java.util.Date().getTime()));
+                    (new java.util.Date().getTime()));
             pst.setString(2, etag);
             if (pst.executeUpdate() > 0) {
                 pst.close();
 
                 pst = conn.prepareStatement
-                    ("insert into etag_data(etag_id, data_id) values (?,?)");
+                        ("insert into etag_data(etag_id, data_id) values (?,?)");
                 pst.setString(1, etag);
                 for (Long id : ids) {
                     pst.setLong(2, id);
@@ -425,8 +426,7 @@ public class DBUtils {
                         if (pst.executeUpdate() > 0) {
                             ++cnt;
                         }
-                    }
-                    catch (SQLException ex) {
+                    } catch (SQLException ex) {
                         // ignore dups...
                     }
                 }
@@ -434,15 +434,12 @@ public class DBUtils {
                 if (cnt > 0) {
                     conn.commit();
                 }
+            } else {
+                log.info("** Unkown ETag " + etag);
             }
-            else {
-                log.info("** Unkown ETag "+etag);
-            }
-        }
-        catch (SQLException ex) {
+        } catch (SQLException ex) {
             ex.printStackTrace();
-        }
-        finally {
+        } finally {
             if (pst != null) {
                 pst.close();
             }
@@ -450,26 +447,25 @@ public class DBUtils {
         return cnt;
     }
 
-    public void touchETag (String etag) throws SQLException {
+    public void touchETag(String etag) throws SQLException {
         PreparedStatement pst = null;
         try {
             pst = conn.prepareStatement
-                ("update etag set accessed = ? where etag_id = ?");
+                    ("update etag set accessed = ? where etag_id = ?");
             pst.setTimestamp(1, new java.sql.Timestamp
-                             (new java.util.Date().getTime()));
+                    (new java.util.Date().getTime()));
             pst.setString(2, etag);
             if (pst.executeUpdate() > 0) {
             }
-        }
-        finally {
+        } finally {
             if (pst != null) {
                 pst.close();
             }
         }
     }
 
-    public List<Compound> getCompoundsByProbeId(String... probeids) 
-        throws SQLException {
+    public List<Compound> getCompoundsByProbeId(String... probeids)
+            throws SQLException {
 
         if (probeids == null || probeids.length == 0) return null;
         List<List<String>> chunks = Util.chunk(probeids, 100);
@@ -479,19 +475,18 @@ public class DBUtils {
             for (String pid : probeids) qprobeids.add("'" + pid + "'");
             String probeidClause = Util.join(qprobeids, ",");
             String sql = "select * from compound a, compound_props b "
-                +"where probe_id in (" + probeidClause + ") "
-                +"and a.cid = b.pubchem_compound_cid";
+                    + "where probe_id in (" + probeidClause + ") "
+                    + "and a.cid = b.pubchem_compound_cid";
             PreparedStatement pst = conn.prepareStatement(sql);
             try {
                 ResultSet rs = pst.executeQuery();
                 while (rs.next()) {
-                    Compound c = new Compound ();
-                    fillCompound (rs, c);
+                    Compound c = new Compound();
+                    fillCompound(rs, c);
                     compounds.add(c);
                 }
                 rs.close();
-            }
-            finally {
+            } finally {
                 pst.close();
             }
         }
@@ -499,49 +494,48 @@ public class DBUtils {
         return compounds;
     }
 
-    public Map getETagInfo (String etag) throws SQLException {
+    public Map getETagInfo(String etag) throws SQLException {
         PreparedStatement pst = conn.prepareStatement
-            ("select a.*,count(*) as count from etag a, etag_data b "
-             +"where a.etag_id = ? and a.etag_id = b.etag_id");
-        Map info = new HashMap ();
+                ("select a.*,count(*) as count from etag a, etag_data b "
+                        + "where a.etag_id = ? and a.etag_id = b.etag_id");
+        Map info = new HashMap();
         try {
             pst.setString(1, etag);
             ResultSet rs = pst.executeQuery();
             ResultSetMetaData meta = rs.getMetaData();
             while (rs.next()) {
                 for (int c = 0; c < meta.getColumnCount(); ++c) {
-                    int type = meta.getColumnType(c+1);
-                    String name = meta.getColumnName(c+1);
-                    info.put(name, rs.getString(c+1));
+                    int type = meta.getColumnType(c + 1);
+                    String name = meta.getColumnName(c + 1);
+                    info.put(name, rs.getString(c + 1));
                 }
             }
             rs.close();
 
             return info;
-        }
-        finally {
+        } finally {
             pst.close();
         }
     }
 
-    public Facet getCompoundCollectionFacet (String etag) 
-        throws SQLException {
+    public Facet getCompoundCollectionFacet(String etag)
+            throws SQLException {
         PreparedStatement pst = conn.prepareStatement
-            ("select val,count(*) as cnt from "
-             +"compound_annot a, etag_data b "
-             +"where annot_key = 'COLLECTION' "
-             +"and b.etag_id = ? "
-             +"and a.cid = b.data_id "
-             +"group by val "
-             // order don't matter because we use a hash below.. sigh
-             // +"order by cnt desc, val"
-            );
+                ("select val,count(*) as cnt from "
+                        + "compound_annot a, etag_data b "
+                        + "where annot_key = 'COLLECTION' "
+                        + "and b.etag_id = ? "
+                        + "and a.cid = b.data_id "
+                        + "group by val "
+                        // order don't matter because we use a hash below.. sigh
+                        // +"order by cnt desc, val"
+                );
 
         String[] wtf = new String[]{
-            "NPC screening",
-            "DrugBank v3.0",
-            "NPC informatics",
-            "INN"
+                "NPC screening",
+                "DrugBank v3.0",
+                "NPC informatics",
+                "INN"
         };
 
         try {
@@ -557,73 +551,71 @@ public class DBUtils {
                     if (f.startsWith(s)) {
                         ++n;
                         Integer c = counts.get(s);
-                        counts.put(s, c != null ? (c+cnt) : cnt);
+                        counts.put(s, c != null ? (c + cnt) : cnt);
                     }
                 }
 
                 if (n == 0 && !f.startsWith("ChemIDPlus")) {
                     Integer c = counts.get(f);
-                    counts.put(f, c != null ? (c+cnt) : cnt);
+                    counts.put(f, c != null ? (c + cnt) : cnt);
                 }
             }
             rs.close();
 
-            Facet facet = new Facet ("COLLECTION");
+            Facet facet = new Facet("COLLECTION");
             facet.setCounts(counts);
 
             return facet;
-        }
-        finally {
+        } finally {
             pst.close();
         }
     }
 
-    public List<Facet> getCompoundPropertyFacets (String etag) 
-        throws SQLException {
+    public List<Facet> getCompoundPropertyFacets(String etag)
+            throws SQLException {
         Object[][] props = new Object[][]{
-            {"xlogp", "PUBCHEM_XLOGP3_AA", 0},
-            {"exact_mass", "PUBCHEM_EXACT_MASS", -2},
-            {"mwt", "PUBCHEM_MOLECULAR_WEIGHT", -2},
-            {"complexity", "PUBCHEM_CACTVS_COMPLEXITY", -2},
-            {"hbond_acceptor", "PUBCHEM_CACTVS_HBOND_ACCEPTOR", 0},
-            {"hbond_donnor", "PUBCHEM_CACTVS_HBOND_DONOR", 0},
-            {"rotatable", "PUBCHEM_CACTVS_ROTATABLE_BOND", 0},
-            {"tautomer", "PUBCHEM_CACTVS_TAUTO_COUNT", 0},
-            {"tpsa", "PUBCHEM_CACTVS_TPSA", -1},
-            {"mono_mwt", "PUBCHEM_MONOISOTOPIC_WEIGHT", -2}
+                {"xlogp", "PUBCHEM_XLOGP3_AA", 0},
+                {"exact_mass", "PUBCHEM_EXACT_MASS", -2},
+                {"mwt", "PUBCHEM_MOLECULAR_WEIGHT", -2},
+                {"complexity", "PUBCHEM_CACTVS_COMPLEXITY", -2},
+                {"hbond_acceptor", "PUBCHEM_CACTVS_HBOND_ACCEPTOR", 0},
+                {"hbond_donnor", "PUBCHEM_CACTVS_HBOND_DONOR", 0},
+                {"rotatable", "PUBCHEM_CACTVS_ROTATABLE_BOND", 0},
+                {"tautomer", "PUBCHEM_CACTVS_TAUTO_COUNT", 0},
+                {"tpsa", "PUBCHEM_CACTVS_TPSA", -1},
+                {"mono_mwt", "PUBCHEM_MONOISOTOPIC_WEIGHT", -2}
         };
 
         List<Facet> facets = new ArrayList<Facet>();
         for (int i = 0; i < props.length; ++i) {
             try {
-                Facet f = getCompoundPropertyFacet 
-                    (etag, (String)props[i][0], (String)props[i][1],
-                     (Integer)props[i][2]);
+                Facet f = getCompoundPropertyFacet
+                        (etag, (String) props[i][0], (String) props[i][1],
+                                (Integer) props[i][2]);
                 facets.add(f);
-            }
-            catch (SQLException ex) {
+            } catch (SQLException ex) {
                 ex.printStackTrace();
             }
         }
-            
+
         return facets;
     }
 
-    public Facet getCompoundPropertyFacet 
-        (String etag, String name, String column, int precision) 
-        throws SQLException {
+    public Facet getCompoundPropertyFacet
+            (String etag, String name, String column, int precision)
+            throws SQLException {
         PreparedStatement pst = conn.prepareStatement
-            ("select round("+column+","+precision+")  as bucket,\n"
-             +"count(*) as count\n"
-             +"from compound_props a, etag_data b\n"
-             +"where b.etag_id = ?\n"
-             +"and b.data_id = a.pubchem_compound_cid\n"
-             +"group by bucket\n"
-             +"order by bucket");
+                ("select round(" + column + "," + precision + ")  as bucket,\n"
+                        + "count(*) as count\n"
+                        + "from compound_props a, etag_data b\n"
+                        + "where b.etag_id = ?\n"
+                        + "and b.data_id = a.pubchem_compound_cid\n"
+                        + "group by bucket\n"
+                        + "order by bucket");
 
         try {
             pst.setString(1, etag);
-            
+
             ResultSet rs = pst.executeQuery();
             List<Integer[]> buckets = new ArrayList<Integer[]>();
             while (rs.next()) {
@@ -637,8 +629,8 @@ public class DBUtils {
             rs.close();
 
             //System.err.println(name+" => "+counts);
-            
-            Facet f = new Facet (name);
+
+            Facet f = new Facet(name);
             Map<String, Integer> counts = new TreeMap<String, Integer>();
             if (!buckets.isEmpty()) {
                 if (false) { // generate bins
@@ -646,65 +638,61 @@ public class DBUtils {
                         Integer[] bin = buckets.get(i);
                         if (bin[0] == null) {
                             counts.put("", bin[1]);
-                        }
-                        else {
-                            Integer range = buckets.get(i+1)[0];
-                            counts.put("["+bin[0]+", "+range+")", bin[1]);
+                        } else {
+                            Integer range = buckets.get(i + 1)[0];
+                            counts.put("[" + bin[0] + ", " + range + ")", bin[1]);
                         }
                     }
-                    Integer[] bin = buckets.get(buckets.size()-1);
-                    counts.put(">= "+bin[0], bin[1]);
-                }
-                else { 
+                    Integer[] bin = buckets.get(buckets.size() - 1);
+                    counts.put(">= " + bin[0], bin[1]);
+                } else {
                     // return the lower range and let the client create 
                     //  the bins
                     for (Iterator<Integer[]> iter = buckets.iterator();
                          iter.hasNext(); ) {
                         Integer[] bin = iter.next();
-                        counts.put(bin[0] != null 
-                                   ? bin[0].toString() : "", bin[1]);
+                        counts.put(bin[0] != null
+                                ? bin[0].toString() : "", bin[1]);
                     }
                 }
             }
             f.setCounts(counts);
 
             return f;
-        }
-        finally {
+        } finally {
             pst.close();
         }
     }
 
-    public List<Facet> getCompoundFacets (String etag) throws SQLException {
+    public List<Facet> getCompoundFacets(String etag) throws SQLException {
         List<Facet> facets = new ArrayList<Facet>();
-        
-        facets.add(getCompoundCollectionFacet (etag));
-        facets.addAll(getCompoundPropertyFacets (etag));
+
+        facets.add(getCompoundCollectionFacet(etag));
+        facets.addAll(getCompoundPropertyFacets(etag));
 
         return facets;
     }
 
-    public List<Compound> getCompoundsByETags 
-        (int skip, int top, String... etags) throws SQLException {
+    public List<Compound> getCompoundsByETags
+            (int skip, int top, String... etags) throws SQLException {
         List<Compound> compounds = new ArrayList<Compound>();
-        StringBuilder sql = new StringBuilder 
-            ("select c.*,d.* from compound c, compound_props d, etag e1, "
-             +"etag_data e2 where e1.etag_id = ? "
-             +"and e1.type = ? "
-             +"and e2.etag_id = e1.etag_id "
-             +"and c.cid = e2.data_id "
-             +"and d.pubchem_compound_cid = e2.data_id "
-             +"order by e2.index");
+        StringBuilder sql = new StringBuilder
+                ("select c.*,d.* from compound c, compound_props d, etag e1, "
+                        + "etag_data e2 where e1.etag_id = ? "
+                        + "and e1.type = ? "
+                        + "and e2.etag_id = e1.etag_id "
+                        + "and c.cid = e2.data_id "
+                        + "and d.pubchem_compound_cid = e2.data_id "
+                        + "order by e2.index");
         if (skip >= 0 && top > 0) {
-            sql.append(" limit "+skip+","+top);
-        }
-        else if (top > 0) {
-            sql.append(" limit "+top);
+            sql.append(" limit " + skip + "," + top);
+        } else if (top > 0) {
+            sql.append(" limit " + top);
         }
 
         PreparedStatement pst1 = conn.prepareStatement(sql.toString());
         PreparedStatement pst2 = conn.prepareStatement
-            ("select sid from cid_sid where cid = ?");
+                ("select sid from cid_sid where cid = ?");
         try {
             pst1.setString(2, Compound.class.getName());
             Set<Long> unique = new HashSet<Long>();
@@ -717,15 +705,15 @@ public class DBUtils {
                     if (!unique.contains(cid)) {
                         unique.add(cid);
 
-                        Compound c = new Compound ();
+                        Compound c = new Compound();
                         compounds.add(c);
 
                         c.setCid(cid);
-                        fillCompound (rs, c);
+                        fillCompound(rs, c);
                     }
                 }
                 rs.close();
-                touchETag (e);
+                touchETag(e);
             }
 
             /*
@@ -742,16 +730,15 @@ public class DBUtils {
             */
 
             return compounds;
-        }
-        finally {
+        } finally {
             pst1.close();
             pst2.close();
         }
     }
 
-    public Map getCompoundAnnotations (Long cid) throws SQLException {
+    public Map getCompoundAnnotations(Long cid) throws SQLException {
         PreparedStatement pst = conn.prepareStatement
-            ("select * from compound_annot where cid = ?");
+                ("select * from compound_annot where cid = ?");
         try {
             pst.setLong(1, cid);
 
@@ -769,19 +756,18 @@ public class DBUtils {
             }
             rs.close();
 
-            Map anno = new TreeMap ();
+            Map anno = new TreeMap();
             anno.put("anno_key", keys.toArray(new String[0]));
             anno.put("anno_val", vals.toArray(new String[0]));
 
             return anno;
-        }
-        finally {
+        } finally {
             pst.close();
         }
     }
 
-    protected void fillCompound (ResultSet rs, Compound c) 
-        throws SQLException {
+    protected void fillCompound(ResultSet rs, Compound c)
+            throws SQLException {
         c.setCid(rs.getLong("cid"));
         c.setProbeId(rs.getString("probe_id"));
         c.setSmiles(rs.getString("iso_smiles"));
@@ -818,7 +804,7 @@ public class DBUtils {
         c.setHbondDonor(rs.getInt("pubchem_cactvs_hbond_donor"));
         if (rs.wasNull()) {
             c.setHbondDonor(null);
-        }        
+        }
     }
 
     /**
@@ -904,12 +890,12 @@ public class DBUtils {
         return ed;
     }
 
-    public String getExperimentMetadataByExptId (Long exptId) 
-        throws SQLException {
+    public String getExperimentMetadataByExptId(Long exptId)
+            throws SQLException {
 
         if (exptId == null || exptId <= 0) return null;
         PreparedStatement pst = conn.prepareStatement
-            ("select assay_result_def from experiment where expt_id = ?");
+                ("select assay_result_def from experiment where expt_id = ?");
         pst.setLong(1, exptId);
         ResultSet rs = pst.executeQuery();
 
@@ -921,8 +907,7 @@ public class DBUtils {
             }
 
             return json;
-        }
-        finally {
+        } finally {
             rs.close();
             pst.close();
         }
@@ -1003,6 +988,13 @@ public class DBUtils {
         pst.close();
         return a;
     }
+
+    public List<Assay> getAssays(Long... assayIds) throws SQLException {
+        List<Assay> assays = new ArrayList<Assay>();
+        for (Long aid : assayIds) assays.add(getAssayByAid(aid));
+        return assays;
+    }
+
 
     /**
      * Retrieve CIDs for compounds associated with an experiment.
@@ -1961,21 +1953,21 @@ public class DBUtils {
     }
 
 
-    public static void main (String[] argv) throws Exception {
+    public static void main(String[] argv) throws Exception {
         if (argv.length == 0) {
             System.out.println("Usage: DBUtils URL");
             System.exit(1);
         }
         Class.forName("com.mysql.jdbc.Driver");
-        
-        DBUtils db = new DBUtils ();
+
+        DBUtils db = new DBUtils();
         Connection con = DriverManager.getConnection(argv[0]);
         con.setAutoCommit(false);
         db.setConnection(con);
 
         String etag = db.newETag("test", Compound.class.getName());
-        int cnt = db.putETag(etag, 1l,2l,3l,4l,5l);
-        System.out.println(etag+": "+cnt);
+        int cnt = db.putETag(etag, 1l, 2l, 3l, 4l, 5l);
+        System.out.println(etag + ": " + cnt);
         db.closeConnection();
     }
 }

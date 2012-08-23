@@ -1,6 +1,9 @@
 package gov.nih.ncgc.bard.rest;
 
 import chemaxon.struc.Molecule;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
@@ -29,9 +32,9 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.EntityTag;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -44,9 +47,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.*;
 
 /**
  * Prototype of MLBD REST resources.
@@ -182,15 +182,15 @@ public class BARDCompoundResource extends BARDResource {
                     cids.add(Long.parseLong(cidstr));
                 }
 
-                EntityTag etag = new EntityTag 
-                    (db.newETag(getRequestURI (), Compound.class.getName()));
+                EntityTag etag = new EntityTag
+                        (db.newETag(getRequestURI(), Compound.class.getName()));
 
                 Long[] ids = cids.toArray(new Long[0]);
                 int cnt = db.putETag(etag.getValue(), ids);
-                log ("** ETag: "+etag.getValue()+" "+cnt);
+                log("** ETag: " + etag.getValue() + " " + cnt);
                 for (EntityTag e : getETagsRequested()) {
                     cnt = db.putETag(e.getValue(), ids);
-                    log (" ** Updating "+e.getValue()+": "+cnt);
+                    log(" ** Updating " + e.getValue() + ": " + cnt);
                 }
 
 //                List<Long> cids = handler.getCids();
@@ -239,29 +239,29 @@ public class BARDCompoundResource extends BARDResource {
                 } else if (type.equals("probeid")) c.addAll(db.getCompoundsByProbeId(s));
                 else if (type.equals("name")) c.addAll(db.getCompoundsByProbeId(s));
             }
-            
+
             if (c.size() == 0) throw new WebApplicationException(404);
             if (countRequested) return Response.ok(String.valueOf(c.size()), MediaType.TEXT_PLAIN).build();
-            
+
             EntityTag etag = new EntityTag
-                (db.newETag(getRequestURI (), Compound.class.getName()));
+                    (db.newETag(getRequestURI(), Compound.class.getName()));
             Long[] ids = new Long[c.size()];
             for (int i = 0; i < ids.length; ++i) {
                 ids[i] = c.get(i).getCid();
             }
             int cnt = db.putETag(etag.getValue(), ids);
-            log ("** ETag "+etag.getValue()+" "+cnt);
+            log("** ETag " + etag.getValue() + " " + cnt);
 
-            for (EntityTag e : getETagsRequested ()) {
+            for (EntityTag e : getETagsRequested()) {
                 cnt = db.putETag(e.getValue(), ids);
-                log (" ** Updating "+e.getValue()+" "+cnt);
+                log(" ** Updating " + e.getValue() + " " + cnt);
             }
 
             if (mediaTypes.contains(BARDConstants.MIME_SMILES)) {
                 StringBuilder s = new StringBuilder();
                 for (Compound ac : c) s.append(ac.getSmiles() + "\t" + ac.getCid());
                 return Response.ok(s, BARDConstants.MIME_SMILES)
-                    .tag(etag).build();
+                        .tag(etag).build();
             } else if (mediaTypes.contains(BARDConstants.MIME_SDF)) {   // TODO handle multi-molecule SDFs
                 throw new WebApplicationException(406);
                 //            Molecule mol = MolImporter.importMol(c.getSmiles());
@@ -273,23 +273,21 @@ public class BARDCompoundResource extends BARDResource {
                 //            return Response.ok(sdf, BARDConstants.MIME_SDF).build();
             } else {
                 String json;
-                ObjectMapper mapper = new ObjectMapper ();
+                ObjectMapper mapper = new ObjectMapper();
                 if (!type.equals("name") && c.size() == 1) {
-                    ObjectNode node = (ObjectNode)mapper
-                        .valueToTree(c.iterator().next());
-                    Map anno = db.getCompoundAnnotations 
-                        (node.get("cid").asLong());
+                    ObjectNode node = (ObjectNode) mapper
+                            .valueToTree(c.iterator().next());
+                    Map anno = db.getCompoundAnnotations
+                            (node.get("cid").asLong());
                     for (Object key : anno.entrySet()) {
-                        Map.Entry me = (Map.Entry)key;
-                        node.putPOJO((String)me.getKey(), me.getValue());
+                        Map.Entry me = (Map.Entry) key;
+                        node.putPOJO((String) me.getKey(), me.getValue());
                     }
                     json = mapper.writeValueAsString(node);
-                }
-                else {
+                } else {
                     if (expand) {
-                        json = toJson (db, c, true);
-                    }
-                    else {
+                        json = toJson(db, c, true);
+                    } else {
                         List<String> links = new ArrayList<String>();
                         for (Compound ac : c) links.add(ac.getResourcePath());
                         json = Util.toJson(links);
@@ -297,35 +295,33 @@ public class BARDCompoundResource extends BARDResource {
                 }
 
                 return Response.ok(json, MediaType.APPLICATION_JSON)
-                    .tag(etag).build();
+                        .tag(etag).build();
             }
-        }
-        finally {
+        } finally {
             db.closeConnection();
         }
     }
 
-    String toJson (DBUtils db, List<Compound> compounds, 
-                   boolean annotation) throws SQLException, IOException {
+    String toJson(DBUtils db, List<Compound> compounds,
+                  boolean annotation) throws SQLException, IOException {
 
         if (!annotation) {
             return Util.toJson(compounds);
         }
 
-        ObjectMapper mapper = new ObjectMapper ();        
-        ArrayNode node = (ArrayNode)mapper.valueToTree(compounds);
+        ObjectMapper mapper = new ObjectMapper();
+        ArrayNode node = (ArrayNode) mapper.valueToTree(compounds);
         for (int i = 0; i < node.size(); ++i) {
-            ObjectNode n = (ObjectNode)node.get(i);
+            ObjectNode n = (ObjectNode) node.get(i);
 
-            Map anno = db.getCompoundAnnotations (n.get("cid").asLong());
+            Map anno = db.getCompoundAnnotations(n.get("cid").asLong());
             if (anno.isEmpty()) {
                 n.putNull("anno_key");
                 n.putNull("anno_val");
-            }
-            else {
+            } else {
                 for (Object key : anno.entrySet()) {
-                    Map.Entry me = (Map.Entry)key;
-                    n.putPOJO((String)me.getKey(), me.getValue());
+                    Map.Entry me = (Map.Entry) key;
+                    n.putPOJO((String) me.getKey(), me.getValue());
                 }
             }
         }
@@ -392,47 +388,42 @@ public class BARDCompoundResource extends BARDResource {
     public Response getImage(@PathParam("cid") String resourceId,
                              @PathParam("format") String format) {
         try {
-            MoleculeService molsrv = 
-                (MoleculeService) Util.getMoleculeService();
+            MoleculeService molsrv =
+                    (MoleculeService) Util.getMoleculeService();
             Molecule molecule = molsrv.getMol(resourceId);
-            if (molecule == null) 
+            if (molecule == null)
                 throw new NotFoundException
-                    ("No molecule for CID = " + resourceId);
+                        ("No molecule for CID = " + resourceId);
 
             String molstr = "";
             String type = "text/plain";
             if (format.startsWith("mol")) {
                 molstr = molecule.toFormat("mol");
                 type = "chemical/x-mdl-mol";
-            }
-            else if (format.startsWith("sdf")) {
+            } else if (format.startsWith("sdf")) {
                 molstr = molecule.toFormat("sdf");
                 type = "chemical/x-mdl-sdffile";
-            }
-            else if (format.startsWith("smi")) {
+            } else if (format.startsWith("smi")) {
                 molstr = molecule.toFormat("smiles:q");
                 type = "chemical/x-daylight-smiles";
             }
             return Response.ok(molstr).type(type).build();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new WebApplicationException(e, 500);
         }
     }
 
     @GET
     @Path("/{cid}")
-    public Response getResources(@PathParam("cid") String resourceId, 
-                                 @QueryParam("filter") String filter, 
+    public Response getResources(@PathParam("cid") String resourceId,
+                                 @QueryParam("filter") String filter,
                                  @QueryParam("expand") String expand) {
         try {
             Response response = getCompoundResponse(resourceId, "cid", headers.getAcceptableMediaTypes(), expand != null && expand.toLowerCase().equals("true"));
             return response;
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
-        } 
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
     }
@@ -440,7 +431,7 @@ public class BARDCompoundResource extends BARDResource {
     @POST
     @Path("/")
     @Consumes("application/x-www-form-urlencoded")
-    public Response getResources(@FormParam("cids") String cids, @QueryParam("expand") String expand) {
+    public Response getResources(@FormParam("ids") String cids, @QueryParam("expand") String expand) {
         try {
 
             if (cids == null)
@@ -457,27 +448,24 @@ public class BARDCompoundResource extends BARDResource {
     @GET
     @Path("/etag/{etag}")
     public Response getCompoundsByETag(@PathParam("etag") String resourceId,
-                                       @QueryParam("filter") String filter, 
+                                       @QueryParam("filter") String filter,
                                        @QueryParam("expand") String expand,
                                        @QueryParam("skip") Integer skip,
                                        @QueryParam("top") Integer top) {
-        DBUtils db = new DBUtils ();
+        DBUtils db = new DBUtils();
         try {
             List<Compound> c = db.getCompoundsByETags
-                (skip != null ? skip : -1, top != null ? top : -1, resourceId);
-            String json = toJson (db, c, expand != null 
-                                  && expand.toLowerCase().equals("true"));
+                    (skip != null ? skip : -1, top != null ? top : -1, resourceId);
+            String json = toJson(db, c, expand != null
+                    && expand.toLowerCase().equals("true"));
 
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new WebApplicationException(e, 500);
-        }
-        finally {
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
@@ -485,21 +473,18 @@ public class BARDCompoundResource extends BARDResource {
 
     @GET
     @Path("/etag/{etag}/info")
-    public Response getETagInfo (@PathParam("etag") String resourceId) {
-        DBUtils db = new DBUtils ();
+    public Response getETagInfo(@PathParam("etag") String resourceId) {
+        DBUtils db = new DBUtils();
         try {
             Map info = db.getETagInfo(resourceId);
-            return Response.ok(Util.toJson(info), 
-                               MediaType.APPLICATION_JSON).build();
-        }
-        catch (Exception ex) {
+            return Response.ok(Util.toJson(info),
+                    MediaType.APPLICATION_JSON).build();
+        } catch (Exception ex) {
             throw new WebApplicationException(ex, 500);
-        }
-        finally {
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
@@ -507,21 +492,18 @@ public class BARDCompoundResource extends BARDResource {
 
     @GET
     @Path("/etag/{etag}/facets")
-    public Response getFacets (@PathParam("etag") String resourceId) {
-        DBUtils db = new DBUtils ();
+    public Response getFacets(@PathParam("etag") String resourceId) {
+        DBUtils db = new DBUtils();
         try {
             List<Facet> facets = db.getCompoundFacets(resourceId);
-            return Response.ok(Util.toJson(facets), 
-                               MediaType.APPLICATION_JSON).build();
-        }
-        catch (Exception ex) {
+            return Response.ok(Util.toJson(facets),
+                    MediaType.APPLICATION_JSON).build();
+        } catch (Exception ex) {
             throw new WebApplicationException(ex, 500);
-        }
-        finally {
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
@@ -670,30 +652,28 @@ public class BARDCompoundResource extends BARDResource {
 
     @GET
     @Path("/{cid}/annotations")
-    public Response getCompoundAnnotations (@PathParam("cid") Long cid) 
-        throws SQLException, IOException {
-        DBUtils db = new DBUtils ();
+    public Response getCompoundAnnotations(@PathParam("cid") Long cid)
+            throws SQLException, IOException {
+        DBUtils db = new DBUtils();
         try {
             Map anno = db.getCompoundAnnotations(cid);
             return Response.ok(Util.toJson(anno))
-                .type(MediaType.APPLICATION_JSON).build();
-        }
-        finally {
+                    .type(MediaType.APPLICATION_JSON).build();
+        } finally {
             db.closeConnection();
         }
     }
-        
+
     @GET
     @Path("/{cid}/sids")
-    public Response getSidsForCompound(@PathParam("cid") Long cid) 
-        throws SQLException, IOException {
-        DBUtils db = new DBUtils ();
+    public Response getSidsForCompound(@PathParam("cid") Long cid)
+            throws SQLException, IOException {
+        DBUtils db = new DBUtils();
         try {
-            List<Long> sids = db.getSidsByCid (cid);
+            List<Long> sids = db.getSidsByCid(cid);
             return Response.ok(Util.toJson(sids))
-                .type(MediaType.APPLICATION_JSON).build();
-        }
-        finally {
+                    .type(MediaType.APPLICATION_JSON).build();
+        } finally {
             db.closeConnection();
         }
     }

@@ -8,7 +8,10 @@ import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -114,6 +117,38 @@ public class BARDProjectResource extends BARDResource {
             throw new WebApplicationException(e, 500);
         }
     }
+
+    @POST
+    @Path("/")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response getResources(@FormParam("ids") String pids, @QueryParam("expand") String expand) {
+        if (pids == null)
+            throw new WebApplicationException(new Exception("POST request must specify the pids form parameter, which should be a comma separated string of project IDs"), 400);
+        DBUtils db = new DBUtils();
+        try {
+            // we'll asssume an ID list if we're being called via POST
+            String[] s = pids.split(",");
+            Long[] ids = new Long[s.length];
+            for (int i = 0; i < s.length; i++) ids[i] = Long.parseLong(s[i].trim());
+
+            List<Project> p = db.getProjects(ids);
+            if (countRequested) return Response.ok(String.valueOf(p.size()), MediaType.TEXT_PLAIN).build();
+            db.closeConnection();
+
+            String json;
+            if (expand == null || expand.toLowerCase().equals("false")) {
+                List<String> links = new ArrayList<String>();
+                for (Project ap : p) links.add(ap.getResourcePath());
+                json = Util.toJson(links);
+            } else json = Util.toJson(p);
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
 
     // TODO only list targets associated with the summary assay, not the member assays. Correct?
     @GET

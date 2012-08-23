@@ -20,7 +20,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -92,12 +95,10 @@ public class BARDAssayResource extends BARDResource {
             return ret;
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
-        }
-        finally {
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (SQLException ex) {
+            } catch (SQLException ex) {
                 ex.printStackTrace();
             }
         }
@@ -152,12 +153,10 @@ public class BARDAssayResource extends BARDResource {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
-        }
-        finally {
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (SQLException ex) {
+            } catch (SQLException ex) {
                 ex.printStackTrace();
             }
         }
@@ -177,16 +176,46 @@ public class BARDAssayResource extends BARDResource {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
-        }
-        finally {
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (SQLException ex) {
+            } catch (SQLException ex) {
                 ex.printStackTrace();
             }
         }
     }
+
+    @POST
+    @Path("/")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response getResources(@FormParam("ids") String aids, @QueryParam("expand") String expand) {
+        if (aids == null)
+            throw new WebApplicationException(new Exception("POST request must specify the aids form parameter, which should be a comma separated string of assay IDs"), 400);
+        DBUtils db = new DBUtils();
+        try {
+            // we'll asssume an ID list if we're being called via POST
+            String[] s = aids.split(",");
+            Long[] ids = new Long[s.length];
+            for (int i = 0; i < s.length; i++) ids[i] = Long.parseLong(s[i].trim());
+
+            List<Assay> assays = db.getAssays(ids);
+            if (countRequested) return Response.ok(String.valueOf(assays.size()), MediaType.TEXT_PLAIN).build();
+            db.closeConnection();
+
+            String json;
+            if (expand == null || expand.toLowerCase().equals("false")) {
+                List<String> links = new ArrayList<String>();
+                for (Assay ap : assays) links.add(ap.getResourcePath());
+                json = Util.toJson(links);
+            } else json = Util.toJson(assays);
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
 
     @GET
     @Path("/{aid}/annotations")
@@ -214,12 +243,10 @@ public class BARDAssayResource extends BARDResource {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
-        }
-        finally {
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (SQLException ex) {
+            } catch (SQLException ex) {
                 ex.printStackTrace();
             }
         }
@@ -256,12 +283,10 @@ public class BARDAssayResource extends BARDResource {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
-        }
-        finally {
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (SQLException ex) {
+            } catch (SQLException ex) {
                 ex.printStackTrace();
             }
         }
@@ -296,12 +321,10 @@ public class BARDAssayResource extends BARDResource {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
-        }
-        finally {
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (SQLException ex) {
+            } catch (SQLException ex) {
                 ex.printStackTrace();
             }
         }
@@ -319,19 +342,18 @@ public class BARDAssayResource extends BARDResource {
             List<Project> projects = db.getProjectByAssayId(aid);
             if (!expandEntries) {
                 List<String> links = Functional.Apply
-                    (projects, new IApplyFunction<Project, String>() {
-                        public String eval(Project project) {
-                            return project.getResourcePath();
-                        }
-                    });
+                        (projects, new IApplyFunction<Project, String>() {
+                            public String eval(Project project) {
+                                return project.getResourcePath();
+                            }
+                        });
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(links, null);
                 return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
             } else {
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(projects, null);
                 return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
             }
-        }
-        finally {
+        } finally {
             db.closeConnection();
         }
     }
@@ -365,12 +387,10 @@ public class BARDAssayResource extends BARDResource {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
-        }
-        finally {
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (SQLException ex) {
+            } catch (SQLException ex) {
                 ex.printStackTrace();
             }
         }
