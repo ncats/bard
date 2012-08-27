@@ -1,9 +1,13 @@
 package gov.nih.ncgc.bard.search;
 
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
+import org.apache.solr.common.SolrDocumentList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A one line summary.
@@ -51,5 +55,57 @@ public abstract class SolrSearch implements ISolrSearch {
             } else ret.add(docs.get(i));
         }
         return ret;
+    }
+
+    /**
+     * Initiale highlighting.
+     * <p/>
+     * This initialization is pretty much independent of the entity we're searching on,  hence
+     * it's placement in the superclass.
+     *
+     * @param solrQuery      The query object
+     * @param highlightField which field to highlight on
+     * @return the updated query object
+     */
+    protected SolrQuery setHighlighting(SolrQuery solrQuery, String highlightField) {
+        solrQuery = solrQuery.setHighlight(true).
+                setHighlightSnippets(1).
+                setHighlightFragsize(300).
+                setHighlightSimplePre("<b>").
+                setHighlightSimplePost("</b>");
+        return solrQuery.addHighlightField(highlightField);
+    }
+
+    /**
+     * Convert user specified field based filters to the Solr form.
+     *
+     * @param solrQuery the query object
+     * @param filter    the filter string
+     * @return the updated query object
+     */
+    protected SolrQuery setFilterQueries(SolrQuery solrQuery, String filter) {
+        if (filter != null) {
+            Map<String, String> fq = SearchUtil.extractFilterQueries(filter);
+            for (String fname : fq.keySet()) {
+                String fvalue = fq.get(fname);
+                if (fvalue.contains("[")) solrQuery.addFilterQuery(fname + ":" + fvalue);
+                else solrQuery.addFilterQuery(fname + ":\"" + fvalue + "\"");
+            }
+        }
+        return solrQuery;
+    }
+
+    protected List<SolrDocument> getHighlightedDocuments(QueryResponse response, String primaryKey, String highlightField) {
+        List<SolrDocument> docs = new ArrayList<SolrDocument>();
+        SolrDocumentList sdl = response.getResults();
+        for (SolrDocument doc : sdl) {
+            String pkey = (String) doc.getFieldValue(primaryKey);
+            List<String> hls = response.getHighlighting().get(pkey).get(highlightField);
+            if (hls != null) {
+                doc.addField("highlight", hls.get(0));
+            }
+            docs.add(doc);
+        }
+        return docs;
     }
 }

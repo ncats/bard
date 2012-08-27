@@ -10,7 +10,6 @@ import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
 import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
-import org.apache.solr.common.SolrDocumentList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,44 +81,15 @@ public class AssaySearch extends SolrSearch {
         SolrServer solr = new CommonsHttpSolrServer(SOLR_URL);
 
         SolrQuery sq = new SolrQuery(query);
-        sq = sq.setHighlight(true).
-                setHighlightSnippets(1).
-                setHighlightFragsize(300).
-                setHighlightSimplePre("<b>").
-                setHighlightSimplePost("</b>");
-
-        if (filter == null) sq.addHighlightField(HL_FIELD);
-        else {
-            // we highlight on the specified fields (can we highlight multiple fields?)
-        }
+        sq = setHighlighting(sq, filter == null ? HL_FIELD : HL_FIELD);
+        sq = setFilterQueries(sq, filter);
         sq.setRows(10000);
 
         sq.setFacet(true);
         sq.addFacetField("target_name");
 
-        // do we have filter queries to include?
-        // do we have filter queries to include?
-        if (filter != null) {
-            Map<String, String> fq = SearchUtil.extractFilterQueries(filter);
-            for (String fname : fq.keySet()) {
-                String fvalue = fq.get(fname);
-                if (fvalue.contains("[")) sq.addFilterQuery(fname + ":" + fvalue);
-                else sq.addFilterQuery(fname + ":\"" + fvalue + "\"");
-            }
-        }
-
         QueryResponse response = solr.query(sq);
-
-        List<SolrDocument> docs = new ArrayList<SolrDocument>();
-        SolrDocumentList sdl = response.getResults();
-        for (SolrDocument doc : sdl) {
-            String pkey = (String) doc.getFieldValue(PKEY_ASSAY_DOC);
-            List<String> hls = response.getHighlighting().get(pkey).get(HL_FIELD);
-            if (hls != null) {
-                doc.addField("highlight", hls.get(0));
-            }
-            docs.add(doc);
-        }
+        List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_ASSAY_DOC, HL_FIELD);
 
         // get facet counts
         long start = System.currentTimeMillis();
@@ -165,7 +135,7 @@ public class AssaySearch extends SolrSearch {
         log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
 
         SearchMeta meta = new SearchMeta();
-        meta.setNhit(sdl.getNumFound());
+        meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
 
         // only return the requested number of docs, from the requested starting point
