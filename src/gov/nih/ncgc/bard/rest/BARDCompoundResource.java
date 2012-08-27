@@ -86,7 +86,8 @@ public class BARDCompoundResource extends BARDResource {
                            @QueryParam("top") Integer top,
 
                            @QueryParam("type") String type,
-                           @QueryParam("cutoff") Double cutoff) throws SQLException, IOException {
+                           @QueryParam("cutoff") Double cutoff,
+                           @QueryParam("rankBy") String rankBy) throws SQLException, IOException {
         DBUtils db = new DBUtils();
         Response response = null;
 
@@ -160,6 +161,8 @@ public class BARDCompoundResource extends BARDResource {
             } else {
                 params = SearchParams.substructure();
             }
+
+            if (rankBy != null) params.setRankBy(rankBy);
 
             StringWriter writer = new StringWriter();
             PrintWriter pw = new PrintWriter(writer);
