@@ -42,9 +42,12 @@ public abstract class CapResourceHandler {
         get.setHeader("Accept", resource.getMimeType());
         get.setHeader(CAPConstants.CAP_APIKEY_HEADER, CAPConstants.getApiKey());
         HttpResponse response = httpClient.execute(get);
-        if (response.getStatusLine().getStatusCode() != 200)
-            throw new IOException("Got a HTTP " + response.getStatusLine().getStatusCode() + " for " + resource);
+        if (response.getStatusLine().getStatusCode() != 200 && response.getStatusLine().getStatusCode() != 206)
+            throw new IOException("Got a HTTP " + response.getStatusLine().getStatusCode() + " for " + resource + ": " + url);
 
+        if (response.getStatusLine().getStatusCode() == 206)
+            log.info("Got a 206 (partial content) ... make sure this is handled appropriately for " + resource + ": " + url);
+            
 //        if (resource == CAPConstants.CapResource.ASSAY) {
 //            String xml = read(response.getEntity().getContent());
 //            BufferedWriter writer = new BufferedWriter(new FileWriter("1640.xml"));
