@@ -185,16 +185,8 @@ public class BARDCompoundResource extends BARDResource {
                     cids.add(Long.parseLong(cidstr));
                 }
 
-                EntityTag etag = new EntityTag
-                        (db.newETag(getRequestURI(), Compound.class.getName()));
-
                 Long[] ids = cids.toArray(new Long[0]);
-                int cnt = db.putETag(etag.getValue(), ids);
-                log("** ETag: " + etag.getValue() + " " + cnt);
-                for (EntityTag e : getETagsRequested()) {
-                    cnt = db.putETag(e.getValue(), ids);
-                    log(" ** Updating " + e.getValue() + ": " + cnt);
-                }
+                EntityTag etag = newETag (db, ids);
 
 //                List<Long> cids = handler.getCids();
                 if (expandEntries) {
@@ -246,19 +238,8 @@ public class BARDCompoundResource extends BARDResource {
             if (c.size() == 0) throw new WebApplicationException(404);
             if (countRequested) return Response.ok(String.valueOf(c.size()), MediaType.TEXT_PLAIN).build();
 
-            EntityTag etag = new EntityTag
-                    (db.newETag(getRequestURI(), Compound.class.getName()));
             Long[] ids = new Long[c.size()];
-            for (int i = 0; i < ids.length; ++i) {
-                ids[i] = c.get(i).getCid();
-            }
-            int cnt = db.putETag(etag.getValue(), ids);
-            log("** ETag " + etag.getValue() + " " + cnt);
-
-            for (EntityTag e : getETagsRequested()) {
-                cnt = db.putETag(e.getValue(), ids);
-                log(" ** Updating " + e.getValue() + " " + cnt);
-            }
+            EntityTag etag = newETag (db, ids);
 
             if (mediaTypes.contains(BARDConstants.MIME_SMILES)) {
                 StringBuilder s = new StringBuilder();
@@ -303,6 +284,27 @@ public class BARDCompoundResource extends BARDResource {
         } finally {
             db.closeConnection();
         }
+    }
+
+    EntityTag newETag (DBUtils db, Long... ids) throws SQLException {
+        EntityTag etag = new EntityTag
+            (db.newETag(getRequestURI(), Compound.class.getName()));
+        
+        int cnt = db.putETag(etag.getValue(), ids);
+        log("** ETag: " + etag.getValue() + " " + cnt);
+
+        List<String> parents = new ArrayList<String>();
+        for (EntityTag e : getETagsRequested()) {
+            cnt = db.putETag(e.getValue(), ids);
+            parents.add(e.getValue());
+            log(" ** Updating " + e.getValue() + ": " + cnt);
+        }
+        
+        if (!parents.isEmpty()) {
+            db.createETagLinks(etag.getValue(), 
+                               parents.toArray(new String[0]));
+        }
+        return etag;
     }
 
     String toJson(DBUtils db, List<Compound> compounds,

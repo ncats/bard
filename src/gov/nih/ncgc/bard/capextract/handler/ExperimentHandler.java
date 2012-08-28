@@ -70,14 +70,15 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             }
         }
         // TODO handle project context of experiment
-        for (Experiment.ProjectExperiments.ProjectExperiment projExpt: expt.getProjectExperiments().getProjectExperiment()) {
-            projExpt.getDescription();
-            projExpt.getPrecedingExperiment();
-            for (Link link: projExpt.getLink()) {
-        	if (link.getType().equals(CAPConstants.CapResource.STAGE.getMimeType()))
-        	    link.getHref();
+        if (expt.getProjectExperiments() != null)
+            for (Experiment.ProjectExperiments.ProjectExperiment projExpt: expt.getProjectExperiments().getProjectExperiment()) {
+        	projExpt.getDescription();
+        	projExpt.getPrecedingExperiment();
+        	for (Link link: projExpt.getLink()) {
+        	    if (link.getType().equals(CAPConstants.CapResource.STAGE.getMimeType()))
+        		link.getHref();
+        	}
             }
-        }
         // TODO handle result context of experiment
         expt.getResultContextItems();
 

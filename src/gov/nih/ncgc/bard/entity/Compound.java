@@ -111,7 +111,7 @@ public class Compound implements BardEntity {
     public void setHbondAcceptor (Integer hbondAcceptor) {
         this.hbondAcceptor = hbondAcceptor;
     }
-    public Integer getHbonAcceptor () { return hbondAcceptor; }
+    public Integer getHbondAcceptor () { return hbondAcceptor; }
 
     public void setHbondDonor (Integer hbondDonor) {
         this.hbondDonor = hbondDonor;
