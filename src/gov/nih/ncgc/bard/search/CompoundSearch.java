@@ -6,7 +6,6 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
-import org.apache.solr.common.SolrDocumentList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +22,8 @@ import java.util.Map;
  */
 public class CompoundSearch extends SolrSearch {
     private final String SOLR_URL = SOLR_BASE + "/core-compound/";
+    private final String HL_FIELD = "text";
+    private final String PKEY_COMPOUND_DOC = "cid";
 
     Logger log;
     String[] facetNames = {"COLLECTION", "mw", "tpsa", "xlogp"};
@@ -41,7 +42,9 @@ public class CompoundSearch extends SolrSearch {
         QueryResponse response = null;
 
         SolrQuery sq = new SolrQuery(query);
-        sq = sq.setHighlight(true).setHighlightSnippets(1).setRows(10000);
+        sq = setHighlighting(sq, filter == null ? HL_FIELD : HL_FIELD);
+        sq = setFilterQueries(sq, filter);
+        sq.setRows(10000);
 
         // add in some default faceting stuff
         sq.setFacet(true);
@@ -60,23 +63,8 @@ public class CompoundSearch extends SolrSearch {
         sq.addFacetQuery("xlogp:[3 TO 5]");
         sq.addFacetQuery("xlogp:[5 TO *]");
 
-        // do we have filter queries to include?
-        if (filter != null) {
-            Map<String, String> fq = SearchUtil.extractFilterQueries(filter);
-            for (String fname : fq.keySet()) {
-                String fvalue = fq.get(fname);
-                if (fvalue.contains("[")) sq.addFilterQuery(fname + ":" + fvalue);
-                else sq.addFilterQuery(fname + ":\"" + fvalue + "\"");
-            }
-        }
-
         response = solr.query(sq);
-
-        List<SolrDocument> docs = new ArrayList<SolrDocument>();
-        SolrDocumentList sdl = response.getResults();
-        for (SolrDocument doc : sdl) {
-            docs.add(doc);
-        }
+        List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_COMPOUND_DOC, HL_FIELD);
 
         // get facet counts
         long start = System.currentTimeMillis();
@@ -121,9 +109,9 @@ public class CompoundSearch extends SolrSearch {
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
-        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "cid", "iso_smiles", "iupac_name");
+        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "cid", "iso_smiles", "iupac_name", "highlight");
         SearchMeta meta = new SearchMeta();
-        meta.setNhit(sdl.getNumFound());
+        meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
         results.setDocs(ret);
         results.setMetaData(meta);

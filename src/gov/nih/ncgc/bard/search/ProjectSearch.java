@@ -6,7 +6,6 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
-import org.apache.solr.common.SolrDocumentList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +21,9 @@ import java.util.Map;
  */
 public class ProjectSearch extends SolrSearch {
     private final String SOLR_URL = SOLR_BASE + "/core-project/";
+    private final String HL_FIELD = "text";
+    private final String PKEY_PROJECT_DOC = "proj_id";
+
 
     Logger log;
 
@@ -41,30 +43,19 @@ public class ProjectSearch extends SolrSearch {
         QueryResponse response = null;
 
         SolrQuery sq = new SolrQuery(query);
-        sq = sq.setHighlight(true).setHighlightSnippets(1).setRows(10000);
+        sq = setHighlighting(sq, filter == null ? HL_FIELD : HL_FIELD);
+        sq = setFilterQueries(sq, filter);
+
+        sq.setRows(10000);
         sq.setFacet(true);
+
         sq.addFacetQuery("num_expt:[* TO 1]");
         sq.addFacetQuery("num_expt:[1 TO 5]");
         sq.addFacetQuery("num_expt:[5 TO 10]");
         sq.addFacetQuery("num_expt:[10 TO *]");
 
-        // do we have filter queries to include?
-        if (filter != null) {
-            Map<String, String> fq = SearchUtil.extractFilterQueries(filter);
-            for (String fname : fq.keySet()) {
-                String fvalue = fq.get(fname);
-                if (fvalue.contains("[")) sq.addFilterQuery(fname + ":" + fvalue);
-                else sq.addFilterQuery(fname + ":\"" + fvalue + "\"");
-            }
-        }
-
         response = solr.query(sq);
-
-        List<SolrDocument> docs = new ArrayList<SolrDocument>();
-        SolrDocumentList sdl = response.getResults();
-        for (SolrDocument doc : sdl) {
-            docs.add(doc);
-        }
+        List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_PROJECT_DOC, HL_FIELD);
 
         // get facet counts
         long start = System.currentTimeMillis();
@@ -107,12 +98,12 @@ public class ProjectSearch extends SolrSearch {
         log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
 
         SearchMeta meta = new SearchMeta();
-        meta.setNhit(sdl.getNumFound());
+        meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
-        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "proj_id", "name");
+        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "proj_id", "name", "highlight");
         results.setDocs(ret);
         results.setMetaData(meta);
     }
