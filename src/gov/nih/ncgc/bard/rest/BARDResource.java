@@ -65,9 +65,10 @@ public abstract class BARDResource implements IBARDResource {
     }
 
     protected String getRequestURI () {
+        String query = httpServletRequest.getQueryString();
         return (httpServletRequest.getMethod()+":"
-                +httpServletRequest.getRequestURI()+"?"
-                +httpServletRequest.getQueryString());
+                +httpServletRequest.getRequestURI()
+                +(query != null ? ("?"+query) : ""));
     }
 
     protected void log (String mesg) {
