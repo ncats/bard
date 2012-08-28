@@ -169,6 +169,7 @@ public class DBUtils {
             p.setPubmedId(pmid);
             p.setAbs(readFromClob(rs.getCharacterStream("abstract")));
         }
+        rs.close();
         pst.close();
         return p;
     }
@@ -185,6 +186,7 @@ public class DBUtils {
             p.setPubmedId(rs.getLong("pmid"));
             p.setAbs(readFromClob(rs.getCharacterStream("abstract")));
         }
+        rs.close();
         pst.close();
         return p;
     }
@@ -204,6 +206,7 @@ public class DBUtils {
             p.setAbs(rs2.getString("abstract"));
             pubs.add(p);
         }
+        rs2.close();
         pst2.close();
         return pubs;
     }
@@ -297,6 +300,12 @@ public class DBUtils {
                     compounds.add(c);
                 }
                 rs.close();
+
+                // get Sids
+                for (Compound c : compounds) {
+                    c.setSids(getSidsByCid (c.getCid()));
+                }
+
             } finally {
                 stm.close();
             }
@@ -364,10 +373,11 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement
-                ("insert into etag(etag_id,name,type,created,accessed,modified) "
-                        + "values (?,?,?,?,?,?)");
+                ("insert into etag(etag_id,name,type,created,modified) "
+                        + "values (?,?,?,?,?)");
         try {
             String etag = null;
+            int tries = 0;
             do {
                 try {
                     byte[] id = new byte[8];
@@ -381,26 +391,54 @@ public class DBUtils {
                             (new java.util.Date().getTime());
                     pst.setTimestamp(4, ts);
                     pst.setTimestamp(5, ts);
-                    pst.setTimestamp(6, ts);
 
                     if (pst.executeUpdate() > 0) {
                     } else {
                         log.info("** Couldn't insert ETag " + etag);
                         etag = null;
-                        break;
                     }
+                    break;
                 } catch (SQLException ex) { // etag already exists
                     //ex.printStackTrace();
                     log.info("** ETag " + etag
-                            + " already exists; generating a new one!");
+                             + " already exists; generating a new one after "
+                             +tries+" tries!");
                     etag = null;
+                    ++tries;
                 }
             }
-            while (etag == null);
-            conn.commit();
+            while (etag == null && tries < 5);
+
+            if (etag != null) {
+                conn.commit();
+            }
 
             return etag;
         } finally {
+            pst.close();
+        }
+    }
+
+    public int createETagLinks (String etag, String... parents) 
+        throws SQLException {
+        PreparedStatement pst = conn.prepareStatement
+            ("insert into etag_link(etag_id, parent_id) values (?,?)");
+        int links = 0;
+        try {
+            // should verify that both both parent and child are
+            // of the same type
+
+            pst.setString(1, etag);
+            for (String p : parents) {
+                pst.setString(2, p);
+                if (pst.executeUpdate() > 0) {
+                    ++links;
+                }
+            }
+
+            return links;
+        }
+        finally {
             pst.close();
         }
     }
@@ -489,6 +527,11 @@ public class DBUtils {
             } finally {
                 pst.close();
             }
+        }
+
+        // get Sids
+        for (Compound c : compounds) {
+            c.setSids(getSidsByCid (c.getCid()));
         }
 
         return compounds;
@@ -691,8 +734,6 @@ public class DBUtils {
         }
 
         PreparedStatement pst1 = conn.prepareStatement(sql.toString());
-        PreparedStatement pst2 = conn.prepareStatement
-                ("select sid from cid_sid where cid = ?");
         try {
             pst1.setString(2, Compound.class.getName());
             Set<Long> unique = new HashSet<Long>();
@@ -716,23 +757,13 @@ public class DBUtils {
                 touchETag(e);
             }
 
-            /*
             for (Compound c : compounds) {
-                pst2.setLong(1, c.getCid());
-                List<Long> sids = new ArrayList<Long>();
-                ResultSet rs = pst2.executeQuery();
-                while (rs.next()) {
-                    sids.add(rs.getLong(1));
-                }
-                rs.close();
-                c.setSids(sids);
+                c.setSids(getSidsByCid (c.getCid()));
             }
-            */
 
             return compounds;
         } finally {
             pst1.close();
-            pst2.close();
         }
     }
 
@@ -1652,6 +1683,18 @@ public class DBUtils {
         rs.close();
         p.setEids(eids);
         pst.close();
+
+        // find targets; should be project_target table instead?
+        pst = conn.prepareStatement("select * from assay_target where aid=?");
+        pst.setLong(1, projectId);
+        rs = pst.executeQuery();
+        List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
+        while (rs.next()) {
+            String acc = rs.getString("accession");
+            targets.add(getProteinTargetByAccession (acc));
+        }
+        rs.close();
+        p.setTargets(targets);
 
         return p;
     }
