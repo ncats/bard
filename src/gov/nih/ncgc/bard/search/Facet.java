@@ -2,7 +2,7 @@ package gov.nih.ncgc.bard.search;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -19,7 +19,7 @@ public class Facet {
 
     public Facet(String facetName) {
         this.facetName = facetName;
-        counts = new HashMap<String, Integer>();
+        counts = new LinkedHashMap<String, Integer>();
     }
 
     @JsonIgnore
