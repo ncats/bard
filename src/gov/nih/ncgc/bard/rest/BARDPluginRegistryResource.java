@@ -84,6 +84,7 @@ public class BARDPluginRegistryResource extends BARDResource {
             throw new WebApplicationException(e, 500);
         }
 
+        if (countRequested) return Response.ok(links.size()).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(json).type(MediaType.APPLICATION_JSON).build();
 
     }
