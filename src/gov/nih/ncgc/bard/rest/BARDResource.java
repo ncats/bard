@@ -1,18 +1,18 @@
 package gov.nih.ncgc.bard.rest;
 
-import java.util.logging.Logger;
-import java.util.logging.Level;
-
-import java.util.List;
-import java.util.ArrayList;
 import gov.nih.ncgc.bard.tools.Util;
 
 import javax.annotation.PostConstruct;
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.EntityTag;
+import javax.ws.rs.core.HttpHeaders;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * A base class for all REST resource class.
@@ -22,9 +22,11 @@ import javax.ws.rs.core.EntityTag;
  * @author Rajarshi Guha
  */
 public abstract class BARDResource implements IBARDResource {
-    static final Logger logger = 
-        Logger.getLogger(BARDResource.class.getName());
-    
+    static final Logger logger =
+            Logger.getLogger(BARDResource.class.getName());
+
+    @Context
+    ServletConfig servletConfig;
     @Context
     ServletContext servletContext;
     @Context
@@ -47,15 +49,17 @@ public abstract class BARDResource implements IBARDResource {
             for (String entry : etags) {
                 for (String e : entry.split(",")) {
                     EntityTag t = EntityTag.valueOf(e.trim());
-                    System.err.print(" "+t.getValue());
+                    System.err.print(" " + t.getValue());
                     etagsRequested.add(t);
                 }
             }
-            System.err.println(" "+etagsRequested.size());
+            System.err.println(" " + etagsRequested.size());
         }
     }
 
-    protected List<EntityTag> getETagsRequested () { return etagsRequested; }
+    protected List<EntityTag> getETagsRequested() {
+        return etagsRequested;
+    }
 
     protected boolean expandEntries(String expand) {
         boolean expandEntries = false;
@@ -64,28 +68,28 @@ public abstract class BARDResource implements IBARDResource {
         return expandEntries;
     }
 
-    protected ServletContext getServletContext () {
+    protected ServletContext getServletContext() {
         return servletContext;
     }
 
-    protected String getRequestURI () {
+    protected String getRequestURI() {
         String query = httpServletRequest.getQueryString();
-        return (httpServletRequest.getMethod()+":"
-                +httpServletRequest.getRequestURI()
-                +(query != null ? ("?"+query) : ""));
+        return (httpServletRequest.getMethod() + ":"
+                + httpServletRequest.getRequestURI()
+                + (query != null ? ("?" + query) : ""));
     }
 
-    protected void log (String mesg) {
+    protected void log(String mesg) {
         //servletContext.log(mesg);
         logger.info(mesg);
     }
 
-    protected void log (String mesg, Throwable t) {
+    protected void log(String mesg, Throwable t) {
         //servletContext.log(mesg, t);
         logger.log(Level.SEVERE, mesg, t);
     }
 
-    protected void warning (String mesg) {
+    protected void warning(String mesg) {
         logger.warning(mesg);
     }
 }
