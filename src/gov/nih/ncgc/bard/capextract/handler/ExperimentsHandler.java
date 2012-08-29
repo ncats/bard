@@ -32,22 +32,29 @@ public class ExperimentsHandler extends CapResourceHandler implements ICapResour
         if (resource != CAPConstants.CapResource.EXPERIMENTS) return;
         log.info("Processing " + resource);
 
-        // get the Experiments object here
-        Experiments experiments = getResponse(url, resource);
-        BigInteger n = experiments.getCount();
-        log.info("\tWill be processing " + n + " experiments");
-        List<Link> links = experiments.getLink();
-        for (Link link : links) {
-            String href = link.getHref();
-            String type = link.getType();
-            String title = link.getTitle();
+        while (url != null) { // in case 206 partial response is returned, we should continue to iterate
+            // get the Experiments object here
+            Experiments experiments = getResponse(url, resource);
+            url = null;
+            BigInteger n = experiments.getCount();
+            log.info("\tWill be processing " + n + " experiments");
+            List<Link> links = experiments.getLink();
+            for (Link link : links) {
+        	if (link.getRel().equals("next")) {
+        	    url = link.getHref();
+        	} else if (link.getRel().equals("related")) {
+        	    String href = link.getHref();
+        	    String type = link.getType();
+        	    String title = link.getTitle();
 
-            // for now lets just handle a few specific experiments
-//            if (href.endsWith("/45")) {
-            if (true) {
-                log.info("\t" + title + "/" + type + "/ href = " + href);
-                ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.EXPERIMENT);
-                if (handler != null) handler.process(href, CAPConstants.CapResource.EXPERIMENT);
+        	    // for now lets just handle a few specific experiments
+        	    if (href.endsWith("/45")) {
+      //            if (true) {
+        		log.info("\t" + title + "/" + type + "/ href = " + href);
+        		ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.EXPERIMENT);
+        		if (handler != null) handler.process(href, CAPConstants.CapResource.EXPERIMENT);
+        	    }
+        	}
             }
         }
     }

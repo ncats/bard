@@ -37,7 +37,7 @@ public class AssaySearch extends SolrSearch {
 
     Logger log;
 
-    String[] facetNames = {"assay component", "assay mode", "assay type", "Cell line", "detection method type", "target_name"};
+    String[] facetNames = {"assay_component_role", "assay_mode", "assay_type", "Cell line", "detection_method_type", "target_name"};
 
     public AssaySearch(String query) {
         super(query);
@@ -89,6 +89,9 @@ public class AssaySearch extends SolrSearch {
 
         sq.setFacet(true);
         sq.addFacetField("target_name");
+        sq.addFacetField("detection_method_type");
+        sq.addFacetField("assay_mode");
+        sq.addFacetField("assay_component_role");
 
         QueryResponse response = solr.query(sq);
         List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_ASSAY_DOC, HL_FIELD);
@@ -97,18 +100,14 @@ public class AssaySearch extends SolrSearch {
         long start = System.currentTimeMillis();
 
         // first pull in direct facet counts via Solr
-        Facet f = null;
         for (Facet aFacet : facets) {
-            if (aFacet.getFacetName().equals("target_name")) {
-                f = aFacet;
-                break;
-            }
-        }
-        FacetField targetFacet = response.getFacetField("target_name");
-        List<FacetField.Count> fcounts = targetFacet.getValues();
-        if (fcounts != null) {
-            for (FacetField.Count fcount : fcounts) {
-                f.counts.put(fcount.getName(), (int) fcount.getCount());
+            FacetField targetFacet = response.getFacetField(aFacet.getFacetName());
+            if (targetFacet == null) continue;
+            List<FacetField.Count> fcounts = targetFacet.getValues();
+            if (fcounts != null) {
+                for (FacetField.Count fcount : fcounts) {
+                    aFacet.counts.put(fcount.getName(), (int) fcount.getCount());
+                }
             }
         }
 
