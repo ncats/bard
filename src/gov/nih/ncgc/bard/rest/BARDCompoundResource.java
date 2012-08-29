@@ -27,6 +27,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -473,6 +474,85 @@ public class BARDCompoundResource extends BARDResource {
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
+        }
+    }
+
+    @POST
+    @Path("/etag")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response createETag(@FormParam("name") String name,
+                               @FormParam("ids") String ids) {
+        DBUtils db = new DBUtils();
+        try {
+            if (name == null) {
+                throw new IllegalArgumentException
+                    ("No \"name\" specified!");
+            }
+
+            EntityTag etag = new EntityTag 
+                (db.newETag(name, Compound.class.getName()));
+
+            if (ids != null) {
+                List<Long> list = new ArrayList<Long>();
+                for (String id : ids.split("[,;\\s]")) {
+                    try {
+                        list.add(Long.parseLong(id));
+                    }
+                    catch (NumberFormatException ex) {
+                    }
+                }
+                int cnt = db.putETag
+                    (etag.getValue(), list.toArray(new Long[0]));
+
+                log ("** New ETag: "+etag.getValue()+" \""+name+"\" "+cnt);
+            }
+            else {
+                log ("** New ETag: "+etag.getValue()+" \""+name+"\"");
+            }
+
+            return Response.ok().tag(etag).build();
+        }
+        catch (Exception ex) {
+            throw new WebApplicationException(ex, 500);            
+        }
+        finally {
+            try { db.closeConnection(); }
+            catch (Exception ex) { ex.printStackTrace(); }
+        }
+    }
+
+    @PUT
+    @Path("/etag/{etag}")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response putETag (@PathParam("etag") String etag,
+                             @FormParam("ids") String ids) {
+        DBUtils db = new DBUtils();
+        try {
+            if (ids == null) {
+                throw new IllegalArgumentException
+                    ("No \"ids\" param specified!");
+            }
+
+            List<Long> list = new ArrayList<Long>();
+            for (String id : ids.split("[,;\\s]")) {
+                try {
+                    list.add(Long.parseLong(id));
+                }
+                catch (NumberFormatException ex) {
+                }
+            }
+            int cnt = db.putETag(etag, list.toArray(new Long[0]));
+            log ("** put ETag: "+etag+" "+cnt);
+
+            return Response.ok(String.valueOf(cnt), "text/plain")
+                .tag(etag).build();
+        }
+        catch (Exception ex) {
+            throw new WebApplicationException(ex, 500);            
+        }
+        finally {
+            try { db.closeConnection(); }
+            catch (Exception ex) { ex.printStackTrace(); }
         }
     }
 

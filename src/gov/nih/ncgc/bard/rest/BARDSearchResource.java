@@ -30,13 +30,25 @@ import java.util.List;
  */
 @Path("/search")
 public class BARDSearchResource extends BARDResource {
-    @Context
-    ServletContext servletContext;
+    static final String DEFAULT_SOLR_SERVICE = "http://localhost:8090/solr";
 
     Logger log;
+    String solrService;
 
     public BARDSearchResource() {
         log = LoggerFactory.getLogger(this.getClass());
+    }
+
+    synchronized public String getSolrService () {
+        if (solrService == null) {
+            solrService = getServletContext().getInitParameter("solr-server");
+            if (solrService == null) {
+                log.warn("No solr_server specified; using default value!");
+                solrService = DEFAULT_SOLR_SERVICE;
+            }
+            log.info("** Solr service: "+solrService);
+        }
+        return solrService;
     }
 
     @GET
@@ -66,7 +78,8 @@ public class BARDSearchResource extends BARDResource {
                               @QueryParam("top") Integer top,
                               @QueryParam("expand") String expand) throws IOException, SolrServerException {
         if (q == null) throw new WebApplicationException(400);
-        ISolrSearch as = new AssaySearch(q);
+        AssaySearch as = new AssaySearch(q);
+        as.setSolrURL(getSolrService());
         as.run(expand != null && expand.toLowerCase().equals("true"), filter, top, skip);
         SearchResult s = as.getSearchResults();
         return Response.ok(Util.toJson(s)).type("application/json").build();
@@ -81,7 +94,9 @@ public class BARDSearchResource extends BARDResource {
                                       @QueryParam("top") Integer top,
                                       @QueryParam("expand") String expand) throws IOException, SolrServerException {
         if (q == null) throw new WebApplicationException(400);
-        SearchResult s = doSearch(new CompoundSearch(q), skip, top, expand, filter);
+        CompoundSearch cs = new CompoundSearch(q);
+        cs.setSolrURL(getSolrService());
+        SearchResult s = doSearch(cs, skip, top, expand, filter);
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
@@ -93,7 +108,9 @@ public class BARDSearchResource extends BARDResource {
                                    @QueryParam("top") Integer top,
                                    @QueryParam("expand") String expand) throws IOException, SolrServerException {
         if (q == null) throw new WebApplicationException(400);
-        SearchResult s = doSearch(new AssaySearch(q), skip, top, expand, filter);
+        AssaySearch as = new AssaySearch(q);
+        as.setSolrURL(getSolrService());
+        SearchResult s = doSearch(as, skip, top, expand, filter);
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
@@ -105,7 +122,9 @@ public class BARDSearchResource extends BARDResource {
                                      @QueryParam("top") Integer top,
                                      @QueryParam("expand") String expand) throws IOException, SolrServerException {
         if (q == null) throw new WebApplicationException(400);
-        SearchResult s = doSearch(new ProjectSearch(q), skip, top, expand, filter);
+        ProjectSearch ps = new ProjectSearch(q);
+        ps.setSolrURL(getSolrService());
+        SearchResult s = doSearch(ps, skip, top, expand, filter);
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 

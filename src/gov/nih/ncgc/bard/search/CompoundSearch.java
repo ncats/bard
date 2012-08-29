@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.search;
 
+import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.tools.DBUtils;
+
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -37,7 +40,7 @@ public class CompoundSearch extends SolrSearch {
         results = new SearchResult();
 
         SolrServer solr = null;
-        solr = new CommonsHttpSolrServer(SOLR_URL);
+        solr = new CommonsHttpSolrServer (getSolrURL()+"/core-compound/");
 
         QueryResponse response = null;
 
@@ -84,6 +87,7 @@ public class CompoundSearch extends SolrSearch {
             }
         }
 
+        List<Long> cids = new ArrayList<Long>();
         for (SolrDocument doc : docs) {
 
             Collection<Object> keys = doc.getFieldValues("anno_key");
@@ -103,6 +107,17 @@ public class CompoundSearch extends SolrSearch {
                     }
                 }
             }
+
+            Object id = doc.getFieldValue("cid");
+            try {
+                if (id != null) {
+                    long cid = Long.parseLong(id.toString());
+                    cids.add(cid);
+                }
+            }
+            catch (Exception ex) {
+                log.warn("** Bogus cid "+id);
+            }
         }
         long end = System.currentTimeMillis();
         log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
@@ -113,6 +128,24 @@ public class CompoundSearch extends SolrSearch {
         SearchMeta meta = new SearchMeta();
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
+
+        DBUtils db = new DBUtils ();
+        try {
+            String etag = db.newETag(query, Compound.class.getName());
+            db.putETag(etag, cids.toArray(new Long[0]));
+            results.setETag(etag);
+        }
+        catch (Exception ex) {
+            log.error("Can't process ETag", ex);
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
         results.setDocs(ret);
         results.setMetaData(meta);
     }

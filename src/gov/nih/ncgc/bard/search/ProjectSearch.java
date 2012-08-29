@@ -20,7 +20,7 @@ import java.util.Map;
  * @author Rajarshi Guha
  */
 public class ProjectSearch extends SolrSearch {
-    private final String SOLR_URL = SOLR_BASE + "/core-project/";
+    //private final String SOLR_URL = SOLR_BASE + "/core-project/";
     private final String HL_FIELD = "text";
     private final String PKEY_PROJECT_DOC = "proj_id";
 
@@ -38,7 +38,7 @@ public class ProjectSearch extends SolrSearch {
         results = new SearchResult();
 
         SolrServer solr = null;
-        solr = new CommonsHttpSolrServer(SOLR_URL);
+        solr = new CommonsHttpSolrServer(getSolrURL()+"/core-project/");
 
         QueryResponse response = null;
 

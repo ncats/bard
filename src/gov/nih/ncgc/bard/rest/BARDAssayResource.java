@@ -1,5 +1,9 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
@@ -407,5 +411,92 @@ public class BARDAssayResource extends BARDResource {
         if (filter != null) ub.queryParam("filter", filter);
         if (expand != null) ub.queryParam("name", expand);
         return Response.temporaryRedirect(ub.build()).build();
+    }
+
+    String toJson (DBUtils db, List<Assay> assays,
+                   boolean annotation) throws Exception {
+        if (!annotation) {
+            return Util.toJson(assays);
+        }
+
+        CAPDictionary dict = db.getCAPDictionary();
+        ObjectMapper mapper = new ObjectMapper();
+
+        ArrayNode array = (ArrayNode) mapper.valueToTree(assays);
+        for (int i = 0; i < array.size(); ++i) {
+            ObjectNode n = (ObjectNode) array.get(i);
+            long aid = n.get("aid").asLong();
+
+            try {
+                List<CAPAssayAnnotation> a = db.getAssayAnnotations(aid);
+                if (a == null) throw new WebApplicationException(404);
+
+                CAPDictionaryElement node;
+                for (CAPAssayAnnotation as : a) {
+                    if (as.key != null) {
+                        node = dict.getNode(new BigInteger(as.key));
+                        as.key = node != null ? node.getLabel() : as.key;
+                    }
+                    if (as.value != null) {
+                        node = dict.getNode(new BigInteger(as.value));
+                        as.value = node != null ? node.getLabel() : as.value;
+                    }
+                }
+                n.putPOJO("annotations", a);
+            }
+            catch (Exception ex) {
+                log.warn("Can't get annotation for assay "+aid);
+            }
+        }
+
+        return mapper.writeValueAsString(array);        
+    }
+
+    @GET
+    @Path("/etag/{etag}")
+    public Response getAssaysByETag(@PathParam("etag") String resourceId,
+                                    @QueryParam("filter") String filter,
+                                    @QueryParam("expand") String expand,
+                                    @QueryParam("skip") Integer skip,
+                                    @QueryParam("top") Integer top) {
+        DBUtils db = new DBUtils();
+        try {
+            List<Assay> assays = db.getAssaysByETag
+                (skip != null ? skip : -1, top != null ? top : -1, resourceId);
+
+            String json = toJson
+                (db, assays, expand != null
+                 && expand.toLowerCase().equals("true"));
+
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    // this method should be in BARDResource!
+    @GET
+    @Path("/etag/{etag}/info")
+    public Response getETagInfo(@PathParam("etag") String resourceId) {
+        DBUtils db = new DBUtils();
+        try {
+            java.util.Map info = db.getETagInfo(resourceId);
+            return Response.ok(Util.toJson(info),
+                    MediaType.APPLICATION_JSON).build();
+        } catch (Exception ex) {
+            throw new WebApplicationException(ex, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 }

@@ -11,6 +11,8 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public interface ISolrSearch {
+    public String getSolrURL ();
+
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException;
 
     public List<Facet> getFacets();

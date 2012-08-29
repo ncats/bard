@@ -12,6 +12,7 @@ import java.util.List;
 public class SearchResult {
     List<SolrDocument> docs;
     SearchMeta metaData;
+    String etag;
     String link = null;
 
     public SearchResult() {
@@ -41,4 +42,6 @@ public class SearchResult {
         this.link = link;
     }
 
+    public String getETag () { return etag; }
+    public void setETag (String etag) { this.etag = etag; }
 }

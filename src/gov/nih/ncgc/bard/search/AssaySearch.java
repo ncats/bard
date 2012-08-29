@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.search;
 
+import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.tools.DBUtils;
@@ -30,7 +31,7 @@ import java.util.Set;
  * @author Rajarshi Guha
  */
 public class AssaySearch extends SolrSearch {
-    private final String SOLR_URL = SOLR_BASE + "/core-assay/";
+    //private final String SOLR_URL = SOLR_BASE + "/core-assay/";
     private final String HL_FIELD = "text";
     private final String PKEY_ASSAY_DOC = "assay_id";
 
@@ -78,7 +79,8 @@ public class AssaySearch extends SolrSearch {
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
         results = new SearchResult();
 
-        SolrServer solr = new CommonsHttpSolrServer(SOLR_URL);
+        SolrServer solr = new CommonsHttpSolrServer
+            (getSolrURL()+"/core-assay/");
 
         SolrQuery sq = new SolrQuery(query);
         sq = setHighlighting(sq, filter == null ? HL_FIELD : HL_FIELD);
@@ -110,15 +112,16 @@ public class AssaySearch extends SolrSearch {
             }
         }
 
+        List<Long> aids = new ArrayList<Long>();
         // now process annotations to get remaining facet counts
         for (SolrDocument doc : docs) {
-
+            
             Collection<Object> keys = doc.getFieldValues("ak_dict_label");
             Collection<Object> values = doc.getFieldValues("av_dict_label");
             if (keys == null || values == null) continue;
-//            if (keys.size() != values.size())
-//                log.error("for assay_id = " + doc.getFieldValue("assay_id") + " keys had " + keys.size() + " elements and values had " + values.size() + " elements");
-
+            //            if (keys.size() != values.size())
+            //                log.error("for assay_id = " + doc.getFieldValue("assay_id") + " keys had " + keys.size() + " elements and values had " + values.size() + " elements");
+            
             List<Object> keyList = new ArrayList<Object>(keys);
             List<Object> valueList = new ArrayList<Object>(values);
             for (Facet facet : facets) {
@@ -130,6 +133,16 @@ public class AssaySearch extends SolrSearch {
                 }
             }
 
+            Object id = doc.getFieldValue("assay_id");            
+            try {
+                long aid = Long.parseLong(id.toString());
+                if (aid > 0l) {
+                    aids.add(aid);
+                }
+            }
+            catch (Exception ex) {
+                log.warn("Bogus assay_id "+id);
+            }
         }
         long end = System.currentTimeMillis();
         log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
@@ -138,11 +151,30 @@ public class AssaySearch extends SolrSearch {
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
 
+        DBUtils db = new DBUtils ();
+        try {
+            String etag = db.newETag(query, Assay.class.getName());
+            db.putETag(etag, aids.toArray(new Long[0]));
+
+            results.setETag(etag);
+
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
-        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "assay_id", "name", "highlight");
-        results.setDocs(ret);
-        results.setMetaData(meta);
-
+            List<SolrDocument> ret = 
+                copyRange(docs, skip, top, detailed, "assay_id", "name", "highlight");
+            results.setDocs(ret);
+            results.setMetaData(meta);
+        }
+        catch (Exception ex) {
+            log.error("Search error", ex);
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 }

@@ -73,6 +73,7 @@ public class Util {
     }
 
     public static String toJson(Object o) throws IOException {
+        if (o == null) return "{}";
         ObjectMapper mapper = new ObjectMapper();
         Writer writer = new StringWriter();
         mapper.writeValue(writer, o);

@@ -51,6 +51,11 @@ import java.util.TreeMap;
  * @author Rajarshi Guha
  */
 public class DBUtils {
+    /*
+     * maximum size for an ETag
+     */
+    static final int MAX_ETAG_SIZE = 10000;
+
     Logger log;
     Connection conn;
     Map<Class, Query> fieldMap;
@@ -444,21 +449,31 @@ public class DBUtils {
     }
 
     public int putETag(String etag, Long... ids) throws SQLException {
-        PreparedStatement pst = null;
         int cnt = 0;
+        PreparedStatement pst = conn.prepareStatement
+            ("select a.*,count(*) as size from etag a, etag_data b "
+             +"where a.etag_id = ? and a.etag_id = b.etag_id");
         try {
-            pst = conn.prepareStatement
-                    ("update etag set modified = ? where etag_id = ?");
-            pst.setTimestamp(1, new java.sql.Timestamp
-                    (new java.util.Date().getTime()));
-            pst.setString(2, etag);
-            if (pst.executeUpdate() > 0) {
-                pst.close();
+            pst.setString(1, etag);
 
-                pst = conn.prepareStatement
-                        ("insert into etag_data(etag_id, data_id) values (?,?)");
-                pst.setString(1, etag);
-                for (Long id : ids) {
+            int size = 0;
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                String id = rs.getString("etag_id");
+                size = rs.getInt("size");
+                if (id == null) {
+                    throw new IllegalArgumentException
+                        ("Unknown ETag \""+etag+"\"");
+                }
+            }
+            rs.close();
+
+            cnt = size;
+            pst = conn.prepareStatement
+                ("insert into etag_data(etag_id, data_id) values (?,?)");
+            pst.setString(1, etag);
+            for (Long id : ids) {
+                if (id != null && (cnt + 1) <= MAX_ETAG_SIZE) {
                     pst.setLong(2, id);
                     try {
                         if (pst.executeUpdate() > 0) {
@@ -468,19 +483,22 @@ public class DBUtils {
                         // ignore dups...
                     }
                 }
+            }
+            cnt -= size;
+            
+            if (cnt > 0) {
+                conn.commit();
 
-                if (cnt > 0) {
-                    conn.commit();
-                }
-            } else {
-                log.info("** Unkown ETag " + etag);
+                pst = conn.prepareStatement
+                    ("update etag set modified = ? where etag_id = ?");
+                pst.setTimestamp(1, new java.sql.Timestamp
+                                 (new java.util.Date().getTime()));
+                pst.setString(2, etag);
+                pst.executeUpdate();
             }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-        } finally {
-            if (pst != null) {
-                pst.close();
-            }
+        } 
+        finally {
+            pst.close();
         }
         return cnt;
     }
@@ -992,33 +1010,78 @@ public class DBUtils {
     public Assay getAssayByAid(Long aid) throws SQLException {
         if (aid == null || aid <= 0) return null;
         PreparedStatement pst = conn.prepareStatement("select * from assay where assay_id = ?");
-        pst.setLong(1, aid);
-        ResultSet rs = pst.executeQuery();
-        Assay a = new Assay();
-        while (rs.next()) {
-            a.setAid(aid);
-            a.setAssays(rs.getInt("assays"));
-            a.setCategory(rs.getInt("category"));
-            a.setClassification(rs.getInt("classification"));
-            a.setDeposited(rs.getDate("deposited"));
-            a.setDescription(rs.getString("description"));
-            a.setGrantNo(rs.getString("grant_no"));
-            a.setName(rs.getString("name"));
-            a.setSource(rs.getString("source"));
-            a.setSummary(rs.getInt("summary"));
-            a.setType(rs.getInt("type"));
-            a.setUpdated(rs.getDate("updated"));
-            a.setComments(rs.getString("comment"));
-            a.setProtocol(rs.getString("protocol"));
-
-            // next we need to look up publications, targets and data
-            a.setPublications(getAssayPublications(aid));
-            a.setTargets(getAssayTargets(aid));
+        Assay a = null;
+        try {
+            pst.setLong(1, aid);
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                a = getAssay (rs);
+            }
+            rs.close();
         }
-        rs.close();
-        pst.close();
+        finally {
+            pst.close();
+        }
         return a;
     }
+
+    Assay getAssay (ResultSet rs) throws SQLException {
+        Assay a = new Assay();
+        long aid = rs.getLong("assay_id");
+
+        a.setAid(aid);
+        a.setAssays(rs.getInt("assays"));
+        a.setCategory(rs.getInt("category"));
+        a.setClassification(rs.getInt("classification"));
+        a.setDeposited(rs.getDate("deposited"));
+        a.setDescription(rs.getString("description"));
+        a.setGrantNo(rs.getString("grant_no"));
+        a.setName(rs.getString("name"));
+        a.setSource(rs.getString("source"));
+        a.setSummary(rs.getInt("summary"));
+        a.setType(rs.getInt("type"));
+        a.setUpdated(rs.getDate("updated"));
+        a.setComments(rs.getString("comment"));
+        a.setProtocol(rs.getString("protocol"));
+        
+        // next we need to look up publications, targets and data
+        a.setPublications(getAssayPublications(aid));
+        a.setTargets(getAssayTargets(aid));
+
+        return a;
+    }
+
+    public List<Assay> getAssaysByETag (int skip, int top, String etag) 
+        throws SQLException {
+        if (etag == null) return null;
+
+        StringBuilder sql = new StringBuilder
+            ("select a.* from assay a, etag_data e where etag_id = ? "
+             +"and a.assay_id = e.data_id order by e.index");
+
+        if (skip >= 0 && top > 0) {
+            sql.append(" limit " + skip + "," + top);
+        } 
+        else if (top > 0) {
+            sql.append(" limit " + top);
+        }
+
+        List<Assay> assays = new ArrayList<Assay>();
+        PreparedStatement pst = conn.prepareStatement(sql.toString());
+        try {
+            pst.setString(1, etag);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                assays.add(getAssay (rs));
+            }
+            rs.close();
+        }
+        finally {
+            pst.close();
+        }
+        return assays;
+    }
+
 
     public List<Assay> getAssays(Long... assayIds) throws SQLException {
         List<Assay> assays = new ArrayList<Assay>();
@@ -1660,48 +1723,70 @@ public class DBUtils {
 
     // TOOD handle depositor id - should resolve the integer to a string
     public Project getProject(Long projectId) throws SQLException {
-        Project p = new Project();
-        p.setProjectId(projectId);
-
+        Project p = null;
         PreparedStatement pst = conn.prepareStatement("select * from project where proj_id = ?");
-        pst.setLong(1, projectId);
-        ResultSet rs = pst.executeQuery();
-        while (rs.next()) {
-            p.setDescription(rs.getString("description"));
-            p.setName(rs.getString("name"));
-            p.setDeposited(rs.getDate("create_date"));
+        try {
+            pst.setLong(1, projectId);
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                p = new Project();
+                p.setProjectId(projectId);
+                p.setDescription(rs.getString("description"));
+                p.setName(rs.getString("name"));
+                p.setDeposited(rs.getDate("create_date"));
+            }
+            rs.close();
         }
-        rs.close();
-        pst.close();
+        finally {
+            pst.close();
+        }
+
+        if (p == null) {
+            return p;
+        }
 
         // find all experiments for this project
         pst = conn.prepareStatement("select expt_id from project_experiment where proj_id = ?");
-        pst.setLong(1, projectId);
-        rs = pst.executeQuery();
-        List<Long> eids = new ArrayList<Long>();
-        while (rs.next()) eids.add(rs.getLong(1));
-        rs.close();
-        p.setEids(eids);
-        pst.close();
+        try {
+            pst.setLong(1, projectId);
+            ResultSet rs = pst.executeQuery();
+            List<Long> eids = new ArrayList<Long>();
+            while (rs.next()) eids.add(rs.getLong(1));
+            rs.close();
+            p.setEids(eids);
+        }
+        finally {
+            pst.close();
+        }
 
         // find targets; should be project_target table instead?
         pst = conn.prepareStatement("select * from assay_target where aid=?");
-        pst.setLong(1, projectId);
-        rs = pst.executeQuery();
-        List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
-        while (rs.next()) {
-            String acc = rs.getString("accession");
-            targets.add(getProteinTargetByAccession (acc));
+        try {
+            pst.setLong(1, projectId);
+            ResultSet rs = pst.executeQuery();
+            List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
+            while (rs.next()) {
+                String acc = rs.getString("accession");
+                targets.add(getProteinTargetByAccession (acc));
+            }
+            rs.close();
+            p.setTargets(targets);
         }
-        rs.close();
-        p.setTargets(targets);
+        finally {
+            pst.close();
+        }
 
         return p;
     }
 
     public List<Project> getProjects(Long... projectIds) throws SQLException {
         List<Project> p = new ArrayList<Project>();
-        for (Long pid : projectIds) p.add(getProject(pid));
+        for (Long pid : projectIds) {
+            Project proj = getProject(pid);
+            if (proj != null) {
+                p.add(proj);
+            }
+        }
         return p;
     }
 

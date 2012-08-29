@@ -20,6 +20,8 @@ public abstract class SolrSearch implements ISolrSearch {
     protected int numHit = -1;
     protected List<Facet> facets;
     protected SearchResult results = null;
+    
+    protected String solrURL = SOLR_BASE;
 
     protected SolrSearch(String query) {
         this.query = query;
@@ -40,6 +42,11 @@ public abstract class SolrSearch implements ISolrSearch {
     public SearchResult getSearchResults() {
         return results;
     }
+
+    public void setSolrURL (String url) {
+        solrURL = url;
+    }
+    public String getSolrURL () { return solrURL; }
 
     protected List<SolrDocument> copyRange(List<SolrDocument> docs, Integer skip, Integer top, boolean detailed, String... fields) {
         List<SolrDocument> ret = new ArrayList<SolrDocument>();

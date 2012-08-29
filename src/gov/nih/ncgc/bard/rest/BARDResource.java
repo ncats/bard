@@ -64,6 +64,10 @@ public abstract class BARDResource implements IBARDResource {
         return expandEntries;
     }
 
+    protected ServletContext getServletContext () {
+        return servletContext;
+    }
+
     protected String getRequestURI () {
         String query = httpServletRequest.getQueryString();
         return (httpServletRequest.getMethod()+":"

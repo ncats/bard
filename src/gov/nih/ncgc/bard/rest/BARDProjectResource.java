@@ -138,7 +138,9 @@ public class BARDProjectResource extends BARDResource {
             String json;
             if (expand == null || expand.toLowerCase().equals("false")) {
                 List<String> links = new ArrayList<String>();
-                for (Project ap : p) links.add(ap.getResourcePath());
+                for (Project ap : p) 
+                    if (ap != null) 
+                        links.add(ap.getResourcePath());
                 json = Util.toJson(links);
             } else json = Util.toJson(p);
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
