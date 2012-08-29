@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.search.AssaySearch;
 import gov.nih.ncgc.bard.search.CompoundSearch;
 import gov.nih.ncgc.bard.search.ISolrSearch;
@@ -10,18 +13,24 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * A resource to expose full-text and faceted search.
@@ -39,14 +48,14 @@ public class BARDSearchResource extends BARDResource {
         log = LoggerFactory.getLogger(this.getClass());
     }
 
-    synchronized public String getSolrService () {
+    synchronized public String getSolrService() {
         if (solrService == null) {
             solrService = getServletContext().getInitParameter("solr-server");
             if (solrService == null) {
                 log.warn("No solr_server specified; using default value!");
                 solrService = DEFAULT_SOLR_SERVICE;
             }
-            log.info("** Solr service: "+solrService);
+            log.info("** Solr service: " + solrService);
         }
         return solrService;
     }
@@ -68,6 +77,77 @@ public class BARDSearchResource extends BARDResource {
 
     public Response getResources(@PathParam("name") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         return null;
+    }
+
+    class SearchRunner implements Callable<ISolrSearch> {
+
+        private ISolrSearch search;
+        private int top;
+
+        SearchRunner(ISolrSearch search, int top) {
+            this.search = search;
+            this.top = top;
+        }
+
+        public ISolrSearch call() throws Exception {
+            search.run(false, null, top, 0);
+            return search;
+        }
+    }
+
+    @GET
+    @Produces("application/json")
+    @Path("/suggest")
+    public Response runSuggest(@QueryParam("q") String q,
+                               @QueryParam("top") Integer top) throws IOException, SolrServerException, JsonGenerationException {
+        if (q == null) throw new WebApplicationException(400);
+        if (top == null) top = 10;
+
+        AssaySearch as = new AssaySearch(q);
+        as.setSolrURL(getSolrService());
+        CompoundSearch cs = new CompoundSearch(q);
+        cs.setSolrURL(getSolrService());
+        ProjectSearch ps = new ProjectSearch(q);
+        ps.setSolrURL(getSolrService());
+
+        ISolrSearch[] searches = new ISolrSearch[]{as, cs, ps};
+        Collection<Callable<ISolrSearch>> callables = new ArrayList<Callable<ISolrSearch>>();
+        for (ISolrSearch search : searches) callables.add(new SearchRunner(search, top));
+        long start = System.currentTimeMillis();
+        ExecutorService pool = Executors.newFixedThreadPool(searches.length);
+        try {
+            List<Future<ISolrSearch>> futures = pool.invokeAll(callables);
+            for (int i = 0; i < futures.size(); i++) searches[i] = futures.get(i).get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ExecutionException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        long end = System.currentTimeMillis();
+        log.info("Queried all resources in " + ((end - start) / 1000.0) + "s");
+
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = mapper.createObjectNode();
+        node.putPOJO("query", q);
+
+        for (ISolrSearch search : searches) {
+            SearchResult results = search.getSearchResults();
+
+            String entityName;
+            if (search.getClass().isAssignableFrom(AssaySearch.class)) entityName = "assays";
+            else if (search.getClass().isAssignableFrom(CompoundSearch.class)) entityName = "compounds";
+            else if (search.getClass().isAssignableFrom(ProjectSearch.class)) entityName = "projects";
+            else throw new IllegalArgumentException("We don't handle searches of type " + search);
+
+            if (results.getDocs().size() > 0) {
+                ObjectNode subNode = mapper.createObjectNode();
+                subNode.putPOJO("url", "/search/" + entityName + "?q=" + q);
+                subNode.putPOJO("hits", results.getDocs());
+                node.putPOJO(entityName, subNode);
+            }
+        }
+        String json = mapper.writeValueAsString(node);
+        return Response.ok(json).type(MediaType.APPLICATION_JSON).build();
     }
 
     @GET
