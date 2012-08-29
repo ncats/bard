@@ -2,7 +2,6 @@ package gov.nih.ncgc.bard.search;
 
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.tools.DBUtils;
-
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -24,7 +23,6 @@ import java.util.Map;
  * @author Rajarshi Guha
  */
 public class CompoundSearch extends SolrSearch {
-    private final String SOLR_URL = SOLR_BASE + "/core-compound/";
     private final String HL_FIELD = "text";
     private final String PKEY_COMPOUND_DOC = "cid";
 
@@ -40,7 +38,7 @@ public class CompoundSearch extends SolrSearch {
         results = new SearchResult();
 
         SolrServer solr = null;
-        solr = new CommonsHttpSolrServer (getSolrURL()+"/core-compound/");
+        solr = new CommonsHttpSolrServer(getSolrURL() + "/core-compound/");
 
         QueryResponse response = null;
 
@@ -114,9 +112,8 @@ public class CompoundSearch extends SolrSearch {
                     long cid = Long.parseLong(id.toString());
                     cids.add(cid);
                 }
-            }
-            catch (Exception ex) {
-                log.warn("** Bogus cid "+id);
+            } catch (Exception ex) {
+                log.warn("** Bogus cid " + id);
             }
         }
         long end = System.currentTimeMillis();
@@ -129,20 +126,17 @@ public class CompoundSearch extends SolrSearch {
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
 
-        DBUtils db = new DBUtils ();
+        DBUtils db = new DBUtils();
         try {
             String etag = db.newETag(query, Compound.class.getName());
             db.putETag(etag, cids.toArray(new Long[0]));
             results.setETag(etag);
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             log.error("Can't process ETag", ex);
-        }
-        finally {
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }

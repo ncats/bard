@@ -152,4 +152,15 @@ public class DBUtilsTest extends DBTest {
         Assert.assertNotNull(as);
         Assert.assertEquals(8, as.size());
     }
+
+    @Test
+    public void listChildren1() throws IOException, ClassNotFoundException, SQLException {
+        CAPDictionary dict = db.getCAPDictionary();
+        CAPDictionaryElement assayMode = dict.getNode("detection method type");
+        Set<CAPDictionaryElement> children = dict.getChildren(assayMode);
+        System.out.println("assayMode = " + assayMode.getElementId());
+        for (CAPDictionaryElement child : children) {
+            System.out.println("child.getLabel() = " + child.getElementId() + " " + child.getLabel());
+        }
+    }
 }

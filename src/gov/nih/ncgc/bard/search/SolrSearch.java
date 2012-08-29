@@ -15,13 +15,12 @@ import java.util.Map;
  * @author Rajarshi Guha
  */
 public abstract class SolrSearch implements ISolrSearch {
-    protected final String SOLR_BASE = "http://localhost:8090/solr";
     protected String query = null;
     protected int numHit = -1;
     protected List<Facet> facets;
     protected SearchResult results = null;
-    
-    protected String solrURL = SOLR_BASE;
+
+    protected String solrURL = "http://localhost:8090/solr";
 
     protected SolrSearch(String query) {
         this.query = query;
@@ -43,10 +42,13 @@ public abstract class SolrSearch implements ISolrSearch {
         return results;
     }
 
-    public void setSolrURL (String url) {
+    public void setSolrURL(String url) {
         solrURL = url;
     }
-    public String getSolrURL () { return solrURL; }
+
+    public String getSolrURL() {
+        return solrURL;
+    }
 
     protected List<SolrDocument> copyRange(List<SolrDocument> docs, Integer skip, Integer top, boolean detailed, String... fields) {
         List<SolrDocument> ret = new ArrayList<SolrDocument>();
