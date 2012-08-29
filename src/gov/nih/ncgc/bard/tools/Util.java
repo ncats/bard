@@ -7,6 +7,9 @@ import gov.nih.ncgc.search.SearchService2;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
@@ -30,10 +33,10 @@ public class Util {
         return (headers.getRequestHeaders().containsKey(BARDConstants.REQUEST_HEADER_COUNT));
     }
 
-    public static String getETag (HttpHeaders headers) {
+    public static String getETag(HttpHeaders headers) {
         List<String> etags = headers.getRequestHeader(HttpHeaders.ETAG);
-        return etags != null && !etags.isEmpty() 
-            ? etags.iterator().next() : null;
+        return etags != null && !etags.isEmpty()
+                ? etags.iterator().next() : null;
     }
 
     public static <T> List<List<T>> chunk(T[] array, int chunkSize) {
@@ -80,12 +83,12 @@ public class Util {
         return writer.toString();
     }
 
-    public static String toString (byte[] bytes) {
-        return toString (bytes, bytes.length);
+    public static String toString(byte[] bytes) {
+        return toString(bytes, bytes.length);
     }
 
-    public static String toString (byte[] bytes, int length) {
-        StringBuilder sb = new StringBuilder ();
+    public static String toString(byte[] bytes, int length) {
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; ++i) {
             sb.append(String.format("%1$02x", bytes[i] & 0xff));
         }
@@ -137,13 +140,18 @@ public class Util {
         Method[] methods = klass.getMethods();
         for (Method method : methods) {
             Annotation[] methodAnnots = method.getAnnotations();
+
+            String httpMethod = "";
+            String path = null;
+
             for (Annotation annot : methodAnnots) {
                 if (annot instanceof Path) {
-                    String res = ((Path) annot).value();
-                    res = root + res;
-                    ret.add(res);
-                }
+                    path = root + ((Path) annot).value();
+                } else if (annot instanceof GET) httpMethod = "GET";
+                else if (annot instanceof POST) httpMethod = "POST";
+                else if (annot instanceof PUT) httpMethod = "PUT";
             }
+            if (path != null) ret.add(httpMethod + " " + path);
         }
         return ret;
     }
