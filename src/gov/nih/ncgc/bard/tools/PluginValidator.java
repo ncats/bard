@@ -49,15 +49,21 @@ public class PluginValidator {
         // check that the class has a class level @Path annotation
         // and ensure that it has "/v1/plugins" at the beginning
         boolean hasClassLevelPathAnnot = false;
+        boolean collidesWithRegistry = false;
         if (klass.isAnnotationPresent(Path.class)) {
             Path annot = (Path) klass.getAnnotation(Path.class);
             String value = annot.value();
             if (value != null && value.indexOf("/plugins/") == 0) {
                 hasClassLevelPathAnnot = true;
             }
+            if (value != null && value.indexOf("/plugins/registry") == 0) {
+                collidesWithRegistry = true;
+            }
         }
         if (!hasClassLevelPathAnnot)
             errors.add("Missing the class level @Path annotation or else the annotation did not start with '/plugins/'");
+        if (collidesWithRegistry)
+            errors.add("Class level @Path annotation cannot start with '/plugins/registry'");
 
         Method[] methods = klass.getMethods();
 
