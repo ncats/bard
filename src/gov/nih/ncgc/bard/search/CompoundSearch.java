@@ -1,7 +1,6 @@
 package gov.nih.ncgc.bard.search;
 
 import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.tools.DBUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -126,20 +125,13 @@ public class CompoundSearch extends SolrSearch {
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
 
-        DBUtils db = new DBUtils();
         try {
-            String etag = db.newETag(query, Compound.class.getName());
-            db.putETag(etag, cids.toArray(new Long[0]));
+            String etag = putEtag(cids, Compound.class);
             results.setETag(etag);
-        } catch (Exception ex) {
-            log.error("Can't process ETag", ex);
-        } finally {
-            try {
-                db.closeConnection();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+        } catch (Exception e) {
+            log.error("Can't process ETag", e);
         }
+
         results.setDocs(ret);
         results.setMetaData(meta);
     }

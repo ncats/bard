@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.search;
 
+import gov.nih.ncgc.bard.entity.Project;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -73,8 +74,9 @@ public class ProjectSearch extends SolrSearch {
         }
 
         // TODO in the future facet on project annotations
+        List<Long> projIds = new ArrayList<Long>();
         for (SolrDocument doc : docs) {
-
+            projIds.add(Long.parseLong((String) doc.getFieldValue("proj_id")));
 //            Collection<Object> keys = doc.getFieldValues("ak_dict_label");
 //            Collection<Object> values = doc.getFieldValues("av_dict_label");
 //            if (keys == null || values == null) continue;
@@ -99,6 +101,13 @@ public class ProjectSearch extends SolrSearch {
         SearchMeta meta = new SearchMeta();
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
+
+        try {
+            String etag = putEtag(projIds, Project.class);
+            results.setETag(etag);
+        } catch (Exception e) {
+            log.error("Can't process ETag", e);
+        }
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required

@@ -148,27 +148,18 @@ public class AssaySearch extends SolrSearch {
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
 
-        DBUtils db = new DBUtils();
         try {
-            String etag = db.newETag(query, Assay.class.getName());
-            db.putETag(etag, aids.toArray(new Long[0]));
-
+            String etag = putEtag(aids, Assay.class);
             results.setETag(etag);
-
-            // only return the requested number of docs, from the requested starting point
-            // and generate reduced representation if required
-            List<SolrDocument> ret =
-                    copyRange(docs, skip, top, detailed, "assay_id", "name", "highlight");
-            results.setDocs(ret);
-            results.setMetaData(meta);
-        } catch (Exception ex) {
-            log.error("Search error", ex);
-        } finally {
-            try {
-                db.closeConnection();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+        } catch (Exception e) {
+            log.error("Can't process ETag", e);
         }
+
+        // only return the requested number of docs, from the requested starting point
+        // and generate reduced representation if required
+        List<SolrDocument> ret =
+                copyRange(docs, skip, top, detailed, "assay_id", "name", "highlight");
+        results.setDocs(ret);
+        results.setMetaData(meta);
     }
 }

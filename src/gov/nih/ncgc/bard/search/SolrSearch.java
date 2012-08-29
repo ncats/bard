@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.search;
 
+import gov.nih.ncgc.bard.tools.DBUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
@@ -116,5 +117,21 @@ public abstract class SolrSearch implements ISolrSearch {
             docs.add(doc);
         }
         return docs;
+    }
+
+    protected String putEtag(List<Long> ids, Class klass) throws Exception {
+        DBUtils db = new DBUtils();
+        try {
+            String etag = db.newETag(query, klass.getName());
+            db.putETag(etag, ids.toArray(new Long[0]));
+            results.setETag(etag);
+            return etag;
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 }
