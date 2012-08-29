@@ -1,4 +1,4 @@
-package gov.nih.ncgc.bard.capextract;
+package gov.nih.ncgc.bard.tools;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
