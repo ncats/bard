@@ -14,9 +14,12 @@ import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 /**
  * A one line summary.
@@ -41,15 +44,38 @@ public class BARDPluginRegistryResource extends BARDResource {
     @Path("/")
     @Produces("application/json")
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("expand") String expand, @QueryParam("skip") Integer skip, @QueryParam("top") Integer top) {
+        List<IPlugin> pluginClasses = new ArrayList<IPlugin>();
+
 
         String path = servletConfig.getServletContext().getRealPath("/");
-        List<String> jarPaths = new ArrayList<String>();
         File dir = new File(path + File.separator + "WEB-INF" + File.separator + "lib");
         for (File file : dir.listFiles()) {
-            jarPaths.add(file.getAbsolutePath());
+            try {
+                JarFile jarFile = new JarFile(file.getAbsolutePath());
+                Enumeration allEntries = jarFile.entries();
+                while (allEntries.hasMoreElements()) {
+                    JarEntry entry = (JarEntry) allEntries.nextElement();
+                    if (!entry.getName().contains(".class") || entry.getName().contains("$")) continue;
+                    String className = entry.getName().replace(".class", "").replace("/", ".");
+                    Class c = Class.forName(className);
+                    for (Class iface : c.getInterfaces()) {
+                        if (iface.isAssignableFrom(IPlugin.class)) pluginClasses.add((IPlugin) c.newInstance());
+                    }
+                }
+            } catch (IOException e) {
+                throw new WebApplicationException(e, 500);
+            } catch (NoClassDefFoundError e) {
+                // ignore this exception
+            } catch (ClassNotFoundException e) {
+                throw new WebApplicationException(e, 500);
+            } catch (InstantiationException e) {
+                throw new WebApplicationException(e, 500);
+            } catch (IllegalAccessException e) {
+                throw new WebApplicationException(e, 500);
+            }
         }
 
-        List<IPlugin> pluginClasses = new ArrayList<IPlugin>();
+
         List<String> classes = new ArrayList<String>();
         walk(path + File.separator + "WEB-INF" + File.separator + "classes", classes);
         for (String aClass : classes)
