@@ -2,6 +2,8 @@ package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.SslHttpClient;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -16,6 +18,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Vector;
 
 /**
  * A one line summary.
@@ -37,6 +42,27 @@ public abstract class CapResourceHandler {
         }
     }
 
+    public <T> Vector<T> poll(String url, CAPConstants.CapResource resource) throws IOException {
+	return poll(url, resource, false);
+    }
+    
+    public <T> Vector<T> poll(String url, CAPConstants.CapResource resource, boolean skipPartial) throws IOException {
+	Vector<T> vec = new Vector<T>();
+	while (url != null) {
+	    T t = getResponse(url, resource);
+	    vec.add(t);
+	    url = null;
+	    try {
+		Method getLinkList = t.getClass().getMethod("getLink", (Class<?>[])null);
+		List<Link> links = (List<Link>)getLinkList.invoke(t, (Object[])null);
+		for (Link link: links)
+		    if (link.getRel().equals("next") && !skipPartial)
+			url = link.getHref();
+	    } catch (Exception e) {;}
+	}
+	return vec;
+    }
+    
     protected <T> T getResponse(String url, CAPConstants.CapResource resource) throws IOException {
         HttpGet get = new HttpGet(url);
         get.setHeader("Accept", resource.getMimeType());

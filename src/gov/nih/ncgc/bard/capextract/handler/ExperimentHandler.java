@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
@@ -8,8 +9,6 @@ import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.HashMap;
-
-import javax.xml.datatype.XMLGregorianCalendar;
 
 /**
  * Process CAP <code>Experiment</code> elements.
@@ -36,7 +35,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
         if (resource != CAPConstants.CapResource.EXPERIMENT) return;
-        log.info("Processing " + resource);
+        //log.info("Processing " + resource);
 
         // get the Assays object here
         Experiment expt = getResponse(url, resource);
@@ -70,18 +69,32 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             }
         }
         // TODO handle project context of experiment
-        if (expt.getProjectExperiments() != null)
-            for (Experiment.ProjectExperiments.ProjectExperiment projExpt: expt.getProjectExperiments().getProjectExperiment()) {
+        if (expt.getProjectSteps() != null)
+            for (Experiment.ProjectSteps.ProjectStep projExpt: expt.getProjectSteps().getProjectStep()) {
         	projExpt.getDescription();
         	projExpt.getPrecedingExperiment();
         	for (Link link: projExpt.getLink()) {
         	    if (link.getType().equals(CAPConstants.CapResource.STAGE.getMimeType()))
         		link.getHref();
         	}
+        	log.error("Project context not being captured: "+projExpt.getDescription()+projExpt.getPrecedingExperiment());
             }
         // TODO handle result context of experiment
-        expt.getResultContextItems();
+        if (expt.getExperimentContextItems() != null)
+            for (Experiment.ExperimentContextItems.ExperimentContextItem context: expt.getExperimentContextItems().getExperimentContextItem()) {
+        	log.error("Result context item not being captured: "+context.getExtValueId()+":"+context.getValueDisplay()+":"+context.getAttribute());
+            }
 
+        
+        // get experiment results
+        for (Link link: expt.getLink()) {
+            //<link rel='related' title='List Related Results' type='application/vnd.bard.cap+xml;type=results' href='https://bard.broadinstitute.org/dataExport/api/experiments/439/results?offset=0' /> 
+            if (link.getType().equals(CAPConstants.CapResource.RESULTS.getMimeType())) {
+            	ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.RESULTS);
+            	handler.process(link.getHref(), CAPConstants.CapResource.RESULTS);
+            }
+        }
+        
     }
     
     public void printLookup() {

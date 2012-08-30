@@ -29,12 +29,12 @@ import javax.xml.bind.annotation.XmlType;
  *   &lt;complexContent>
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;sequence>
- *         &lt;element name="resultContextItem" maxOccurs="unbounded">
+ *         &lt;element name="assayContextItem" maxOccurs="unbounded">
  *           &lt;complexType>
  *             &lt;complexContent>
  *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *                 &lt;sequence>
- *                   &lt;element name="attribute" minOccurs="0">
+ *                   &lt;element name="valueId" minOccurs="0">
  *                     &lt;complexType>
  *                       &lt;complexContent>
  *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
@@ -46,13 +46,23 @@ import javax.xml.bind.annotation.XmlType;
  *                       &lt;/complexContent>
  *                     &lt;/complexType>
  *                   &lt;/element>
- *                   &lt;element name="valueControlled" minOccurs="0">
+ *                   &lt;element name="attributeId" minOccurs="0">
  *                     &lt;complexType>
  *                       &lt;complexContent>
  *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *                           &lt;sequence>
  *                             &lt;element ref="{}link" minOccurs="0"/>
  *                           &lt;/sequence>
+ *                           &lt;attribute name="attributeType" use="required">
+ *                             &lt;simpleType>
+ *                               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}string">
+ *                                 &lt;enumeration value="List"/>
+ *                                 &lt;enumeration value="Range"/>
+ *                                 &lt;enumeration value="Number"/>
+ *                                 &lt;enumeration value="Fixed"/>
+ *                               &lt;/restriction>
+ *                             &lt;/simpleType>
+ *                           &lt;/attribute>
  *                           &lt;attribute name="label" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
  *                         &lt;/restriction>
  *                       &lt;/complexContent>
@@ -60,13 +70,13 @@ import javax.xml.bind.annotation.XmlType;
  *                   &lt;/element>
  *                   &lt;element name="extValueId" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/>
  *                 &lt;/sequence>
- *                 &lt;attribute name="resultContextItemId" use="required" type="{}bardID" />
- *                 &lt;attribute name="parentGroup" type="{}bardID" />
+ *                 &lt;attribute name="assayContextItemId" use="required" type="{}bardID" />
+ *                 &lt;attribute name="assayContextRef" type="{http://www.w3.org/2001/XMLSchema}string" />
  *                 &lt;attribute name="qualifier" type="{http://www.w3.org/2001/XMLSchema}string" />
- *                 &lt;attribute name="valueDisplay" type="{http://www.w3.org/2001/XMLSchema}string" />
  *                 &lt;attribute name="valueNum" type="{http://www.w3.org/2001/XMLSchema}double" />
  *                 &lt;attribute name="valueMin" type="{http://www.w3.org/2001/XMLSchema}double" />
  *                 &lt;attribute name="valueMax" type="{http://www.w3.org/2001/XMLSchema}double" />
+ *                 &lt;attribute name="valueDisplay" type="{http://www.w3.org/2001/XMLSchema}string" />
  *               &lt;/restriction>
  *             &lt;/complexContent>
  *           &lt;/complexType>
@@ -81,41 +91,41 @@ import javax.xml.bind.annotation.XmlType;
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = {
-    "resultContextItem"
+    "assayContextItem"
 })
-@XmlRootElement(name = "resultContextItems")
-public class ResultContextItems {
+@XmlRootElement(name = "assayContextItems")
+public class AssayContextItems {
 
     @XmlElement(required = true)
-    protected List<ResultContextItems.ResultContextItem> resultContextItem;
+    protected List<AssayContextItems.AssayContextItem> assayContextItem;
 
     /**
-     * Gets the value of the resultContextItem property.
+     * Gets the value of the assayContextItem property.
      * 
      * <p>
      * This accessor method returns a reference to the live list,
      * not a snapshot. Therefore any modification you make to the
      * returned list will be present inside the JAXB object.
-     * This is why there is not a <CODE>set</CODE> method for the resultContextItem property.
+     * This is why there is not a <CODE>set</CODE> method for the assayContextItem property.
      * 
      * <p>
      * For example, to add a new item, do as follows:
      * <pre>
-     *    getResultContextItem().add(newItem);
+     *    getAssayContextItem().add(newItem);
      * </pre>
      * 
      * 
      * <p>
      * Objects of the following type(s) are allowed in the list
-     * {@link ResultContextItems.ResultContextItem }
+     * {@link AssayContextItems.AssayContextItem }
      * 
      * 
      */
-    public List<ResultContextItems.ResultContextItem> getResultContextItem() {
-        if (resultContextItem == null) {
-            resultContextItem = new ArrayList<ResultContextItems.ResultContextItem>();
+    public List<AssayContextItems.AssayContextItem> getAssayContextItem() {
+        if (assayContextItem == null) {
+            assayContextItem = new ArrayList<AssayContextItems.AssayContextItem>();
         }
-        return this.resultContextItem;
+        return this.assayContextItem;
     }
 
 
@@ -129,7 +139,7 @@ public class ResultContextItems {
      *   &lt;complexContent>
      *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
      *       &lt;sequence>
-     *         &lt;element name="attribute" minOccurs="0">
+     *         &lt;element name="valueId" minOccurs="0">
      *           &lt;complexType>
      *             &lt;complexContent>
      *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
@@ -141,13 +151,23 @@ public class ResultContextItems {
      *             &lt;/complexContent>
      *           &lt;/complexType>
      *         &lt;/element>
-     *         &lt;element name="valueControlled" minOccurs="0">
+     *         &lt;element name="attributeId" minOccurs="0">
      *           &lt;complexType>
      *             &lt;complexContent>
      *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
      *                 &lt;sequence>
      *                   &lt;element ref="{}link" minOccurs="0"/>
      *                 &lt;/sequence>
+     *                 &lt;attribute name="attributeType" use="required">
+     *                   &lt;simpleType>
+     *                     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}string">
+     *                       &lt;enumeration value="List"/>
+     *                       &lt;enumeration value="Range"/>
+     *                       &lt;enumeration value="Number"/>
+     *                       &lt;enumeration value="Fixed"/>
+     *                     &lt;/restriction>
+     *                   &lt;/simpleType>
+     *                 &lt;/attribute>
      *                 &lt;attribute name="label" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
      *               &lt;/restriction>
      *             &lt;/complexContent>
@@ -155,13 +175,13 @@ public class ResultContextItems {
      *         &lt;/element>
      *         &lt;element name="extValueId" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/>
      *       &lt;/sequence>
-     *       &lt;attribute name="resultContextItemId" use="required" type="{}bardID" />
-     *       &lt;attribute name="parentGroup" type="{}bardID" />
+     *       &lt;attribute name="assayContextItemId" use="required" type="{}bardID" />
+     *       &lt;attribute name="assayContextRef" type="{http://www.w3.org/2001/XMLSchema}string" />
      *       &lt;attribute name="qualifier" type="{http://www.w3.org/2001/XMLSchema}string" />
-     *       &lt;attribute name="valueDisplay" type="{http://www.w3.org/2001/XMLSchema}string" />
      *       &lt;attribute name="valueNum" type="{http://www.w3.org/2001/XMLSchema}double" />
      *       &lt;attribute name="valueMin" type="{http://www.w3.org/2001/XMLSchema}double" />
      *       &lt;attribute name="valueMax" type="{http://www.w3.org/2001/XMLSchema}double" />
+     *       &lt;attribute name="valueDisplay" type="{http://www.w3.org/2001/XMLSchema}string" />
      *     &lt;/restriction>
      *   &lt;/complexContent>
      * &lt;/complexType>
@@ -171,76 +191,76 @@ public class ResultContextItems {
      */
     @XmlAccessorType(XmlAccessType.FIELD)
     @XmlType(name = "", propOrder = {
-        "attribute",
-        "valueControlled",
+        "valueId",
+        "attributeId",
         "extValueId"
     })
-    public static class ResultContextItem {
+    public static class AssayContextItem {
 
-        protected ResultContextItems.ResultContextItem.Attribute attribute;
-        protected ResultContextItems.ResultContextItem.ValueControlled valueControlled;
+        protected AssayContextItems.AssayContextItem.ValueId valueId;
+        protected AssayContextItems.AssayContextItem.AttributeId attributeId;
         protected String extValueId;
-        @XmlAttribute(name = "resultContextItemId", required = true)
-        protected BigInteger resultContextItemId;
-        @XmlAttribute(name = "parentGroup")
-        protected BigInteger parentGroup;
+        @XmlAttribute(name = "assayContextItemId", required = true)
+        protected BigInteger assayContextItemId;
+        @XmlAttribute(name = "assayContextRef")
+        protected String assayContextRef;
         @XmlAttribute(name = "qualifier")
         protected String qualifier;
-        @XmlAttribute(name = "valueDisplay")
-        protected String valueDisplay;
         @XmlAttribute(name = "valueNum")
         protected Double valueNum;
         @XmlAttribute(name = "valueMin")
         protected Double valueMin;
         @XmlAttribute(name = "valueMax")
         protected Double valueMax;
+        @XmlAttribute(name = "valueDisplay")
+        protected String valueDisplay;
 
         /**
-         * Gets the value of the attribute property.
+         * Gets the value of the valueId property.
          * 
          * @return
          *     possible object is
-         *     {@link ResultContextItems.ResultContextItem.Attribute }
+         *     {@link AssayContextItems.AssayContextItem.ValueId }
          *     
          */
-        public ResultContextItems.ResultContextItem.Attribute getAttribute() {
-            return attribute;
+        public AssayContextItems.AssayContextItem.ValueId getValueId() {
+            return valueId;
         }
 
         /**
-         * Sets the value of the attribute property.
+         * Sets the value of the valueId property.
          * 
          * @param value
          *     allowed object is
-         *     {@link ResultContextItems.ResultContextItem.Attribute }
+         *     {@link AssayContextItems.AssayContextItem.ValueId }
          *     
          */
-        public void setAttribute(ResultContextItems.ResultContextItem.Attribute value) {
-            this.attribute = value;
+        public void setValueId(AssayContextItems.AssayContextItem.ValueId value) {
+            this.valueId = value;
         }
 
         /**
-         * Gets the value of the valueControlled property.
+         * Gets the value of the attributeId property.
          * 
          * @return
          *     possible object is
-         *     {@link ResultContextItems.ResultContextItem.ValueControlled }
+         *     {@link AssayContextItems.AssayContextItem.AttributeId }
          *     
          */
-        public ResultContextItems.ResultContextItem.ValueControlled getValueControlled() {
-            return valueControlled;
+        public AssayContextItems.AssayContextItem.AttributeId getAttributeId() {
+            return attributeId;
         }
 
         /**
-         * Sets the value of the valueControlled property.
+         * Sets the value of the attributeId property.
          * 
          * @param value
          *     allowed object is
-         *     {@link ResultContextItems.ResultContextItem.ValueControlled }
+         *     {@link AssayContextItems.AssayContextItem.AttributeId }
          *     
          */
-        public void setValueControlled(ResultContextItems.ResultContextItem.ValueControlled value) {
-            this.valueControlled = value;
+        public void setAttributeId(AssayContextItems.AssayContextItem.AttributeId value) {
+            this.attributeId = value;
         }
 
         /**
@@ -268,51 +288,51 @@ public class ResultContextItems {
         }
 
         /**
-         * Gets the value of the resultContextItemId property.
+         * Gets the value of the assayContextItemId property.
          * 
          * @return
          *     possible object is
          *     {@link BigInteger }
          *     
          */
-        public BigInteger getResultContextItemId() {
-            return resultContextItemId;
+        public BigInteger getAssayContextItemId() {
+            return assayContextItemId;
         }
 
         /**
-         * Sets the value of the resultContextItemId property.
+         * Sets the value of the assayContextItemId property.
          * 
          * @param value
          *     allowed object is
          *     {@link BigInteger }
          *     
          */
-        public void setResultContextItemId(BigInteger value) {
-            this.resultContextItemId = value;
+        public void setAssayContextItemId(BigInteger value) {
+            this.assayContextItemId = value;
         }
 
         /**
-         * Gets the value of the parentGroup property.
+         * Gets the value of the assayContextRef property.
          * 
          * @return
          *     possible object is
-         *     {@link BigInteger }
+         *     {@link String }
          *     
          */
-        public BigInteger getParentGroup() {
-            return parentGroup;
+        public String getAssayContextRef() {
+            return assayContextRef;
         }
 
         /**
-         * Sets the value of the parentGroup property.
+         * Sets the value of the assayContextRef property.
          * 
          * @param value
          *     allowed object is
-         *     {@link BigInteger }
+         *     {@link String }
          *     
          */
-        public void setParentGroup(BigInteger value) {
-            this.parentGroup = value;
+        public void setAssayContextRef(String value) {
+            this.assayContextRef = value;
         }
 
         /**
@@ -337,30 +357,6 @@ public class ResultContextItems {
          */
         public void setQualifier(String value) {
             this.qualifier = value;
-        }
-
-        /**
-         * Gets the value of the valueDisplay property.
-         * 
-         * @return
-         *     possible object is
-         *     {@link String }
-         *     
-         */
-        public String getValueDisplay() {
-            return valueDisplay;
-        }
-
-        /**
-         * Sets the value of the valueDisplay property.
-         * 
-         * @param value
-         *     allowed object is
-         *     {@link String }
-         *     
-         */
-        public void setValueDisplay(String value) {
-            this.valueDisplay = value;
         }
 
         /**
@@ -435,6 +431,30 @@ public class ResultContextItems {
             this.valueMax = value;
         }
 
+        /**
+         * Gets the value of the valueDisplay property.
+         * 
+         * @return
+         *     possible object is
+         *     {@link String }
+         *     
+         */
+        public String getValueDisplay() {
+            return valueDisplay;
+        }
+
+        /**
+         * Sets the value of the valueDisplay property.
+         * 
+         * @param value
+         *     allowed object is
+         *     {@link String }
+         *     
+         */
+        public void setValueDisplay(String value) {
+            this.valueDisplay = value;
+        }
+
 
         /**
          * <p>Java class for anonymous complex type.
@@ -448,6 +468,16 @@ public class ResultContextItems {
          *       &lt;sequence>
          *         &lt;element ref="{}link" minOccurs="0"/>
          *       &lt;/sequence>
+         *       &lt;attribute name="attributeType" use="required">
+         *         &lt;simpleType>
+         *           &lt;restriction base="{http://www.w3.org/2001/XMLSchema}string">
+         *             &lt;enumeration value="List"/>
+         *             &lt;enumeration value="Range"/>
+         *             &lt;enumeration value="Number"/>
+         *             &lt;enumeration value="Fixed"/>
+         *           &lt;/restriction>
+         *         &lt;/simpleType>
+         *       &lt;/attribute>
          *       &lt;attribute name="label" use="required" type="{http://www.w3.org/2001/XMLSchema}string" />
          *     &lt;/restriction>
          *   &lt;/complexContent>
@@ -460,9 +490,11 @@ public class ResultContextItems {
         @XmlType(name = "", propOrder = {
             "link"
         })
-        public static class Attribute {
+        public static class AttributeId {
 
             protected Link link;
+            @XmlAttribute(name = "attributeType", required = true)
+            protected String attributeType;
             @XmlAttribute(name = "label", required = true)
             protected String label;
 
@@ -488,6 +520,30 @@ public class ResultContextItems {
              */
             public void setLink(Link value) {
                 this.link = value;
+            }
+
+            /**
+             * Gets the value of the attributeType property.
+             * 
+             * @return
+             *     possible object is
+             *     {@link String }
+             *     
+             */
+            public String getAttributeType() {
+                return attributeType;
+            }
+
+            /**
+             * Sets the value of the attributeType property.
+             * 
+             * @param value
+             *     allowed object is
+             *     {@link String }
+             *     
+             */
+            public void setAttributeType(String value) {
+                this.attributeType = value;
             }
 
             /**
@@ -541,7 +597,7 @@ public class ResultContextItems {
         @XmlType(name = "", propOrder = {
             "link"
         })
-        public static class ValueControlled {
+        public static class ValueId {
 
             protected Link link;
             @XmlAttribute(name = "label", required = true)
