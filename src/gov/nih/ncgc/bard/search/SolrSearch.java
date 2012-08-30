@@ -8,7 +8,6 @@ import org.apache.solr.common.SolrDocumentList;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A one line summary.
@@ -95,9 +94,10 @@ public abstract class SolrSearch implements ISolrSearch {
      */
     protected SolrQuery setFilterQueries(SolrQuery solrQuery, String filter) {
         if (filter != null) {
-            Map<String, String> fq = SearchUtil.extractFilterQueries(filter);
-            for (String fname : fq.keySet()) {
-                String fvalue = fq.get(fname);
+            List<String[]> fq = SearchUtil.extractFilterQueries(filter);
+            for (String[] entry : fq) {
+                String fname = entry[0];
+                String fvalue = entry[1];
                 if (fvalue.contains("[")) solrQuery.addFilterQuery(fname + ":" + fvalue);
                 else solrQuery.addFilterQuery(fname + ":\"" + fvalue + "\"");
             }
