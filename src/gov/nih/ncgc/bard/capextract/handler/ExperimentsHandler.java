@@ -42,18 +42,15 @@ public class ExperimentsHandler extends CapResourceHandler implements ICapResour
             for (Link link : links) {
         	if (link.getRel().equals("next")) {
         	    url = link.getHref();
-        	} else if (link.getRel().equals("related")) {
+        	} else if (link.getRel().equals("related") &&
+        		link.getType().equals(CAPConstants.CapResource.EXPERIMENT.getMimeType())) {
         	    String href = link.getHref();
-        	    String type = link.getType();
-        	    String title = link.getTitle();
+        	    link.getType();
+        	    link.getTitle();
 
-        	    // for now lets just handle a few specific experiments
-        	    if (href.endsWith("/590")) {
-        	    //if (true) {
-        		//log.info("\t" + title + "/" + type + "/ href = " + href);
-        		ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.EXPERIMENT);
-        		if (handler != null) handler.process(href, CAPConstants.CapResource.EXPERIMENT);
-        	    }
+        	    //log.info("\t" + title + "/" + type + "/ href = " + href);
+        	    ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.EXPERIMENT);
+        	    if (handler != null) handler.process(href, CAPConstants.CapResource.EXPERIMENT);
         	}
             }
         }

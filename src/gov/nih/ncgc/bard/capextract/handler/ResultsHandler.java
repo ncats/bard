@@ -3,7 +3,6 @@ package gov.nih.ncgc.bard.capextract.handler;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.Experiments;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Results;
 
@@ -42,10 +41,11 @@ public class ResultsHandler extends CapResourceHandler implements ICapResourceHa
             for (Link link : links) {
         	if (link.getRel().equals("next")) {
         	    url = link.getHref();
-        	} else if (link.getRel().equals("related")) {
+        	} else if (link.getRel().equals("related") && 
+        		link.getType().equals(CAPConstants.CapResource.RESULT.getMimeType())) {
         	    String href = link.getHref();
-        	    String type = link.getType();
-        	    String title = link.getTitle();
+        	    //String type = link.getType();
+        	    //String title = link.getTitle();
 
         	    // for now lets just handle a few specific experiments
         	    if (href.endsWith("414")) {

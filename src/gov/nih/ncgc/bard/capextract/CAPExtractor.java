@@ -12,7 +12,6 @@ import gov.nih.ncgc.bard.capextract.handler.ResultHandler;
 import gov.nih.ncgc.bard.capextract.handler.ResultsHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Assay;
 import gov.nih.ncgc.bard.capextract.jaxb.Assays;
-import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Project;
 import gov.nih.ncgc.bard.capextract.jaxb.Projects;
@@ -55,6 +54,7 @@ public class CAPExtractor {
 	for (T t: vec) {
 	    try {
 		Method getLinkList = t.getClass().getMethod("getLink", (Class<?>[])null);
+		@SuppressWarnings("unchecked")
 		List<Link> links = (List<Link>)getLinkList.invoke(t, (Object[])null);
 		for (Link link: links)
 		    if (link.getRel().equals("related"))
@@ -65,11 +65,7 @@ public class CAPExtractor {
     }
     
     public void run() throws IOException, NoSuchAlgorithmException {
-//        registry.getHandler(CAPConstants.CapResource.BARDEXPORT).process(CAPConstants.CAP_ROOT, CAPConstants.CapResource.BARDEXPORT);
-        registry.getHandler(CAPConstants.CapResource.EXPERIMENTS).process(CAPConstants.CAP_ROOT+"/experiments", CAPConstants.CapResource.EXPERIMENTS);
-//        registry.getHandler(CAPConstants.CapResource.PROJECTS).process(CAPConstants.CAP_ROOT+"/projects", CAPConstants.CapResource.PROJECTS);
-        
-        ((ExperimentHandler)registry.getHandler(CAPConstants.CapResource.EXPERIMENT)).printLookup();
+        registry.getHandler(CAPConstants.CapResource.BARDEXPORT).process(CAPConstants.CAP_ROOT, CAPConstants.CapResource.BARDEXPORT);
     }
     
     public void poll() throws IOException {
@@ -105,7 +101,7 @@ public class CAPExtractor {
         	Assay assay = (Assay)registry.getHandler(CAPConstants.CapResource.ASSAY).
         		poll(link.getHref(), CAPConstants.CapResource.ASSAY).get(0);
         	assayCount++;
-        	if (assayCount%1 == 0)
+        	if (assayCount%10 == 0)
         	    log.info("Assays polled: "+assayCount+" Assays with results: "+assayExptsResults);
         	for (Link link2: assay.getLink()) {
         	    if (link2.getType().equals(CAPConstants.CapResource.EXPERIMENT.getMimeType())) {
@@ -134,17 +130,25 @@ public class CAPExtractor {
         registry.setHandler(CAPConstants.CapResource.DICTIONARY, new DictionaryHandler());
     }
 
-
+    public void test() throws IOException {
+	registry.getHandler(CAPConstants.CapResource.EXPERIMENTS).process(CAPConstants.CAP_ROOT+"/experiments", CAPConstants.CapResource.EXPERIMENTS);
+	registry.getHandler(CAPConstants.CapResource.PROJECTS).process(CAPConstants.CAP_ROOT+"/projects", CAPConstants.CapResource.PROJECTS);
+  
+	((ExperimentHandler)registry.getHandler(CAPConstants.CapResource.EXPERIMENT)).printLookup();
+    }
+	
     public static void main(String[] args) throws Exception {
         CAPExtractor c = new CAPExtractor();
 
         // before running the extractor, lets set our handlers
         c.setHandlers();
 
+        // let's just peek at what's available
+        c.poll();
+
         // lets start pulling
         //c.run();
         
-        c.poll();
     }
 
 

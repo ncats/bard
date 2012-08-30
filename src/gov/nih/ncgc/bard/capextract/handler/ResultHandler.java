@@ -60,7 +60,8 @@ public class ResultHandler extends CapResourceHandler implements ICapResourceHan
             if (link.getType().equals(CAPConstants.CapResource.EXPERIMENT.getMimeType()))
         	experimentid = link.getHref().substring(link.getHref().lastIndexOf('/')+1);
         }       
-        
+        if (sid == null || experimentid == null || resultid == null)
+            log.error("IDs for result are null: "+sid+";"+experimentid+";"+resultid);
         ResultContextItems rcis = result.getResultContextItems();
         if (rcis != null) {
             for (ResultContextItem rci: rcis.getResultContextItem()) {
