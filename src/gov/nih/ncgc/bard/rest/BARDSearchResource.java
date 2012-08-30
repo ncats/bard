@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.rest;
 
-import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.search.AssaySearch;
@@ -8,6 +7,7 @@ import gov.nih.ncgc.bard.search.CompoundSearch;
 import gov.nih.ncgc.bard.search.ISolrSearch;
 import gov.nih.ncgc.bard.search.ProjectSearch;
 import gov.nih.ncgc.bard.search.SearchResult;
+import gov.nih.ncgc.bard.search.SearchUtil;
 import gov.nih.ncgc.bard.tools.Util;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.slf4j.Logger;
@@ -79,49 +79,124 @@ public class BARDSearchResource extends BARDResource {
         return null;
     }
 
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/assays/suggest")
+    public Response autoSuggestAssays(@QueryParam("q") String q, @QueryParam("e") String entity, @QueryParam("top") Integer top) throws Exception {
+        return autoSuggest(q, "assays", top);
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/compounds/suggest")
+    public Response autoSuggestCompounds(@QueryParam("q") String q, @QueryParam("e") String entity, @QueryParam("top") Integer top) throws Exception {
+        return autoSuggest(q, "compounds", top);
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/projects/suggest")
+    public Response autoSuggestProjects(@QueryParam("q") String q, @QueryParam("e") String entity, @QueryParam("top") Integer top) throws Exception {
+        return autoSuggest(q, "projects", top);
+    }
+
+    private Response autoSuggest(String q, String entity, Integer top) throws Exception {
+        ISolrSearch search = null;
+
+        if (q == null) throw new WebApplicationException(400);
+        if (top == null) top = 10;
+        if (entity == null) search = new AssaySearch(q);
+        else if (entity.toLowerCase().equals("assays")) search = new AssaySearch(q);
+        else if (entity.toLowerCase().equals("projects")) search = new ProjectSearch(q);
+        else if (entity.toLowerCase().equals("compounds")) search = new CompoundSearch(q);
+
+        // get field names associated with this entity search
+        String s = "";
+        List<String> fieldNames = search.getFieldNames();
+
+        String solrUrl = search.getSolrURL();
+        if (search instanceof AssaySearch) solrUrl += "/core-assay/";
+        else if (search instanceof ProjectSearch) solrUrl += "/core-project/";
+        else if (search instanceof CompoundSearch) solrUrl += "/core-compound/";
+
+        // get terms for each field
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = mapper.createObjectNode();
+        node.putPOJO("query", q);
+        for (String fieldName : fieldNames) {
+            List<String> terms = SearchUtil.getTermsFromField(solrUrl, fieldName, q, top);
+            // ignore fields that provided no matching terms
+            if (terms.size() > 0) node.putPOJO(fieldName, terms);
+        }
+
+        String json = mapper.writeValueAsString(node);
+        return Response.ok(json).type(MediaType.APPLICATION_JSON).build();
+    }
+
     class SearchRunner implements Callable<ISolrSearch> {
 
         private ISolrSearch search;
-        private int top;
+        private Integer top;
+        private boolean expand;
+        private String filter;
+        private Integer skip;
 
-        SearchRunner(ISolrSearch search, int top) {
+        SearchRunner(ISolrSearch search, boolean expand, String filter, Integer top, Integer skip) {
             this.search = search;
+            this.skip = skip;
             this.top = top;
+            this.filter = filter;
+            this.expand = expand;
         }
 
         public ISolrSearch call() throws Exception {
-            search.run(false, null, top, 0);
+            search.run(expand, filter, top, skip);
             return search;
         }
     }
 
+    /**
+     * Run full-text search simultaneously across all entities.
+     *
+     * @param q      The query string
+     * @param filter field based filter parameters of the form <code>fq(field_name:field_value)</code>
+     * @param skip   Number of results to skip
+     * @param top    How many results to return
+     * @param expand If <code>true</code> return detailed response, else return a condensed summary of the hits
+     * @return A JSON response containing hit summaries for all entities searched.
+     * @throws IOException
+     * @throws SolrServerException
+     */
     @GET
-    @Produces("application/json")
-    @Path("/suggest")
-    public Response runSuggest(@QueryParam("q") String q,
-                               @QueryParam("top") Integer top) throws IOException, SolrServerException, JsonGenerationException {
+    @Path("/")
+    public Response runSearch(@QueryParam("q") String q,
+                              @QueryParam("filter") String filter,
+                              @QueryParam("skip") Integer skip,
+                              @QueryParam("top") Integer top,
+                              @QueryParam("expand") String expand) throws IOException, SolrServerException {
         if (q == null) throw new WebApplicationException(400);
         if (top == null) top = 10;
+        if (skip == null) skip = 0;
 
         AssaySearch as = new AssaySearch(q);
-        as.setSolrURL(getSolrService());
         CompoundSearch cs = new CompoundSearch(q);
-        cs.setSolrURL(getSolrService());
         ProjectSearch ps = new ProjectSearch(q);
-        ps.setSolrURL(getSolrService());
 
         ISolrSearch[] searches = new ISolrSearch[]{as, cs, ps};
         Collection<Callable<ISolrSearch>> callables = new ArrayList<Callable<ISolrSearch>>();
-        for (ISolrSearch search : searches) callables.add(new SearchRunner(search, top));
+        for (ISolrSearch search : searches) {
+            search.setSolrURL(getSolrService());
+            callables.add(new SearchRunner(search, expand != null && expand.toLowerCase().equals("true"), filter, top, skip));
+        }
         long start = System.currentTimeMillis();
         ExecutorService pool = Executors.newFixedThreadPool(searches.length);
         try {
             List<Future<ISolrSearch>> futures = pool.invokeAll(callables);
             for (int i = 0; i < futures.size(); i++) searches[i] = futures.get(i).get();
         } catch (InterruptedException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+
         } catch (ExecutionException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+
         }
         long end = System.currentTimeMillis();
         log.info("Queried all resources in " + ((end - start) / 1000.0) + "s");
@@ -140,29 +215,11 @@ public class BARDSearchResource extends BARDResource {
             else throw new IllegalArgumentException("We don't handle searches of type " + search);
 
             if (results.getDocs().size() > 0) {
-                ObjectNode subNode = mapper.createObjectNode();
-                subNode.putPOJO("url", "/search/" + entityName + "?q=" + q);
-                subNode.putPOJO("hits", results.getDocs());
-                node.putPOJO(entityName, subNode);
+                node.putPOJO(entityName, results);
             }
         }
         String json = mapper.writeValueAsString(node);
         return Response.ok(json).type(MediaType.APPLICATION_JSON).build();
-    }
-
-    @GET
-    @Path("/")
-    public Response runSearch(@QueryParam("q") String q,
-                              @QueryParam("filter") String filter,
-                              @QueryParam("skip") Integer skip,
-                              @QueryParam("top") Integer top,
-                              @QueryParam("expand") String expand) throws IOException, SolrServerException {
-        if (q == null) throw new WebApplicationException(400);
-        AssaySearch as = new AssaySearch(q);
-        as.setSolrURL(getSolrService());
-        as.run(expand != null && expand.toLowerCase().equals("true"), filter, top, skip);
-        SearchResult s = as.getSearchResults();
-        return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
 

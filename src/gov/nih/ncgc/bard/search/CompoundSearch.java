@@ -24,6 +24,7 @@ import java.util.Map;
 public class CompoundSearch extends SolrSearch {
     private final String HL_FIELD = "text";
     private final String PKEY_COMPOUND_DOC = "cid";
+    private final String CORE_NAME = "/core-compound/";
 
     Logger log;
     String[] facetNames = {"COLLECTION", "mw", "tpsa", "xlogp"};
@@ -33,11 +34,15 @@ public class CompoundSearch extends SolrSearch {
         log = LoggerFactory.getLogger(this.getClass());
     }
 
+    public List<String> getFieldNames() throws Exception {
+        return SearchUtil.getFieldNames(getSolrURL() + CORE_NAME + "admin/luke?numTerms=0");
+    }
+    
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
         results = new SearchResult();
 
         SolrServer solr = null;
-        solr = new CommonsHttpSolrServer(getSolrURL() + "/core-compound/");
+        solr = new CommonsHttpSolrServer(getSolrURL() + CORE_NAME);
 
         QueryResponse response = null;
 

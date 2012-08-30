@@ -22,4 +22,8 @@ public interface ISolrSearch {
     public SearchResult getSearchResults();
 
     public String getQuery();
+    
+    public void setSolrURL(String url);
+    
+    public List<String> getFieldNames() throws Exception;
 }

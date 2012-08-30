@@ -33,6 +33,7 @@ import java.util.Set;
 public class AssaySearch extends SolrSearch {
     private final String HL_FIELD = "text";
     private final String PKEY_ASSAY_DOC = "assay_id";
+    private final String CORE_NAME = "/core-assay/";
 
     Logger log;
 
@@ -75,11 +76,15 @@ public class AssaySearch extends SolrSearch {
         } else log.error("CAP dictionary was null. Strange!");
     }
 
+    public List<String> getFieldNames() throws Exception {
+        return SearchUtil.getFieldNames(getSolrURL() + CORE_NAME + "admin/luke?numTerms=0");
+    }
+
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
         results = new SearchResult();
 
         SolrServer solr = new CommonsHttpSolrServer
-                (getSolrURL() + "/core-assay/");
+                (getSolrURL() + CORE_NAME);
 
         SolrQuery sq = new SolrQuery(query);
         sq = setHighlighting(sq, filter == null ? HL_FIELD : HL_FIELD);
