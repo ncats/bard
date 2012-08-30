@@ -5,6 +5,7 @@ import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Assay;
+import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItems;
 import gov.nih.ncgc.bard.capextract.jaxb.AssayDocument;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -70,30 +71,30 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         log.info("status for " + name + " = " + status + ", and has " + (docs != null ? docs.size() : 0) + " docs");
 
         /* Not sure what this is */
-        if (assay.getMeasureContexts() != null) {
-            List<Assay.MeasureContexts.MeasureContext> mcs = assay.getMeasureContexts().getMeasureContext();
-            for (Assay.MeasureContexts.MeasureContext mc : mcs) {
+        if (assay.getAssayContexts() != null) {
+            List<Assay.AssayContexts.AssayContext> mcs = assay.getAssayContexts().getAssayContext();
+            for (Assay.AssayContexts.AssayContext mc : mcs) {
                 String contextName = mc.getContextName();
 //                System.out.println("contextName = " + contextName);
             }
         }
 
         /* This block extracts the annotations for the assay */
-        List<Assay.MeasureContextItems.MeasureContextItem> mcis = null;
+        List<AssayContextItems.AssayContextItem> mcis = null;
         Map<String, CAPAssayAnnotation> annos = new HashMap<String, CAPAssayAnnotation>();
-        if (assay.getMeasureContextItems() != null) {
-            mcis = assay.getMeasureContextItems().getMeasureContextItem();
-            for (Assay.MeasureContextItems.MeasureContextItem mci : mcis) {
+        if (assay.getAssayContextItems() != null) {
+            mcis = assay.getAssayContextItems().getAssayContextItem();
+            for (AssayContextItems.AssayContextItem mci : mcis) {
 
                 String valueid = null, attrid = null, attrtype = null;
                 String displayValue = mci.getValueDisplay();
-                BigInteger id = mci.getMeasureContextItemId();
-                BigInteger refid = mci.getMeasureContextItemRef(); // may be null                
-                String contextref = mci.getMeasureContextRef(); //  may be null
+                BigInteger id = mci.getAssayContextItemId();
+                String refid = mci.getAssayContextRef(); // may be null                
+                String contextref = mci.getAssayContextRef(); //  may be null
 
-                Assay.MeasureContextItems.MeasureContextItem.ValueId mcivid = mci.getValueId();
+                AssayContextItems.AssayContextItem.ValueId mcivid = mci.getValueId();
                 if (mcivid != null) valueid = mcivid.getLink().getHref();
-                Assay.MeasureContextItems.MeasureContextItem.AttributeId mciaid = mci.getAttributeId();
+                AssayContextItems.AssayContextItem.AttributeId mciaid = mci.getAttributeId();
                 if (mciaid != null) attrid = mciaid.getLink().getHref();
                 String extid = mci.getExtValueId();
 
@@ -193,7 +194,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         Assay.Measures measures = assay.getMeasures();
         if (measures != null) {
             for (Assay.Measures.Measure measure : measures.getMeasure()) {
-                System.out.println("measure.getMeasureContextRef() = " + measure.getMeasureContextRef());
+                System.out.println("measure.getAssayContextRef() = " + measure.getAssayContextRef());
             }
         }
     }
