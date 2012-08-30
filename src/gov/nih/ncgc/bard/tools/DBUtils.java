@@ -55,6 +55,7 @@ public class DBUtils {
      * maximum size for an ETag
      */
     static final int MAX_ETAG_SIZE = 10000;
+    static final int CHUNK_SIZE = 400;
 
     Logger log;
     Connection conn;
@@ -288,7 +289,7 @@ public class DBUtils {
         for (Long acid : cids) {
             if (acid == null) return null;
         }
-        List<List<Long>> chunks = Util.chunk(cids, 100);
+        List<List<Long>> chunks = Util.chunk(cids, CHUNK_SIZE);
         List<Compound> compounds = new ArrayList<Compound>();
         for (List<Long> chunk : chunks) {
             String cidClause = Util.join(chunk, ",");
@@ -308,7 +309,7 @@ public class DBUtils {
 
                 // get Sids
                 for (Compound c : compounds) {
-                    c.setSids(getSidsByCid (c.getCid()));
+                    c.setSids(getSidsByCid(c.getCid()));
                 }
 
             } finally {
@@ -349,7 +350,7 @@ public class DBUtils {
 
     public List<Compound> getCompoundsBySid(Long... sids) throws SQLException {
         if (sids == null || sids.length == 0) return null;
-        List<List<Long>> chunks = Util.chunk(sids, 100);
+        List<List<Long>> chunks = Util.chunk(sids, CHUNK_SIZE);
         List<Compound> cmpds = new ArrayList<Compound>();
         for (List<Long> chunk : chunks) {
             String sidClause = Util.join(chunk, ",");
@@ -406,8 +407,8 @@ public class DBUtils {
                 } catch (SQLException ex) { // etag already exists
                     //ex.printStackTrace();
                     log.info("** ETag " + etag
-                             + " already exists; generating a new one after "
-                             +tries+" tries!");
+                            + " already exists; generating a new one after "
+                            + tries + " tries!");
                     etag = null;
                     ++tries;
                 }
@@ -424,10 +425,10 @@ public class DBUtils {
         }
     }
 
-    public int createETagLinks (String etag, String... parents) 
-        throws SQLException {
+    public int createETagLinks(String etag, String... parents)
+            throws SQLException {
         PreparedStatement pst = conn.prepareStatement
-            ("insert into etag_link(etag_id, parent_id) values (?,?)");
+                ("insert into etag_link(etag_id, parent_id) values (?,?)");
         int links = 0;
         try {
             // should verify that both both parent and child are
@@ -442,8 +443,7 @@ public class DBUtils {
             }
 
             return links;
-        }
-        finally {
+        } finally {
             pst.close();
         }
     }
@@ -451,8 +451,8 @@ public class DBUtils {
     public int putETag(String etag, Long... ids) throws SQLException {
         int cnt = 0;
         PreparedStatement pst = conn.prepareStatement
-            ("select a.*,count(*) as size from etag a, etag_data b "
-             +"where a.etag_id = ? and a.etag_id = b.etag_id");
+                ("select a.*,count(*) as size from etag a, etag_data b "
+                        + "where a.etag_id = ? and a.etag_id = b.etag_id");
         try {
             pst.setString(1, etag);
 
@@ -463,14 +463,14 @@ public class DBUtils {
                 size = rs.getInt("size");
                 if (id == null) {
                     throw new IllegalArgumentException
-                        ("Unknown ETag \""+etag+"\"");
+                            ("Unknown ETag \"" + etag + "\"");
                 }
             }
             rs.close();
 
             cnt = size;
             pst = conn.prepareStatement
-                ("insert into etag_data(etag_id, data_id) values (?,?)");
+                    ("insert into etag_data(etag_id, data_id) values (?,?)");
             pst.setString(1, etag);
             for (Long id : ids) {
                 if (id != null && (cnt + 1) <= MAX_ETAG_SIZE) {
@@ -485,19 +485,18 @@ public class DBUtils {
                 }
             }
             cnt -= size;
-            
+
             if (cnt > 0) {
                 conn.commit();
 
                 pst = conn.prepareStatement
-                    ("update etag set modified = ? where etag_id = ?");
+                        ("update etag set modified = ? where etag_id = ?");
                 pst.setTimestamp(1, new java.sql.Timestamp
-                                 (new java.util.Date().getTime()));
+                        (new java.util.Date().getTime()));
                 pst.setString(2, etag);
                 pst.executeUpdate();
             }
-        } 
-        finally {
+        } finally {
             pst.close();
         }
         return cnt;
@@ -524,7 +523,7 @@ public class DBUtils {
             throws SQLException {
 
         if (probeids == null || probeids.length == 0) return null;
-        List<List<String>> chunks = Util.chunk(probeids, 100);
+        List<List<String>> chunks = Util.chunk(probeids, CHUNK_SIZE);
         List<Compound> compounds = new ArrayList<Compound>();
         for (List<String> chunk : chunks) {
             List<String> qprobeids = new ArrayList<String>();
@@ -549,7 +548,7 @@ public class DBUtils {
 
         // get Sids
         for (Compound c : compounds) {
-            c.setSids(getSidsByCid (c.getCid()));
+            c.setSids(getSidsByCid(c.getCid()));
         }
 
         return compounds;
@@ -776,7 +775,7 @@ public class DBUtils {
             }
 
             for (Compound c : compounds) {
-                c.setSids(getSidsByCid (c.getCid()));
+                c.setSids(getSidsByCid(c.getCid()));
             }
 
             return compounds;
@@ -1015,17 +1014,16 @@ public class DBUtils {
             pst.setLong(1, aid);
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
-                a = getAssay (rs);
+                a = getAssay(rs);
             }
             rs.close();
-        }
-        finally {
+        } finally {
             pst.close();
         }
         return a;
     }
 
-    Assay getAssay (ResultSet rs) throws SQLException {
+    Assay getAssay(ResultSet rs) throws SQLException {
         Assay a = new Assay();
         long aid = rs.getLong("assay_id");
 
@@ -1043,7 +1041,7 @@ public class DBUtils {
         a.setUpdated(rs.getDate("updated"));
         a.setComments(rs.getString("comment"));
         a.setProtocol(rs.getString("protocol"));
-        
+
         // next we need to look up publications, targets and data
         a.setPublications(getAssayPublications(aid));
         a.setTargets(getAssayTargets(aid));
@@ -1051,18 +1049,17 @@ public class DBUtils {
         return a;
     }
 
-    public List<Assay> getAssaysByETag (int skip, int top, String etag) 
-        throws SQLException {
+    public List<Assay> getAssaysByETag(int skip, int top, String etag)
+            throws SQLException {
         if (etag == null) return null;
 
         StringBuilder sql = new StringBuilder
-            ("select a.* from assay a, etag_data e where etag_id = ? "
-             +"and a.assay_id = e.data_id order by e.index");
+                ("select a.* from assay a, etag_data e where etag_id = ? "
+                        + "and a.assay_id = e.data_id order by e.index");
 
         if (skip >= 0 && top > 0) {
             sql.append(" limit " + skip + "," + top);
-        } 
-        else if (top > 0) {
+        } else if (top > 0) {
             sql.append(" limit " + top);
         }
 
@@ -1072,11 +1069,10 @@ public class DBUtils {
             pst.setString(1, etag);
             ResultSet rs = pst.executeQuery();
             while (rs.next()) {
-                assays.add(getAssay (rs));
+                assays.add(getAssay(rs));
             }
             rs.close();
-        }
-        finally {
+        } finally {
             pst.close();
         }
         return assays;
@@ -1736,8 +1732,7 @@ public class DBUtils {
                 p.setDeposited(rs.getDate("create_date"));
             }
             rs.close();
-        }
-        finally {
+        } finally {
             pst.close();
         }
 
@@ -1754,8 +1749,7 @@ public class DBUtils {
             while (rs.next()) eids.add(rs.getLong(1));
             rs.close();
             p.setEids(eids);
-        }
-        finally {
+        } finally {
             pst.close();
         }
 
@@ -1767,12 +1761,11 @@ public class DBUtils {
             List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
             while (rs.next()) {
                 String acc = rs.getString("accession");
-                targets.add(getProteinTargetByAccession (acc));
+                targets.add(getProteinTargetByAccession(acc));
             }
             rs.close();
             p.setTargets(targets);
-        }
-        finally {
+        } finally {
             pst.close();
         }
 
