@@ -7,7 +7,6 @@ import gov.nih.ncgc.bard.search.CompoundSearch;
 import gov.nih.ncgc.bard.search.ISolrSearch;
 import gov.nih.ncgc.bard.search.ProjectSearch;
 import gov.nih.ncgc.bard.search.SearchResult;
-import gov.nih.ncgc.bard.search.SearchUtil;
 import gov.nih.ncgc.bard.tools.Util;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.slf4j.Logger;
@@ -26,6 +25,7 @@ import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -124,9 +124,9 @@ public class BARDSearchResource extends BARDResource {
         ObjectNode node = mapper.createObjectNode();
         node.putPOJO("query", q);
         for (String fieldName : fieldNames) {
-            List<String> terms = SearchUtil.getTermsFromField(solrUrl, fieldName, q, top);
+            Map<String, List<String>> terms = search.suggest(fieldName, q, top); //SearchUtil.getTermsFromField(solrUrl, fieldName, q, top);
             // ignore fields that provided no matching terms
-            if (terms.size() > 0) node.putPOJO(fieldName, terms);
+            if (terms.size() > 0) node.putPOJO(fieldName, terms.get(fieldName));
         }
 
         String json = mapper.writeValueAsString(node);

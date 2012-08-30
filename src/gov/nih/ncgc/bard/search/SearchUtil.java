@@ -8,10 +8,20 @@ import nu.xom.Document;
 import nu.xom.Element;
 import nu.xom.Node;
 import nu.xom.Nodes;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.client.solrj.response.TermsResponse;
+import org.apache.solr.common.params.CommonParams;
+import org.apache.solr.common.params.TermsParams;
 
-import java.net.URLEncoder;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -85,41 +95,49 @@ public class SearchUtil {
         return fieldNames;
     }
 
-    /**
-     * Get a list of terms from a field, based on a user supplied prefix.
-     * 
-     * @param url The URL to the Solr core to be queried
-     * @param fieldName the field name to query
-     * @param q The query
-     * @param n How many terms should be returned
-     * @return
-     * @throws Exception
-     */
-    public static List<String> getTermsFromField(String url, String fieldName, String q, int n) throws Exception {
-        if (n <= 0) n = 10;
 
-        List<String> terms = new ArrayList<String>();
-        Client client = Client.create();
-        WebResource resource = client.resource(url + "terms?terms.fl=" + fieldName + "&terms.regex.flag=case_insensitive&terms.limit=" + n + "&terms.regex=" + URLEncoder.encode(q, "utf-8") + ".*");
-        ClientResponse response = resource.get(ClientResponse.class);
-        int status = response.getStatus();
-        if (status != 200) {
-            throw new Exception("There was a problem querying the Solr terms resource " + url);
+    public static Map<String, List<String>> getTerms(String url, String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
+        SolrServer solr = new CommonsHttpSolrServer(url);
+        SolrQuery query = new SolrQuery();
+        query.setParam(CommonParams.QT, "/terms");
+        query.setParam(TermsParams.TERMS, true);
+        query.setParam(TermsParams.TERMS_LIMIT, String.valueOf(10));
+        for (String field : fields)
+            query.setParam(TermsParams.TERMS_FIELD, field);
+        query.setParam(TermsParams.TERMS_REGEXP_FLAG, "case_insensitive");
+        query.setParam(TermsParams.TERMS_REGEXP_STR, q + ".*");
+
+        QueryResponse response = solr.query(query);
+        TermsResponse termsr = response.getTermsResponse();
+
+        Map<String, List<String>> termMap = new HashMap<String, List<String>>();
+        for (String field : fields) {
+            List<TermsResponse.Term> terms = termsr.getTerms(field);
+            List<String> l = new ArrayList<String>();
+            for (TermsResponse.Term term : terms) l.add(term.getTerm());
+            if (l.size() > 0) termMap.put(field, l);
         }
-        String xml = response.getEntity(String.class);
-        Document doc = new Builder(false).build(xml, null);
-        Node node = doc.query("response/lst[@name='terms']").get(0);
-        Node termNode = node.getChild(0);
-        for (int i = 0; i < termNode.getChildCount(); i++)
-            terms.add(((Element) termNode.getChild(i)).getAttribute("name").getValue());
-        return terms;
+        return termMap;
     }
 
     public static void main(String[] args) throws Exception {
-        List<String> terms = getTermsFromField("http://protease.nhgri.nih.gov/servlet/solr/core-assay/", "gobp_term", "dna rep", 5);
-        for (String term : terms) {
-            System.out.println("term = " + term);
-        }
+        SolrServer solr = new CommonsHttpSolrServer("http://protease.nhgri.nih.gov/servlet/solr/core-assay/");
+
+        SolrQuery query = new SolrQuery();
+        query.setParam(CommonParams.QT, "/terms");
+        query.setParam(TermsParams.TERMS, true);
+        query.setParam(TermsParams.TERMS_LIMIT, String.valueOf(10));
+        query.setParam(TermsParams.TERMS_FIELD, "gobp_term");  // or whatever fields you want
+        query.setParam(TermsParams.TERMS_REGEXP_FLAG, "case_insensitive");
+        query.setParam(TermsParams.TERMS_REGEXP_STR, "dna re.*");
+
+        QueryResponse response = solr.query(query);
+        System.out.println("response = " + response);
+        TermsResponse termsr = response.getTermsResponse();
+        System.out.println("termsr = " + termsr);
+        List<TermsResponse.Term> terms = termsr.getTerms("gobp_term");
+        System.out.println("terms.size() = " + terms.size());
+        for (TermsResponse.Term term : terms) System.out.println("term.getTerm() = " + term.getTerm());
     }
 
 

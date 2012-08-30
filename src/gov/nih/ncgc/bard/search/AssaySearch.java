@@ -80,6 +80,10 @@ public class AssaySearch extends SolrSearch {
         return SearchUtil.getFieldNames(getSolrURL() + CORE_NAME + "admin/luke?numTerms=0");
     }
 
+    public Map<String, List<String>> suggest(String field, String q, Integer n) throws MalformedURLException, SolrServerException {
+        return SearchUtil.getTerms(getSolrURL() + CORE_NAME, new String[]{field}, q, n);
+    }
+
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
         results = new SearchResult();
 
