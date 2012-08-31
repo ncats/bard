@@ -111,7 +111,7 @@ public class SearchUtil {
         SolrQuery query = new SolrQuery();
         query.setParam(CommonParams.QT, "/terms");
         query.setParam(TermsParams.TERMS, true);
-        query.setParam(TermsParams.TERMS_LIMIT, String.valueOf(10));
+        query.setParam(TermsParams.TERMS_LIMIT, String.valueOf(n));
         query.setParam(TermsParams.TERMS_FIELD, fields);
         query.setParam(TermsParams.TERMS_REGEXP_FLAG, "case_insensitive");
         query.setParam(TermsParams.TERMS_REGEXP_STR, q);
