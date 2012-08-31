@@ -96,6 +96,16 @@ public class SearchUtil {
     }
 
 
+    /**
+     *
+     * @param url The Solr URL (including relevant core)
+     * @param fields The fields to consider
+     * @param q The query. It is assumed to be a complete regex
+     * @param n The number of suggestions desired
+     * @return
+     * @throws MalformedURLException
+     * @throws SolrServerException
+     */
     public static Map<String, List<String>> getTerms(String url, String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
         SolrServer solr = new CommonsHttpSolrServer(url);
         SolrQuery query = new SolrQuery();
@@ -104,7 +114,7 @@ public class SearchUtil {
         query.setParam(TermsParams.TERMS_LIMIT, String.valueOf(10));
         query.setParam(TermsParams.TERMS_FIELD, fields);
         query.setParam(TermsParams.TERMS_REGEXP_FLAG, "case_insensitive");
-        query.setParam(TermsParams.TERMS_REGEXP_STR, q + ".*");
+        query.setParam(TermsParams.TERMS_REGEXP_STR, q);
 
         QueryResponse response = solr.query(query);
         TermsResponse termsr = response.getTermsResponse();

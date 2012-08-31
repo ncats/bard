@@ -33,7 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /**
- * A resource to expose full-text and faceted search.
+ * A resource to expose full-text and faceted search as well as autocomplete suggestions.
  *
  * @author Rajarshi Guha
  */
@@ -111,20 +111,18 @@ public class BARDSearchResource extends BARDResource {
         else if (entity.toLowerCase().equals("compounds")) search = new CompoundSearch(q);
 
         // get field names associated with this entity search
-        String s = "";
         List<String> fieldNames = search.getFieldNames();
-
-        String solrUrl = search.getSolrURL();
-        if (search instanceof AssaySearch) solrUrl += "/core-assay/";
-        else if (search instanceof ProjectSearch) solrUrl += "/core-project/";
-        else if (search instanceof CompoundSearch) solrUrl += "/core-compound/";
 
         // get terms for each field
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = mapper.createObjectNode();
         node.putPOJO("query", q);
 
-        Map<String, List<String>> terms = search.suggest(fieldNames.toArray(new String[0]), q, top); //SearchUtil.getTermsFromField(solrUrl, fieldName, q, top);
+        long start = System.currentTimeMillis();
+        Map<String, List<String>> terms = search.suggest(fieldNames.toArray(new String[0]), q, top);
+        long end = System.currentTimeMillis();
+        System.out.println("Auto suggest for '" + q + "' on " + search.getClass().getName() + " took " + ((end - start) / 1000.0) + "s");
+
         for (String fieldName : terms.keySet()) {
             // ignore fields that provided no matching terms
             if (terms.get(fieldName).size() > 0) node.putPOJO(fieldName, terms.get(fieldName));

@@ -81,7 +81,7 @@ public class AssaySearch extends SolrSearch {
     }
 
     public Map<String, List<String>> suggest(String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
-        return SearchUtil.getTerms(getSolrURL() + CORE_NAME, fields, q, n);
+        return SearchUtil.getTerms(getSolrURL() + CORE_NAME, fields, q+".*", n);
     }
 
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {

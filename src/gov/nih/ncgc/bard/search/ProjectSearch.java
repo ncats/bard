@@ -40,7 +40,7 @@ public class ProjectSearch extends SolrSearch {
     }
 
     public Map<String, List<String>> suggest(String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
-        return SearchUtil.getTerms(getSolrURL() + CORE_NAME, fields, q, n);
+        return SearchUtil.getTerms(getSolrURL() + CORE_NAME, fields, q+".*", n);
     }
 
 
