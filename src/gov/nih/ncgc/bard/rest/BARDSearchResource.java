@@ -82,21 +82,21 @@ public class BARDSearchResource extends BARDResource {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/assays/suggest")
-    public Response autoSuggestAssays(@QueryParam("q") String q, @QueryParam("e") String entity, @QueryParam("top") Integer top) throws Exception {
+    public Response autoSuggestAssays(@QueryParam("q") String q, @QueryParam("top") Integer top) throws Exception {
         return autoSuggest(q, "assays", top);
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/compounds/suggest")
-    public Response autoSuggestCompounds(@QueryParam("q") String q, @QueryParam("e") String entity, @QueryParam("top") Integer top) throws Exception {
+    public Response autoSuggestCompounds(@QueryParam("q") String q, @QueryParam("top") Integer top) throws Exception {
         return autoSuggest(q, "compounds", top);
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/projects/suggest")
-    public Response autoSuggestProjects(@QueryParam("q") String q, @QueryParam("e") String entity, @QueryParam("top") Integer top) throws Exception {
+    public Response autoSuggestProjects(@QueryParam("q") String q, @QueryParam("top") Integer top) throws Exception {
         return autoSuggest(q, "projects", top);
     }
 
@@ -131,6 +131,86 @@ public class BARDSearchResource extends BARDResource {
         String json = mapper.writeValueAsString(node);
         return Response.ok(json).type(MediaType.APPLICATION_JSON).build();
     }
+
+    class SuggestHelper {
+        Map<String, List<String>> map;
+        String entity;
+
+        SuggestHelper(Map<String, List<String>> map, String entity) {
+            this.map = map;
+            this.entity = entity;
+        }
+    }
+    
+    class SuggestRunner implements Callable<SuggestHelper> {
+
+        private ISolrSearch search;
+        private String q;
+        private Integer n;
+
+        private String name;
+
+        SuggestRunner(ISolrSearch search, String q, Integer n) {
+            this.search = search;
+            this.q = q;
+            this.n = n;
+            if (search instanceof AssaySearch) name = "assay";
+            else if (search instanceof CompoundSearch) name = "compound";
+            else if (search instanceof ProjectSearch) name = "project";
+        }
+
+        public SuggestHelper call() throws Exception {
+            List<String> fieldNames = search.getFieldNames();
+            return new SuggestHelper(search.suggest(fieldNames.toArray(new String[0]), q, n), name);
+        }
+    }
+
+    @GET
+    @Path("/suggest")
+    public Response autoSuggest(@QueryParam("q") String q,
+                                @QueryParam("top") Integer top) throws IOException, SolrServerException {
+        if (q == null) throw new WebApplicationException(400);
+        if (top == null) top = 10;
+
+        AssaySearch as = new AssaySearch(q);
+        CompoundSearch cs = new CompoundSearch(q);
+        ProjectSearch ps = new ProjectSearch(q);
+
+        ISolrSearch[] searches = new ISolrSearch[]{as, cs, ps};
+        ArrayList<Callable<SuggestHelper>> callables = new ArrayList<Callable<SuggestHelper>>();
+        for (ISolrSearch search : searches) {
+            search.setSolrURL(getSolrService());
+            callables.add(new SuggestRunner(search, q, top));
+        }
+        long start = System.currentTimeMillis();
+        ExecutorService pool = Executors.newFixedThreadPool(searches.length);
+
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode root = mapper.createObjectNode();
+
+        try {
+            List<Future<SuggestHelper>> futures = pool.invokeAll(callables);
+            for (Future<SuggestHelper> future : futures) {
+                Map<String, List<String>> terms = future.get().map;
+                String entity = future.get().entity;
+                ObjectNode node = mapper.createObjectNode();
+                for (String fieldName : terms.keySet()) {
+                    if (terms.get(fieldName).size() > 0) node.putPOJO(fieldName, terms.get(fieldName));
+                }
+                root.putPOJO(entity, node);
+            }
+        } catch (InterruptedException e) {
+
+        } catch (ExecutionException e) {
+
+        }
+        long end = System.currentTimeMillis();
+        System.out.println("Autosuggest for all entities in " + ((end - start) / 1000.0) + "s");
+
+        String json = mapper.writeValueAsString(root);
+        return Response.ok(json).type(MediaType.APPLICATION_JSON).build();
+    }
+
 
     class SearchRunner implements Callable<ISolrSearch> {
 
