@@ -71,7 +71,7 @@ public class SearchUtil {
         ClientResponse response = resource.get(ClientResponse.class);
         int status = response.getStatus();
         if (status != 200) {
-            throw new Exception("There was a problem querying the Solr Luke API");
+            throw new Exception("There was a problem querying "+lukeUrl);
         }
         String xml = response.getEntity(String.class);
         Document doc = new Builder(false).build(xml, null);
