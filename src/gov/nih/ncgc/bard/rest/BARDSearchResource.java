@@ -123,10 +123,11 @@ public class BARDSearchResource extends BARDResource {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode node = mapper.createObjectNode();
         node.putPOJO("query", q);
-        for (String fieldName : fieldNames) {
-            Map<String, List<String>> terms = search.suggest(fieldName, q, top); //SearchUtil.getTermsFromField(solrUrl, fieldName, q, top);
+
+        Map<String, List<String>> terms = search.suggest(fieldNames.toArray(new String[0]), q, top); //SearchUtil.getTermsFromField(solrUrl, fieldName, q, top);
+        for (String fieldName : terms.keySet()) {
             // ignore fields that provided no matching terms
-            if (terms.size() > 0) node.putPOJO(fieldName, terms.get(fieldName));
+            if (terms.get(fieldName).size() > 0) node.putPOJO(fieldName, terms.get(fieldName));
         }
 
         String json = mapper.writeValueAsString(node);

@@ -71,7 +71,7 @@ public class SearchUtil {
         ClientResponse response = resource.get(ClientResponse.class);
         int status = response.getStatus();
         if (status != 200) {
-            throw new Exception("There was a problem querying "+lukeUrl);
+            throw new Exception("There was a problem querying " + lukeUrl);
         }
         String xml = response.getEntity(String.class);
         Document doc = new Builder(false).build(xml, null);
@@ -102,8 +102,7 @@ public class SearchUtil {
         query.setParam(CommonParams.QT, "/terms");
         query.setParam(TermsParams.TERMS, true);
         query.setParam(TermsParams.TERMS_LIMIT, String.valueOf(10));
-        for (String field : fields)
-            query.setParam(TermsParams.TERMS_FIELD, field);
+        query.setParam(TermsParams.TERMS_FIELD, fields);
         query.setParam(TermsParams.TERMS_REGEXP_FLAG, "case_insensitive");
         query.setParam(TermsParams.TERMS_REGEXP_STR, q + ".*");
 
@@ -113,9 +112,11 @@ public class SearchUtil {
         Map<String, List<String>> termMap = new HashMap<String, List<String>>();
         for (String field : fields) {
             List<TermsResponse.Term> terms = termsr.getTerms(field);
-            List<String> l = new ArrayList<String>();
-            for (TermsResponse.Term term : terms) l.add(term.getTerm());
-            if (l.size() > 0) termMap.put(field, l);
+            if (terms != null) {
+                List<String> l = new ArrayList<String>();
+                for (TermsResponse.Term term : terms) l.add(term.getTerm());
+                if (l.size() > 0) termMap.put(field, l);
+            }
         }
         return termMap;
     }
