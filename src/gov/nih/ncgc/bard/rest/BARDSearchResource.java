@@ -313,6 +313,8 @@ public class BARDSearchResource extends BARDResource {
         CompoundSearch cs = new CompoundSearch(q);
         cs.setSolrURL(getSolrService());
         SearchResult s = doSearch(cs, skip, top, expand, filter);
+
+        if (countRequested) return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
@@ -327,6 +329,8 @@ public class BARDSearchResource extends BARDResource {
         AssaySearch as = new AssaySearch(q);
         as.setSolrURL(getSolrService());
         SearchResult s = doSearch(as, skip, top, expand, filter);
+
+        if (countRequested) return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
@@ -341,6 +345,8 @@ public class BARDSearchResource extends BARDResource {
         ProjectSearch ps = new ProjectSearch(q);
         ps.setSolrURL(getSolrService());
         SearchResult s = doSearch(ps, skip, top, expand, filter);
+        
+        if (countRequested) return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
