@@ -56,38 +56,6 @@ public class SearchUtil {
         return ret;
     }
 
-//    public static List<String> getFieldNames(String lukeUrl) throws Exception {
-//        List<String> fieldNames = new ArrayList<String>();
-//        Client client = Client.create();
-//        WebResource resource = client.resource(lukeUrl);
-//        ClientResponse response = resource.get(ClientResponse.class);
-//        int status = response.getStatus();
-//        if (status != 200) {
-//            throw new Exception("There was a problem querying " + lukeUrl);
-//        }
-//        String xml = response.getEntity(String.class);
-//        Document doc = new Builder(false).build(xml, null);
-//        Nodes nodes = doc.query("/response/lst[@name='fields']");
-//        if (nodes.size() > 0) {
-//            Node node = nodes.get(0);
-//            for (int i = 0; i < node.getChildCount(); i++) {
-//                Node n = node.getChild(i);
-//                String name = ((Element) n).getAttribute("name").getValue();
-//                if (name.endsWith("text")) continue;
-//
-//                // otherwise see if the field is of the desired type
-//                Node tnode = n.query("str[@name='type']").get(0);
-//                if (tnode.getValue().equals("tfloat") ||
-//                        tnode.getValue().equals("tint") ||
-//                        tnode.getValue().equals("date")) continue;
-//                fieldNames.add(name);
-//            }
-//        }
-//        client.destroy();
-//        return fieldNames;
-//    }
-
-
     /**
      *
      * @param url The Solr URL (including relevant core)
