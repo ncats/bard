@@ -24,22 +24,14 @@ import java.util.Map;
 public class CompoundSearch extends SolrSearch {
     private final String HL_FIELD = "text";
     private final String PKEY_COMPOUND_DOC = "cid";
-    private final String CORE_NAME = "/core-compound/";
 
     Logger log;
     String[] facetNames = {"COLLECTION", "mw", "tpsa", "xlogp"};
 
     public CompoundSearch(String query) {
         super(query);
+        CORE_NAME = "/core-compound/";
         log = LoggerFactory.getLogger(this.getClass());
-    }
-
-    public List<String> getFieldNames() throws Exception {
-        return SearchUtil.getFieldNames(getSolrURL() + CORE_NAME + "admin/luke?numTerms=0");
-    }
-
-    public Map<String, List<String>> suggest(String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
-        return SearchUtil.getTerms(getSolrURL() + CORE_NAME, fields, q+".*", n);
     }
 
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {

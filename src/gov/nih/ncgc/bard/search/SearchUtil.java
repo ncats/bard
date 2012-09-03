@@ -1,13 +1,5 @@
 package gov.nih.ncgc.bard.search;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import nu.xom.Builder;
-import nu.xom.Document;
-import nu.xom.Element;
-import nu.xom.Node;
-import nu.xom.Nodes;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -64,36 +56,36 @@ public class SearchUtil {
         return ret;
     }
 
-    public static List<String> getFieldNames(String lukeUrl) throws Exception {
-        List<String> fieldNames = new ArrayList<String>();
-        Client client = Client.create();
-        WebResource resource = client.resource(lukeUrl);
-        ClientResponse response = resource.get(ClientResponse.class);
-        int status = response.getStatus();
-        if (status != 200) {
-            throw new Exception("There was a problem querying " + lukeUrl);
-        }
-        String xml = response.getEntity(String.class);
-        Document doc = new Builder(false).build(xml, null);
-        Nodes nodes = doc.query("/response/lst[@name='fields']");
-        if (nodes.size() > 0) {
-            Node node = nodes.get(0);
-            for (int i = 0; i < node.getChildCount(); i++) {
-                Node n = node.getChild(i);
-                String name = ((Element) n).getAttribute("name").getValue();
-                if (name.endsWith("text")) continue;
-
-                // otherwise see if the field is of the desired type
-                Node tnode = n.query("str[@name='type']").get(0);
-                if (tnode.getValue().equals("tfloat") ||
-                        tnode.getValue().equals("tint") ||
-                        tnode.getValue().equals("date")) continue;
-                fieldNames.add(name);
-            }
-        }
-        client.destroy();
-        return fieldNames;
-    }
+//    public static List<String> getFieldNames(String lukeUrl) throws Exception {
+//        List<String> fieldNames = new ArrayList<String>();
+//        Client client = Client.create();
+//        WebResource resource = client.resource(lukeUrl);
+//        ClientResponse response = resource.get(ClientResponse.class);
+//        int status = response.getStatus();
+//        if (status != 200) {
+//            throw new Exception("There was a problem querying " + lukeUrl);
+//        }
+//        String xml = response.getEntity(String.class);
+//        Document doc = new Builder(false).build(xml, null);
+//        Nodes nodes = doc.query("/response/lst[@name='fields']");
+//        if (nodes.size() > 0) {
+//            Node node = nodes.get(0);
+//            for (int i = 0; i < node.getChildCount(); i++) {
+//                Node n = node.getChild(i);
+//                String name = ((Element) n).getAttribute("name").getValue();
+//                if (name.endsWith("text")) continue;
+//
+//                // otherwise see if the field is of the desired type
+//                Node tnode = n.query("str[@name='type']").get(0);
+//                if (tnode.getValue().equals("tfloat") ||
+//                        tnode.getValue().equals("tint") ||
+//                        tnode.getValue().equals("date")) continue;
+//                fieldNames.add(name);
+//            }
+//        }
+//        client.destroy();
+//        return fieldNames;
+//    }
 
 
     /**
@@ -106,13 +98,17 @@ public class SearchUtil {
      * @throws MalformedURLException
      * @throws SolrServerException
      */
-    public static Map<String, List<String>> getTerms(String url, String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
+    public static Map<String, List<String>> getTerms(String url, SolrField[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
         SolrServer solr = new CommonsHttpSolrServer(url);
         SolrQuery query = new SolrQuery();
         query.setParam(CommonParams.QT, "/terms");
         query.setParam(TermsParams.TERMS, true);
         query.setParam(TermsParams.TERMS_LIMIT, String.valueOf(n));
-        query.setParam(TermsParams.TERMS_FIELD, fields);
+        
+        String[] fieldNames = new String[fields.length];
+        for (int i = 0; i < fields.length; i++) fieldNames[i] = fields[i].getName();
+        query.setParam(TermsParams.TERMS_FIELD, fieldNames);
+
         query.setParam(TermsParams.TERMS_REGEXP_FLAG, "case_insensitive");
         query.setParam(TermsParams.TERMS_REGEXP_STR, q);
 
@@ -120,12 +116,12 @@ public class SearchUtil {
         TermsResponse termsr = response.getTermsResponse();
 
         Map<String, List<String>> termMap = new HashMap<String, List<String>>();
-        for (String field : fields) {
-            List<TermsResponse.Term> terms = termsr.getTerms(field);
+        for (SolrField field : fields) {
+            List<TermsResponse.Term> terms = termsr.getTerms(field.getName());
             if (terms != null) {
                 List<String> l = new ArrayList<String>();
                 for (TermsResponse.Term term : terms) l.add(term.getTerm());
-                if (l.size() > 0) termMap.put(field, l);
+                if (l.size() > 0) termMap.put(field.getName(), l);
             }
         }
         return termMap;

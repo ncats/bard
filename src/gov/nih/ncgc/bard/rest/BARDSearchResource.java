@@ -7,6 +7,7 @@ import gov.nih.ncgc.bard.search.CompoundSearch;
 import gov.nih.ncgc.bard.search.ISolrSearch;
 import gov.nih.ncgc.bard.search.ProjectSearch;
 import gov.nih.ncgc.bard.search.SearchResult;
+import gov.nih.ncgc.bard.search.SolrField;
 import gov.nih.ncgc.bard.tools.Util;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.slf4j.Logger;
@@ -111,7 +112,7 @@ public class BARDSearchResource extends BARDResource {
         else if (entity.toLowerCase().equals("compounds")) search = new CompoundSearch(q);
 
         // get field names associated with this entity search
-        List<String> fieldNames = search.getFieldNames();
+        List<SolrField> fieldNames = search.getFieldNames();
 
         // get terms for each field
         ObjectMapper mapper = new ObjectMapper();
@@ -119,7 +120,7 @@ public class BARDSearchResource extends BARDResource {
         node.putPOJO("query", q);
 
         long start = System.currentTimeMillis();
-        Map<String, List<String>> terms = search.suggest(fieldNames.toArray(new String[0]), q, top);
+        Map<String, List<String>> terms = search.suggest(fieldNames.toArray(new SolrField[0]), q, top);
         long end = System.currentTimeMillis();
         System.out.println("Auto suggest for '" + q + "' on " + search.getClass().getName() + " took " + ((end - start) / 1000.0) + "s");
 
@@ -160,8 +161,8 @@ public class BARDSearchResource extends BARDResource {
         }
 
         public SuggestHelper call() throws Exception {
-            List<String> fieldNames = search.getFieldNames();
-            return new SuggestHelper(search.suggest(fieldNames.toArray(new String[0]), q, n), name);
+            List<SolrField> fieldNames = search.getFieldNames();
+            return new SuggestHelper(search.suggest(fieldNames.toArray(new SolrField[0]), q, n), name);
         }
     }
 
