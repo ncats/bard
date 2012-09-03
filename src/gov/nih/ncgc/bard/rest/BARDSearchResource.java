@@ -82,6 +82,48 @@ public class BARDSearchResource extends BARDResource {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("/projects/fields")
+    public Response getProjectields() throws IOException {
+        ProjectSearch search = new ProjectSearch(null);
+        List<SolrField> fields;
+        try {
+            fields = search.getFieldNames();
+        } catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        }
+        return Response.ok(Util.toJson(fields)).type(MediaType.APPLICATION_JSON).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/compounds/fields")
+    public Response getCompoundFields() throws IOException {
+        CompoundSearch search = new CompoundSearch(null);
+        List<SolrField> fields;
+        try {
+            fields = search.getFieldNames();
+        } catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        }
+        return Response.ok(Util.toJson(fields)).type(MediaType.APPLICATION_JSON).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/assays/fields")
+    public Response getAssayFields() throws IOException {
+        AssaySearch search = new AssaySearch(null);
+        List<SolrField> fields;
+        try {
+            fields = search.getFieldNames();
+        } catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        }
+        return Response.ok(Util.toJson(fields)).type(MediaType.APPLICATION_JSON).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/assays/suggest")
     public Response autoSuggestAssays(@QueryParam("q") String q, @QueryParam("top") Integer top) throws Exception {
         return autoSuggest(q, "assays", top);
@@ -142,7 +184,7 @@ public class BARDSearchResource extends BARDResource {
             this.entity = entity;
         }
     }
-    
+
     class SuggestRunner implements Callable<SuggestHelper> {
 
         private ISolrSearch search;
@@ -315,7 +357,8 @@ public class BARDSearchResource extends BARDResource {
         cs.setSolrURL(getSolrService());
         SearchResult s = doSearch(cs, skip, top, expand, filter);
 
-        if (countRequested) return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
+        if (countRequested)
+            return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
@@ -331,7 +374,8 @@ public class BARDSearchResource extends BARDResource {
         as.setSolrURL(getSolrService());
         SearchResult s = doSearch(as, skip, top, expand, filter);
 
-        if (countRequested) return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
+        if (countRequested)
+            return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
@@ -346,8 +390,9 @@ public class BARDSearchResource extends BARDResource {
         ProjectSearch ps = new ProjectSearch(q);
         ps.setSolrURL(getSolrService());
         SearchResult s = doSearch(ps, skip, top, expand, filter);
-        
-        if (countRequested) return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
+
+        if (countRequested)
+            return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
 
