@@ -132,18 +132,29 @@ public class DBUtils {
 
     private Connection getConnection() {
         javax.naming.Context initContext;
+        Connection con = null;            
         try {
             initContext = new javax.naming.InitialContext();
-            javax.naming.Context envContext = (javax.naming.Context) initContext.lookup("java:/comp/env");
             DataSource ds = (javax.sql.DataSource)
-                    envContext.lookup("jdbc/bardman");
-            Connection con = ds.getConnection();
+                    initContext.lookup("java:comp/env/jdbc/bardman");
+            con = ds.getConnection();
             con.setAutoCommit(false);
-            return con;
-        } catch (Exception e) {
-            System.err.println("Not running in Tomcat/Jetty/Glassfish or other app container?");
-            return null;
         }
+        catch (Exception ex) {
+            // try 
+            try {
+                initContext = new javax.naming.InitialContext();
+                DataSource ds = (javax.sql.DataSource)
+                    initContext.lookup("jdbc/bardman");
+                con = ds.getConnection();
+                con.setAutoCommit(false);
+            }
+            catch (Exception e) {
+                System.err.println("Not running in Tomcat/Jetty/Glassfish or other app container?");
+                e.printStackTrace();
+            }
+        }
+        return con;
     }
 
     protected void setConnection(Connection conn) {

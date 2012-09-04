@@ -15,7 +15,7 @@
 
     <context-param>
          <param-name>solr-server</param-name>
-         <param-value>http://localhost:8090/solr/</param-value>
+         <param-value>http://tripod.nih.gov/servlet/solr/</param-value>
     </context-param>
 
     <servlet>
@@ -23,14 +23,12 @@
         <display-name>BARD REST Web Services</display-name>
         <servlet-name>ServletAdaptor</servlet-name>
         <servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
-        <load-on-startup>1</load-on-startup>
-
         <init-param>
             <param-name>com.sun.jersey.spi.container.ContainerRequestFilters</param-name>
             <param-value>gov.nih.ncgc.bard.rest.filter.CountFilter</param-value>
         </init-param>
-
-
+        <!-- this must always be after init-param !-->
+        <load-on-startup>1</load-on-startup>
     </servlet>
 
     <servlet-mapping>
