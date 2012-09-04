@@ -1,8 +1,8 @@
 package gov.nih.ncgc.bard.search;
 
-import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
+import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
@@ -31,9 +31,9 @@ import java.util.Set;
  * @author Rajarshi Guha
  */
 public class AssaySearch extends SolrSearch {
-    //private final String SOLR_URL = SOLR_BASE + "/core-assay/";
     private final String HL_FIELD = "text";
     private final String PKEY_ASSAY_DOC = "assay_id";
+    private final String CORE_NAME = "/core-assay/";
 
     Logger log;
 
@@ -76,11 +76,19 @@ public class AssaySearch extends SolrSearch {
         } else log.error("CAP dictionary was null. Strange!");
     }
 
+    public List<String> getFieldNames() throws Exception {
+        return SearchUtil.getFieldNames(getSolrURL() + CORE_NAME + "admin/luke?numTerms=0");
+    }
+
+    public Map<String, List<String>> suggest(String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
+        return SearchUtil.getTerms(getSolrURL() + CORE_NAME, fields, q+".*", n);
+    }
+
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
         results = new SearchResult();
 
         SolrServer solr = new CommonsHttpSolrServer
-            (getSolrURL()+"/core-assay/");
+                (getSolrURL() + CORE_NAME);
 
         SolrQuery sq = new SolrQuery(query);
         sq = setHighlighting(sq, filter == null ? HL_FIELD : HL_FIELD);
@@ -114,13 +122,13 @@ public class AssaySearch extends SolrSearch {
         List<Long> aids = new ArrayList<Long>();
         // now process annotations to get remaining facet counts
         for (SolrDocument doc : docs) {
-            
+
             Collection<Object> keys = doc.getFieldValues("ak_dict_label");
             Collection<Object> values = doc.getFieldValues("av_dict_label");
             if (keys == null || values == null) continue;
             //            if (keys.size() != values.size())
             //                log.error("for assay_id = " + doc.getFieldValue("assay_id") + " keys had " + keys.size() + " elements and values had " + values.size() + " elements");
-            
+
             List<Object> keyList = new ArrayList<Object>(keys);
             List<Object> valueList = new ArrayList<Object>(values);
             for (Facet facet : facets) {
@@ -132,15 +140,14 @@ public class AssaySearch extends SolrSearch {
                 }
             }
 
-            Object id = doc.getFieldValue("assay_id");            
+            Object id = doc.getFieldValue("assay_id");
             try {
                 long aid = Long.parseLong(id.toString());
                 if (aid > 0l) {
                     aids.add(aid);
                 }
-            }
-            catch (Exception ex) {
-                log.warn("Bogus assay_id "+id);
+            } catch (Exception ex) {
+                log.warn("Bogus assay_id " + id);
             }
         }
         long end = System.currentTimeMillis();
@@ -150,30 +157,18 @@ public class AssaySearch extends SolrSearch {
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
 
-        DBUtils db = new DBUtils ();
         try {
-            String etag = db.newETag(query, Assay.class.getName());
-            db.putETag(etag, aids.toArray(new Long[0]));
-
+            String etag = putEtag(aids, Assay.class);
             results.setETag(etag);
+        } catch (Exception e) {
+            log.error("Can't process ETag", e);
+        }
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
-            List<SolrDocument> ret = 
+        List<SolrDocument> ret =
                 copyRange(docs, skip, top, detailed, "assay_id", "name", "highlight");
-            results.setDocs(ret);
-            results.setMetaData(meta);
-        }
-        catch (Exception ex) {
-            log.error("Search error", ex);
-        }
-        finally {
-            try {
-                db.closeConnection();
-            }
-            catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
+        results.setDocs(ret);
+        results.setMetaData(meta);
     }
 }

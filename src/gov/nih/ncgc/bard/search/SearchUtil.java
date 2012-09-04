@@ -1,6 +1,26 @@
 package gov.nih.ncgc.bard.search;
 
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import nu.xom.Builder;
+import nu.xom.Document;
+import nu.xom.Element;
+import nu.xom.Node;
+import nu.xom.Nodes;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.client.solrj.response.TermsResponse;
+import org.apache.solr.common.params.CommonParams;
+import org.apache.solr.common.params.TermsParams;
+
+import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,8 +49,8 @@ public class SearchUtil {
      * @param filter The filter parameter string from a BARD request
      * @return A map whose keys are field names and values are field values.
      */
-    public static Map<String, String> extractFilterQueries(String filter) {
-        Map<String, String> ret = new HashMap<String, String>();
+    public static List<String[]> extractFilterQueries(String filter) {
+        List<String[]> ret = new ArrayList<String[]>();
         if (filter == null || filter.trim().equals("")) return ret;
         Pattern pattern = Pattern.compile("fq\\((.*?):(.*?)\\)");
         Matcher matcher = pattern.matcher(filter);
@@ -38,9 +58,98 @@ public class SearchUtil {
             for (int i = 1; i < matcher.groupCount(); i += 2) {
                 String fname = matcher.group(i);
                 String fvalue = matcher.group(i + 1).trim();
-                ret.put(fname, fvalue);
+                ret.add(new String[]{fname, fvalue});
             }
         }
         return ret;
     }
+
+    public static List<String> getFieldNames(String lukeUrl) throws Exception {
+        List<String> fieldNames = new ArrayList<String>();
+        Client client = Client.create();
+        WebResource resource = client.resource(lukeUrl);
+        ClientResponse response = resource.get(ClientResponse.class);
+        int status = response.getStatus();
+        if (status != 200) {
+            throw new Exception("There was a problem querying " + lukeUrl);
+        }
+        String xml = response.getEntity(String.class);
+        Document doc = new Builder(false).build(xml, null);
+        Nodes nodes = doc.query("/response/lst[@name='fields']");
+        if (nodes.size() > 0) {
+            Node node = nodes.get(0);
+            for (int i = 0; i < node.getChildCount(); i++) {
+                Node n = node.getChild(i);
+                String name = ((Element) n).getAttribute("name").getValue();
+                if (name.endsWith("text")) continue;
+
+                // otherwise see if the field is of the desired type
+                Node tnode = n.query("str[@name='type']").get(0);
+                if (tnode.getValue().equals("tfloat") ||
+                        tnode.getValue().equals("tint") ||
+                        tnode.getValue().equals("date")) continue;
+                fieldNames.add(name);
+            }
+        }
+        client.destroy();
+        return fieldNames;
+    }
+
+
+    /**
+     *
+     * @param url The Solr URL (including relevant core)
+     * @param fields The fields to consider
+     * @param q The query. It is assumed to be a complete regex
+     * @param n The number of suggestions desired
+     * @return
+     * @throws MalformedURLException
+     * @throws SolrServerException
+     */
+    public static Map<String, List<String>> getTerms(String url, String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
+        SolrServer solr = new CommonsHttpSolrServer(url);
+        SolrQuery query = new SolrQuery();
+        query.setParam(CommonParams.QT, "/terms");
+        query.setParam(TermsParams.TERMS, true);
+        query.setParam(TermsParams.TERMS_LIMIT, String.valueOf(n));
+        query.setParam(TermsParams.TERMS_FIELD, fields);
+        query.setParam(TermsParams.TERMS_REGEXP_FLAG, "case_insensitive");
+        query.setParam(TermsParams.TERMS_REGEXP_STR, q);
+
+        QueryResponse response = solr.query(query);
+        TermsResponse termsr = response.getTermsResponse();
+
+        Map<String, List<String>> termMap = new HashMap<String, List<String>>();
+        for (String field : fields) {
+            List<TermsResponse.Term> terms = termsr.getTerms(field);
+            if (terms != null) {
+                List<String> l = new ArrayList<String>();
+                for (TermsResponse.Term term : terms) l.add(term.getTerm());
+                if (l.size() > 0) termMap.put(field, l);
+            }
+        }
+        return termMap;
+    }
+
+    public static void main(String[] args) throws Exception {
+        SolrServer solr = new CommonsHttpSolrServer("http://protease.nhgri.nih.gov/servlet/solr/core-assay/");
+
+        SolrQuery query = new SolrQuery();
+        query.setParam(CommonParams.QT, "/terms");
+        query.setParam(TermsParams.TERMS, true);
+        query.setParam(TermsParams.TERMS_LIMIT, String.valueOf(10));
+        query.setParam(TermsParams.TERMS_FIELD, "gobp_term");  // or whatever fields you want
+        query.setParam(TermsParams.TERMS_REGEXP_FLAG, "case_insensitive");
+        query.setParam(TermsParams.TERMS_REGEXP_STR, "dna re.*");
+
+        QueryResponse response = solr.query(query);
+        System.out.println("response = " + response);
+        TermsResponse termsr = response.getTermsResponse();
+        System.out.println("termsr = " + termsr);
+        List<TermsResponse.Term> terms = termsr.getTerms("gobp_term");
+        System.out.println("terms.size() = " + terms.size());
+        for (TermsResponse.Term term : terms) System.out.println("term.getTerm() = " + term.getTerm());
+    }
+
+
 }

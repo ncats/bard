@@ -1,8 +1,6 @@
 package gov.nih.ncgc.bard.search;
 
 import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.tools.DBUtils;
-
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -24,9 +22,9 @@ import java.util.Map;
  * @author Rajarshi Guha
  */
 public class CompoundSearch extends SolrSearch {
-    private final String SOLR_URL = SOLR_BASE + "/core-compound/";
     private final String HL_FIELD = "text";
     private final String PKEY_COMPOUND_DOC = "cid";
+    private final String CORE_NAME = "/core-compound/";
 
     Logger log;
     String[] facetNames = {"COLLECTION", "mw", "tpsa", "xlogp"};
@@ -36,11 +34,19 @@ public class CompoundSearch extends SolrSearch {
         log = LoggerFactory.getLogger(this.getClass());
     }
 
+    public List<String> getFieldNames() throws Exception {
+        return SearchUtil.getFieldNames(getSolrURL() + CORE_NAME + "admin/luke?numTerms=0");
+    }
+
+    public Map<String, List<String>> suggest(String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
+        return SearchUtil.getTerms(getSolrURL() + CORE_NAME, fields, q+".*", n);
+    }
+
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
         results = new SearchResult();
 
         SolrServer solr = null;
-        solr = new CommonsHttpSolrServer (getSolrURL()+"/core-compound/");
+        solr = new CommonsHttpSolrServer(getSolrURL() + CORE_NAME);
 
         QueryResponse response = null;
 
@@ -114,9 +120,8 @@ public class CompoundSearch extends SolrSearch {
                     long cid = Long.parseLong(id.toString());
                     cids.add(cid);
                 }
-            }
-            catch (Exception ex) {
-                log.warn("** Bogus cid "+id);
+            } catch (Exception ex) {
+                log.warn("** Bogus cid " + id);
             }
         }
         long end = System.currentTimeMillis();
@@ -129,23 +134,13 @@ public class CompoundSearch extends SolrSearch {
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
 
-        DBUtils db = new DBUtils ();
         try {
-            String etag = db.newETag(query, Compound.class.getName());
-            db.putETag(etag, cids.toArray(new Long[0]));
+            String etag = putEtag(cids, Compound.class);
             results.setETag(etag);
+        } catch (Exception e) {
+            log.error("Can't process ETag", e);
         }
-        catch (Exception ex) {
-            log.error("Can't process ETag", ex);
-        }
-        finally {
-            try {
-                db.closeConnection();
-            }
-            catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
+
         results.setDocs(ret);
         results.setMetaData(meta);
     }

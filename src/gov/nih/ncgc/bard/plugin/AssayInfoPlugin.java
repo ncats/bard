@@ -101,7 +101,7 @@ public class AssayInfoPlugin implements IPlugin {
         List<String> paths = Util.getResourcePaths(this.getClass());
         String[] ret = new String[paths.size()];
         for (int i = 0; i < paths.size(); i++)
-            ret[i] = BARDConstants.API_BASE + "plugins/" + paths.get(i);
+            ret[i] = BARDConstants.API_BASE + paths.get(i);
         return ret;
     }
 }

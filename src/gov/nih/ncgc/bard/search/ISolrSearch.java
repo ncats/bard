@@ -4,6 +4,7 @@ import org.apache.solr.client.solrj.SolrServerException;
 
 import java.net.MalformedURLException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * An interface that classes supporting Solr search will implement.
@@ -22,4 +23,10 @@ public interface ISolrSearch {
     public SearchResult getSearchResults();
 
     public String getQuery();
+    
+    public void setSolrURL(String url);
+    
+    public List<String> getFieldNames() throws Exception;
+    
+    public Map<String, List<String>> suggest(String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException;
 }

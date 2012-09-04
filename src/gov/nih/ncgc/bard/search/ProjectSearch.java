@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.search;
 
+import gov.nih.ncgc.bard.entity.Project;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -20,9 +21,9 @@ import java.util.Map;
  * @author Rajarshi Guha
  */
 public class ProjectSearch extends SolrSearch {
-    //private final String SOLR_URL = SOLR_BASE + "/core-project/";
     private final String HL_FIELD = "text";
     private final String PKEY_PROJECT_DOC = "proj_id";
+    private final String CORE_NAME = "/core-project/";
 
 
     Logger log;
@@ -34,11 +35,20 @@ public class ProjectSearch extends SolrSearch {
         log = LoggerFactory.getLogger(this.getClass());
     }
 
+    public List<String> getFieldNames() throws Exception {
+        return SearchUtil.getFieldNames(getSolrURL() + CORE_NAME + "admin/luke?numTerms=0");
+    }
+
+    public Map<String, List<String>> suggest(String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
+        return SearchUtil.getTerms(getSolrURL() + CORE_NAME, fields, q+".*", n);
+    }
+
+
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
         results = new SearchResult();
 
         SolrServer solr = null;
-        solr = new CommonsHttpSolrServer(getSolrURL()+"/core-project/");
+        solr = new CommonsHttpSolrServer(getSolrURL() + CORE_NAME);
 
         QueryResponse response = null;
 
@@ -74,8 +84,9 @@ public class ProjectSearch extends SolrSearch {
         }
 
         // TODO in the future facet on project annotations
+        List<Long> projIds = new ArrayList<Long>();
         for (SolrDocument doc : docs) {
-
+            projIds.add(Long.parseLong((String) doc.getFieldValue("proj_id")));
 //            Collection<Object> keys = doc.getFieldValues("ak_dict_label");
 //            Collection<Object> values = doc.getFieldValues("av_dict_label");
 //            if (keys == null || values == null) continue;
@@ -100,6 +111,13 @@ public class ProjectSearch extends SolrSearch {
         SearchMeta meta = new SearchMeta();
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
+
+        try {
+            String etag = putEtag(projIds, Project.class);
+            results.setETag(etag);
+        } catch (Exception e) {
+            log.error("Can't process ETag", e);
+        }
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
