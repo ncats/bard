@@ -27,7 +27,6 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -63,7 +62,9 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
 
-    public Class<Compound> getEntityClass () { return Compound.class; }
+    public Class<Compound> getEntityClass() {
+        return Compound.class;
+    }
 
     @GET
     @Produces("text/plain")
@@ -131,7 +132,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             // examine the filter argument to see if we should do a structure search
             if (filter.indexOf("[structure]") > 0) filter = filter.trim().replace("[structure]", "");
             else
-                throw new WebApplicationException(new Exception("Currently filter only supports structure searches"), 400);
+                throw new BadRequestException("Currently filter only supports structure searches");
 
             SearchService2 search = null;
             try {
@@ -152,10 +153,10 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                         try {
                             params.setSimilarity(cutoff);
                         } catch (NumberFormatException e) {
-                            throw new WebApplicationException(new Exception("Bogus similarity value specified"), 400);
+                            throw new BadRequestException("Bogus similarity value specified");
                         }
                     } else
-                        throw new WebApplicationException(new Exception("If similarity search is requested must specify the cutoff"), 400);
+                        throw new BadRequestException("If similarity search is requested must specify the cutoff");
                 } else if (type.startsWith("exact")) {
                     params = SearchParams.exact();
                 } else {
@@ -189,7 +190,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 }
 
                 Long[] ids = cids.toArray(new Long[0]);
-                EntityTag etag = newETag (db, ids);
+                EntityTag etag = newETag(db, ids);
 
 //                List<Long> cids = handler.getCids();
                 if (expandEntries) {
@@ -216,10 +217,18 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
         List<String> validTypes = Arrays.asList("cid", "sid", "probeid", "name");
 
-        boolean isIdList = id.indexOf(",") >= 0;
+        boolean isIdList = id.contains(",");
 
         if (!validTypes.contains(type)) return null;
         List<Compound> c = new ArrayList<Compound>();
+
+        if (type.equals("cid") || type.equals("sid")) {
+            try {
+                Long.parseLong(id);
+            } catch (NumberFormatException e) {
+                throw new BadRequestException("Invalid format for a CID or SID");
+            }
+        }
 
         try {
             if (!isIdList) {
@@ -242,7 +251,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             if (countRequested) return Response.ok(String.valueOf(c.size()), MediaType.TEXT_PLAIN).build();
 
             Long[] ids = new Long[c.size()];
-            EntityTag etag = newETag (db, ids);
+            EntityTag etag = newETag(db, ids);
 
             if (mediaTypes.contains(BARDConstants.MIME_SMILES)) {
                 StringBuilder s = new StringBuilder();
@@ -289,10 +298,10 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         }
     }
 
-    EntityTag newETag (DBUtils db, Long... ids) throws SQLException {
+    EntityTag newETag(DBUtils db, Long... ids) throws SQLException {
         EntityTag etag = new EntityTag
-            (db.newETag(getRequestURI(), Compound.class.getName()));
-        
+                (db.newETag(getRequestURI(), Compound.class.getName()));
+
         int cnt = db.putETag(etag.getValue(), ids);
         log("** ETag: " + etag.getValue() + " " + cnt);
 
@@ -302,10 +311,10 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             parents.add(e.getValue());
             log(" ** Updating " + e.getValue() + ": " + cnt);
         }
-        
+
         if (!parents.isEmpty()) {
-            db.createETagLinks(etag.getValue(), 
-                               parents.toArray(new String[0]));
+            db.createETagLinks(etag.getValue(),
+                    parents.toArray(new String[0]));
         }
         return etag;
     }
