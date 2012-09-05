@@ -26,7 +26,7 @@ public class CompoundSearch extends SolrSearch {
     private final String PKEY_COMPOUND_DOC = "cid";
 
     Logger log;
-    String[] facetNames = {"COLLECTION", "mw", "tpsa", "xlogp"};
+    String[] facetNames = {"collection", "mw", "tpsa", "xlogp"};
 
     public CompoundSearch(String query) {
         super(query);
