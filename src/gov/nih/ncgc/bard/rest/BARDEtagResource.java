@@ -37,8 +37,6 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
         return "Interact with etag data";
     }
 
-    @GET
-    @Path("/")
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("expand") String expand, @QueryParam("skip") Integer skip, @QueryParam("top") Integer top) {
         DBUtils db = new DBUtils();
         Response response = null;
