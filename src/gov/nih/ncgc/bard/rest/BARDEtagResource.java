@@ -1,7 +1,7 @@
 package gov.nih.ncgc.bard.rest;
 
-import gov.nih.ncgc.bard.entity.ETag;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
+import gov.nih.ncgc.bard.entity.ETag;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -95,6 +95,24 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
     @GET
     @Path("/{etag}/_info")
     public Response getEtagInfo(@PathParam("etag") String etagId) {
+        DBUtils db = new DBUtils();
+        try {
+            ETag etag = db.getEtagByEtagId(etagId);
+            return Response.ok(Util.toJson(etag), MediaType.APPLICATION_JSON).build();
+        } catch (Exception ex) {
+            throw new WebApplicationException(ex, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @GET
+    @Path("/{etag}")
+    public Response getEtag(@PathParam("etag") String etagId) {
         DBUtils db = new DBUtils();
         try {
             Map info = db.getETagInfo(etagId);

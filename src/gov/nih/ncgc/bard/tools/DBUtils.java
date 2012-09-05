@@ -568,9 +568,7 @@ public class DBUtils {
     }
 
     public ETag getEtagByEtagId(String id) throws SQLException {
-        PreparedStatement pst = conn.prepareStatement
-                ("select a.*,count(*) as count from etag a, etag_data b "
-                        + "where a.etag_id = ? and a.etag_id = b.etag_id");
+        PreparedStatement pst = conn.prepareStatement("select a.*, count(*) from etag a, etag_data b where a.etag_id = ? and a.etag_id = b.etag_id");
         ETag etag = new ETag();
         try {
             pst.setString(1, id);
@@ -591,7 +589,7 @@ public class DBUtils {
             ResultSet rs2 = pst2.executeQuery();
             List<ETag> linkedTags = new ArrayList<ETag>();
             while (rs2.next()) {
-                ETag linkedTag = new ETag(rs2.getString("etag_id"));
+                ETag linkedTag = getEtagByEtagId(rs2.getString("etag_id"));
                 if (linkedTag.getEtag() != null) linkedTags.add(linkedTag);
             }
             etag.setLinkedTags(linkedTags);
