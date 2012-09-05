@@ -384,6 +384,7 @@ public class DBUtils {
         return cmpds;
     }
 
+
     public String newETag(String name, String clazz) throws SQLException {
         if (clazz == null) {
             throw new IllegalArgumentException("Please specify the class!");
@@ -744,8 +745,15 @@ public class DBUtils {
         return facets;
     }
 
-    public List<Compound> getCompoundsByETags
-            (int skip, int top, String... etags) throws SQLException {
+    public List<Compound> getCompoundsByETag
+            (int skip, int top, String etag) throws SQLException {
+
+        Map info = getETagInfo (etag);
+        if (!Compound.class.getName().equals(info.get("type"))) {
+            throw new IllegalArgumentException
+                ("ETag "+etag+" is of type "+Compound.class.getName());
+        }
+
         List<Compound> compounds = new ArrayList<Compound>();
         StringBuilder sql = new StringBuilder
                 ("select c.*,d.* from compound c, compound_props d, etag e1, "
@@ -765,26 +773,24 @@ public class DBUtils {
         try {
             pst1.setString(2, Compound.class.getName());
             Set<Long> unique = new HashSet<Long>();
-            for (String e : etags) {
-                pst1.setString(1, e);
+            pst1.setString(1, etag);
 
-                ResultSet rs = pst1.executeQuery();
-                while (rs.next()) {
-                    Long cid = rs.getLong("cid");
-                    if (!unique.contains(cid)) {
-                        unique.add(cid);
-
-                        Compound c = new Compound();
-                        compounds.add(c);
-
-                        c.setCid(cid);
-                        fillCompound(rs, c);
-                    }
+            ResultSet rs = pst1.executeQuery();
+            while (rs.next()) {
+                Long cid = rs.getLong("cid");
+                if (!unique.contains(cid)) {
+                    unique.add(cid);
+                    
+                    Compound c = new Compound();
+                    compounds.add(c);
+                    
+                    c.setCid(cid);
+                    fillCompound(rs, c);
                 }
-                rs.close();
-                touchETag(e);
             }
+            rs.close();
 
+            touchETag(etag);            
             for (Compound c : compounds) {
                 c.setSids(getSidsByCid(c.getCid()));
             }
@@ -909,65 +915,58 @@ public class DBUtils {
         (int skip, int top, Long eid, String etag) 
         throws SQLException, IOException {
         List<ExperimentData> data = new ArrayList<ExperimentData>();
-        PreparedStatement pst = conn.prepareStatement
-            ("select * from etag where etag_id = ?");
-        try {
-            pst.setString(1, etag);
-            ResultSet rs = pst.executeQuery();
-            StringBuilder sql = null;
-            if (rs.next()) {
-                String type = rs.getString("type");
-                log.info("## ETag="+etag+" type="+type);
-                if (type != null) {
-                    if (type.equals(Compound.class.getName())) {
-                        sql = new StringBuilder
-                            ("select * from experiment_data a, "
-                             +"experiment_result b, experiment c, "
-                             +"etag_data d where a.eid = ? and "
-                             +"d.etag_id = ? and "
-                             +"a.cid = d.data_id and "
-                             +"a.expt_data_id = b.expt_data_id and "
-                             +"a.eid = c.expt_id order by d.index");
-                    }
-                    else if (type.equals(Substance.class.getName())) {
-                        sql = new StringBuilder
-                            ("select * from experiment_data a, "
-                             +"experiment_result b, experiment c, "
-                             +"etag_data d where a.eid = ? and "
-                             +"d.etag_id = ? and "
-                             +"a.sid = d.data_id and "
-                             +"a.expt_data_id = b.expt_data_id and "
-                             +"a.eid = c.expt_id order by d.index");
-                    }
-                    else {
-                        log.error("Can't retrieve experiment data for etag of type: "+type);
-                    }
-                }
-                else {
-                    log.error("** ETag has no type: "+etag);
-                }
+
+        Map info = getETagInfo (etag);
+        String type = (String)info.get("type");
+
+        log.info("## ETag="+etag+" info="+info);
+        StringBuilder sql = null;
+        if (type != null) {
+            if (type.equals(Compound.class.getName())) {
+                sql = new StringBuilder
+                    ("select * from experiment_data a, "
+                     +"experiment_result b, experiment c, "
+                     +"etag_data d where a.eid = ? and "
+                     +"d.etag_id = ? and "
+                     +"a.cid = d.data_id and "
+                     +"a.expt_data_id = b.expt_data_id and "
+                     +"a.eid = c.expt_id order by d.index");
+            }
+            else if (type.equals(Substance.class.getName())) {
+                sql = new StringBuilder
+                    ("select * from experiment_data a, "
+                     +"experiment_result b, experiment c, "
+                     +"etag_data d where a.eid = ? and "
+                     +"d.etag_id = ? and "
+                     +"a.sid = d.data_id and "
+                     +"a.expt_data_id = b.expt_data_id and "
+                     +"a.eid = c.expt_id order by d.index");
             }
             else {
-                log.error("Invalid ETag "+etag);
+                log.error("Can't retrieve experiment data "
+                          +"for etag of type: "+type);
             }
-            rs.close();
+        }
+        else {
+            log.error("Invalid ETag "+etag);
+        }
+        
+        if (sql == null) {
+            return data;
+        }
 
-            if (sql == null) {
-                return data;
-            }
-            pst.close();
+        if (skip >= 0 && top > 0) {
+            sql.append(" limit " + skip + "," + top);
+        }
+        else if (top > 0) {
+            sql.append(" limit " + top);
+        }
 
-            if (skip >= 0 && top > 0) {
-                sql.append(" limit " + skip + "," + top);
-            }
-            else if (top > 0) {
-                sql.append(" limit " + top);
-            }
-
-            pst = conn.prepareStatement(sql.toString());
+        PreparedStatement pst = conn.prepareStatement(sql.toString());        
+        try {
             pst.setLong(1, eid);
             pst.setString(2, etag);
-            rs = pst.executeQuery();
+            ResultSet rs = pst.executeQuery();
             while (rs.next()) {
                 ExperimentData ed = getExperimentData (rs);
                 ed.setExptDataId(ed.getEid()+"."+ed.getSid());
@@ -978,6 +977,7 @@ public class DBUtils {
         finally {
             pst.close();
         }
+
         return data;
     }
 
@@ -1151,7 +1151,11 @@ public class DBUtils {
 
     public List<Assay> getAssaysByETag(int skip, int top, String etag)
             throws SQLException {
-        if (etag == null) return null;
+        Map info = getETagInfo (etag);
+        if (!Assay.class.getName().equals(info.get("type"))) {
+            throw new IllegalArgumentException
+                ("ETag "+etag+" not of type "+Assay.class.getName());
+        }
 
         StringBuilder sql = new StringBuilder
                 ("select a.* from assay a, etag_data e where etag_id = ? "

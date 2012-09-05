@@ -463,7 +463,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                                       @QueryParam("top") Integer top) {
         DBUtils db = new DBUtils();
         try {
-            List<Compound> c = db.getCompoundsByETags
+            List<Compound> c = db.getCompoundsByETag
                     (skip != null ? skip : -1, top != null ? top : -1, resourceId);
             String json = toJson(db, c, expand != null
                     && expand.toLowerCase().equals("true"));

@@ -171,6 +171,14 @@ public abstract class BARDResource<T extends BardEntity>
                     ("No \"ids\" param specified!");
             }
 
+            // check to make sure the correct type
+            Map info = db.getETagInfo(etag);
+            if (!getEntityClass().getName().equals(info.get("type"))) {
+                throw new WebApplicationException
+                    (new IllegalArgumentException 
+                     ("ETag "+etag+" is not of type "+getEntityClass()), 500);
+            }
+
             List<Long> list = new ArrayList<Long>();
             for (String id : ids.split("[,;\\s]")) {
                 try {
@@ -195,7 +203,7 @@ public abstract class BARDResource<T extends BardEntity>
     }
 
     @GET
-    @Path("/etag/{etag}/info")
+    @Path("/etag/{etag}/_info")
     public Response getETagInfo (@PathParam("etag") String resourceId) {
         DBUtils db = new DBUtils();
         try {
