@@ -170,10 +170,18 @@ public class Util {
     static public SearchService2 getSearchService() throws Exception {
         try {
             InitialContext ctx = new InitialContext();
-            Context env = (Context) ctx.lookup("java:/comp/env");
-            return (SearchService2) env.lookup("bard/structure-search");
-        } catch (Exception ex) {
-            throw new Exception("Can't get the search service");
+            return (SearchService2) ctx.lookup
+                ("java:comp/env/bard/structure-search");
+        } 
+        catch (Exception ex) {
+            try {
+                InitialContext ctx = new InitialContext();
+                return (SearchService2) ctx.lookup("bard/structure-search");
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                throw new Exception("Can't get the search service");
+            }
         }
     }
 
@@ -186,11 +194,18 @@ public class Util {
     static public MoleculeService getMoleculeService() throws Exception {
         try {
             InitialContext ctx = new InitialContext();
-            Context env = (Context) ctx.lookup("java:/comp/env");
-            return (MoleculeService) env.lookup("bard/structure-search");
-        } catch (Exception ex) {
-            throw new Exception("Can't get the search service");
+            return (MoleculeService) ctx.lookup
+                ("java:comp/env/bard/structure-search");
+        } 
+        catch (Exception ex) {
+            try {
+                InitialContext ctx = new InitialContext();
+                return (MoleculeService) ctx.lookup("bard/structure-search");
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                throw new Exception("Can't get the search service");
+            }
         }
     }
-
 }

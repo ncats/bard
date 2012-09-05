@@ -145,7 +145,7 @@ public class BARDExperimentDataResource implements IBARDResource {
             if (experimentData == null || experimentData.getExptDataId() == null)
                 throw new WebApplicationException(404);
 
-            experimentData.transform();
+            //experimentData.transform();
             if (tokens.length == 2) {
                 String json = Util.toJson(experimentData);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();

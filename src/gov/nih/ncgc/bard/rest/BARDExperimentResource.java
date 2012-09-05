@@ -37,7 +37,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/experiments")
-public class BARDExperimentResource extends BARDResource {
+public class BARDExperimentResource extends BARDResource<Experiment> {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -49,6 +49,7 @@ public class BARDExperimentResource extends BARDResource {
     @Context
     HttpHeaders headers;
 
+    public Class<Experiment> getEntityClass () { return Experiment.class; }
 
     @GET
     @Produces("text/plain")
@@ -367,7 +368,7 @@ public class BARDExperimentResource extends BARDResource {
                 json = Util.toJson(linkedEntity);
             } else {
                 List<ExperimentData> data = db.getExperimentData(Long.valueOf(resourceId), skip, top);
-                for (ExperimentData d : data) d.transform();
+                //for (ExperimentData d : data) d.transform();
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
                 json = Util.toJson(linkedEntity);
             }
@@ -379,6 +380,25 @@ public class BARDExperimentResource extends BARDResource {
         } catch (IOException e) {
             db.closeConnection();
             throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
+    @Path("/{eid}/etag/{etag}/exptdata")
+    public Response getExperimentDataETag(@PathParam("eid") Long eid,
+                                          @PathParam("etag") String etag,
+                                          @QueryParam("skip") Integer skip,
+                                          @QueryParam("top") Integer top) 
+        throws SQLException, IOException {
+        DBUtils db = new DBUtils ();
+        try {
+            List<ExperimentData> data = db.getExperimentDataByETag
+                (skip != null ? skip : -1, top != null ? top : -1, eid, etag);
+            return Response.ok(Util.toJson(data), 
+                               MediaType.APPLICATION_JSON).build();
+        }
+        finally {
+            db.closeConnection();
         }
     }
 }

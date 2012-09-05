@@ -53,7 +53,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/assays")
-public class BARDAssayResource extends BARDResource {
+public class BARDAssayResource extends BARDResource<Assay> {
     Logger log;
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
@@ -69,6 +69,8 @@ public class BARDAssayResource extends BARDResource {
     public BARDAssayResource() {
         log = LoggerFactory.getLogger(this.getClass());
     }
+
+    public Class<Assay> getEntityClass () { return Assay.class; }
 
     @GET
     @Produces("text/plain")
@@ -452,13 +454,14 @@ public class BARDAssayResource extends BARDResource {
         return mapper.writeValueAsString(array);        
     }
 
+    @Override
     @GET
     @Path("/etag/{etag}")
-    public Response getAssaysByETag(@PathParam("etag") String resourceId,
-                                    @QueryParam("filter") String filter,
-                                    @QueryParam("expand") String expand,
-                                    @QueryParam("skip") Integer skip,
-                                    @QueryParam("top") Integer top) {
+    public Response getEntitiesByETag(@PathParam("etag") String resourceId,
+                                      @QueryParam("filter") String filter,
+                                      @QueryParam("expand") String expand,
+                                      @QueryParam("skip") Integer skip,
+                                      @QueryParam("top") Integer top) {
         DBUtils db = new DBUtils();
         try {
             List<Assay> assays = db.getAssaysByETag
@@ -471,26 +474,6 @@ public class BARDAssayResource extends BARDResource {
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (Exception e) {
             throw new WebApplicationException(e, 500);
-        } finally {
-            try {
-                db.closeConnection();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
-    }
-
-    // this method should be in BARDResource!
-    @GET
-    @Path("/etag/{etag}/info")
-    public Response getETagInfo(@PathParam("etag") String resourceId) {
-        DBUtils db = new DBUtils();
-        try {
-            java.util.Map info = db.getETagInfo(resourceId);
-            return Response.ok(Util.toJson(info),
-                    MediaType.APPLICATION_JSON).build();
-        } catch (Exception ex) {
-            throw new WebApplicationException(ex, 500);
         } finally {
             try {
                 db.closeConnection();

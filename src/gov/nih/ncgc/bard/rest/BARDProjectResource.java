@@ -33,10 +33,12 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/projects")
-public class BARDProjectResource extends BARDResource {
+public class BARDProjectResource extends BARDResource<Project> {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
+
+    public Class<Project> getEntityClass () { return Project.class; }
 
     @GET
     @Produces("text/plain")

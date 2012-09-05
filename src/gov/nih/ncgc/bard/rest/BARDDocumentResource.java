@@ -27,10 +27,12 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/documents")
-public class BARDDocumentResource extends BARDResource {
+public class BARDDocumentResource extends BARDResource<Publication> {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
+
+    public Class<Publication> getEntityClass () { return Publication.class; }
 
     @GET
     @Produces("text/plain")
@@ -139,5 +141,4 @@ public class BARDDocumentResource extends BARDResource {
             throw new WebApplicationException(500);
         }
     }
-
 }

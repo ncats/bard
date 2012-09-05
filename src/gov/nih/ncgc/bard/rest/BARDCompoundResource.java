@@ -58,10 +58,12 @@ import java.util.Map;
  * @author Rajarshi Guha
  */
 @Path("/compounds")
-public class BARDCompoundResource extends BARDResource {
+public class BARDCompoundResource extends BARDResource<Compound> {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
+
+    public Class<Compound> getEntityClass () { return Compound.class; }
 
     @GET
     @Produces("text/plain")
@@ -451,13 +453,14 @@ public class BARDCompoundResource extends BARDResource {
         }
     }
 
+    @Override
     @GET
     @Path("/etag/{etag}")
-    public Response getCompoundsByETag(@PathParam("etag") String resourceId,
-                                       @QueryParam("filter") String filter,
-                                       @QueryParam("expand") String expand,
-                                       @QueryParam("skip") Integer skip,
-                                       @QueryParam("top") Integer top) {
+    public Response getEntitiesByETag(@PathParam("etag") String resourceId,
+                                      @QueryParam("filter") String filter,
+                                      @QueryParam("expand") String expand,
+                                      @QueryParam("skip") Integer skip,
+                                      @QueryParam("top") Integer top) {
         DBUtils db = new DBUtils();
         try {
             List<Compound> c = db.getCompoundsByETags
@@ -477,104 +480,7 @@ public class BARDCompoundResource extends BARDResource {
         }
     }
 
-    @POST
-    @Path("/etag")
-    @Consumes("application/x-www-form-urlencoded")
-    public Response createETag(@FormParam("name") String name,
-                               @FormParam("ids") String ids) {
-        DBUtils db = new DBUtils();
-        try {
-            if (name == null) {
-                throw new IllegalArgumentException
-                    ("No \"name\" specified!");
-            }
-
-            EntityTag etag = new EntityTag 
-                (db.newETag(name, Compound.class.getName()));
-
-            if (ids != null) {
-                List<Long> list = new ArrayList<Long>();
-                for (String id : ids.split("[,;\\s]")) {
-                    try {
-                        list.add(Long.parseLong(id));
-                    }
-                    catch (NumberFormatException ex) {
-                    }
-                }
-                int cnt = db.putETag
-                    (etag.getValue(), list.toArray(new Long[0]));
-
-                log ("** New ETag: "+etag.getValue()+" \""+name+"\" "+cnt);
-            }
-            else {
-                log ("** New ETag: "+etag.getValue()+" \""+name+"\"");
-            }
-
-            return Response.ok().tag(etag).build();
-        }
-        catch (Exception ex) {
-            throw new WebApplicationException(ex, 500);            
-        }
-        finally {
-            try { db.closeConnection(); }
-            catch (Exception ex) { ex.printStackTrace(); }
-        }
-    }
-
-    @PUT
-    @Path("/etag/{etag}")
-    @Consumes("application/x-www-form-urlencoded")
-    public Response putETag (@PathParam("etag") String etag,
-                             @FormParam("ids") String ids) {
-        DBUtils db = new DBUtils();
-        try {
-            if (ids == null) {
-                throw new IllegalArgumentException
-                    ("No \"ids\" param specified!");
-            }
-
-            List<Long> list = new ArrayList<Long>();
-            for (String id : ids.split("[,;\\s]")) {
-                try {
-                    list.add(Long.parseLong(id));
-                }
-                catch (NumberFormatException ex) {
-                }
-            }
-            int cnt = db.putETag(etag, list.toArray(new Long[0]));
-            log ("** put ETag: "+etag+" "+cnt);
-
-            return Response.ok(String.valueOf(cnt), "text/plain")
-                .tag(etag).build();
-        }
-        catch (Exception ex) {
-            throw new WebApplicationException(ex, 500);            
-        }
-        finally {
-            try { db.closeConnection(); }
-            catch (Exception ex) { ex.printStackTrace(); }
-        }
-    }
-
-    @GET
-    @Path("/etag/{etag}/info")
-    public Response getETagInfo(@PathParam("etag") String resourceId) {
-        DBUtils db = new DBUtils();
-        try {
-            Map info = db.getETagInfo(resourceId);
-            return Response.ok(Util.toJson(info),
-                    MediaType.APPLICATION_JSON).build();
-        } catch (Exception ex) {
-            throw new WebApplicationException(ex, 500);
-        } finally {
-            try {
-                db.closeConnection();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
-    }
-
+    @Override
     @GET
     @Path("/etag/{etag}/facets")
     public Response getFacets(@PathParam("etag") String resourceId) {

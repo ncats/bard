@@ -19,8 +19,12 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.EntityTag;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
@@ -32,6 +36,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import javax.servlet.ServletContext;
+
+import gov.nih.ncgc.bard.tools.Util;
 
 /**
  * A resource to expose full-text and faceted search as well as autocomplete suggestions.
@@ -39,11 +46,16 @@ import java.util.concurrent.Future;
  * @author Rajarshi Guha
  */
 @Path("/search")
-public class BARDSearchResource extends BARDResource {
+public class BARDSearchResource implements IBARDResource {
     static final String DEFAULT_SOLR_SERVICE = "http://localhost:8090/solr";
 
     Logger log;
     String solrService;
+    @Context
+    ServletContext servletContext;
+    @Context
+    protected HttpHeaders headers;
+
 
     public BARDSearchResource() {
         log = LoggerFactory.getLogger(this.getClass());
@@ -51,7 +63,7 @@ public class BARDSearchResource extends BARDResource {
 
     synchronized public String getSolrService() {
         if (solrService == null) {
-            solrService = getServletContext().getInitParameter("solr-server");
+            solrService = servletContext.getInitParameter("solr-server");
             if (solrService == null) {
                 log.warn("No solr_server specified; using default value!");
                 solrService = DEFAULT_SOLR_SERVICE;
@@ -357,7 +369,7 @@ public class BARDSearchResource extends BARDResource {
         cs.setSolrURL(getSolrService());
         SearchResult s = doSearch(cs, skip, top, expand, filter);
 
-        if (countRequested)
+        if (Util.countRequested(headers))
             return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
@@ -374,7 +386,7 @@ public class BARDSearchResource extends BARDResource {
         as.setSolrURL(getSolrService());
         SearchResult s = doSearch(as, skip, top, expand, filter);
 
-        if (countRequested)
+        if (Util.countRequested(headers))
             return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
@@ -390,8 +402,7 @@ public class BARDSearchResource extends BARDResource {
         ProjectSearch ps = new ProjectSearch(q);
         ps.setSolrURL(getSolrService());
         SearchResult s = doSearch(ps, skip, top, expand, filter);
-
-        if (countRequested)
+        if (Util.countRequested(headers))
             return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
