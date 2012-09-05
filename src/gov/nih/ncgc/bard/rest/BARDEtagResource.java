@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.ETag;
 import gov.nih.ncgc.bard.tools.DBUtils;
@@ -16,7 +17,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A one line summary.
@@ -115,9 +115,11 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
     public Response getEtag(@PathParam("etag") String etagId) {
         DBUtils db = new DBUtils();
         try {
-            Map info = db.getETagInfo(etagId);
-            return Response.ok(Util.toJson(info),
-                    MediaType.APPLICATION_JSON).build();
+            ETag etag = db.getEtagByEtagId(etagId);
+            List entities = db.getEntitiesByEtag(etag.getEtag(), 0, 0);
+            if (entities == null || entities.size() == 0)
+                throw new NotFoundException("No objects associated with etag " + etagId);
+            return Response.ok(Util.toJson(entities), MediaType.APPLICATION_JSON).build();
         } catch (Exception ex) {
             throw new WebApplicationException(ex, 500);
         } finally {

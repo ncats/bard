@@ -2107,6 +2107,20 @@ public class DBUtils {
         return entities;
     }
 
+    public <T extends BardEntity> List<T> getEntitiesByEtag(String etag, int skip, int top) throws SQLException {
+        return getEntitiesByEtag(getEtagByEtagId(etag), skip, top);
+    }
+
+    public <T extends BardEntity> List<T> getEntitiesByEtag(ETag etag, int skip, int top) throws SQLException {
+        List<T> entities = new ArrayList<T>();
+        if (Assay.class.getName().equals(etag.getType()))
+            entities = (List<T>) getAssaysByETag(skip, top, etag.getEtag());
+        else if (Compound.class.getName().equals(etag.getType()))
+            entities = (List<T>) getCompoundsByETag(skip, top, etag.getEtag());
+        return entities;
+    }
+
+
     /**
      * **********************************************************************
      * <p/>
