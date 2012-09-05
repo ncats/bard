@@ -3,6 +3,7 @@ package gov.nih.ncgc.bard.rest;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.tools.DBUtils;
@@ -188,9 +189,15 @@ public class BARDProjectResource extends BARDResource<Project> {
 
     @GET
     @Path("/{id}/experiments")
-    public Response getAssaysForProject(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
+    public Response getExperimentsForProject
+        (@PathParam("id") String resourceId, 
+         @QueryParam("filter") String filter, 
+         @QueryParam("search") String search, 
+         @QueryParam("expand") String expand) {
+
         boolean expandEntries = false;
-        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+        if (expand != null && (expand.toLowerCase().equals("true") 
+                               || expand.toLowerCase().equals("yes")))
             expandEntries = true;
         DBUtils db = new DBUtils();
         try {
@@ -199,10 +206,13 @@ public class BARDProjectResource extends BARDResource<Project> {
             for (Long eid : p.getEids()) e.add(db.getExperimentByExptId(eid));
             String json;
             if (countRequested) json = Util.toJson(e.size());
-            else if (expandEntries) json = Util.toJson(p);
+            else if (expandEntries) {
+                json = Util.toJson(e);
+            }
             else {
                 List<String> links = new ArrayList<String>();
-                for (Experiment experiment : e) links.add(experiment.getResourcePath());
+                for (Experiment experiment : e) 
+                    links.add(experiment.getResourcePath());
                 json = Util.toJson(links);
             }
             db.closeConnection();
@@ -212,6 +222,42 @@ public class BARDProjectResource extends BARDResource<Project> {
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
         }
+    }
+
+    @GET
+    @Path("/{id}/assays")
+    public Response getAssaysForProject
+        (@PathParam("id") String resourceId, 
+         @QueryParam("filter") String filter, 
+         @QueryParam("search") String search, 
+         @QueryParam("expand") String expand) {
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") 
+                               || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+        DBUtils db = new DBUtils();
+        try {
+            Project p = db.getProject(Long.valueOf(resourceId));
+            List<Assay> e = new ArrayList<Assay>();
+            for (Long aid : p.getAids()) e.add(db.getAssayByAid(aid));
+            String json;
+            if (countRequested) json = Util.toJson(e.size());
+            else if (expandEntries) {
+                json = Util.toJson(e);
+            }
+            else {
+                List<String> links = new ArrayList<String>();
+                for (Assay assay : e) 
+                    links.add(assay.getResourcePath());
+                json = Util.toJson(links);
+            }
+            db.closeConnection();
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }        
     }
 
     /**

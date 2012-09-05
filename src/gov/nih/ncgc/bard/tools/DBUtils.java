@@ -1857,6 +1857,23 @@ public class DBUtils {
             pst.close();
         }
 
+        // find assays
+        pst = conn.prepareStatement
+            ("select assay_id from experiment where proj_id = ?");
+        try {
+            List<Long> aids = new ArrayList<Long>();
+            pst.setLong(1, projectId);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                aids.add(rs.getLong(1));
+            }
+            rs.close();
+            p.setAids(aids);
+        }
+        finally {
+            pst.close();
+        }
+
         // find targets; should be project_target table instead?
         pst = conn.prepareStatement("select * from assay_target where aid=?");
         try {
@@ -1872,6 +1889,7 @@ public class DBUtils {
         } finally {
             pst.close();
         }
+
 
         return p;
     }
