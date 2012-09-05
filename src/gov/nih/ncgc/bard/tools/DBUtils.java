@@ -568,7 +568,7 @@ public class DBUtils {
     }
 
     public ETag getEtagByEtagId(String id) throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select a.*, count(*) from etag a, etag_data b where a.etag_id = ? and a.etag_id = b.etag_id");
+        PreparedStatement pst = conn.prepareStatement("select a.*, count(*) as cnt from etag a, etag_data b where a.etag_id = ? and a.etag_id = b.etag_id");
         ETag etag = new ETag();
         try {
             pst.setString(1, id);
@@ -580,6 +580,7 @@ public class DBUtils {
                 etag.setAccessed(rs.getDate("accessed"));
                 etag.setCreated(rs.getDate("created"));
                 etag.setModified(rs.getDate("modified"));
+                etag.setCount(rs.getInt("cnt"));
             }
             rs.close();
 

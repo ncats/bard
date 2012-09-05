@@ -14,6 +14,7 @@ import java.util.List;
 public class ETag implements BardEntity {
     private String etag = null, name, type;
     private Date accessed, created, modified;
+    private int count;
     private List<ETag> linkedTags = new ArrayList<ETag>();
 
 
@@ -47,6 +48,14 @@ public class ETag implements BardEntity {
      * @param resourcePath the resource path for this entity
      */
     public void setResourcePath(String resourcePath) {
+    }
+
+    public int getCount() {
+        return count;
+    }
+
+    public void setCount(int count) {
+        this.count = count;
     }
 
     public List<ETag> getLinkedTags() {
