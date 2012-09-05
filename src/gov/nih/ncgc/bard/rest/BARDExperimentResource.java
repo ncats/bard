@@ -14,10 +14,13 @@ import gov.nih.ncgc.util.functional.IApplyFunction;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -136,6 +139,39 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
             } catch (SQLException e) {
 
             }
+        }
+    }
+
+    @POST
+    @Path("/")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response getResources(@FormParam("ids") String eids, 
+                                 @QueryParam("expand") String expand) 
+        throws SQLException {
+        DBUtils db = new DBUtils ();
+        try {
+            if (eids == null)
+                throw new BadRequestException("POST request must specify the ids form parameter, which should be a comma separated string of experiment IDs");
+            List<Experiment> experiments = new ArrayList<Experiment>();
+            for (String s : eids.split("[,;\\s]")) {
+                try {
+                    Experiment e = db.getExperimentByExptId
+                        (Long.parseLong(s));
+                    experiments.add(e);
+                }
+                catch (NumberFormatException ex) {
+                    // ignore bogus 
+                }
+            }
+
+            return Response.ok(Util.toJson(experiments),
+                               MediaType.APPLICATION_JSON).build();
+        }
+        catch (Exception ex) {
+            throw new WebApplicationException (ex, 500);
+        }            
+        finally {
+            db.closeConnection();
         }
     }
 

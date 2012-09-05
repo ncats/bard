@@ -44,7 +44,8 @@ public class Project implements BardEntity {
     Date updated;
 
     List<Long> probeIds;
-    List<Long> eids;
+    List<Long> eids; // experiments
+    List<Long> aids; // assays
     List<Publication> publications;
     List<ProteinTarget> targets;
 
@@ -83,6 +84,13 @@ public class Project implements BardEntity {
 
     public void setEids(List<Long> eids) {
         this.eids = eids;
+    }
+
+    public List<Long> getAids () {
+        return aids;
+    }
+    public void setAids (List<Long> aids) {
+        this.aids = aids;
     }
 
     public String getSource() {
