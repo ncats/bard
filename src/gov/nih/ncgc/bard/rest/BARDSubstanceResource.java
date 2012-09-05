@@ -40,10 +40,12 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/substances")
-public class BARDSubstanceResource extends BARDResource {
+public class BARDSubstanceResource extends BARDResource<Substance> {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
+
+    public Class<Substance> getEntityClass () { return Substance.class; }
 
     @GET
     @Produces("text/plain")

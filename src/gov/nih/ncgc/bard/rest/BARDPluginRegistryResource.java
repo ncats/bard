@@ -21,13 +21,23 @@ import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.Context;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
+
+
 /**
  * A one line summary.
  *
  * @author Rajarshi Guha
  */
 @Path("/plugins/registry")
-public class BARDPluginRegistryResource extends BARDResource {
+public class BARDPluginRegistryResource implements IBARDResource {
+    @Context
+    ServletConfig servletConfig;
+    @Context
+    protected HttpHeaders headers;
 
     @GET
     @Produces("text/plain")
@@ -110,7 +120,8 @@ public class BARDPluginRegistryResource extends BARDResource {
             throw new WebApplicationException(e, 500);
         }
 
-        if (countRequested) return Response.ok(links.size()).type(MediaType.TEXT_PLAIN).build();
+        if (Util.countRequested(headers)) 
+            return Response.ok(links.size()).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(json).type(MediaType.APPLICATION_JSON).build();
 
     }

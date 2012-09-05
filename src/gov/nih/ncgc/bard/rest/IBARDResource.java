@@ -13,7 +13,6 @@ import javax.ws.rs.core.Response;
  * @author Rajarshi Guha
  */
 public interface IBARDResource {
-
     @GET
     @Produces("text/plain")
     @Path("/info")
@@ -30,6 +29,4 @@ public interface IBARDResource {
     public Response getResources(@PathParam("name") String resourceId,
                                  @QueryParam("filter") String filter,
                                  @QueryParam("expand") String expand);
-
-
 }

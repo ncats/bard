@@ -888,64 +888,153 @@ public class DBUtils {
         Long sid = Long.parseLong(toks[1]);
 
         PreparedStatement pst = conn.prepareStatement("select * from experiment_data a, experiment_result b, experiment c where a.eid = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.eid = c.expt_id");
-        pst.setLong(1, eid);
-        pst.setLong(2, sid);
-        ResultSet rs = pst.executeQuery();
+        ExperimentData ed = null;
+        try {
+            pst.setLong(1, eid);
+            pst.setLong(2, sid);
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                ed = getExperimentData (rs);
+                ed.setExptDataId(edid);
+            }
+            rs.close();
+        }
+        finally {
+            pst.close();
+        }
+        return ed;
+    }
+
+    public List<ExperimentData> getExperimentDataByETag 
+        (int skip, int top, Long eid, String etag) 
+        throws SQLException, IOException {
+        List<ExperimentData> data = new ArrayList<ExperimentData>();
+        PreparedStatement pst = conn.prepareStatement
+            ("select * from etag where etag_id = ?");
+        try {
+            pst.setString(1, etag);
+            ResultSet rs = pst.executeQuery();
+            StringBuilder sql = null;
+            if (rs.next()) {
+                String type = rs.getString("type");
+                log.info("## ETag="+etag+" type="+type);
+                if (type != null) {
+                    if (type.equals(Compound.class.getName())) {
+                        sql = new StringBuilder
+                            ("select * from experiment_data a, "
+                             +"experiment_result b, experiment c, "
+                             +"etag_data d where a.eid = ? and "
+                             +"d.etag_id = ? and "
+                             +"a.cid = d.data_id and "
+                             +"a.expt_data_id = b.expt_data_id and "
+                             +"a.eid = c.expt_id order by d.index");
+                    }
+                    else if (type.equals(Substance.class.getName())) {
+                        sql = new StringBuilder
+                            ("select * from experiment_data a, "
+                             +"experiment_result b, experiment c, "
+                             +"etag_data d where a.eid = ? and "
+                             +"d.etag_id = ? and "
+                             +"a.sid = d.data_id and "
+                             +"a.expt_data_id = b.expt_data_id and "
+                             +"a.eid = c.expt_id order by d.index");
+                    }
+                    else {
+                        log.error("Can't retrieve experiment data for etag of type: "+type);
+                    }
+                }
+                else {
+                    log.error("** ETag has no type: "+etag);
+                }
+            }
+            else {
+                log.error("Invalid ETag "+etag);
+            }
+            rs.close();
+
+            if (sql == null) {
+                return data;
+            }
+            pst.close();
+
+            if (skip >= 0 && top > 0) {
+                sql.append(" limit " + skip + "," + top);
+            }
+            else if (top > 0) {
+                sql.append(" limit " + top);
+            }
+
+            pst = conn.prepareStatement(sql.toString());
+            pst.setLong(1, eid);
+            pst.setString(2, etag);
+            rs = pst.executeQuery();
+            while (rs.next()) {
+                ExperimentData ed = getExperimentData (rs);
+                ed.setExptDataId(ed.getEid()+"."+ed.getSid());
+                data.add(ed);
+            }
+            rs.close();
+        }
+        finally {
+            pst.close();
+        }
+        return data;
+    }
+
+    ExperimentData getExperimentData (ResultSet rs) 
+        throws SQLException, IOException {
         ExperimentData ed = new ExperimentData();
-        ed.setExptDataId(edid);
-        while (rs.next()) {
-            ed.setEid(rs.getLong("eid"));
-            ed.setSid(rs.getLong("sid"));
-            ed.setCid(rs.getLong("cid"));
-
-            Integer classification = rs.getInt("classification");
-            if (rs.wasNull()) classification = null;
-            ed.setClassification(classification);
-
-            ed.setUpdated(rs.getDate("updated"));
-            ed.setOutcome(rs.getInt("outcome"));
-            ed.setScore(rs.getInt("score"));
-
-            Float potency = rs.getFloat("potency");
-            if (rs.wasNull()) potency = null;
-            ed.setPotency(potency);
-
-            Blob blob = rs.getBlob("json_data_array");
-            byte[] bytes = blob.getBytes(1, (int) blob.length());
-            String s = new String(bytes);
-
-            ObjectMapper mapper = new ObjectMapper();
-            DataResultObject[] o = mapper.readValue(s, DataResultObject[].class);
-
-            blob = rs.getBlob("assay_result_def");
-            s = new String(blob.getBytes(1, (int) blob.length()));
-            AssayDefinitionObject[] ado = mapper.readValue(s, AssayDefinitionObject[].class);
-
-            DoseResponseResultObject[] dro = null;
-            blob = rs.getBlob("json_dose_response");
-            if (blob != null) {
-                bytes = blob.getBytes(1, (int) blob.length());
-                s = new String(bytes);
-                dro = mapper.readValue(s, DoseResponseResultObject[].class);
-
-                // for each dose-response 'layer', try and pull a layer label from the assay definition.
-                for (DoseResponseResultObject adro : dro) {
-                    String tid = adro.getTid();
-                    for (AssayDefinitionObject aado : ado) {
-                        if (aado.getTid().equals(tid)) {
-                            adro.setLabel(aado.getName());
-                            adro.setDescription(aado.getDescription());
-                            adro.setConcUnit(aado.getTestConcUnit());
-                        }
+        ed.setEid(rs.getLong("eid"));
+        ed.setSid(rs.getLong("sid"));
+        ed.setCid(rs.getLong("cid"));
+        
+        Integer classification = rs.getInt("classification");
+        if (rs.wasNull()) classification = null;
+        ed.setClassification(classification);
+        
+        ed.setUpdated(rs.getDate("updated"));
+        ed.setOutcome(rs.getInt("outcome"));
+        ed.setScore(rs.getInt("score"));
+        
+        Float potency = rs.getFloat("potency");
+        if (rs.wasNull()) potency = null;
+        ed.setPotency(potency);
+        
+        Blob blob = rs.getBlob("json_data_array");
+        byte[] bytes = blob.getBytes(1, (int) blob.length());
+        String s = new String(bytes);
+        
+        ObjectMapper mapper = new ObjectMapper();
+        DataResultObject[] o = mapper.readValue(s, DataResultObject[].class);
+        
+        blob = rs.getBlob("assay_result_def");
+        s = new String(blob.getBytes(1, (int) blob.length()));
+        AssayDefinitionObject[] ado = mapper.readValue(s, AssayDefinitionObject[].class);
+        
+        DoseResponseResultObject[] dro = null;
+        blob = rs.getBlob("json_dose_response");
+        if (blob != null) {
+            bytes = blob.getBytes(1, (int) blob.length());
+            s = new String(bytes);
+            dro = mapper.readValue(s, DoseResponseResultObject[].class);
+            
+            // for each dose-response 'layer', try and pull a layer label from the assay definition.
+            for (DoseResponseResultObject adro : dro) {
+                String tid = adro.getTid();
+                for (AssayDefinitionObject aado : ado) {
+                    if (aado.getTid().equals(tid)) {
+                        adro.setLabel(aado.getName());
+                        adro.setDescription(aado.getDescription());
+                        adro.setConcUnit(aado.getTestConcUnit());
                     }
                 }
             }
-            ed.setDr(dro);
-            ed.setResults(o);
-            ed.setDefs(ado);
         }
-        rs.close();
-        pst.close();
+        ed.setDr(dro);
+        ed.setResults(o);
+        ed.setDefs(ado);
+        ed.transform();
+
         return ed;
     }
 
@@ -1174,7 +1263,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where eid = ? order by eid, sid " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where eid = ? order by score desc, eid, sid " + limitClause);
         pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
         List<ExperimentData> ret = new ArrayList<ExperimentData>();

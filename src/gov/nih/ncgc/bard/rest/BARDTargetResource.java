@@ -34,7 +34,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 @Path("/targets")
-public class BARDTargetResource extends BARDResource {
+public class BARDTargetResource extends BARDResource<ProteinTarget> {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -43,6 +43,10 @@ public class BARDTargetResource extends BARDResource {
     ServletContext servletContext;
     @Context
     HttpServletRequest httpServletRequest;
+
+    public Class<ProteinTarget> getEntityClass () { 
+        return ProteinTarget.class; 
+    }
 
     @GET
     @Produces("text/plain")
