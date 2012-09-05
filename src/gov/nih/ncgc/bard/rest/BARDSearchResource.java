@@ -7,6 +7,7 @@ import gov.nih.ncgc.bard.search.CompoundSearch;
 import gov.nih.ncgc.bard.search.ISolrSearch;
 import gov.nih.ncgc.bard.search.ProjectSearch;
 import gov.nih.ncgc.bard.search.SearchResult;
+import gov.nih.ncgc.bard.search.SolrField;
 import gov.nih.ncgc.bard.tools.Util;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.slf4j.Logger;
@@ -93,6 +94,48 @@ public class BARDSearchResource implements IBARDResource {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Path("/projects/fields")
+    public Response getProjectields() throws IOException {
+        ProjectSearch search = new ProjectSearch(null);
+        List<SolrField> fields;
+        try {
+            fields = search.getFieldNames();
+        } catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        }
+        return Response.ok(Util.toJson(fields)).type(MediaType.APPLICATION_JSON).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/compounds/fields")
+    public Response getCompoundFields() throws IOException {
+        CompoundSearch search = new CompoundSearch(null);
+        List<SolrField> fields;
+        try {
+            fields = search.getFieldNames();
+        } catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        }
+        return Response.ok(Util.toJson(fields)).type(MediaType.APPLICATION_JSON).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/assays/fields")
+    public Response getAssayFields() throws IOException {
+        AssaySearch search = new AssaySearch(null);
+        List<SolrField> fields;
+        try {
+            fields = search.getFieldNames();
+        } catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        }
+        return Response.ok(Util.toJson(fields)).type(MediaType.APPLICATION_JSON).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/assays/suggest")
     public Response autoSuggestAssays(@QueryParam("q") String q, @QueryParam("top") Integer top) throws Exception {
         return autoSuggest(q, "assays", top);
@@ -123,7 +166,7 @@ public class BARDSearchResource implements IBARDResource {
         else if (entity.toLowerCase().equals("compounds")) search = new CompoundSearch(q);
 
         // get field names associated with this entity search
-        List<String> fieldNames = search.getFieldNames();
+        List<SolrField> fieldNames = search.getFieldNames();
 
         // get terms for each field
         ObjectMapper mapper = new ObjectMapper();
@@ -131,7 +174,7 @@ public class BARDSearchResource implements IBARDResource {
         node.putPOJO("query", q);
 
         long start = System.currentTimeMillis();
-        Map<String, List<String>> terms = search.suggest(fieldNames.toArray(new String[0]), q, top);
+        Map<String, List<String>> terms = search.suggest(fieldNames.toArray(new SolrField[0]), q, top);
         long end = System.currentTimeMillis();
         System.out.println("Auto suggest for '" + q + "' on " + search.getClass().getName() + " took " + ((end - start) / 1000.0) + "s");
 
@@ -153,7 +196,7 @@ public class BARDSearchResource implements IBARDResource {
             this.entity = entity;
         }
     }
-    
+
     class SuggestRunner implements Callable<SuggestHelper> {
 
         private ISolrSearch search;
@@ -172,8 +215,8 @@ public class BARDSearchResource implements IBARDResource {
         }
 
         public SuggestHelper call() throws Exception {
-            List<String> fieldNames = search.getFieldNames();
-            return new SuggestHelper(search.suggest(fieldNames.toArray(new String[0]), q, n), name);
+            List<SolrField> fieldNames = search.getFieldNames();
+            return new SuggestHelper(search.suggest(fieldNames.toArray(new SolrField[0]), q, n), name);
         }
     }
 
@@ -326,7 +369,7 @@ public class BARDSearchResource implements IBARDResource {
         cs.setSolrURL(getSolrService());
         SearchResult s = doSearch(cs, skip, top, expand, filter);
 
-        if (Util.countRequested(headers)) 
+        if (Util.countRequested(headers))
             return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
@@ -343,7 +386,7 @@ public class BARDSearchResource implements IBARDResource {
         as.setSolrURL(getSolrService());
         SearchResult s = doSearch(as, skip, top, expand, filter);
 
-        if (Util.countRequested(headers)) 
+        if (Util.countRequested(headers))
             return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }
@@ -359,8 +402,7 @@ public class BARDSearchResource implements IBARDResource {
         ProjectSearch ps = new ProjectSearch(q);
         ps.setSolrURL(getSolrService());
         SearchResult s = doSearch(ps, skip, top, expand, filter);
-        
-        if (Util.countRequested(headers)) 
+        if (Util.countRequested(headers))
             return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
         return Response.ok(Util.toJson(s)).type("application/json").build();
     }

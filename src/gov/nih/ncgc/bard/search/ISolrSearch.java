@@ -26,7 +26,7 @@ public interface ISolrSearch {
     
     public void setSolrURL(String url);
     
-    public List<String> getFieldNames() throws Exception;
+    public List<SolrField> getFieldNames() throws Exception;
     
-    public Map<String, List<String>> suggest(String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException;
+    public Map<String, List<String>> suggest(SolrField[] fields, String q, Integer n) throws MalformedURLException, SolrServerException;
 }

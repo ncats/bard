@@ -33,7 +33,6 @@ import java.util.Set;
 public class AssaySearch extends SolrSearch {
     private final String HL_FIELD = "text";
     private final String PKEY_ASSAY_DOC = "assay_id";
-    private final String CORE_NAME = "/core-assay/";
 
     Logger log;
 
@@ -41,6 +40,8 @@ public class AssaySearch extends SolrSearch {
 
     public AssaySearch(String query) {
         super(query);
+
+        CORE_NAME = "/core-assay/";
         log = LoggerFactory.getLogger(this.getClass());
 
         // since we currently facte on dictionary terms, lets pre-populate the facet
@@ -74,14 +75,6 @@ public class AssaySearch extends SolrSearch {
                 facets.add(f);
             }
         } else log.error("CAP dictionary was null. Strange!");
-    }
-
-    public List<String> getFieldNames() throws Exception {
-        return SearchUtil.getFieldNames(getSolrURL() + CORE_NAME + "admin/luke?numTerms=0");
-    }
-
-    public Map<String, List<String>> suggest(String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
-        return SearchUtil.getTerms(getSolrURL() + CORE_NAME, fields, q+".*", n);
     }
 
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {

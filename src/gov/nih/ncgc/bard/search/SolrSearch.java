@@ -1,13 +1,24 @@
 package gov.nih.ncgc.bard.search;
 
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
 import gov.nih.ncgc.bard.tools.DBUtils;
+import nu.xom.Builder;
+import nu.xom.Document;
+import nu.xom.Element;
+import nu.xom.Node;
+import nu.xom.Nodes;
 import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A one line summary.
@@ -19,6 +30,8 @@ public abstract class SolrSearch implements ISolrSearch {
     protected int numHit = -1;
     protected List<Facet> facets;
     protected SearchResult results = null;
+
+    protected String CORE_NAME = null;
 
     protected String solrURL = "http://localhost:8090/solr";
 
@@ -64,6 +77,51 @@ public abstract class SolrSearch implements ISolrSearch {
             } else ret.add(docs.get(i));
         }
         return ret;
+    }
+
+    public Map<String, List<String>> suggest(SolrField[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
+        return SearchUtil.getTerms(getSolrURL() + CORE_NAME, fields, q + ".*", n);
+    }
+
+    /**
+     * Get field names associated with a Solr document.
+     * <p/>
+     * As we store Solr entity documents in different cores, we can identify fields
+     * based on the name of the core.
+     *
+     * @return A list of {@link SolrField} objects.
+     * @throws Exception
+     */
+    public List<SolrField> getFieldNames() throws Exception {
+        if (CORE_NAME == null) throw new Exception("Must have a valid CORE_NAME");
+
+        String lukeUrl = getSolrURL() + CORE_NAME + "admin/luke?numTerms=0";
+        List<SolrField> fieldNames = new ArrayList<SolrField>();
+        Client client = Client.create();
+        WebResource resource = client.resource(lukeUrl);
+        ClientResponse response = resource.get(ClientResponse.class);
+        int status = response.getStatus();
+        if (status != 200) {
+            throw new Exception("There was a problem querying " + lukeUrl);
+        }
+        String xml = response.getEntity(String.class);
+        Document doc = new Builder(false).build(xml, null);
+        Nodes nodes = doc.query("/response/lst[@name='fields']");
+        if (nodes.size() > 0) {
+            Node node = nodes.get(0);
+            for (int i = 0; i < node.getChildCount(); i++) {
+                Node n = node.getChild(i);
+                String name = ((Element) n).getAttribute("name").getValue();
+                if (name.endsWith("text")) continue;
+
+                Node sn = n.getChild(0);
+                String type = sn.getValue();
+
+                fieldNames.add(new SolrField(name, type));
+            }
+        }
+        client.destroy();
+        return fieldNames;
     }
 
     /**

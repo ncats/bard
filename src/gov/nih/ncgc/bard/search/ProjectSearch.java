@@ -23,8 +23,6 @@ import java.util.Map;
 public class ProjectSearch extends SolrSearch {
     private final String HL_FIELD = "text";
     private final String PKEY_PROJECT_DOC = "proj_id";
-    private final String CORE_NAME = "/core-project/";
-
 
     Logger log;
 
@@ -32,17 +30,9 @@ public class ProjectSearch extends SolrSearch {
 
     public ProjectSearch(String query) {
         super(query);
+        CORE_NAME = "/core-project/";
         log = LoggerFactory.getLogger(this.getClass());
     }
-
-    public List<String> getFieldNames() throws Exception {
-        return SearchUtil.getFieldNames(getSolrURL() + CORE_NAME + "admin/luke?numTerms=0");
-    }
-
-    public Map<String, List<String>> suggest(String[] fields, String q, Integer n) throws MalformedURLException, SolrServerException {
-        return SearchUtil.getTerms(getSolrURL() + CORE_NAME, fields, q+".*", n);
-    }
-
 
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
         results = new SearchResult();

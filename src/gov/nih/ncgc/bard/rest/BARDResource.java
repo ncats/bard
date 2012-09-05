@@ -1,36 +1,32 @@
 package gov.nih.ncgc.bard.rest;
 
+import gov.nih.ncgc.bard.entity.BardEntity;
+import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.EntityTag;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.Consumes;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
-
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.EntityTag;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import gov.nih.ncgc.bard.entity.BardEntity;
-import gov.nih.ncgc.bard.tools.DBUtils;
 
 /**
  * A base class for all REST resource class.
@@ -39,8 +35,8 @@ import gov.nih.ncgc.bard.tools.DBUtils;
  *
  * @author Rajarshi Guha
  */
-public abstract class BARDResource<T extends BardEntity> 
-    implements IBARDResource {
+public abstract class BARDResource<T extends BardEntity>
+        implements IBARDResource {
 
     static final Logger logger =
             Logger.getLogger(BARDResource.class.getName());
@@ -99,7 +95,7 @@ public abstract class BARDResource<T extends BardEntity>
                 + (query != null ? ("?" + query) : ""));
     }
 
-    public abstract Class<T> getEntityClass ();
+    public abstract Class<T> getEntityClass();
 
     /*
      * ETag common resources
@@ -111,10 +107,10 @@ public abstract class BARDResource<T extends BardEntity>
                                       @QueryParam("expand") String expand,
                                       @QueryParam("skip") Integer skip,
                                       @QueryParam("top") Integer top) {
-        throw new WebApplicationException 
-            (new UnsupportedOperationException (), 500);
+        throw new WebApplicationException
+                (new UnsupportedOperationException(), 500);
     }
-    
+
     @POST
     @Path("/etag")
     @Consumes("application/x-www-form-urlencoded")
@@ -124,51 +120,50 @@ public abstract class BARDResource<T extends BardEntity>
         try {
             if (name == null) {
                 throw new IllegalArgumentException
-                    ("No \"name\" specified!");
+                        ("No \"name\" specified!");
             }
 
-            EntityTag etag = new EntityTag 
-                (db.newETag(name, getEntityClass().getName()));
+            EntityTag etag = new EntityTag
+                    (db.newETag(name, getEntityClass().getName()));
 
             if (ids != null) {
                 List<Long> list = new ArrayList<Long>();
                 for (String id : ids.split("[,;\\s]")) {
                     try {
                         list.add(Long.parseLong(id));
-                    }
-                    catch (NumberFormatException ex) {
+                    } catch (NumberFormatException ex) {
                     }
                 }
                 int cnt = db.putETag
-                    (etag.getValue(), list.toArray(new Long[0]));
+                        (etag.getValue(), list.toArray(new Long[0]));
 
-                log ("** New ETag: "+etag.getValue()+" \""+name+"\" "+cnt);
-            }
-            else {
-                log ("** New ETag: "+etag.getValue()+" \""+name+"\"");
+                log("** New ETag: " + etag.getValue() + " \"" + name + "\" " + cnt);
+            } else {
+                log("** New ETag: " + etag.getValue() + " \"" + name + "\"");
             }
 
             return Response.ok().tag(etag).build();
-        }
-        catch (Exception ex) {
-            throw new WebApplicationException(ex, 500);            
-        }
-        finally {
-            try { db.closeConnection(); }
-            catch (Exception ex) { ex.printStackTrace(); }
+        } catch (Exception ex) {
+            throw new WebApplicationException(ex, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
     @PUT
     @Path("/etag/{etag}")
     @Consumes("application/x-www-form-urlencoded")
-    public Response putETag (@PathParam("etag") String etag,
-                             @FormParam("ids") String ids) {
+    public Response putETag(@PathParam("etag") String etag,
+                            @FormParam("ids") String ids) {
         DBUtils db = new DBUtils();
         try {
             if (ids == null) {
                 throw new IllegalArgumentException
-                    ("No \"ids\" param specified!");
+                        ("No \"ids\" param specified!");
             }
 
             // check to make sure the correct type
@@ -183,22 +178,22 @@ public abstract class BARDResource<T extends BardEntity>
             for (String id : ids.split("[,;\\s]")) {
                 try {
                     list.add(Long.parseLong(id));
-                }
-                catch (NumberFormatException ex) {
+                } catch (NumberFormatException ex) {
                 }
             }
             int cnt = db.putETag(etag, list.toArray(new Long[0]));
-            log ("** put ETag: "+etag+" "+cnt);
+            log("** put ETag: " + etag + " " + cnt);
 
             return Response.ok(String.valueOf(cnt), "text/plain")
-                .tag(etag).build();
-        }
-        catch (Exception ex) {
-            throw new WebApplicationException(ex, 500);            
-        }
-        finally {
-            try { db.closeConnection(); }
-            catch (Exception ex) { ex.printStackTrace(); }
+                    .tag(etag).build();
+        } catch (Exception ex) {
+            throw new WebApplicationException(ex, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
@@ -224,9 +219,9 @@ public abstract class BARDResource<T extends BardEntity>
     @GET
     @Path("/etag/{etag}/facets")
     public Response getFacets(@PathParam("etag") String resourceId) {
-        throw new WebApplicationException 
-            (new UnsupportedOperationException (), 500);
-    }        
+        throw new WebApplicationException
+                (new UnsupportedOperationException(), 500);
+    }
 
     protected void log(String mesg) {
         //servletContext.log(mesg);
