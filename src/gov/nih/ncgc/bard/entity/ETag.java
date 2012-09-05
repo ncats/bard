@@ -14,7 +14,7 @@ import java.util.List;
 public class ETag implements BardEntity {
     private String etag = null, name, type;
     private Date accessed, created, modified;
-    private List<ETag> parents = new ArrayList<ETag>();
+    private List<ETag> linkedTags = new ArrayList<ETag>();
 
 
     public ETag() {
@@ -49,12 +49,12 @@ public class ETag implements BardEntity {
     public void setResourcePath(String resourcePath) {
     }
 
-    public List<ETag> getParents() {
-        return parents;
+    public List<ETag> getLinkedTags() {
+        return linkedTags;
     }
 
-    public void setParents(List<ETag> parents) {
-        this.parents = parents;
+    public void setLinkedTags(List<ETag> linkedTags) {
+        this.linkedTags = linkedTags;
     }
 
     public String getEtag() {

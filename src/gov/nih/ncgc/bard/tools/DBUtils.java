@@ -594,6 +594,7 @@ public class DBUtils {
                 ETag linkedTag = new ETag(rs2.getString("etag_id"));
                 if (linkedTag.getEtag() != null) linkedTags.add(linkedTag);
             }
+            etag.setLinkedTags(linkedTags);
             rs2.close();
             pst2.close();
             return etag;
