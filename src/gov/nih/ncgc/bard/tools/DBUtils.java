@@ -5,6 +5,7 @@ import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardEntity;
+import gov.nih.ncgc.bard.entity.ETag;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
@@ -102,6 +103,7 @@ public class DBUtils {
         final List<String> substanceFields = Arrays.asList("url");
         final List<String> assayFields = Arrays.asList("name", "description", "protocol", "comemnt", "source", "grant_no");
         final List<String> edFields = Arrays.asList();
+        final List<String> etagFields = Arrays.asList("name", "type");
 
         fieldMap = new HashMap<Class, Query>() {{
             put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
@@ -112,6 +114,7 @@ public class DBUtils {
             put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
             put(Assay.class, new Query(assayFields, "assay_id", null, "assay"));
             put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "experiment_data"));
+            put(ETag.class, new Query(etagFields, "etag_id", null, "etag"));
         }};
 
         conn = getConnection();
@@ -566,6 +569,41 @@ public class DBUtils {
         return compounds;
     }
 
+    public ETag getEtagByEtagId(String id) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement
+                ("select a.*,count(*) as count from etag a, etag_data b "
+                        + "where a.etag_id = ? and a.etag_id = b.etag_id");
+        ETag etag = new ETag();
+        try {
+            pst.setString(1, id);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                etag.setEtag(id);
+                etag.setName(rs.getString("name"));
+                etag.setType(rs.getString("type"));
+                etag.setAccessed(rs.getTimestamp("accessed"));
+                etag.setCreated(rs.getTimestamp("created"));
+                etag.setModified(rs.getTimestamp("modified"));
+            }
+            rs.close();
+
+            // pull in the children if any
+            PreparedStatement pst2 = conn.prepareStatement("select * from etag_link where parent_id = ?");
+            pst2.setString(1, id);
+            ResultSet rs2 = pst2.executeQuery();
+            List<ETag> linkedTags = new ArrayList<ETag>();
+            while (rs2.next()) {
+                ETag linkedTag = new ETag(rs2.getString("etag_id"));
+                if (linkedTag.getEtag() != null) linkedTags.add(linkedTag);
+            }
+            rs2.close();
+            pst2.close();
+            return etag;
+        } finally {
+            pst.close();
+        }
+    }
+    
     public Map getETagInfo(String etag) throws SQLException {
         PreparedStatement pst = conn.prepareStatement
                 ("select a.*,count(*) as count from etag a, etag_data b "
@@ -916,7 +954,7 @@ public class DBUtils {
         throws SQLException, IOException {
         List<ExperimentData> data = new ArrayList<ExperimentData>();
 
-        Map info = getETagInfo (etag);
+        Map info = getETagInfo(etag);
         String type = (String)info.get("type");
 
         log.info("## ETag="+etag+" info="+info);
@@ -2036,6 +2074,7 @@ public class DBUtils {
             if (!queryParams.getValidFields().contains(field)) throw new SQLException("Invalid field was specified");
             sql = "select " + queryParams.getIdField() + " from " + queryParams.getTableName() + " where " + field + " like '%" + q + "%' order by " + queryParams.getOrderField() + "  " + limitClause;
         }
+
         pst = conn.prepareStatement(sql);
         ResultSet rs = pst.executeQuery();
         List<T> entities = new ArrayList<T>();
@@ -2048,6 +2087,7 @@ public class DBUtils {
             else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
             else if (klass.equals(Compound.class)) entity = getCompoundsByCid((Long) id);
             else if (klass.equals(Assay.class)) entity = getAssayByAid((Long) id);
+            else if (klass.equals(ETag.class)) entity = getEtagByEtagId((String) id);
             if (entity != null) {
                 if (entity instanceof List) entities.addAll((Collection<T>) entity);
                 else if (entity instanceof BardEntity) entities.add((T) entity);
