@@ -222,14 +222,6 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         if (!validTypes.contains(type)) return null;
         List<Compound> c = new ArrayList<Compound>();
 
-        if (type.equals("cid") || type.equals("sid")) {
-            try {
-                Long.parseLong(id);
-            } catch (NumberFormatException e) {
-                throw new BadRequestException("Invalid format for a CID or SID");
-            }
-        }
-
         try {
             if (!isIdList) {
                 if (type.equals("cid")) c.addAll(db.getCompoundsByCid(Long.parseLong(id)));
