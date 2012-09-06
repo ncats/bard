@@ -1212,6 +1212,70 @@ public class DBUtils {
         return assays;
     }
 
+    public List<Substance> getSubstanceByETag(int skip, int top, String etag) throws SQLException {
+        ETag info = getEtagByEtagId(etag);
+        if (!Substance.class.getName().equals(info.getType())) {
+            throw new IllegalArgumentException
+                    ("ETag " + etag + " not of type " + Substance.class.getName());
+        }
+
+        StringBuilder sql = new StringBuilder
+                ("select a.* from  substance a, etag_data e where etag_id = ? "
+                        + "and a.sid = e.data_id order by e.index");
+
+        if (skip >= 0 && top > 0) {
+            sql.append(" limit " + skip + "," + top);
+        } else if (top > 0) {
+            sql.append(" limit " + top);
+        }
+
+        ArrayList<Substance> substances = new ArrayList<Substance>();
+        PreparedStatement pst = conn.prepareStatement(sql.toString());
+        try {
+            pst.setString(1, etag);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                substances.add(getSubstanceBySid(rs.getLong("sid")));
+            }
+            rs.close();
+        } finally {
+            pst.close();
+        }
+        return substances;
+    }
+
+    public List<Experiment> getExperimentsByETag(int skip, int top, String etag) throws SQLException {
+        ETag info = getEtagByEtagId(etag);
+        if (!Experiment.class.getName().equals(info.getType())) {
+            throw new IllegalArgumentException
+                    ("ETag " + etag + " not of type " + Experiment.class.getName());
+        }
+
+        StringBuilder sql = new StringBuilder
+                ("select a.* from  experiment a, etag_data e where etag_id = ? "
+                        + "and a.expt_id = e.data_id order by e.index");
+
+        if (skip >= 0 && top > 0) {
+            sql.append(" limit " + skip + "," + top);
+        } else if (top > 0) {
+            sql.append(" limit " + top);
+        }
+
+        ArrayList<Experiment> expts = new ArrayList<Experiment>();
+        PreparedStatement pst = conn.prepareStatement(sql.toString());
+        try {
+            pst.setString(1, etag);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                expts.add(getExperimentByExptId(rs.getLong("expt_id")));
+            }
+            rs.close();
+        } finally {
+            pst.close();
+        }
+        return expts;
+    }
+
 
     public List<Assay> getAssays(Long... assayIds) throws SQLException {
         List<Assay> assays = new ArrayList<Assay>();
@@ -2117,6 +2181,10 @@ public class DBUtils {
             entities = (List<T>) getAssaysByETag(skip, top, etag.getEtag());
         else if (Compound.class.getName().equals(etag.getType()))
             entities = (List<T>) getCompoundsByETag(skip, top, etag.getEtag());
+        else if (Substance.class.getName().equals(etag.getType()))
+            entities = (List<T>) getSubstanceByETag(skip, top, etag.getEtag());
+        else if (Experiment.class.getName().equals(etag.getType()))
+            entities = (List<T>) getExperimentsByETag(skip, top, etag.getEtag());
         return entities;
     }
 
