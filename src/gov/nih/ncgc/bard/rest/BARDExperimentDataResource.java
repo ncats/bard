@@ -1,11 +1,14 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
+import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
+import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
-import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
-import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
-import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -23,11 +26,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import java.io.StringWriter;
-import com.fasterxml.jackson.databind.node.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.JsonFactory;
 
 /**
  * Prototype of MLBD REST resources.
@@ -129,8 +127,8 @@ public class BARDExperimentDataResource implements IBARDResource {
             String exptId = "";
             String[] tokens = resourceId.split("\\.");
             if (tokens.length < 2) {
-                throw new IllegalArgumentException 
-                    ("Bogus experiment data id: "+resourceId);
+
+                throw new BadRequestException("Bogus experiment data id: "+resourceId);
             }
             else if (tokens.length == 2) {
                 exptId = resourceId;
@@ -143,9 +141,8 @@ public class BARDExperimentDataResource implements IBARDResource {
             experimentData = db.getExperimentDataByDataId(exptId);
 
             if (experimentData == null || experimentData.getExptDataId() == null)
-                throw new WebApplicationException(404);
+                return Response.status(404).entity("No data for "+resourceId).type("text/plain").build();
 
-            //experimentData.transform();
             if (tokens.length == 2) {
                 String json = Util.toJson(experimentData);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -244,6 +241,13 @@ public class BARDExperimentDataResource implements IBARDResource {
         catch (Exception e) {
             e.printStackTrace();
             throw new WebApplicationException(e, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (SQLException e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            }
         }
+
     }
 }

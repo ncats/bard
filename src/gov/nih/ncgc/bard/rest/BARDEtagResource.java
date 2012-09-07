@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.rest;
 
-import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.ETag;
 import gov.nih.ncgc.bard.tools.DBUtils;
@@ -52,8 +51,10 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
         try {
             String linkString = null;
             if (filter == null) {
-                if (countRequested)
+                if (countRequested) {
+                    db.closeConnection();
                     return Response.ok(String.valueOf(db.getEntityCount(ETag.class)), MediaType.TEXT_PLAIN).build();
+                }
 
                 if ((top == -1)) { // top was not specified, so we start from the beginning
                     top = BARDConstants.MAX_COMPOUND_COUNT;
@@ -96,6 +97,7 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
         DBUtils db = new DBUtils();
         try {
             ETag etag = db.getEtagByEtagId(etagId);
+            if (etag.getName() == null) return Response.status(404).entity("No such etag " + etagId).type("text/plain").build();
             return Response.ok(Util.toJson(etag), MediaType.APPLICATION_JSON).build();
         } catch (Exception ex) {
             throw new WebApplicationException(ex, 500);
@@ -116,7 +118,7 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
             ETag etag = db.getEtagByEtagId(etagId);
             List entities = db.getEntitiesByEtag(etag.getEtag(), 0, 0);
             if (entities == null || entities.size() == 0)
-                throw new NotFoundException("No objects associated with etag " + etagId);
+                return Response.status(404).entity("No objects associated with etag " + etagId).type("text/plain").build();
             return Response.ok(Util.toJson(entities), MediaType.APPLICATION_JSON).build();
         } catch (Exception ex) {
             throw new WebApplicationException(ex, 500);
