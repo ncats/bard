@@ -419,6 +419,36 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
         }
     }
 
+    /*
+    @POST
+    @Path("/{eid}/exptdata")
+    public Response getExperimentData(@PathParam("eid") String resourceId,
+                                      @FormParam("sids") String sids) 
+        throws SQLException {
+        if (sids == null) {
+            throw new BadRequestException
+                (getRequestURI()+": No \"sids\" form parameter specified "
+                 +"for POST!");
+        }
+
+        DBUtils db = new DBUtils();
+        try {
+            Experiment experiemnt = db.getExperimentByExptId
+                (Long.valueOf(resourceId));
+
+            // not done!
+            String json = Util.toJson(experiment);
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        }
+        catch (Exception ex) {
+            throw new BadRequestException (ex.getMessage());
+        }
+        finally {
+            db.closeConnection();
+        }
+    }
+    */
+
     @GET
     @Path("/{eid}/etag/{etag}/exptdata")
     public Response getExperimentDataETag(@PathParam("eid") Long eid,

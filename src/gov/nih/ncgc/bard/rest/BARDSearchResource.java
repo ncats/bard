@@ -371,7 +371,7 @@ public class BARDSearchResource implements IBARDResource {
 
         if (Util.countRequested(headers))
             return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
-        return Response.ok(Util.toJson(s)).type("application/json").build();
+        return Response.ok(Util.toJson(s)).tag(s.getETag()).type("application/json").build();
     }
 
     @GET
@@ -388,7 +388,7 @@ public class BARDSearchResource implements IBARDResource {
 
         if (Util.countRequested(headers))
             return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
-        return Response.ok(Util.toJson(s)).type("application/json").build();
+        return Response.ok(Util.toJson(s)).tag(s.getETag()).type("application/json").build();
     }
 
     @GET
@@ -404,7 +404,7 @@ public class BARDSearchResource implements IBARDResource {
         SearchResult s = doSearch(ps, skip, top, expand, filter);
         if (Util.countRequested(headers))
             return Response.ok(String.valueOf(s.getMetaData().getNhit())).type(MediaType.TEXT_PLAIN).build();
-        return Response.ok(Util.toJson(s)).type("application/json").build();
+        return Response.ok(Util.toJson(s)).tag(s.getETag()).type("application/json").build();
     }
 
     private SearchResult doSearch(ISolrSearch s, Integer skip, Integer top, String expand, String filter) throws MalformedURLException, SolrServerException {
