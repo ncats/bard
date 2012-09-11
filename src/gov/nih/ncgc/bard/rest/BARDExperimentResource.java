@@ -13,14 +13,14 @@ import gov.nih.ncgc.util.functional.IApplyFunction;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -465,6 +465,30 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
         }
         finally {
             db.closeConnection();
+        }
+    }
+
+    @Override
+    @GET
+    @Path("/etag/{etag}")
+    public Response getEntitiesByETag(@PathParam("etag") String resourceId,
+                                      @QueryParam("filter") String filter,
+                                      @QueryParam("expand") String expand,
+                                      @QueryParam("skip") Integer skip,
+                                      @QueryParam("top") Integer top) {
+        DBUtils db = new DBUtils();
+        try {
+            List<Experiment> expts = db.getExperimentsByETag(skip != null ? skip : -1, top != null ? top : -1, resourceId);
+            String json = Util.toJson(expts);
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
     }
 }

@@ -152,12 +152,21 @@ public abstract class SolrSearch implements ISolrSearch {
      */
     protected SolrQuery setFilterQueries(SolrQuery solrQuery, String filter) {
         if (filter != null) {
-            List<String[]> fq = SearchUtil.extractFilterQueries(filter);
-            for (String[] entry : fq) {
-                String fname = entry[0];
-                String fvalue = entry[1];
-                if (fvalue.contains("[")) solrQuery.addFilterQuery(fname + ":" + fvalue);
-                else solrQuery.addFilterQuery(fname + ":\"" + fvalue + "\"");
+            try {
+                List<SolrField> fields = getFieldNames();
+                List<String> fnames = new ArrayList<String>();
+                for (SolrField field : fields) fnames.add(field.getName());
+
+                List<String[]> fq = SearchUtil.extractFilterQueries(filter);
+                for (String[] entry : fq) {
+                    String fname = entry[0];
+                    String fvalue = entry[1];
+                    if (!fnames.contains(fname)) continue;
+                    if (fvalue.contains("[")) solrQuery.addFilterQuery(fname + ":" + fvalue);
+                    else solrQuery.addFilterQuery(fname + ":\"" + fvalue + "\"");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             }
         }
         return solrQuery;

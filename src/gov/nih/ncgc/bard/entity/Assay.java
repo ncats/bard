@@ -1,9 +1,7 @@
 package gov.nih.ncgc.bard.entity;
 
 import gov.nih.ncgc.bard.rest.BARDConstants;
-import gov.nih.ncgc.bard.tools.Util;
 
-import java.security.NoSuchAlgorithmException;
 import java.sql.Date;
 import java.util.List;
 
@@ -180,20 +178,5 @@ public class Assay implements BardEntity {
      */
     public void setResourcePath(String resourcePath) {
         //To change body of implemented methods use File | Settings | File Templates.
-    }
-
-    public String getEntityTag() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(aid).append(category).append(type).append(summary).append(assays).append(classification);
-        sb.append(name).append(grantNo).append(description).append(source);
-        sb.append(deposited).append(updated);
-        for (ProteinTarget t : targets) sb.append(t.getAcc());
-        for (Publication p : publications) sb.append(p.getPubmedId());
-        try {
-            byte[] digest = Util.getMD5(sb.toString());
-            return new String(digest);
-        } catch (NoSuchAlgorithmException e) {
-        }
-        return null;
     }
 }

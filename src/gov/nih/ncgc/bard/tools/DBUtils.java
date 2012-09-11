@@ -6,6 +6,7 @@ import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardEntity;
 import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.ETag;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Project;
@@ -102,6 +103,7 @@ public class DBUtils {
         final List<String> substanceFields = Arrays.asList("url");
         final List<String> assayFields = Arrays.asList("name", "description", "protocol", "comemnt", "source", "grant_no");
         final List<String> edFields = Arrays.asList();
+        final List<String> etagFields = Arrays.asList("name", "type");
 
         fieldMap = new HashMap<Class, Query>() {{
             put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
@@ -112,6 +114,7 @@ public class DBUtils {
             put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
             put(Assay.class, new Query(assayFields, "assay_id", null, "assay"));
             put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "experiment_data"));
+            put(ETag.class, new Query(etagFields, "etag_id", null, "etag"));
         }};
 
         conn = getConnection();
@@ -133,24 +136,22 @@ public class DBUtils {
 
     private Connection getConnection() {
         javax.naming.Context initContext;
-        Connection con = null;            
+        Connection con = null;
         try {
             initContext = new javax.naming.InitialContext();
             DataSource ds = (javax.sql.DataSource)
                     initContext.lookup("java:comp/env/jdbc/bardman");
             con = ds.getConnection();
             con.setAutoCommit(false);
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             // try 
             try {
                 initContext = new javax.naming.InitialContext();
                 DataSource ds = (javax.sql.DataSource)
-                    initContext.lookup("jdbc/bardman");
+                        initContext.lookup("jdbc/bardman");
                 con = ds.getConnection();
                 con.setAutoCommit(false);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 System.err.println("Not running in Tomcat/Jetty/Glassfish or other app container?");
                 e.printStackTrace();
             }
@@ -566,6 +567,41 @@ public class DBUtils {
         return compounds;
     }
 
+    public ETag getEtagByEtagId(String id) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select a.*, count(*) as cnt from etag a, etag_data b where a.etag_id = ? and a.etag_id = b.etag_id");
+        ETag etag = new ETag();
+        try {
+            pst.setString(1, id);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                etag.setEtag(id);
+                etag.setName(rs.getString("name"));
+                etag.setType(rs.getString("type"));
+                etag.setAccessed(rs.getDate("accessed"));
+                etag.setCreated(rs.getDate("created"));
+                etag.setModified(rs.getDate("modified"));
+                etag.setCount(rs.getInt("cnt"));
+            }
+            rs.close();
+
+            // pull in the children if any
+            PreparedStatement pst2 = conn.prepareStatement("select * from etag_link where parent_id = ?");
+            pst2.setString(1, id);
+            ResultSet rs2 = pst2.executeQuery();
+            List<ETag> linkedTags = new ArrayList<ETag>();
+            while (rs2.next()) {
+                ETag linkedTag = getEtagByEtagId(rs2.getString("etag_id"));
+                if (linkedTag.getEtag() != null) linkedTags.add(linkedTag);
+            }
+            etag.setLinkedTags(linkedTags);
+            rs2.close();
+            pst2.close();
+            return etag;
+        } finally {
+            pst.close();
+        }
+    }
+
     public Map getETagInfo(String etag) throws SQLException {
         PreparedStatement pst = conn.prepareStatement
                 ("select a.*,count(*) as count from etag a, etag_data b "
@@ -748,10 +784,10 @@ public class DBUtils {
     public List<Compound> getCompoundsByETag
             (int skip, int top, String etag) throws SQLException {
 
-        Map info = getETagInfo (etag);
+        Map info = getETagInfo(etag);
         if (!Compound.class.getName().equals(info.get("type"))) {
             throw new IllegalArgumentException
-                ("ETag "+etag+" is of type "+Compound.class.getName());
+                    ("ETag " + etag + " is of type " + Compound.class.getName());
         }
 
         List<Compound> compounds = new ArrayList<Compound>();
@@ -780,17 +816,17 @@ public class DBUtils {
                 Long cid = rs.getLong("cid");
                 if (!unique.contains(cid)) {
                     unique.add(cid);
-                    
+
                     Compound c = new Compound();
                     compounds.add(c);
-                    
+
                     c.setCid(cid);
                     fillCompound(rs, c);
                 }
             }
             rs.close();
 
-            touchETag(etag);            
+            touchETag(etag);
             for (Compound c : compounds) {
                 c.setSids(getSidsByCid(c.getCid()));
             }
@@ -900,124 +936,118 @@ public class DBUtils {
             pst.setLong(2, sid);
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
-                ed = getExperimentData (rs);
+                ed = getExperimentData(rs);
                 ed.setExptDataId(edid);
             }
             rs.close();
-        }
-        finally {
+        } finally {
             pst.close();
         }
         return ed;
     }
 
-    public List<ExperimentData> getExperimentDataByETag 
-        (int skip, int top, Long eid, String etag) 
-        throws SQLException, IOException {
+    public List<ExperimentData> getExperimentDataByETag
+            (int skip, int top, Long eid, String etag)
+            throws SQLException, IOException {
         List<ExperimentData> data = new ArrayList<ExperimentData>();
 
-        Map info = getETagInfo (etag);
-        String type = (String)info.get("type");
+        Map info = getETagInfo(etag);
+        String type = (String) info.get("type");
 
-        log.info("## ETag="+etag+" info="+info);
+        log.info("## ETag=" + etag + " info=" + info);
         StringBuilder sql = null;
         if (type != null) {
             if (type.equals(Compound.class.getName())) {
                 sql = new StringBuilder
-                    ("select * from experiment_data a, "
-                     +"experiment_result b, experiment c, "
-                     +"etag_data d where a.eid = ? and "
-                     +"d.etag_id = ? and "
-                     +"a.cid = d.data_id and "
-                     +"a.expt_data_id = b.expt_data_id and "
-                     +"a.eid = c.expt_id order by d.index");
-            }
-            else if (type.equals(Substance.class.getName())) {
+                        ("select * from experiment_data a, "
+                                + "experiment_result b, experiment c, "
+                                + "etag_data d where a.eid = ? and "
+                                + "d.etag_id = ? and "
+                                + "a.cid = d.data_id and "
+                                + "a.expt_data_id = b.expt_data_id and "
+                                + "a.eid = c.expt_id order by d.index");
+            } else if (type.equals(Substance.class.getName())) {
                 sql = new StringBuilder
-                    ("select * from experiment_data a, "
-                     +"experiment_result b, experiment c, "
-                     +"etag_data d where a.eid = ? and "
-                     +"d.etag_id = ? and "
-                     +"a.sid = d.data_id and "
-                     +"a.expt_data_id = b.expt_data_id and "
-                     +"a.eid = c.expt_id order by d.index");
-            }
-            else {
+                        ("select * from experiment_data a, "
+                                + "experiment_result b, experiment c, "
+                                + "etag_data d where a.eid = ? and "
+                                + "d.etag_id = ? and "
+                                + "a.sid = d.data_id and "
+                                + "a.expt_data_id = b.expt_data_id and "
+                                + "a.eid = c.expt_id order by d.index");
+            } else {
                 log.error("Can't retrieve experiment data "
-                          +"for etag of type: "+type);
+                        + "for etag of type: " + type);
             }
+        } else {
+            log.error("Invalid ETag " + etag);
         }
-        else {
-            log.error("Invalid ETag "+etag);
-        }
-        
+
         if (sql == null) {
             return data;
         }
 
         if (skip >= 0 && top > 0) {
             sql.append(" limit " + skip + "," + top);
-        }
-        else if (top > 0) {
+        } else if (top > 0) {
             sql.append(" limit " + top);
         }
 
-        PreparedStatement pst = conn.prepareStatement(sql.toString());        
+        PreparedStatement pst = conn.prepareStatement(sql.toString());
         try {
             pst.setLong(1, eid);
             pst.setString(2, etag);
             ResultSet rs = pst.executeQuery();
             while (rs.next()) {
-                ExperimentData ed = getExperimentData (rs);
-                ed.setExptDataId(ed.getEid()+"."+ed.getSid());
+                ExperimentData ed = getExperimentData(rs);
+                ed.setExptDataId(ed.getEid() + "." + ed.getSid());
                 data.add(ed);
             }
             rs.close();
-        }
-        finally {
+        } finally {
             pst.close();
         }
 
         return data;
     }
 
-    ExperimentData getExperimentData (ResultSet rs) 
-        throws SQLException, IOException {
+    ExperimentData getExperimentData(ResultSet rs)
+            throws SQLException, IOException {
         ExperimentData ed = new ExperimentData();
         ed.setEid(rs.getLong("eid"));
         ed.setSid(rs.getLong("sid"));
         ed.setCid(rs.getLong("cid"));
-        
+
         Integer classification = rs.getInt("classification");
         if (rs.wasNull()) classification = null;
         ed.setClassification(classification);
-        
+
         ed.setUpdated(rs.getDate("updated"));
         ed.setOutcome(rs.getInt("outcome"));
         ed.setScore(rs.getInt("score"));
-        
+
         Float potency = rs.getFloat("potency");
         if (rs.wasNull()) potency = null;
         ed.setPotency(potency);
-        
+
         Blob blob = rs.getBlob("json_data_array");
         byte[] bytes = blob.getBytes(1, (int) blob.length());
         String s = new String(bytes);
-        
+
         ObjectMapper mapper = new ObjectMapper();
         DataResultObject[] o = mapper.readValue(s, DataResultObject[].class);
-        
+
         blob = rs.getBlob("assay_result_def");
         s = new String(blob.getBytes(1, (int) blob.length()));
         AssayDefinitionObject[] ado = mapper.readValue(s, AssayDefinitionObject[].class);
-        
+
         DoseResponseResultObject[] dro = null;
         blob = rs.getBlob("json_dose_response");
         if (blob != null) {
             bytes = blob.getBytes(1, (int) blob.length());
             s = new String(bytes);
             dro = mapper.readValue(s, DoseResponseResultObject[].class);
-            
+
             // for each dose-response 'layer', try and pull a layer label from the assay definition.
             for (DoseResponseResultObject adro : dro) {
                 String tid = adro.getTid();
@@ -1151,10 +1181,10 @@ public class DBUtils {
 
     public List<Assay> getAssaysByETag(int skip, int top, String etag)
             throws SQLException {
-        Map info = getETagInfo (etag);
+        Map info = getETagInfo(etag);
         if (!Assay.class.getName().equals(info.get("type"))) {
             throw new IllegalArgumentException
-                ("ETag "+etag+" not of type "+Assay.class.getName());
+                    ("ETag " + etag + " not of type " + Assay.class.getName());
         }
 
         StringBuilder sql = new StringBuilder
@@ -1180,6 +1210,70 @@ public class DBUtils {
             pst.close();
         }
         return assays;
+    }
+
+    public List<Substance> getSubstanceByETag(int skip, int top, String etag) throws SQLException {
+        ETag info = getEtagByEtagId(etag);
+        if (!Substance.class.getName().equals(info.getType())) {
+            throw new IllegalArgumentException
+                    ("ETag " + etag + " not of type " + Substance.class.getName());
+        }
+
+        StringBuilder sql = new StringBuilder
+                ("select a.* from  substance a, etag_data e where etag_id = ? "
+                        + "and a.sid = e.data_id order by e.index");
+
+        if (skip >= 0 && top > 0) {
+            sql.append(" limit " + skip + "," + top);
+        } else if (top > 0) {
+            sql.append(" limit " + top);
+        }
+
+        ArrayList<Substance> substances = new ArrayList<Substance>();
+        PreparedStatement pst = conn.prepareStatement(sql.toString());
+        try {
+            pst.setString(1, etag);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                substances.add(getSubstanceBySid(rs.getLong("sid")));
+            }
+            rs.close();
+        } finally {
+            pst.close();
+        }
+        return substances;
+    }
+
+    public List<Experiment> getExperimentsByETag(int skip, int top, String etag) throws SQLException {
+        ETag info = getEtagByEtagId(etag);
+        if (!Experiment.class.getName().equals(info.getType())) {
+            throw new IllegalArgumentException
+                    ("ETag " + etag + " not of type " + Experiment.class.getName());
+        }
+
+        StringBuilder sql = new StringBuilder
+                ("select a.* from  experiment a, etag_data e where etag_id = ? "
+                        + "and a.expt_id = e.data_id order by e.index");
+
+        if (skip >= 0 && top > 0) {
+            sql.append(" limit " + skip + "," + top);
+        } else if (top > 0) {
+            sql.append(" limit " + top);
+        }
+
+        ArrayList<Experiment> expts = new ArrayList<Experiment>();
+        PreparedStatement pst = conn.prepareStatement(sql.toString());
+        try {
+            pst.setString(1, etag);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                expts.add(getExperimentByExptId(rs.getLong("expt_id")));
+            }
+            rs.close();
+        } finally {
+            pst.close();
+        }
+        return expts;
     }
 
 
@@ -1859,7 +1953,7 @@ public class DBUtils {
 
         // find assays
         pst = conn.prepareStatement
-            ("select assay_id from experiment where proj_id = ?");
+                ("select assay_id from experiment where proj_id = ?");
         try {
             List<Long> aids = new ArrayList<Long>();
             pst.setLong(1, projectId);
@@ -1869,8 +1963,7 @@ public class DBUtils {
             }
             rs.close();
             p.setAids(aids);
-        }
-        finally {
+        } finally {
             pst.close();
         }
 
@@ -2054,6 +2147,7 @@ public class DBUtils {
             if (!queryParams.getValidFields().contains(field)) throw new SQLException("Invalid field was specified");
             sql = "select " + queryParams.getIdField() + " from " + queryParams.getTableName() + " where " + field + " like '%" + q + "%' order by " + queryParams.getOrderField() + "  " + limitClause;
         }
+
         pst = conn.prepareStatement(sql);
         ResultSet rs = pst.executeQuery();
         List<T> entities = new ArrayList<T>();
@@ -2066,6 +2160,7 @@ public class DBUtils {
             else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
             else if (klass.equals(Compound.class)) entity = getCompoundsByCid((Long) id);
             else if (klass.equals(Assay.class)) entity = getAssayByAid((Long) id);
+            else if (klass.equals(ETag.class)) entity = getEtagByEtagId((String) id);
             if (entity != null) {
                 if (entity instanceof List) entities.addAll((Collection<T>) entity);
                 else if (entity instanceof BardEntity) entities.add((T) entity);
@@ -2075,6 +2170,24 @@ public class DBUtils {
         pst.close();
         return entities;
     }
+
+    public <T extends BardEntity> List<T> getEntitiesByEtag(String etag, int skip, int top) throws SQLException {
+        return getEntitiesByEtag(getEtagByEtagId(etag), skip, top);
+    }
+
+    public <T extends BardEntity> List<T> getEntitiesByEtag(ETag etag, int skip, int top) throws SQLException {
+        List<T> entities = new ArrayList<T>();
+        if (Assay.class.getName().equals(etag.getType()))
+            entities = (List<T>) getAssaysByETag(skip, top, etag.getEtag());
+        else if (Compound.class.getName().equals(etag.getType()))
+            entities = (List<T>) getCompoundsByETag(skip, top, etag.getEtag());
+        else if (Substance.class.getName().equals(etag.getType()))
+            entities = (List<T>) getSubstanceByETag(skip, top, etag.getEtag());
+        else if (Experiment.class.getName().equals(etag.getType()))
+            entities = (List<T>) getExperimentsByETag(skip, top, etag.getEtag());
+        return entities;
+    }
+
 
     /**
      * **********************************************************************

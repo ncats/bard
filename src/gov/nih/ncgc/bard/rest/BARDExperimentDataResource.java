@@ -1,15 +1,21 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
+import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
+import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
-import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
-import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
-import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -23,11 +29,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import java.io.StringWriter;
-import com.fasterxml.jackson.databind.node.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.JsonFactory;
 
 /**
  * Prototype of MLBD REST resources.
@@ -120,6 +121,64 @@ public class BARDExperimentDataResource implements IBARDResource {
         }
     }
 
+    /**
+     * Get multiple experiment data objects via POST'ing a list of ids.
+     * 
+     * Currently this method ignores the TID specification of an experiment data identifier. That
+     * is it only considers identifiers of the form <code>eid.sid</code>.
+     *
+     * The return value only contains experiment data for the identifiers that actually had
+     * experiment data. That is, the number of experiment data entries in the response may be
+     * less than the number of identifiers specified.
+     *
+     * @param ids A comma separated list of experiment data identifiers
+     * @param filter A filter string. Currently ignored
+     * @param expand If <code>true</code> show detailed respose, else a compact response. Currently ignored
+     * @return
+     * @throws IOException
+     */
+    @POST
+    @Path("/")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response getExptDataByIds(@FormParam("ids") String ids, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws IOException {
+        if (ids == null || ids.trim().equals("")) throw new BadRequestException("Must specify the ids form field");
+        String[] toks = ids.split(",");
+
+        List<ExperimentData> edlist = null;
+        try {
+            edlist = getExperimentData(toks, filter);
+        } catch (SQLException e) {
+            return Response.status(500).entity("Error while retrieving experiment data for: "+ids).type(MediaType.TEXT_PLAIN).build();
+        }
+        if (edlist.size() == 0) return Response.status(404).entity("No data available for ids: "+ids).type(MediaType.TEXT_PLAIN).build();
+        else return Response.ok(Util.toJson(edlist)).type(MediaType.APPLICATION_JSON).build();
+    }
+
+    private List<ExperimentData> getExperimentData(String[] edids, String filter) throws SQLException {
+        DBUtils db = new DBUtils();
+        List<ExperimentData> edlist = new ArrayList<ExperimentData>();
+        for (String edid : edids) {
+            try {
+                String exptId = "";
+                String[] tokens = edid.split("\\.");
+                if (tokens.length < 2) {
+                    throw new Exception("Bogus experiment data id: " + edid);
+                } else if (tokens.length == 2) {
+                    exptId = edid.trim();
+                } else {
+                    exptId = tokens[0].trim() + "." + tokens[1].trim();
+                }
+                ExperimentData ed = db.getExperimentDataByDataId(exptId);
+                if (ed != null) edlist.add(ed);
+            } catch (Exception e) {
+
+            }
+        }
+        db.closeConnection();
+        return edlist;
+    }
+    
+    
     @GET
     @Path("/{edid}")
     public Response getResources(@PathParam("edid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
@@ -129,8 +188,8 @@ public class BARDExperimentDataResource implements IBARDResource {
             String exptId = "";
             String[] tokens = resourceId.split("\\.");
             if (tokens.length < 2) {
-                throw new IllegalArgumentException 
-                    ("Bogus experiment data id: "+resourceId);
+
+                throw new BadRequestException("Bogus experiment data id: "+resourceId);
             }
             else if (tokens.length == 2) {
                 exptId = resourceId;
@@ -143,9 +202,8 @@ public class BARDExperimentDataResource implements IBARDResource {
             experimentData = db.getExperimentDataByDataId(exptId);
 
             if (experimentData == null || experimentData.getExptDataId() == null)
-                throw new WebApplicationException(404);
+                return Response.status(404).entity("No data for "+resourceId).type("text/plain").build();
 
-            //experimentData.transform();
             if (tokens.length == 2) {
                 String json = Util.toJson(experimentData);
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
@@ -244,6 +302,13 @@ public class BARDExperimentDataResource implements IBARDResource {
         catch (Exception e) {
             e.printStackTrace();
             throw new WebApplicationException(e, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (SQLException e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            }
         }
+
     }
 }

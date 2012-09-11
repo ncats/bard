@@ -45,7 +45,9 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
 
-    public Class<Substance> getEntityClass () { return Substance.class; }
+    public Class<Substance> getEntityClass() {
+        return Substance.class;
+    }
 
     @GET
     @Produces("text/plain")
@@ -371,6 +373,30 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @Override
+    @GET
+    @Path("/etag/{etag}")
+    public Response getEntitiesByETag(@PathParam("etag") String resourceId,
+                                      @QueryParam("filter") String filter,
+                                      @QueryParam("expand") String expand,
+                                      @QueryParam("skip") Integer skip,
+                                      @QueryParam("top") Integer top) {
+        DBUtils db = new DBUtils();
+        try {
+            List<Substance> substances = db.getSubstanceByETag(skip != null ? skip : -1, top != null ? top : -1, resourceId);
+            String json = Util.toJson(substances);
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
