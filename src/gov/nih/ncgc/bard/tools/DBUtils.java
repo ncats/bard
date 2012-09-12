@@ -3,16 +3,7 @@ package gov.nih.ncgc.bard.tools;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.ETag;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
-import gov.nih.ncgc.bard.entity.Publication;
-import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
@@ -26,25 +17,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Reader;
 import java.security.SecureRandom;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.sql.*;
+import java.util.*;
 
 /**
  * Utility methods to interact with the database backend.
@@ -319,10 +293,14 @@ public class DBUtils {
                 }
                 rs.close();
 
-                // get Sids
+                // get Sids and annotations
                 for (Compound c : compounds) {
                     c.setSids(getSidsByCid(c.getCid()));
+                    Map<String, String[]> annots = getCompoundAnnotations(c.getCid());
+                    c.setAnno_key(annots.get("anno_key"));
+                    c.setAnno_val(annots.get("anno_val"));
                 }
+
 
             } finally {
                 stm.close();
@@ -837,7 +815,7 @@ public class DBUtils {
         }
     }
 
-    public Map getCompoundAnnotations(Long cid) throws SQLException {
+    public Map<String, String[]> getCompoundAnnotations(Long cid) throws SQLException {
         PreparedStatement pst = conn.prepareStatement
                 ("select * from compound_annot where cid = ?");
         try {
@@ -857,7 +835,7 @@ public class DBUtils {
             }
             rs.close();
 
-            Map anno = new TreeMap();
+            Map<String, String[]> anno = new TreeMap();
             anno.put("anno_key", keys.toArray(new String[0]));
             anno.put("anno_val", vals.toArray(new String[0]));
 
