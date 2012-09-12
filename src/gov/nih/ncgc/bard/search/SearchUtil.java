@@ -41,8 +41,8 @@ public class SearchUtil {
      * @param filter The filter parameter string from a BARD request
      * @return A map whose keys are field names and values are field values.
      */
-    public static List<String[]> extractFilterQueries(String filter) {
-        List<String[]> ret = new ArrayList<String[]>();
+    public static Map<String, List<String>> extractFilterQueries(String filter) {
+        HashMap<String, List<String>> ret = new HashMap<String, List<String>>();
         if (filter == null || filter.trim().equals("")) return ret;
         Pattern pattern = Pattern.compile("fq\\((.*?):(.*?)\\)");
         Matcher matcher = pattern.matcher(filter);
@@ -50,7 +50,15 @@ public class SearchUtil {
             for (int i = 1; i < matcher.groupCount(); i += 2) {
                 String fname = matcher.group(i);
                 String fvalue = matcher.group(i + 1).trim();
-                ret.add(new String[]{fname, fvalue});
+                if (ret.containsKey(fname)) {
+                    List<String> tmp = ret.get(fname);
+                    tmp.add(fvalue);
+                    ret.put(fname, tmp);
+                } else {
+                    List<String> tmp = new ArrayList<String>();
+                    tmp.add(fvalue);
+                    ret.put(fname, tmp);
+                }
             }
         }
         return ret;
