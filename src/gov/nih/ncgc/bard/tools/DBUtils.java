@@ -3,7 +3,16 @@ package gov.nih.ncgc.bard.tools;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.entity.*;
+import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardEntity;
+import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.ETag;
+import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.entity.ProteinTarget;
+import gov.nih.ncgc.bard.entity.Publication;
+import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
@@ -16,9 +25,27 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Reader;
+import java.math.BigInteger;
 import java.security.SecureRandom;
-import java.sql.*;
-import java.util.*;
+import java.sql.Blob;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * Utility methods to interact with the database backend.
@@ -1153,6 +1180,66 @@ public class DBUtils {
         // next we need to look up publications, targets and data
         a.setPublications(getAssayPublications(aid));
         a.setTargets(getAssayTargets(aid));
+
+        // put in annotations
+        PreparedStatement pst = conn.prepareStatement("select * from go_assay where assay_id = ? and go_type = 'P'");
+        pst.setLong(1, aid);
+        ResultSet resultSet = pst.executeQuery();
+        List<String> l1 = new ArrayList<String>();
+        List<String> l2 = new ArrayList<String>();
+        while (resultSet.next()) {
+            l1.add(resultSet.getString("go_id"));
+            l2.add(resultSet.getString("go_term"));
+        }
+        a.setGobp_id(l1);
+        a.setGobp_term(l2);
+        pst.close();
+
+        pst = conn.prepareStatement("select * from go_assay where assay_id = ? and go_type = 'F'");
+        pst.setLong(1, aid);
+        resultSet = pst.executeQuery();
+        l1 = new ArrayList<String>();
+        l2 = new ArrayList<String>();
+        while (resultSet.next()) {
+            l1.add(resultSet.getString("go_id"));
+            l2.add(resultSet.getString("go_term"));
+        }
+        a.setGomf_id(l1);
+        a.setGomf_term(l2);
+        pst.close();
+
+        pst = conn.prepareStatement("select * from go_assay where assay_id = ? and go_type = 'C'");
+        pst.setLong(1, aid);
+        resultSet = pst.executeQuery();
+        l1 = new ArrayList<String>();
+        l2 = new ArrayList<String>();
+        while (resultSet.next()) {
+            l1.add(resultSet.getString("go_id"));
+            l2.add(resultSet.getString("go_term"));
+        }
+        a.setGocc_id(l1);
+        a.setGocc_term(l2);
+        pst.close();
+
+        try {
+            CAPDictionary dict = getCAPDictionary();
+            
+            List<CAPAssayAnnotation> capannots = getAssayAnnotations(aid);
+            l1 = new ArrayList<String>();
+            l2 = new ArrayList<String>();
+            for (CAPAssayAnnotation capannot : capannots) {
+                l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
+                if (capannot.value != null) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
+                else l2.add(capannot.display);
+            }
+            a.setAk_dict_label(l1);
+            a.setAv_dict_label(l2);
+
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
 
         return a;
     }
