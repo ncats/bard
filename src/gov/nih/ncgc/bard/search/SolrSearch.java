@@ -4,7 +4,11 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import gov.nih.ncgc.bard.tools.DBUtils;
-import nu.xom.*;
+import nu.xom.Builder;
+import nu.xom.Document;
+import nu.xom.Element;
+import nu.xom.Node;
+import nu.xom.Nodes;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -164,8 +168,11 @@ public abstract class SolrSearch implements ISolrSearch {
                 for (int i = 1; i < fvalues.size(); i++) {
                     if (fvalues.contains("["))
                         sb.append(" OR ").append(fvalues.get(i)); // name + ":" + fvalue
-                    else sb.append(" OR ").append("\"").append(fvalues.get(i)).append("\"");
+                    else {
+                        sb.append(" OR ").append("\"").append(fvalues.get(i).replace("\"", "")).append("\"");
+                    }
                 }
+                System.out.println(fname+":"+sb.toString());
                 solrQuery.addFilterQuery(fname + ":" + sb.toString());
             }
         } catch (Exception e) {
