@@ -911,6 +911,8 @@ public class DBUtils {
         if (rs.wasNull()) {
             c.setHbondDonor(null);
         }
+        c.setPreferredTerm(rs.getString("preferred_term"));
+        if (rs.wasNull()) c.setPreferredTerm(null);
     }
 
     /**

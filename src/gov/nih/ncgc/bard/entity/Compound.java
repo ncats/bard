@@ -33,6 +33,7 @@ public class Compound implements BardEntity {
     Integer rotatable;
     Integer hbondAcceptor;
     Integer hbondDonor;
+    String preferredTerm;
     String[] anno_val, anno_key;
 
     public Compound(Long cid, String probeId, String url) {
@@ -42,6 +43,14 @@ public class Compound implements BardEntity {
     }
 
     public Compound() {
+    }
+
+    public String getPreferredTerm() {
+        return preferredTerm;
+    }
+
+    public void setPreferredTerm(String preferredTerm) {
+        this.preferredTerm = preferredTerm;
     }
 
     public String[] getAnno_val() {
