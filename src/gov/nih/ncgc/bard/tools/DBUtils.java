@@ -1179,9 +1179,11 @@ public class DBUtils {
         a.setComments(rs.getString("comment"));
         a.setProtocol(rs.getString("protocol"));
 
-        // next we need to look up publications, targets and data
+        // next we need to look up publications, targets, experiments, projects and data
         a.setPublications(getAssayPublications(aid));
         a.setTargets(getAssayTargets(aid));
+        a.setExperiments(getExperimentByAssayId(aid));
+        a.setProjects(getProjectByAssayId(aid));
 
         // put in annotations
         PreparedStatement pst = conn.prepareStatement("select * from go_assay where assay_id = ? and go_type = 'P'");

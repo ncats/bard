@@ -18,11 +18,29 @@ public class Assay implements BardEntity {
 
     List<Publication> publications;
     List<ProteinTarget> targets;
+    List<Experiment> experiments;
+    List<Project> projects;
 
     List<String> gobp_id, gobp_term, gomf_term, gomf_id, gocc_id, gocc_term, av_dict_label, ak_dict_label;
 
     public List<String> getGobp_id() {
         return gobp_id;
+    }
+
+    public List<Experiment> getExperiments() {
+        return experiments;
+    }
+
+    public void setExperiments(List<Experiment> experiments) {
+        this.experiments = experiments;
+    }
+
+    public List<Project> getProjects() {
+        return projects;
+    }
+
+    public void setProjects(List<Project> projects) {
+        this.projects = projects;
     }
 
     public void setGobp_id(List<String> gobp_id) {
