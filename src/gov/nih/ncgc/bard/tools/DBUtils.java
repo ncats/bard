@@ -1236,11 +1236,11 @@ public class DBUtils {
 
         List<Long> eids = new ArrayList<Long>();
         for (Experiment expt : expts) eids.add(expt.getExptId());
-        a.setEids(eids);
+        a.setExperiments(eids);
 
         List<Long> pids = new ArrayList<Long>();
         for (Project proj : projs) pids.add(proj.getProjectId());
-        a.setPids(pids);
+        a.setProjects(pids);
 
         // put in annotations
         PreparedStatement pst = conn.prepareStatement("select * from go_assay where assay_id = ? and go_type = 'P'");
