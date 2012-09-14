@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.tools;
 
+import chemaxon.formats.MolFormatException;
+import chemaxon.formats.MolImporter;
+import chemaxon.struc.Molecule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
@@ -876,7 +879,14 @@ public class DBUtils {
             throws SQLException {
         c.setCid(rs.getLong("cid"));
         c.setProbeId(rs.getString("probe_id"));
-        c.setSmiles(rs.getString("iso_smiles"));
+
+        try {
+            Molecule m = MolImporter.importMol(rs.getString("iso_smiles"));
+            c.setSmiles(m.toFormat("smiles"));
+        } catch (MolFormatException e) {
+            c.setSmiles(rs.getString("iso_smiles"));
+       }
+
         // not what we want... place holder for now
         c.setName(rs.getString("pubchem_iupac_name"));
         c.setMwt(rs.getDouble("pubchem_molecular_weight"));
