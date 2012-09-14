@@ -1230,8 +1230,17 @@ public class DBUtils {
         // next we need to look up publications, targets, experiments, projects and data
         a.setPublications(getAssayPublications(aid));
         a.setTargets(getAssayTargets(aid));
-        a.setExperiments(getExperimentByAssayId(aid));
-        a.setProjects(getProjectByAssayId(aid));
+
+        List<Experiment> expts = getExperimentByAssayId(aid);
+        List<Project> projs = getProjectByAssayId(aid);
+
+        List<Long> eids = new ArrayList<Long>();
+        for (Experiment expt : expts) eids.add(expt.getExptId());
+        a.setEids(eids);
+
+        List<Long> pids = new ArrayList<Long>();
+        for (Project proj : projs) pids.add(proj.getProjectId());
+        a.setPids(pids);
 
         // put in annotations
         PreparedStatement pst = conn.prepareStatement("select * from go_assay where assay_id = ? and go_type = 'P'");
