@@ -1,11 +1,11 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
@@ -100,7 +100,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
             }
             return ret;
         } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } finally {
             try {
                 db.closeConnection();
@@ -156,9 +156,9 @@ public class BARDAssayResource extends BARDResource<Assay> {
             }
 
         } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } finally {
             try {
                 db.closeConnection();
@@ -168,6 +168,29 @@ public class BARDAssayResource extends BARDResource<Assay> {
         }
     }
 
+    JsonNode getExpandedJson(Assay a, Long aid, DBUtils db) throws SQLException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode t = mapper.valueToTree(a);
+
+        List<Experiment> expts = db.getExperimentByAssayId(aid);
+        ArrayNode an = mapper.createArrayNode();
+        for (Experiment e : expts) {
+            ObjectNode on = mapper.valueToTree(e);
+            an.add(on);
+        }
+        ((ObjectNode) t).put("experiments", an);
+
+        List<Project> projs = db.getProjectByAssayId(aid);
+        an = mapper.createArrayNode();
+        for (Project e : projs) {
+            ObjectNode on = mapper.valueToTree(e);
+            an.add(on);
+        }
+        ((ObjectNode) t).put("projects", an);
+
+        return t;
+    }
+    
     @GET
     @Path("/{aid}")
     public Response getResources(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
@@ -177,11 +200,14 @@ public class BARDAssayResource extends BARDResource<Assay> {
             a = db.getAssayByAid(Long.valueOf(resourceId));
             if (a.getAid() == null) throw new WebApplicationException(404);
             String json = Util.toJson(a);
+            if (expand != null && expand.toLowerCase().trim().equals("true")) { // expand experiment and project entries 
+                json = getExpandedJson(a, Long.parseLong(resourceId), db).toString();
+            }
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } finally {
             try {
                 db.closeConnection();
@@ -213,12 +239,21 @@ public class BARDAssayResource extends BARDResource<Assay> {
                 List<String> links = new ArrayList<String>();
                 for (Assay ap : assays) links.add(ap.getResourcePath());
                 json = Util.toJson(links);
-            } else json = Util.toJson(assays);
+            } else {
+                db = new DBUtils();
+                ObjectMapper mapper = new ObjectMapper();
+                ArrayNode an = mapper.createArrayNode();
+                for (Assay a : assays) {
+                    an.add(getExpandedJson(a, a.getAid(), db));
+                }
+                json = an.toString();
+                db.closeConnection();
+            }
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         }
     }
 
@@ -246,9 +281,9 @@ public class BARDAssayResource extends BARDResource<Assay> {
             String json = Util.toJson(a);
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } finally {
             try {
                 db.closeConnection();
@@ -282,13 +317,13 @@ public class BARDAssayResource extends BARDResource<Assay> {
             }
             return response;
         } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (JsonMappingException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (JsonGenerationException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } finally {
             try {
                 db.closeConnection();
@@ -320,13 +355,13 @@ public class BARDAssayResource extends BARDResource<Assay> {
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
         } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (JsonMappingException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (JsonGenerationException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } finally {
             try {
                 db.closeConnection();
@@ -386,13 +421,13 @@ public class BARDAssayResource extends BARDResource<Assay> {
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
         } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (JsonMappingException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (JsonGenerationException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } finally {
             try {
                 db.closeConnection();
@@ -473,7 +508,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
 
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (Exception e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } finally {
             try {
                 db.closeConnection();

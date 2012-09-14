@@ -151,23 +151,32 @@ public abstract class SolrSearch implements ISolrSearch {
      * @return the updated query object
      */
     protected SolrQuery setFilterQueries(SolrQuery solrQuery, String filter) {
-        if (filter != null) {
-            try {
-                List<SolrField> fields = getFieldNames();
-                List<String> fnames = new ArrayList<String>();
-                for (SolrField field : fields) fnames.add(field.getName());
+        if (filter == null) return solrQuery;
+        try {
+            List<SolrField> fields = getFieldNames();
+            List<String> fnames = new ArrayList<String>();
+            for (SolrField field : fields) fnames.add(field.getName());
 
-                List<String[]> fq = SearchUtil.extractFilterQueries(filter);
-                for (String[] entry : fq) {
-                    String fname = entry[0];
-                    String fvalue = entry[1];
-                    if (!fnames.contains(fname)) continue;
-                    if (fvalue.contains("[")) solrQuery.addFilterQuery(fname + ":" + fvalue);
-                    else solrQuery.addFilterQuery(fname + ":\"" + fvalue + "\"");
+            Map<String, List<String>> fq = SearchUtil.extractFilterQueries(filter);
+            for (Map.Entry<String, List<String>> entry : fq.entrySet()) {
+                String fname = entry.getKey();
+                List<String> fvalues = entry.getValue();
+                if (!fnames.contains(fname)) continue;
+
+                StringBuilder sb = new StringBuilder();
+                sb.append(fvalues.get(0));
+                for (int i = 1; i < fvalues.size(); i++) {
+                    if (fvalues.contains("["))
+                        sb.append(" OR ").append(fvalues.get(i)); // name + ":" + fvalue
+                    else {
+                        sb.append(" OR ").append("\"").append(fvalues.get(i).replace("\"", "")).append("\"");
+                    }
                 }
-            } catch (Exception e) {
-                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                System.out.println(fname+":"+sb.toString());
+                solrQuery.addFilterQuery(fname + ":" + sb.toString());
             }
+        } catch (Exception e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
         return solrQuery;
     }

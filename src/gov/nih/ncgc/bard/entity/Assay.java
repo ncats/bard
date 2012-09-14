@@ -19,6 +19,90 @@ public class Assay implements BardEntity {
     List<Publication> publications;
     List<ProteinTarget> targets;
 
+    List<Long> experiments, projects; // experiments and projects
+
+    List<String> gobp_id, gobp_term, gomf_term, gomf_id, gocc_id, gocc_term, av_dict_label, ak_dict_label;
+
+    public List<Long> getExperiments() {
+        return experiments;
+    }
+
+    public void setExperiments(List<Long> experiments) {
+        this.experiments = experiments;
+    }
+
+    public List<Long> getProjects() {
+        return projects;
+    }
+
+    public void setProjects(List<Long> projects) {
+        this.projects = projects;
+    }
+
+    public List<String> getGobp_id() {
+        return gobp_id;
+    }
+
+    public void setGobp_id(List<String> gobp_id) {
+        this.gobp_id = gobp_id;
+    }
+
+    public List<String> getGobp_term() {
+        return gobp_term;
+    }
+
+    public void setGobp_term(List<String> gobp_term) {
+        this.gobp_term = gobp_term;
+    }
+
+    public List<String> getGomf_term() {
+        return gomf_term;
+    }
+
+    public void setGomf_term(List<String> gomf_term) {
+        this.gomf_term = gomf_term;
+    }
+
+    public List<String> getGomf_id() {
+        return gomf_id;
+    }
+
+    public void setGomf_id(List<String> gomf_id) {
+        this.gomf_id = gomf_id;
+    }
+
+    public List<String> getGocc_id() {
+        return gocc_id;
+    }
+
+    public void setGocc_id(List<String> gocc_id) {
+        this.gocc_id = gocc_id;
+    }
+
+    public List<String> getGocc_term() {
+        return gocc_term;
+    }
+
+    public void setGocc_term(List<String> gocc_term) {
+        this.gocc_term = gocc_term;
+    }
+
+    public List<String> getAv_dict_label() {
+        return av_dict_label;
+    }
+
+    public void setAv_dict_label(List<String> av_dict_label) {
+        this.av_dict_label = av_dict_label;
+    }
+
+    public List<String> getAk_dict_label() {
+        return ak_dict_label;
+    }
+
+    public void setAk_dict_label(List<String> ak_dict_label) {
+        this.ak_dict_label = ak_dict_label;
+    }
+
     public String getProtocol() {
         return protocol;
     }

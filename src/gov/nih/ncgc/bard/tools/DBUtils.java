@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.tools;
 
+import chemaxon.formats.MolFormatException;
+import chemaxon.formats.MolImporter;
+import chemaxon.struc.Molecule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
@@ -25,6 +28,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Reader;
+import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.sql.Blob;
 import java.sql.Connection;
@@ -319,10 +323,14 @@ public class DBUtils {
                 }
                 rs.close();
 
-                // get Sids
+                // get Sids and annotations
                 for (Compound c : compounds) {
                     c.setSids(getSidsByCid(c.getCid()));
+                    Map<String, String[]> annots = getCompoundAnnotations(c.getCid());
+                    c.setAnno_key(annots.get("anno_key"));
+                    c.setAnno_val(annots.get("anno_val"));
                 }
+
 
             } finally {
                 stm.close();
@@ -837,7 +845,7 @@ public class DBUtils {
         }
     }
 
-    public Map getCompoundAnnotations(Long cid) throws SQLException {
+    public Map<String, String[]> getCompoundAnnotations(Long cid) throws SQLException {
         PreparedStatement pst = conn.prepareStatement
                 ("select * from compound_annot where cid = ?");
         try {
@@ -857,7 +865,7 @@ public class DBUtils {
             }
             rs.close();
 
-            Map anno = new TreeMap();
+            Map<String, String[]> anno = new TreeMap();
             anno.put("anno_key", keys.toArray(new String[0]));
             anno.put("anno_val", vals.toArray(new String[0]));
 
@@ -871,7 +879,14 @@ public class DBUtils {
             throws SQLException {
         c.setCid(rs.getLong("cid"));
         c.setProbeId(rs.getString("probe_id"));
-        c.setSmiles(rs.getString("iso_smiles"));
+
+        try {
+            Molecule m = MolImporter.importMol(rs.getString("iso_smiles"));
+            c.setSmiles(m.toFormat("smiles"));
+        } catch (MolFormatException e) {
+            c.setSmiles(rs.getString("iso_smiles"));
+       }
+
         // not what we want... place holder for now
         c.setName(rs.getString("pubchem_iupac_name"));
         c.setMwt(rs.getDouble("pubchem_molecular_weight"));
@@ -906,6 +921,8 @@ public class DBUtils {
         if (rs.wasNull()) {
             c.setHbondDonor(null);
         }
+        c.setPreferredTerm(rs.getString("preferred_term"));
+        if (rs.wasNull()) c.setPreferredTerm(null);
     }
 
     /**
@@ -945,6 +962,53 @@ public class DBUtils {
         }
         return ed;
     }
+
+    /**
+     * Helper method to get experiment data in chunks.
+     * 
+     * This method assumes that all the experiment data identifiers come from the same
+     * experiment, allowing us to take a shortcut in the SQL. If this is not the case,
+     * the results will be incomplete/
+     * 
+     * @param edids
+     * @return
+     * @throws SQLException
+     * @throws IOException
+     */
+    List<ExperimentData> getExperimentDataByDataId(List<String> edids) throws SQLException, IOException {
+        if (edids == null || edids.size() == 0) return null;
+        List<ExperimentData> ret = new ArrayList<ExperimentData>();
+
+        Long eid = -1L;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("(");
+        String sep = "";
+        for (String edid : edids) {
+            String[] toks = edid.split("\\.");
+            eid = Long.parseLong(toks[0]);
+            Long sid = Long.parseLong(toks[1]);
+            sb.append(sep).append(sid);
+            sep = ",";
+        }
+        sb.append(")");
+
+        String sql = "select * from experiment_data a, experiment_result b, experiment c where a.eid = " + eid + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.eid = c.expt_id";
+        PreparedStatement pst = conn.prepareStatement(sql);
+        ExperimentData ed = null;
+        try {
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                ed = getExperimentData(rs);
+                ret.add(ed);
+            }
+            rs.close();
+        } finally {
+            pst.close();
+        }
+        return ret;
+    }
+
 
     public List<ExperimentData> getExperimentDataByETag
             (int skip, int top, Long eid, String etag)
@@ -1017,6 +1081,7 @@ public class DBUtils {
         ed.setEid(rs.getLong("eid"));
         ed.setSid(rs.getLong("sid"));
         ed.setCid(rs.getLong("cid"));
+        ed.setExptDataId(ed.getEid()+"."+ed.getSid());
 
         Integer classification = rs.getInt("classification");
         if (rs.wasNull()) classification = null;
@@ -1172,9 +1237,80 @@ public class DBUtils {
         a.setComments(rs.getString("comment"));
         a.setProtocol(rs.getString("protocol"));
 
-        // next we need to look up publications, targets and data
+        // next we need to look up publications, targets, experiments, projects and data
         a.setPublications(getAssayPublications(aid));
         a.setTargets(getAssayTargets(aid));
+
+        List<Experiment> expts = getExperimentByAssayId(aid);
+        List<Project> projs = getProjectByAssayId(aid);
+
+        List<Long> eids = new ArrayList<Long>();
+        for (Experiment expt : expts) eids.add(expt.getExptId());
+        a.setExperiments(eids);
+
+        List<Long> pids = new ArrayList<Long>();
+        for (Project proj : projs) pids.add(proj.getProjectId());
+        a.setProjects(pids);
+
+        // put in annotations
+        PreparedStatement pst = conn.prepareStatement("select * from go_assay where assay_id = ? and go_type = 'P'");
+        pst.setLong(1, aid);
+        ResultSet resultSet = pst.executeQuery();
+        List<String> l1 = new ArrayList<String>();
+        List<String> l2 = new ArrayList<String>();
+        while (resultSet.next()) {
+            l1.add(resultSet.getString("go_id"));
+            l2.add(resultSet.getString("go_term"));
+        }
+        a.setGobp_id(l1);
+        a.setGobp_term(l2);
+        pst.close();
+
+        pst = conn.prepareStatement("select * from go_assay where assay_id = ? and go_type = 'F'");
+        pst.setLong(1, aid);
+        resultSet = pst.executeQuery();
+        l1 = new ArrayList<String>();
+        l2 = new ArrayList<String>();
+        while (resultSet.next()) {
+            l1.add(resultSet.getString("go_id"));
+            l2.add(resultSet.getString("go_term"));
+        }
+        a.setGomf_id(l1);
+        a.setGomf_term(l2);
+        pst.close();
+
+        pst = conn.prepareStatement("select * from go_assay where assay_id = ? and go_type = 'C'");
+        pst.setLong(1, aid);
+        resultSet = pst.executeQuery();
+        l1 = new ArrayList<String>();
+        l2 = new ArrayList<String>();
+        while (resultSet.next()) {
+            l1.add(resultSet.getString("go_id"));
+            l2.add(resultSet.getString("go_term"));
+        }
+        a.setGocc_id(l1);
+        a.setGocc_term(l2);
+        pst.close();
+
+        try {
+            CAPDictionary dict = getCAPDictionary();
+            
+            List<CAPAssayAnnotation> capannots = getAssayAnnotations(aid);
+            l1 = new ArrayList<String>();
+            l2 = new ArrayList<String>();
+            for (CAPAssayAnnotation capannot : capannots) {
+                l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
+                if (capannot.value != null) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
+                else l2.add(capannot.display);
+            }
+            a.setAk_dict_label(l1);
+            a.setAv_dict_label(l2);
+
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
 
         return a;
     }
@@ -1365,7 +1501,20 @@ public class DBUtils {
         pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
         List<ExperimentData> ret = new ArrayList<ExperimentData>();
-        while (rs.next()) ret.add(getExperimentDataByDataId(rs.getString(1)));
+        
+        List<String> chunk = new ArrayList<String>();
+        int chunkSize = 1000;
+        int n = 0;
+        while (rs.next()) {
+            chunk.add(rs.getString(1));
+            n++;
+            if (n == chunkSize) {                
+                ret.addAll(getExperimentDataByDataId(chunk));
+                chunk.clear();
+                n = 0;
+            }
+        }
+        if (chunk.size() > 0) ret.addAll(getExperimentDataByDataId(chunk));
         rs.close();
         pst.close();
         return ret;
