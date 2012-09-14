@@ -240,12 +240,14 @@ public class BARDAssayResource extends BARDResource<Assay> {
                 for (Assay ap : assays) links.add(ap.getResourcePath());
                 json = Util.toJson(links);
             } else {
+                db = new DBUtils();
                 ObjectMapper mapper = new ObjectMapper();
                 ArrayNode an = mapper.createArrayNode();
                 for (Assay a : assays) {
                     an.add(getExpandedJson(a, a.getAid(), db));
                 }
                 json = an.toString();
+                db.closeConnection();
             }
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
