@@ -24,31 +24,6 @@ ant war-rest
 ```
 You can then copy `deploy/bard.war` to the application containers' webapp directory and restart the server (if required)
 
-Testing
--------
-
-We are currently employing the [TestNG](http://testng.org/doc/index.html) framework for testing. At this stage we have a small
-set of tests focusing on the various entity resources - most of them are currently stubs and need to be fleshed out. To run
-the tests do
-```
-ant clean run-tests
-```
-and view `test.out/index.html` in your browser to view the summary.
-
-Unit tests that focus on database functionality can be run via the `run-db-tests` target. These have been seperated out since
-it requires a connection to a MySQL database, which developers may not have installed. If you choose to run these tests
-you should place a file called `database.parameters` in the root directory of the distribution. The contents of the file
-should be something like
-```
-jdbc:mysql://db.host.name:port/schema,username,password
-```
-As with the general tests, the results can be viewed in `test.out/index.html`
-
-There is a special test target called `rest-heartbeat` that simply retrieves the `/_info` resource for all available
-entities on the main development server and checks that the HTTP status code is 200. While this does not check that the resource is returning the
-correct values, it does indicate that the resources are available. Ideally, there should be no failures for this
-test target. If there are failures, that will indicate that one or more resources are not available.
-
 Tomcat Configuration
 --------------------
 
@@ -73,20 +48,12 @@ the global Tomcat classpath and then add the following entry to `config/context.
       logAbandoned="true"
       debug="99"/>
 ```
-In addition, some resources such as `/documents` support paths that include forward slashes. An example is when querying
-for documents by their DOI. In such cases make sure that URLS are appropriately encoded (so '/' becomes '%2F'). In addition
-in Tomcats `bin/catalina.sh` make sure that you have
-```
-CATALINA_OPTS="-Dorg.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true"
-```
-If you Tomcat instance is behind an Apache server, you will also need to specify `AllowEncodedSlashes NoDecode` (only
-available in Apache 2.2.18 or better) somewhere in the configuration
 
 Plugins
 -------
 
 The REST API also supports the concept of plugins - user contributed Java classes that appear as resources in the REST hierarchy. See
-[`plugins/`](https://github.com/ncatsdpiprobedev/bard/tree/master/src/gov/nih/ncgc/bard/plugin) for some examples. A more detailed description of how plugins should be written can be found [here](https://github.com/ncatsdpiprobedev/bard/wiki/Plugins). Currently the example plugins are built as part of the WAR build target. However, users can provide a standalone JAR file containing
+[`plugins/`](https://github.com/ncatsdpiprobedev/bard/tree/master/src/gov/nih/ncgc/bard/plugin) for some examples. A more detailed description of how plugins should be written can be found [here](https://github.com/broadinstitute/BARD/wiki/Plugins). Currently the example plugins are built as part of the WAR build target. However, users can provide a standalone JAR file containing
 the components of their plugin. The actual deployment mechanism of such code is still to be decided. The tools directory also contains a plugin 
 validator class. This can be used within client code to ensure a valid plugin. In the future this will be converted to an Ant task to allow 
 validation at build time.

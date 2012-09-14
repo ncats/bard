@@ -936,7 +936,7 @@ public class DBUtils {
         Long eid = Long.parseLong(toks[0]);
         Long sid = Long.parseLong(toks[1]);
 
-        PreparedStatement pst = conn.prepareStatement("select * from experiment_data a, experiment_result b, experiment c where a.eid = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.eid = c.expt_id");
+        PreparedStatement pst = conn.prepareStatement("select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.eid = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.eid = c.pubchem_aid");
         ExperimentData ed = null;
         try {
             pst.setLong(1, eid);
@@ -983,7 +983,7 @@ public class DBUtils {
         }
         sb.append(")");
 
-        String sql = "select * from experiment_data a, experiment_result b, experiment c where a.eid = " + eid + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.eid = c.expt_id";
+        String sql = "select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.eid = " + eid + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.eid = c.pubchem_aid";
         PreparedStatement pst = conn.prepareStatement(sql);
         ExperimentData ed = null;
         try {
@@ -1013,22 +1013,22 @@ public class DBUtils {
         if (type != null) {
             if (type.equals(Compound.class.getName())) {
                 sql = new StringBuilder
-                        ("select * from experiment_data a, "
-                                + "experiment_result b, experiment c, "
+                        ("select * from bard_experiment_data a, "
+                                + "bard_experiment_result b, bard_experiment c, "
                                 + "etag_data d where a.eid = ? and "
                                 + "d.etag_id = ? and "
                                 + "a.cid = d.data_id and "
                                 + "a.expt_data_id = b.expt_data_id and "
-                                + "a.eid = c.expt_id order by d.index");
+                                + "a.eid = c.pubchem_aid order by d.index");
             } else if (type.equals(Substance.class.getName())) {
                 sql = new StringBuilder
-                        ("select * from experiment_data a, "
-                                + "experiment_result b, experiment c, "
+                        ("select * from bard_experiment_data a, "
+                                + "bard_experiment_result b, bard_experiment c, "
                                 + "etag_data d where a.eid = ? and "
                                 + "d.etag_id = ? and "
                                 + "a.sid = d.data_id and "
                                 + "a.expt_data_id = b.expt_data_id and "
-                                + "a.eid = c.expt_id order by d.index");
+                                + "a.eid = c.pubchem_aid order by d.index");
             } else {
                 log.error("Can't retrieve experiment data "
                         + "for etag of type: " + type);
