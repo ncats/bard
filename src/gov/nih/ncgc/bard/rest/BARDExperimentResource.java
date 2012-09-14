@@ -403,19 +403,29 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
                 json = Util.toJson(linkedEntity);
             } else {
+                long start = System.currentTimeMillis();
                 List<ExperimentData> data = db.getExperimentData(Long.valueOf(resourceId), skip, top);
-                //for (ExperimentData d : data) d.transform();
+                long end = System.currentTimeMillis();
+                double dbQueryTime = (end - start) / 1000.0;
+
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
+
+                start = System.currentTimeMillis();
                 json = Util.toJson(linkedEntity);
+                end = System.currentTimeMillis();
+                double jsonTime = (end - start) / 1000.0;
+
+                logger.info("Time to retrieve " + data.size() + " expanded entries for expt " + resourceId + " used " + dbQueryTime + "s for DB query and " + jsonTime + "s for JSON generation");
+
             }
             db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             db.closeConnection();
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.toString()).build());
         } catch (IOException e) {
             db.closeConnection();
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e.toString()).build());
         }
     }
 

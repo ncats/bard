@@ -953,6 +953,53 @@ public class DBUtils {
         return ed;
     }
 
+    /**
+     * Helper method to get experiment data in chunks.
+     * 
+     * This method assumes that all the experiment data identifiers come from the same
+     * experiment, allowing us to take a shortcut in the SQL. If this is not the case,
+     * the results will be incomplete/
+     * 
+     * @param edids
+     * @return
+     * @throws SQLException
+     * @throws IOException
+     */
+    List<ExperimentData> getExperimentDataByDataId(List<String> edids) throws SQLException, IOException {
+        if (edids == null || edids.size() == 0) return null;
+        List<ExperimentData> ret = new ArrayList<ExperimentData>();
+
+        Long eid = -1L;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("(");
+        String sep = "";
+        for (String edid : edids) {
+            String[] toks = edid.split("\\.");
+            eid = Long.parseLong(toks[0]);
+            Long sid = Long.parseLong(toks[1]);
+            sb.append(sep).append(sid);
+            sep = ",";
+        }
+        sb.append(")");
+
+        String sql = "select * from experiment_data a, experiment_result b, experiment c where a.eid = " + eid + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.eid = c.expt_id";
+        PreparedStatement pst = conn.prepareStatement(sql);
+        ExperimentData ed = null;
+        try {
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                ed = getExperimentData(rs);
+                ret.add(ed);
+            }
+            rs.close();
+        } finally {
+            pst.close();
+        }
+        return ret;
+    }
+
+
     public List<ExperimentData> getExperimentDataByETag
             (int skip, int top, Long eid, String etag)
             throws SQLException, IOException {
@@ -1024,6 +1071,7 @@ public class DBUtils {
         ed.setEid(rs.getLong("eid"));
         ed.setSid(rs.getLong("sid"));
         ed.setCid(rs.getLong("cid"));
+        ed.setExptDataId(ed.getEid()+"."+ed.getSid());
 
         Integer classification = rs.getInt("classification");
         if (rs.wasNull()) classification = null;
@@ -1434,7 +1482,20 @@ public class DBUtils {
         pst.setLong(1, eid);
         ResultSet rs = pst.executeQuery();
         List<ExperimentData> ret = new ArrayList<ExperimentData>();
-        while (rs.next()) ret.add(getExperimentDataByDataId(rs.getString(1)));
+        
+        List<String> chunk = new ArrayList<String>();
+        int chunkSize = 1000;
+        int n = 0;
+        while (rs.next()) {
+            chunk.add(rs.getString(1));
+            n++;
+            if (n == chunkSize) {                
+                ret.addAll(getExperimentDataByDataId(chunk));
+                chunk.clear();
+                n = 0;
+            }
+        }
+        if (chunk.size() > 0) ret.addAll(getExperimentDataByDataId(chunk));
         rs.close();
         pst.close();
         return ret;
