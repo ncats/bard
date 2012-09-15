@@ -108,12 +108,12 @@ public class DBUtils {
 
         fieldMap = new HashMap<Class, Query>() {{
             put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
-            put(Project.class, new Query(projectFields, "proj_id", null, "project"));
+            put(Project.class, new Query(projectFields, "bard_proj_id", null, "project"));
             put(ProteinTarget.class, new Query(targetFields, "accession", null, "protein_target"));
-            put(Experiment.class, new Query(experimentFields, "expt_id", null, "experiment"));
+            put(Experiment.class, new Query(experimentFields, "bard_expt_id", null, "experiment"));
             put(Compound.class, new Query(compoundFields, "cid", null, "compound"));
             put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
-            put(Assay.class, new Query(assayFields, "assay_id", null, "assay"));
+            put(Assay.class, new Query(assayFields, "bard_assay_id", null, "assay"));
             put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "experiment_data"));
             put(ETag.class, new Query(etagFields, "etag_id", null, "etag"));
         }};
