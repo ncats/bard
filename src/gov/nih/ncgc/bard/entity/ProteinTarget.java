@@ -25,6 +25,14 @@ public class ProteinTarget implements BardEntity {
         this.taxId = taxId;
     }
 
+    public boolean equals(Object o) {
+        return o instanceof ProteinTarget && ((ProteinTarget) o).getAcc().equals(acc);
+    }
+
+    public int hashCode() {
+        return acc.hashCode();
+    }
+
     public ProteinTarget() {
     }
 

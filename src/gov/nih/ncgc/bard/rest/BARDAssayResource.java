@@ -155,8 +155,10 @@ public class BARDAssayResource extends BARDResource<Assay> {
             }
 
         } catch (SQLException e) {
+            e.printStackTrace();
             throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (IOException e) {
+            e.printStackTrace();
             throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } finally {
             try {

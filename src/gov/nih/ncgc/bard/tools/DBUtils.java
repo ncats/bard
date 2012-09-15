@@ -108,13 +108,13 @@ public class DBUtils {
 
         fieldMap = new HashMap<Class, Query>() {{
             put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
-            put(Project.class, new Query(projectFields, "bard_proj_id", null, "project"));
+            put(Project.class, new Query(projectFields, "bard_proj_id", null, "bard_project"));
             put(ProteinTarget.class, new Query(targetFields, "accession", null, "protein_target"));
-            put(Experiment.class, new Query(experimentFields, "bard_expt_id", null, "experiment"));
+            put(Experiment.class, new Query(experimentFields, "bard_expt_id", null, "bard_experiment"));
             put(Compound.class, new Query(compoundFields, "cid", null, "compound"));
             put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
-            put(Assay.class, new Query(assayFields, "bard_assay_id", null, "assay"));
-            put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "experiment_data"));
+            put(Assay.class, new Query(assayFields, "bard_assay_id", null, "bard_assay"));
+            put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "bard_experiment_data"));
             put(ETag.class, new Query(etagFields, "etag_id", null, "etag"));
         }};
 
@@ -1187,7 +1187,7 @@ public class DBUtils {
         Experiment e = new Experiment();
         while (rs.next()) {
             e.setExptId(bardExptId);
-            e.setAssayId(rs.getLong("bard_assay_d"));
+            e.setAssayId(rs.getLong("bard_assay_id"));
    
             e.setName(rs.getString("name"));
             e.setDescription(rs.getString("description"));
@@ -1203,14 +1203,16 @@ public class DBUtils {
             e.setCompounds(rs.getInt("cid_count"));
 
             e.setHasProbe(rs.getBoolean("have_probe"));
-        } 
+        }
         
         //JCB: capture all projects behind the experiment
         List<Project> projects = getProjectByExperimentId(bardExptId);
-        for(Project project : projects) {
-        	e.addProjectID(project.getProjectId());
+        for (Project project : projects) {
+            Long projectId = project.getProjectId();
+            if (projectId != null)
+                e.addProjectID(project.getProjectId());
         }
-        
+
         rs.close();
         pst.close();
         return e;
@@ -1266,7 +1268,7 @@ public class DBUtils {
      
     Assay getAssay(ResultSet rs) throws SQLException {
         Assay a = new Assay();
-        long aid = rs.getLong("assay_id");
+        long aid = rs.getLong("pubchem_aid");
         a.setAid(aid);
 
         long bardAssayId = rs.getLong("bard_assay_id");
@@ -2157,7 +2159,7 @@ public class DBUtils {
                 p.setProjectId(bardProjId);
                 p.setDescription(rs.getString("description"));
                 p.setName(rs.getString("name"));
-                p.setDeposited(rs.getDate("create_date"));
+                p.setDeposited(rs.getDate("deposited"));
             }
             rs.close();
         } finally {
@@ -2197,14 +2199,14 @@ public class DBUtils {
         } finally {
             pst.close();
         }
-    
+
         //find targets, get collected bard_assay_ids, for each bard_assay_id under the project
         List<Long> bardAssayIdList = p.getAids();
-        List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
-        for(Long bardAssayId: bardAssayIdList) {
-        	targets.addAll(getAssayTargets(bardAssayId));
+        Set<ProteinTarget> targets = new HashSet<ProteinTarget>();
+        for (Long bardAssayId : bardAssayIdList) {
+            targets.addAll(getAssayTargets(bardAssayId));
         }
-        p.setTargets(targets);
+        p.setTargets(new ArrayList<ProteinTarget>(targets));
         
         return p;
     }
@@ -2238,8 +2240,8 @@ public class DBUtils {
         ResultSet rs = pst.executeQuery();
         List<Project> ps = new ArrayList<Project>();
         while (rs.next()) {
-            Long projectId = rs.getLong("bard_proj_id");
-            ps.add(getProject(projectId));
+            Project project = getProject(rs.getLong("bard_proj_id"));
+            if (project != null) ps.add(project);
         }
         rs.close();
         pst.close();
