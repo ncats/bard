@@ -933,13 +933,13 @@ public class DBUtils {
         if (edid == null || !edid.contains(".")) return null;
 
         String[] toks = edid.split("\\.");
-        Long eid = Long.parseLong(toks[0]);
+        Long bardExptId = Long.parseLong(toks[0]);
         Long sid = Long.parseLong(toks[1]);
 
-        PreparedStatement pst = conn.prepareStatement("select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.eid = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id");
+        PreparedStatement pst = conn.prepareStatement("select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.bard_expt_id = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id");
         ExperimentData ed = null;
         try {
-            pst.setLong(1, eid);
+            pst.setLong(1, bardExptId);
             pst.setLong(2, sid);
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
@@ -1112,7 +1112,7 @@ public class DBUtils {
         ObjectMapper mapper = new ObjectMapper();
         DataResultObject[] o = mapper.readValue(s, DataResultObject[].class);
 
-        blob = rs.getBlob("assay_result_def");
+        blob = rs.getBlob("expt_result_def");
         s = new String(blob.getBytes(1, (int) blob.length()));
         AssayDefinitionObject[] ado = mapper.readValue(s, AssayDefinitionObject[].class);
 
@@ -1155,14 +1155,14 @@ public class DBUtils {
 
         if (bardExptId == null || bardExptId <= 0) return null;
         PreparedStatement pst = conn.prepareStatement
-                ("select assay_result_def from bard_experiment where bard_expt_id = ?");
+                ("select expt_result_def from bard_experiment where bard_expt_id = ?");
         pst.setLong(1, bardExptId);
         ResultSet rs = pst.executeQuery();
 
         String json = null;
         try {
             if (rs.next()) {
-                Blob blob = rs.getBlob("assay_result_def");
+                Blob blob = rs.getBlob("expt_result_def");
                 json = new String(blob.getBytes(1, (int) blob.length()));
             }
 
@@ -1188,11 +1188,7 @@ public class DBUtils {
         while (rs.next()) {
             e.setExptId(bardExptId);
             e.setAssayId(rs.getLong("bard_assay_d"));
-
-            //JCB need to select a collection of project ids for the specified experiment
-            //e.setProjId(rs.getLong("proj_id"));
-            //removed assignment of deprecated fields
-            
+   
             e.setName(rs.getString("name"));
             e.setDescription(rs.getString("description"));
 
@@ -1207,7 +1203,14 @@ public class DBUtils {
             e.setCompounds(rs.getInt("cid_count"));
 
             e.setHasProbe(rs.getBoolean("have_probe"));
+        } 
+        
+        //JCB: capture all projects behind the experiment
+        List<Project> projects = getProjectByExperimentId(bardExptId);
+        for(Project project : projects) {
+        	e.addProjectID(project.getProjectId());
         }
+        
         rs.close();
         pst.close();
         return e;
@@ -1269,35 +1272,19 @@ public class DBUtils {
         long bardAssayId = rs.getLong("bard_assay_id");
         //add the bard assay id
         a.setBardAssayId(bardAssayId);
-        //a.setAssays(rs.getInt("assays"));
         a.setCategory(rs.getInt("category"));
-        //no classification for assay. Experiments are classified by type
-        //a.setClassification(rs.getInt("classification"));
         a.setDeposited(rs.getDate("deposited"));
         a.setDescription(rs.getString("description"));
-        
-        //no grant number on assays
-        //a.setGrantNo(rs.getString("grant_no"));
-
         a.setName(rs.getString("name"));
         a.setSource(rs.getString("source"));
-        
-        //jcb no summary field in bard_assay table
-        //a.setSummary(rs.getInt("summary"));
-        
-        //jcb assay does not have a 'type', type is associated with Experiment
-        //a.setType(rs.getInt("type"));
-        
         a.setUpdated(rs.getDate("updated"));
         a.setComments(rs.getString("comment"));
         a.setProtocol(rs.getString("protocol"));
+        a.setPublications(getAssayPublications(bardAssayId));
+        a.setTargets(getAssayTargets(bardAssayId));
 
-        // next we need to look up publications, targets, experiments, projects and data
-        a.setPublications(getAssayPublications(aid));
-        a.setTargets(getAssayTargets(aid));
-
-        List<Experiment> expts = getExperimentByAssayId(aid);
-        List<Project> projs = getProjectByAssayId(aid);
+        List<Experiment> expts = getExperimentByAssayId(bardAssayId);
+        List<Project> projs = getProjectByAssayId(bardAssayId);
 
         List<Long> eids = new ArrayList<Long>();
         for (Experiment expt : expts) eids.add(expt.getExptId());
@@ -1350,7 +1337,7 @@ public class DBUtils {
         try {
             CAPDictionary dict = getCAPDictionary();
             
-            //this is pulling from cap_annotations using pubchem aid via a cap to pubchem mapping table
+            //JCB Note: this is pulling from cap_annotations using pubchem aid via a cap to pubchem mapping table
             //this should be pulling based on a bard id since cap ids are not reliable.
             //the cap annotation table should hold an appropriate id for queries
             List<CAPAssayAnnotation> capannots = getAssayAnnotations(aid);
@@ -2210,24 +2197,15 @@ public class DBUtils {
         } finally {
             pst.close();
         }
-
-        // find targets; should be project_target table instead?
-        pst = conn.prepareStatement("select * from project_target where proj_id=?");
-        try {
-            pst.setLong(1, bardProjId);
-            ResultSet rs = pst.executeQuery();
-            List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
-            while (rs.next()) {
-                String acc = rs.getString("accession");
-                targets.add(getProteinTargetByAccession(acc));
-            }
-            rs.close();
-            p.setTargets(targets);
-        } finally {
-            pst.close();
+    
+        //find targets, get collected bard_assay_ids, for each bard_assay_id under the project
+        List<Long> bardAssayIdList = p.getAids();
+        List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
+        for(Long bardAssayId: bardAssayIdList) {
+        	targets.addAll(getAssayTargets(bardAssayId));
         }
-
-
+        p.setTargets(targets);
+        
         return p;
     }
 
@@ -2279,7 +2257,7 @@ public class DBUtils {
         pst.setLong(1, bardAssayId);
         ResultSet rs = pst.executeQuery();
         List<Long> pids = new ArrayList<Long>();
-        while (rs.next()) pids.add(rs.getLong("proj_id"));
+        while (rs.next()) pids.add(rs.getLong("bard_proj_id"));
         rs.close();
         pst.close();
         return getProjects(pids.toArray(new Long[]{}));
@@ -2537,9 +2515,19 @@ public class DBUtils {
         }
 
         if (entity.isAssignableFrom(Assay.class)) {
-            sql = "select distinct assay_id from experiment_data a, experiment b where a.cid = ? and a.eid = b.expt_id  " + limitClause;
-        } else if (entity.isAssignableFrom(Project.class)) {
-            sql = "select p.proj_id from project p, experiment e where e.expt_id in (select distinct ed.eid from experiment_data ed, experiment e, compound a where a.cid = ? and ed.cid = a.cid and ed.eid = e.expt_id) and e.proj_id = p.proj_id";
+            sql = "select distinct b.bard_assay_id from bard_experiment_data a, bard_experiment b where a.cid = ? and a.bard_expt_id = b.bard_expt_id  " + limitClause;
+        } else if (entity.isAssignableFrom(Project.class)) {        	
+//			JB: original sql joined compound and used the proj_id in experiment which no longer exists since one experiment can have multiple projects
+//        	It also used a nested select.
+//			I'll leave this here for review in case the new query doesn't perform as expected
+//        	
+//            sql = "select p.bard_proj_id from project p, bard_experiment e where e.bard_expt_id in " +
+//            		"(select distinct ed.bard_expt_id from bard_experiment_data ed, bard_experiment e, compound a " +
+//            		"where a.cid = ? and ed.cid = a.cid and ed.bard_expt_id = e.bard_expt_id) and e.proj_id = p.proj_id";
+
+        	//new query: uses bard_project, doesn't join with compound
+        	sql = "select distinct(pe.bard_proj_id) from bard_experiment_data ed, bard_project_experiment pe " +
+        			"where ed.cid = ? and pe.bard_expt_id=ed.bard_expt_id";
         } else if (entity.isAssignableFrom(Substance.class)) {
             sql = "select sid from cid_sid where cid = ?";
         }
