@@ -85,7 +85,9 @@ public class OrderedSearchResultHandler implements SearchCallback<SearchService2
             case Substructure: {
                 for (int[] h : hits) {
                     for (int i = 0; i < h.length; ++i) {
-                        mol.getAtom(h[i]).setAtomMap(i + 1);
+                        if (h[i] >= 0) {
+                            mol.getAtom(h[i]).setAtomMap(i + 1);
+                        }
                     }
                 }
             }
@@ -94,7 +96,9 @@ public class OrderedSearchResultHandler implements SearchCallback<SearchService2
             case Superstructure: {
                 for (int[] h : hits) {
                     for (int i = 0; i < h.length; ++i) {
-                        mol.getAtom(i).setAtomMap(h[i] + 1);
+                        if (h[i] >= 0) {
+                            mol.getAtom(i).setAtomMap(h[i] + 1);
+                        }
                     }
                 }
             }
