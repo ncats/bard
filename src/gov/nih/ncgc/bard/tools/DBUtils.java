@@ -919,13 +919,13 @@ public class DBUtils {
      * Extract the measured results for a substance in an experiment.
      * <p/>
      * The identifier will usually be obtained via {@link #getExperimentData(Long, int, int)} using the
-     * experiment identifier.
+     * experiment identifier (bard_expt_id).
      * <p/>
      * This method returns an {@link ExperimentData} object that contains the high level summary of the
      * result (score, potency, outcome etc) as well as the actual measured data which may be single
      * point or dose response.
      *
-     * @param edid The experiment data identifier  (of the form EXPT_ID.SID)
+     * @param edid The experiment data identifier  (of the form BARD_EXPT_ID.SID)
      * @return
      * @throws SQLException
      */
@@ -936,7 +936,7 @@ public class DBUtils {
         Long eid = Long.parseLong(toks[0]);
         Long sid = Long.parseLong(toks[1]);
 
-        PreparedStatement pst = conn.prepareStatement("select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.eid = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.eid = c.pubchem_aid");
+        PreparedStatement pst = conn.prepareStatement("select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.eid = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id");
         ExperimentData ed = null;
         try {
             pst.setLong(1, eid);
@@ -969,21 +969,21 @@ public class DBUtils {
         if (edids == null || edids.size() == 0) return null;
         List<ExperimentData> ret = new ArrayList<ExperimentData>();
 
-        Long eid = -1L;
+        Long bardExptId = -1L;
 
         StringBuilder sb = new StringBuilder();
         sb.append("(");
         String sep = "";
         for (String edid : edids) {
             String[] toks = edid.split("\\.");
-            eid = Long.parseLong(toks[0]);
+            bardExptId = Long.parseLong(toks[0]);
             Long sid = Long.parseLong(toks[1]);
             sb.append(sep).append(sid);
             sep = ",";
         }
         sb.append(")");
 
-        String sql = "select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.eid = " + eid + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.eid = c.pubchem_aid";
+        String sql = "select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id";
         PreparedStatement pst = conn.prepareStatement(sql);
         ExperimentData ed = null;
         try {
@@ -1000,8 +1000,19 @@ public class DBUtils {
     }
 
 
+    /**
+     * Retrieves the experiment data by ETag, note the use of teh bardExptId as the experiment key
+     * 
+     * @param skip
+     * @param top
+     * @param bardExptId
+     * @param etag
+     * @return
+     * @throws SQLException
+     * @throws IOException
+     */
     public List<ExperimentData> getExperimentDataByETag
-            (int skip, int top, Long eid, String etag)
+            (int skip, int top, Long bardExptId, String etag)
             throws SQLException, IOException {
         List<ExperimentData> data = new ArrayList<ExperimentData>();
 
@@ -1015,20 +1026,20 @@ public class DBUtils {
                 sql = new StringBuilder
                         ("select * from bard_experiment_data a, "
                                 + "bard_experiment_result b, bard_experiment c, "
-                                + "etag_data d where a.eid = ? and "
+                                + "etag_data d where a.bard_expt_id = ? and "
                                 + "d.etag_id = ? and "
                                 + "a.cid = d.data_id and "
                                 + "a.expt_data_id = b.expt_data_id and "
-                                + "a.eid = c.pubchem_aid order by d.index");
+                                + "a.bard_expt_id = c.bard_expt_id order by d.index");
             } else if (type.equals(Substance.class.getName())) {
                 sql = new StringBuilder
                         ("select * from bard_experiment_data a, "
                                 + "bard_experiment_result b, bard_experiment c, "
-                                + "etag_data d where a.eid = ? and "
+                                + "etag_data d where a.bard_expt_id = ? and "
                                 + "d.etag_id = ? and "
                                 + "a.sid = d.data_id and "
                                 + "a.expt_data_id = b.expt_data_id and "
-                                + "a.eid = c.pubchem_aid order by d.index");
+                                + "a.bard_expt_id = c.bard_expt_id order by d.index");
             } else {
                 log.error("Can't retrieve experiment data "
                         + "for etag of type: " + type);
@@ -1049,7 +1060,7 @@ public class DBUtils {
 
         PreparedStatement pst = conn.prepareStatement(sql.toString());
         try {
-            pst.setLong(1, eid);
+            pst.setLong(1, bardExptId);
             pst.setString(2, etag);
             ResultSet rs = pst.executeQuery();
             while (rs.next()) {
@@ -1065,10 +1076,19 @@ public class DBUtils {
         return data;
     }
 
+    /**
+     * Helper t build an <code>ExperimentData</code> object
+     * @param rs
+     * @return
+     * @throws SQLException
+     * @throws IOException
+     */
     ExperimentData getExperimentData(ResultSet rs)
             throws SQLException, IOException {
         ExperimentData ed = new ExperimentData();
         ed.setEid(rs.getLong("eid"));
+        //sets a new field for bard_expt_id
+        ed.setBardExptId(rs.getLong("bard_expt_id"));
         ed.setSid(rs.getLong("sid"));
         ed.setCid(rs.getLong("cid"));
         ed.setExptDataId(ed.getEid()+"."+ed.getSid());
@@ -1123,13 +1143,20 @@ public class DBUtils {
         return ed;
     }
 
-    public String getExperimentMetadataByExptId(Long exptId)
+    /**
+     * Retrieves the experiment result definition based on the bard_expt_id
+     * 
+     * @param bardExptId
+     * @return
+     * @throws SQLException
+     */
+    public String getExperimentMetadataByExptId(Long bardExptId)
             throws SQLException {
 
-        if (exptId == null || exptId <= 0) return null;
+        if (bardExptId == null || bardExptId <= 0) return null;
         PreparedStatement pst = conn.prepareStatement
-                ("select assay_result_def from experiment where expt_id = ?");
-        pst.setLong(1, exptId);
+                ("select assay_result_def from bard_experiment where bard_expt_id = ?");
+        pst.setLong(1, bardExptId);
         ResultSet rs = pst.executeQuery();
 
         String json = null;
@@ -1146,44 +1173,56 @@ public class DBUtils {
         }
     }
 
-    public Experiment getExperimentByExptId(Long exptId) throws SQLException {
-        if (exptId == null || exptId <= 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from experiment where expt_id = ?");
-        pst.setLong(1, exptId);
+    /**
+     * Retrieves the experiment object based on bard_experiment_id
+     * @param bardExptId
+     * @return
+     * @throws SQLException
+     */
+    public Experiment getExperimentByExptId(Long bardExptId) throws SQLException {
+        if (bardExptId == null || bardExptId <= 0) return null;
+        PreparedStatement pst = conn.prepareStatement("select * from bard_experiment where bard_expt_id = ?");
+        pst.setLong(1, bardExptId);
         ResultSet rs = pst.executeQuery();
         Experiment e = new Experiment();
         while (rs.next()) {
-            e.setExptId(exptId);
-            e.setAssayId(rs.getLong("assay_id"));
-            e.setProjId(rs.getLong("proj_id"));
+            e.setExptId(bardExptId);
+            e.setAssayId(rs.getLong("bard_assay_d"));
 
+            //JCB need to select a collection of project ids for the specified experiment
+            //e.setProjId(rs.getLong("proj_id"));
+            //removed assignment of deprecated fields
+            
             e.setName(rs.getString("name"));
             e.setDescription(rs.getString("description"));
-            e.setSource(rs.getString("source"));
-            e.setGrantNo(rs.getString("grant_no"));
 
             e.setCategory(rs.getInt("category"));
             e.setClassification(rs.getInt("classification"));
             e.setClassification(rs.getInt("type"));
-            e.setSummary(rs.getInt("summary"));
 
             e.setDeposited(rs.getDate("deposited"));
             e.setUpdated(rs.getDate("updated"));
 
-            e.setSubstances(rs.getInt("samples"));
+            e.setSubstances(rs.getInt("sample_count"));
             e.setCompounds(rs.getInt("cid_count"));
 
-            e.setHasProbe(rs.getInt("have_probe") == 0 ? false : true);
+            e.setHasProbe(rs.getBoolean("have_probe"));
         }
         rs.close();
         pst.close();
         return e;
     }
 
-    public List<Experiment> getExperimentByAssayId(Long aid) throws SQLException {
-        if (aid == null || aid <= 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select expt_id from experiment where assay_id = ?");
-        pst.setLong(1, aid);
+    /**
+     * Returns the list of experiments based on a given bard_assay_id (experiments that use the assay)
+     * @param bardAssayId
+     * @return
+     * @throws SQLException
+     */
+    public List<Experiment> getExperimentByAssayId(Long bardAssayId) throws SQLException {
+        if (bardAssayId == null || bardAssayId <= 0) return null;
+        PreparedStatement pst = conn.prepareStatement("select bard_expt_id from bard_experiment where bard_assay_id = ?");
+        pst.setLong(1, bardAssayId);
         ResultSet rs = pst.executeQuery();
         List<Experiment> experiments = new ArrayList<Experiment>();
         while (rs.next()) experiments.add(getExperimentByExptId(rs.getLong(1)));
@@ -1191,12 +1230,18 @@ public class DBUtils {
         return experiments;
     }
 
-    public Assay getAssayByAid(Long aid) throws SQLException {
-        if (aid == null || aid <= 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from assay where assay_id = ?");
+    /**
+     * Returns the Assay for a given bard_assay_id 
+     * @param bardAssayID
+     * @return
+     * @throws SQLException
+     */
+    public Assay getAssayByAid(Long bardAssayID) throws SQLException {
+        if (bardAssayID == null || bardAssayID <= 0) return null;
+        PreparedStatement pst = conn.prepareStatement("select * from bard_assay where bard_assay_id = ?");
         Assay a = null;
         try {
-            pst.setLong(1, aid);
+            pst.setLong(1, bardAssayID);
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
                 a = getAssay(rs);
@@ -1208,21 +1253,41 @@ public class DBUtils {
         return a;
     }
 
+    /**
+     * Helper method to build an Assay object based on a result set
+     * 
+     * @param rs
+     * @return
+     * @throws SQLException
+     */
+     
     Assay getAssay(ResultSet rs) throws SQLException {
         Assay a = new Assay();
         long aid = rs.getLong("assay_id");
-
         a.setAid(aid);
-        a.setAssays(rs.getInt("assays"));
+
+        long bardAssayId = rs.getLong("bard_assay_id");
+        //add the bard assay id
+        a.setBardAssayId(bardAssayId);
+        //a.setAssays(rs.getInt("assays"));
         a.setCategory(rs.getInt("category"));
-        a.setClassification(rs.getInt("classification"));
+        //no classification for assay. Experiments are classified by type
+        //a.setClassification(rs.getInt("classification"));
         a.setDeposited(rs.getDate("deposited"));
         a.setDescription(rs.getString("description"));
-        a.setGrantNo(rs.getString("grant_no"));
+        
+        //no grant number on assays
+        //a.setGrantNo(rs.getString("grant_no"));
+
         a.setName(rs.getString("name"));
         a.setSource(rs.getString("source"));
-        a.setSummary(rs.getInt("summary"));
-        a.setType(rs.getInt("type"));
+        
+        //jcb no summary field in bard_assay table
+        //a.setSummary(rs.getInt("summary"));
+        
+        //jcb assay does not have a 'type', type is associated with Experiment
+        //a.setType(rs.getInt("type"));
+        
         a.setUpdated(rs.getDate("updated"));
         a.setComments(rs.getString("comment"));
         a.setProtocol(rs.getString("protocol"));
@@ -1243,8 +1308,8 @@ public class DBUtils {
         a.setPids(pids);
 
         // put in annotations
-        PreparedStatement pst = conn.prepareStatement("select * from go_assay where assay_id = ? and go_type = 'P'");
-        pst.setLong(1, aid);
+        PreparedStatement pst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and go_type = 'P'");
+        pst.setLong(1, bardAssayId);
         ResultSet resultSet = pst.executeQuery();
         List<String> l1 = new ArrayList<String>();
         List<String> l2 = new ArrayList<String>();
@@ -1256,8 +1321,8 @@ public class DBUtils {
         a.setGobp_term(l2);
         pst.close();
 
-        pst = conn.prepareStatement("select * from go_assay where assay_id = ? and go_type = 'F'");
-        pst.setLong(1, aid);
+        pst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and go_type = 'F'");
+        pst.setLong(1, bardAssayId);
         resultSet = pst.executeQuery();
         l1 = new ArrayList<String>();
         l2 = new ArrayList<String>();
@@ -1269,8 +1334,8 @@ public class DBUtils {
         a.setGomf_term(l2);
         pst.close();
 
-        pst = conn.prepareStatement("select * from go_assay where assay_id = ? and go_type = 'C'");
-        pst.setLong(1, aid);
+        pst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and go_type = 'C'");
+        pst.setLong(1, bardAssayId);
         resultSet = pst.executeQuery();
         l1 = new ArrayList<String>();
         l2 = new ArrayList<String>();
@@ -1285,6 +1350,9 @@ public class DBUtils {
         try {
             CAPDictionary dict = getCAPDictionary();
             
+            //this is pulling from cap_annotations using pubchem aid via a cap to pubchem mapping table
+            //this should be pulling based on a bard id since cap ids are not reliable.
+            //the cap annotation table should hold an appropriate id for queries
             List<CAPAssayAnnotation> capannots = getAssayAnnotations(aid);
             l1 = new ArrayList<String>();
             l2 = new ArrayList<String>();
@@ -1305,6 +1373,14 @@ public class DBUtils {
         return a;
     }
 
+    /**
+     * Retruns a list of assay based on an etag.  
+     * @param skip
+     * @param top
+     * @param etag
+     * @return
+     * @throws SQLException
+     */
     public List<Assay> getAssaysByETag(int skip, int top, String etag)
             throws SQLException {
         Map info = getETagInfo(etag);
@@ -1314,8 +1390,8 @@ public class DBUtils {
         }
 
         StringBuilder sql = new StringBuilder
-                ("select a.* from assay a, etag_data e where etag_id = ? "
-                        + "and a.assay_id = e.data_id order by e.index");
+                ("select a.* from bard_assay a, etag_data e where etag_id = ? "
+                        + "and a.bard_assay_id = e.data_id order by e.index");
 
         if (skip >= 0 && top > 0) {
             sql.append(" limit " + skip + "," + top);
@@ -1370,6 +1446,14 @@ public class DBUtils {
         return substances;
     }
 
+    /**
+     * Returns a list of Experiments based on etag.
+     * @param skip
+     * @param top
+     * @param etag
+     * @return
+     * @throws SQLException
+     */
     public List<Experiment> getExperimentsByETag(int skip, int top, String etag) throws SQLException {
         ETag info = getEtagByEtagId(etag);
         if (!Experiment.class.getName().equals(info.getType())) {
@@ -1378,8 +1462,8 @@ public class DBUtils {
         }
 
         StringBuilder sql = new StringBuilder
-                ("select a.* from  experiment a, etag_data e where etag_id = ? "
-                        + "and a.expt_id = e.data_id order by e.index");
+                ("select a.* from  bard_experiment a, etag_data e where etag_id = ? "
+                        + "and a.bard_expt_id = e.data_id order by e.index");
 
         if (skip >= 0 && top > 0) {
             sql.append(" limit " + skip + "," + top);
@@ -1393,7 +1477,7 @@ public class DBUtils {
             pst.setString(1, etag);
             ResultSet rs = pst.executeQuery();
             while (rs.next()) {
-                expts.add(getExperimentByExptId(rs.getLong("expt_id")));
+                expts.add(getExperimentByExptId(rs.getLong("bard_expt_id")));
             }
             rs.close();
         } finally {
@@ -1411,16 +1495,16 @@ public class DBUtils {
 
 
     /**
-     * Retrieve CIDs for compounds associated with an experiment.
+     * Retrieve CIDs for compounds associated with an experiment (based on bard_expt_id).
      *
-     * @param eid  The experiment identifier
+     * @param bardExptId  The experiment identifier
      * @param skip how many records to skip
      * @param top  how many records to return
      * @return A list of compound CIDs
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Long> getExperimentCids(Long eid, int skip, int top) throws SQLException {
-        if (eid == null || eid < 0) return null;
+    public List<Long> getExperimentCids(Long bardExptId, int skip, int top) throws SQLException {
+        if (bardExptId == null || bardExptId < 0) return null;
 
         String limitClause = "";
         if (skip != -1) {
@@ -1428,8 +1512,8 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct cid from experiment_data where eid = ? order by cid " + limitClause);
-        pst.setLong(1, eid);
+        PreparedStatement pst = conn.prepareStatement("select distinct cid from bard_experiment_data where bard_expt_id = ? order by cid " + limitClause);
+        pst.setLong(1, bardExptId);
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
         while (rs.next()) ret.add(rs.getLong("cid"));
@@ -1444,14 +1528,14 @@ public class DBUtils {
      * The identifiers used to refer to experiment data are a combination of the
      * experiment id and the substance identifier in the form <code>EXPT_ID.SID</code>.
      *
-     * @param eid  The experiment id (AKA Pubchem AID for experiments taken from Pubchem)
+     * @param bardExptId  The experiment id (AKA Pubchem AID for experiments taken from Pubchem)
      * @param skip how many records to skip
      * @param top  how many records to return
      * @return
      * @throws SQLException
      */
-    public List<String> getExperimentDataIds(Long eid, int skip, int top) throws SQLException {
-        if (eid == null || eid < 0) return null;
+    public List<String> getExperimentDataIds(Long bardExptId, int skip, int top) throws SQLException {
+        if (bardExptId == null || bardExptId < 0) return null;
 
         String limitClause = "";
         if (skip != -1) {
@@ -1459,8 +1543,8 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where eid = ? order by id " + limitClause);
-        pst.setLong(1, eid);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? order by id " + limitClause);
+        pst.setLong(1, bardExptId);
         ResultSet rs = pst.executeQuery();
         List<String> ret = new ArrayList<String>();
         while (rs.next()) ret.add(rs.getString(1));
@@ -1472,14 +1556,14 @@ public class DBUtils {
     /**
      * Return experiment data objects for an experiment.
      *
-     * @param eid  The experiment id (AKA Pubchem AID for experiments taken from Pubchem)
+     * @param bardExptId  The experiment id (AKA Pubchem AID for experiments taken from Pubchem)
      * @param skip how many records to skip
      * @param top  how many records to return
      * @return
      * @throws SQLException
      */
-    public List<ExperimentData> getExperimentData(Long eid, int skip, int top) throws SQLException, IOException {
-        if (eid == null || eid < 0) return null;
+    public List<ExperimentData> getExperimentData(Long bardExptId, int skip, int top) throws SQLException, IOException {
+        if (bardExptId == null || bardExptId < 0) return null;
 
         String limitClause = "";
         if (skip != -1) {
@@ -1487,8 +1571,8 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where eid = ? order by score desc, eid, sid " + limitClause);
-        pst.setLong(1, eid);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? order by score desc, bard_expt_id, sid " + limitClause);
+        pst.setLong(1, bardExptId);
         ResultSet rs = pst.executeQuery();
         List<ExperimentData> ret = new ArrayList<ExperimentData>();
         
@@ -1528,7 +1612,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where sid = ? order by id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? order by id " + limitClause);
         pst.setLong(1, sid);
         ResultSet rs = pst.executeQuery();
         List<String> ret = new ArrayList<String>();
@@ -1589,7 +1673,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where sid = ? order by id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? order by id " + limitClause);
         pst.setLong(1, sid);
         ResultSet rs = pst.executeQuery();
         List<ExperimentData> ret = new ArrayList<ExperimentData>();
@@ -1617,7 +1701,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where cid = ? order by id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where cid = ? order by id " + limitClause);
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         List<String> ret = new ArrayList<String>();
@@ -1645,7 +1729,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct(eid) from experiment_data where cid = ? order by eid " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where cid = ? order by bard_expt_id " + limitClause);
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
@@ -1673,7 +1757,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct(eid) from experiment_data where sid = ? order by eid " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where sid = ? order by bard_expt_id " + limitClause);
         pst.setLong(1, sid);
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
@@ -1701,7 +1785,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct(eid) from experiment_data where cid = ? order by eid " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where cid = ? order by bard_expt_id " + limitClause);
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         List<Experiment> ret = new ArrayList<Experiment>();
@@ -1729,7 +1813,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct(eid) from experiment_data where sid = ? order by eid " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where sid = ? order by bard_expt_id " + limitClause);
         pst.setLong(1, sid);
         ResultSet rs = pst.executeQuery();
         List<Experiment> ret = new ArrayList<Experiment>();
@@ -1757,7 +1841,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct assay_id from experiment_data a, experiment b where a.sid = ? and a.eid = b.expt_id  " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select distinct b.bard_assay_id from bard_experiment_data a, bard_experiment b where a.sid = ? and a.bard_expt_id = b.bard_expt_id  " + limitClause);
         pst.setLong(1, sid);
         ResultSet rs = pst.executeQuery();
         List<Assay> ret = new ArrayList<Assay>();
@@ -1785,7 +1869,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where cid = ? order by expt_data_id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where cid = ? order by expt_data_id " + limitClause);
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         List<ExperimentData> ret = new ArrayList<ExperimentData>();
@@ -1799,14 +1883,14 @@ public class DBUtils {
     /**
      * Retrieve SIDs for compounds associated with an experiment.
      *
-     * @param eid  The experiment identifier
+     * @param bardExptId  The experiment identifier
      * @param skip how many records to skip
      * @param top  how many records to return
      * @return A list of compound SIDs
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Long> getExperimentSids(Long eid, int skip, int top) throws SQLException {
-        if (eid == null || eid < 0) return null;
+    public List<Long> getExperimentSids(Long bardExptId, int skip, int top) throws SQLException {
+        if (bardExptId == null || bardExptId < 0) return null;
 
         String limitClause = "";
         if (skip != -1) {
@@ -1814,8 +1898,8 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct sid from experiment_data where eid = ? order by sid " + limitClause);
-        pst.setLong(1, eid);
+        PreparedStatement pst = conn.prepareStatement("select distinct sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
+        pst.setLong(1, bardExptId);
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
         while (rs.next()) ret.add(rs.getLong("sid"));
@@ -1827,14 +1911,14 @@ public class DBUtils {
     /**
      * Retrieve compounds associated with an experiment.
      *
-     * @param eid  The experiment identifier
+     * @param bardExptId  The experiment identifier
      * @param skip how many records to skip
      * @param top  how many records to return
      * @return A list of {@link Compound} objects
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Compound> getExperimentCompounds(Long eid, int skip, int top) throws SQLException {
-        if (eid == null || eid < 0) return null;
+    public List<Compound> getExperimentCompounds(Long bardExptId, int skip, int top) throws SQLException {
+        if (bardExptId == null || bardExptId < 0) return null;
 
         String limitClause = "";
         if (skip != -1) {
@@ -1842,8 +1926,8 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select cid, sid from experiment_data where eid = ? order by sid " + limitClause);
-        pst.setLong(1, eid);
+        PreparedStatement pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
+        pst.setLong(1, bardExptId);
         ResultSet rs = pst.executeQuery();
         List<Compound> ret = new ArrayList<Compound>();
 
@@ -1858,14 +1942,14 @@ public class DBUtils {
     /**
      * Retrieve substances associated with an assay.
      *
-     * @param eid  The assay identifier
+     * @param bardExptId  The assay identifier
      * @param skip how many records to skip
      * @param top  how many records to return
      * @return A list of {@link Compound} objects
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Compound> getExperimentSubstances(Long eid, int skip, int top) throws SQLException {
-        if (eid == null || eid < 0) return null;
+    public List<Compound> getExperimentSubstances(Long bardExptId, int skip, int top) throws SQLException {
+        if (bardExptId == null || bardExptId < 0) return null;
 
         String limitClause = "";
         if (skip != -1) {
@@ -1873,8 +1957,8 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select cid, sid from experiment_data where eid = ? order by sid " + limitClause);
-        pst.setLong(1, eid);
+        PreparedStatement pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
+        pst.setLong(1, bardExptId);
         ResultSet rs = pst.executeQuery();
         List<Compound> ret = new ArrayList<Compound>();
 
@@ -1888,18 +1972,18 @@ public class DBUtils {
 
 
     /**
-     * Retrieve publications associated with an assay id.
+     * Retrieve publications associated with a 'bard_assay_id'.
      * <p/>
      * This query requires that the publication details are available in the publication table.
      *
-     * @param aid The assay id to query for
+     * @param bardAssayId The bard assay id to query for
      * @return a List of {@link Publication} objects
      * @throws SQLException
      */
-    public List<Publication> getAssayPublications(Long aid) throws SQLException {
-        if (aid == null || aid <= 0) return null;
-        PreparedStatement pst2 = conn.prepareStatement("select a.* from publication a, assay_pub b where b.aid = ? and b.pmid = a.pmid");
-        pst2.setLong(1, aid);
+    public List<Publication> getAssayPublications(Long bardAssayId) throws SQLException {
+        if (bardAssayId == null || bardAssayId <= 0) return null;
+        PreparedStatement pst2 = conn.prepareStatement("select a.* from publication a, assay_pub b where b.bard_assay_id = ? and b.pmid = a.pmid");
+        pst2.setLong(1, bardAssayId);
         ResultSet rs2 = pst2.executeQuery();
         List<Publication> pubs = new ArrayList<Publication>();
         while (rs2.next()) {
@@ -1915,9 +1999,15 @@ public class DBUtils {
         return pubs;
     }
 
-    public List<ProteinTarget> getAssayTargets(Long aid) throws SQLException {
-        PreparedStatement pst2 = conn.prepareStatement("select a.* from protein_target a, assay_target b where b.aid = ? and a.gene_id = b.gene_id");
-        pst2.setLong(1, aid);
+    /**
+     * Return a list of protein targets based on on a bard assay id
+     * @param bardAssayId
+     * @return
+     * @throws SQLException
+     */
+    public List<ProteinTarget> getAssayTargets(Long bardAssayId) throws SQLException {
+        PreparedStatement pst2 = conn.prepareStatement("select a.* from protein_target a, assay_target b where b.bard_assay_id = ? and a.gene_id = b.gene_id");
+        pst2.setLong(1, bardAssayId);
         ResultSet rs2 = pst2.executeQuery();
         List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
         while (rs2.next()) {
@@ -1959,7 +2049,7 @@ public class DBUtils {
         PreparedStatement pst = null;
         if (freeTextQuery) {
             String q = "%" + query + "%";
-            pst = conn.prepareStatement("select assay_id from assay where (name like ? or description like ? or source like ? or grant_no like ? or protocol like ?)");
+            pst = conn.prepareStatement("select bard_assay_id from bard_assay where (name like ? or description like ? or source like ? or protocol like ?)");
             pst.setString(1, q);
             pst.setString(2, q);
             pst.setString(3, q);
@@ -1969,14 +2059,14 @@ public class DBUtils {
             String[] toks = query.split("\\[");
             String q = toks[0].trim();
             String field = toks[1].trim().replace("]", "");
-            String sql = "select assay_id from assay where " + field + " like '%" + q + "%'";
+            String sql = "select bard_assay_id from bard_assay where " + field + " like '%" + q + "%'";
             pst = conn.prepareStatement(sql);
         }
 
         ResultSet rs = pst.executeQuery();
         List<Assay> assays = new ArrayList<Assay>();
         while (rs.next()) {
-            Long aid = rs.getLong("assay_id");
+            Long aid = rs.getLong("bard_assay_id");
             assays.add(getAssayByAid(aid));
         }
         rs.close();
@@ -1985,8 +2075,15 @@ public class DBUtils {
         return assays;
     }
 
+
+    /**
+     * Returns assays for a given accession 
+     * @param acc
+     * @return
+     * @throws SQLException
+     */
     public List<Assay> getAssaysByTargetAccession(String acc) throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select distinct b.aid from protein_target a, assay_target b where a.accession = ? and a.accession = b.accession");
+        PreparedStatement pst = conn.prepareStatement("select distinct b.bard_assay_id from protein_target a, assay_target b where a.accession = ? and a.accession = b.accession");
         pst.setString(1, acc);
         List<Assay> assays = new ArrayList<Assay>();
         ResultSet rs = pst.executeQuery();
@@ -1995,8 +2092,14 @@ public class DBUtils {
         return assays;
     }
 
+    /**
+     * Returns assay for a given accession
+     * @param geneid
+     * @return
+     * @throws SQLException
+     */
     public List<Assay> getAssaysByTargetGeneid(Long geneid) throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select distinct b.aid from protein_target a, assay_target b where a.gene_id = ? and a.accession = b.accession");
+        PreparedStatement pst = conn.prepareStatement("select distinct b.bard_assay_id from protein_target a, assay_target b where a.gene_id = ? and a.accession = b.accession");
         pst.setLong(1, geneid);
         List<Assay> assays = new ArrayList<Assay>();
         ResultSet rs = pst.executeQuery();
@@ -2006,8 +2109,9 @@ public class DBUtils {
         return assays;
     }
 
+    
     public List<Long> getProjectIds() throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select proj_id from project");
+        PreparedStatement pst = conn.prepareStatement("select bard_proj_id from bard_project");
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
         while (rs.next()) {
@@ -2025,7 +2129,7 @@ public class DBUtils {
      * @throws SQLException
      */
     public List<Long> getAssayCount() throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select assay_id from assay order by assay_id");
+        PreparedStatement pst = conn.prepareStatement("select bard_assay_id from bard_assay order by bard_assay_id");
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
         while (rs.next()) {
@@ -2043,11 +2147,11 @@ public class DBUtils {
      * @throws SQLException
      */
     public List<Long> getExperimentIds() throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select expt_id from experiment order by expt_id");
+        PreparedStatement pst = conn.prepareStatement("select bard_expt_id from bard_experiment order by bard_expt_id");
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
         while (rs.next()) {
-            ret.add(rs.getLong("expt_id"));
+            ret.add(rs.getLong("bard_expt_id"));
         }
         rs.close();
         pst.close();
@@ -2055,15 +2159,15 @@ public class DBUtils {
     }
 
     // TOOD handle depositor id - should resolve the integer to a string
-    public Project getProject(Long projectId) throws SQLException {
+    public Project getProject(Long bardProjId) throws SQLException {
         Project p = null;
-        PreparedStatement pst = conn.prepareStatement("select * from project where proj_id = ?");
+        PreparedStatement pst = conn.prepareStatement("select * from bard_project where bard_proj_id = ?");
         try {
-            pst.setLong(1, projectId);
+            pst.setLong(1, bardProjId);
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
                 p = new Project();
-                p.setProjectId(projectId);
+                p.setProjectId(bardProjId);
                 p.setDescription(rs.getString("description"));
                 p.setName(rs.getString("name"));
                 p.setDeposited(rs.getDate("create_date"));
@@ -2078,9 +2182,9 @@ public class DBUtils {
         }
 
         // find all experiments for this project
-        pst = conn.prepareStatement("select expt_id from project_experiment where proj_id = ?");
+        pst = conn.prepareStatement("select bard_expt_id from bard_project_experiment where bard_proj_id = ?");
         try {
-            pst.setLong(1, projectId);
+            pst.setLong(1, bardProjId);
             ResultSet rs = pst.executeQuery();
             List<Long> eids = new ArrayList<Long>();
             while (rs.next()) eids.add(rs.getLong(1));
@@ -2092,10 +2196,11 @@ public class DBUtils {
 
         // find assays
         pst = conn.prepareStatement
-                ("select assay_id from experiment where proj_id = ?");
+        		("select a.bard_assay_id from bard_experiment a, bard_project_experiment b " +
+        				"where a.bard_expt_id=b.bard_expt_id and b.bard_proj_id = ?");
         try {
             List<Long> aids = new ArrayList<Long>();
-            pst.setLong(1, projectId);
+            pst.setLong(1, bardProjId);
             ResultSet rs = pst.executeQuery();
             while (rs.next()) {
                 aids.add(rs.getLong(1));
@@ -2107,9 +2212,9 @@ public class DBUtils {
         }
 
         // find targets; should be project_target table instead?
-        pst = conn.prepareStatement("select * from assay_target where aid=?");
+        pst = conn.prepareStatement("select * from project_target where proj_id=?");
         try {
-            pst.setLong(1, projectId);
+            pst.setLong(1, bardProjId);
             ResultSet rs = pst.executeQuery();
             List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
             while (rs.next()) {
@@ -2144,18 +2249,18 @@ public class DBUtils {
      * which case the project id is -1.
      * <p/>
      *
-     * @param eid The experiment id for the summary assay
+     * @param bardExptId The experiment id
      * @return A {@link Project} object
      * @throws SQLException
      */
-    public List<Project> getProjectByExperimentId(Long eid) throws SQLException {
+    public List<Project> getProjectByExperimentId(Long bardExptId) throws SQLException {
 
-        PreparedStatement pst = conn.prepareStatement("select proj_id from project_experiment where expt_id = ?");
-        pst.setLong(1, eid);
+        PreparedStatement pst = conn.prepareStatement("select bard_proj_id from bard_project_experiment where bard_expt_id = ?");
+        pst.setLong(1, bardExptId);
         ResultSet rs = pst.executeQuery();
         List<Project> ps = new ArrayList<Project>();
         while (rs.next()) {
-            Long projectId = rs.getLong("proj_id");
+            Long projectId = rs.getLong("bard_proj_id");
             ps.add(getProject(projectId));
         }
         rs.close();
@@ -2163,9 +2268,15 @@ public class DBUtils {
         return ps;
     }
 
-    public List<Project> getProjectByAssayId(Long aid) throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select distinct b.proj_id from experiment a, project b, assay c where c.assay_id = ? and a.assay_id = c.assay_id and a.proj_id = b.proj_id");
-        pst.setLong(1, aid);
+    /**
+     * Returns the bard_project_ids for projects based on a bard_assay_id
+     * @param bardAssayId
+     * @return
+     * @throws SQLException
+     */
+    public List<Project> getProjectByAssayId(Long bardAssayId) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select distinct b.bard_proj_id from bard_experiment a, bard_project_experiment b where a.bard_assay_id = ? and a.bard_expt_id = b.bard_expt_id");
+        pst.setLong(1, bardAssayId);
         ResultSet rs = pst.executeQuery();
         List<Long> pids = new ArrayList<Long>();
         while (rs.next()) pids.add(rs.getLong("proj_id"));
@@ -2174,9 +2285,9 @@ public class DBUtils {
         return getProjects(pids.toArray(new Long[]{}));
     }
 
-    public List<Long> getProbesForProject(Long aid) throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select a.cid from experiment_data a, compound b where b.probe_id is not null and a.eid = ? and a.cid = b.cid");
-        pst.setLong(1, aid);
+    public List<Long> getProbesForProject(Long bardExptId) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select a.cid from bard_experiment_data a, compound b where b.probe_id is not null and a.bard_expt_id = ? and a.cid = b.cid");
+        pst.setLong(1, bardExptId);
         ResultSet rs = pst.executeQuery();
         List<Long> probeids = new ArrayList<Long>();
         while (rs.next()) probeids.add(rs.getLong("cid"));
@@ -2201,7 +2312,7 @@ public class DBUtils {
             String q = toks[0].trim();
             String field = toks[1].trim().replace("]", "");
 
-            String sql = "select concat(cast(eid as char), '.', cast(sid as char)) as id from experiment_data where " + field + " = " + q + "";
+            String sql = "select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where " + field + " = " + q + "";
             pst = conn.prepareStatement(sql);
         }
 

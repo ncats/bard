@@ -11,7 +11,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Assay implements BardEntity {
-    Long aid;
+    Long aid, bardAssayId;
     int category, type, summary, assays, classification;
     String name, description, source, grantNo, protocol, comments;
     Date deposited, updated;
@@ -127,7 +127,15 @@ public class Assay implements BardEntity {
         this.aid = aid;
     }
 
-    public String toString() {
+    public Long getBardAssayId() {
+		return bardAssayId;
+	}
+
+	public void setBardAssayId(Long bardAssayId) {
+		this.bardAssayId = bardAssayId;
+	}
+
+	public String toString() {
         return aid + "[" + name + "]";
     }
 
