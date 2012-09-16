@@ -1336,6 +1336,21 @@ public class DBUtils {
         a.setGocc_term(l2);
         pst.close();
 
+        // pull in KEGG disease annotations
+        pst = conn.prepareStatement("select distinct b.* from bard_assay a, kegg_gene2disease b, assay_target c where a.bard_assay_id = ? and a.pubchem_aid = c.aid and c.gene_id = b.gene_id");
+        pst.setLong(1, bardAssayId);
+        resultSet = pst.executeQuery();
+        l1 = new ArrayList<String>();
+        l2 = new ArrayList<String>();
+        while (resultSet.next()) {
+            String[] toks = resultSet.getString("disease_names").split(";");
+            for (String tok : toks) l1.add(tok.trim());
+            toks = resultSet.getString("disease_category").split(";");
+            for (String tok : toks) l2.add(tok.trim());
+        }
+        a.setKegg_disease_names(l1);
+        a.setKegg_disease_cat(l2);
+
         try {
             CAPDictionary dict = getCAPDictionary();
             

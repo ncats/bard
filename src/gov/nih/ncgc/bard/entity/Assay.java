@@ -23,6 +23,24 @@ public class Assay implements BardEntity {
 
     List<String> gobp_id, gobp_term, gomf_term, gomf_id, gocc_id, gocc_term, av_dict_label, ak_dict_label;
 
+    List<String> kegg_disease_names, kegg_disease_cat;
+
+    public List<String> getKegg_disease_names() {
+        return kegg_disease_names;
+    }
+
+    public void setKegg_disease_names(List<String> kegg_disease_names) {
+        this.kegg_disease_names = kegg_disease_names;
+    }
+
+    public List<String> getKegg_disease_cat() {
+        return kegg_disease_cat;
+    }
+
+    public void setKegg_disease_cat(List<String> kegg_disease_cat) {
+        this.kegg_disease_cat = kegg_disease_cat;
+    }
+
     public List<Long> getEids() {
         return eids;
     }
