@@ -3,6 +3,8 @@ package gov.nih.ncgc.bard.entity;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 
 import java.sql.Date;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A representation of an experiment.
@@ -10,13 +12,15 @@ import java.sql.Date;
  * @author Rajarshi Guha
  */
 public class Experiment implements BardEntity {
-    Long exptId, projId, assayId;
+    Long exptId, assayId;
     int category, type, summary, assays, classification, substances, compounds;
     String name, description, source, grantNo;
     Date deposited, updated;
     Boolean hasProbe;
-
+    List<Long> projectIdList;
+    
     public Experiment() {
+    	projectIdList = new ArrayList<Long>();
     }
 
     public Long getExptId() {
@@ -27,15 +31,19 @@ public class Experiment implements BardEntity {
         this.exptId = exptId;
     }
 
-    public Long getProjId() {
-        return projId;
-    }
+    public List<Long> getProjectIdList() {
+		return projectIdList;
+	}
 
-    public void setProjId(Long projId) {
-        this.projId = projId;
-    }
+	public void setProjectIdList(List<Long> projectIdList) {
+		this.projectIdList = projectIdList;
+	}
 
-    public Long getAssayId() {
+	public void addProjectID(Long projId) {
+		this.projectIdList.add(projId);
+	}
+	
+	public Long getAssayId() {
         return assayId;
     }
 

@@ -17,7 +17,7 @@ import java.util.List;
  */
 public class ExperimentData implements BardEntity {
     String exptDataId;
-    Long eid, cid, sid;
+    Long eid, cid, sid, bardExptId;
 
     @JsonIgnore
     Date updated;
@@ -154,8 +154,16 @@ public class ExperimentData implements BardEntity {
     public void setEid(Long eid) {
         this.eid = eid;
     }
+    
+    public Long getBardExptId() {
+		return bardExptId;
+	}
 
-    public Long getCid() {
+	public void setBardExptId(Long bardExptId) {
+		this.bardExptId = bardExptId;
+	}
+
+	public Long getCid() {
         return cid;
     }
 

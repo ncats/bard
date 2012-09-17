@@ -36,7 +36,7 @@ public class AssaySearch extends SolrSearch {
 
     Logger log;
 
-    String[] facetNames = {"assay_component_role", "assay_mode", "assay_type", "Cell line", "detection_method_type", "target_name"};
+    String[] facetNames = {"assay_component_role", "assay_mode", "assay_type", "Cell line", "detection_method_type", "target_name", "kegg_disease_cat"};
 
     public AssaySearch(String query) {
         super(query);
@@ -89,10 +89,13 @@ public class AssaySearch extends SolrSearch {
         sq.setRows(10000);
 
         sq.setFacet(true);
+        sq.setFacetMinCount(1);
         sq.addFacetField("target_name");
         sq.addFacetField("detection_method_type");
         sq.addFacetField("assay_mode");
         sq.addFacetField("assay_component_role");
+        sq.addFacetField("kegg_disease_cat");
+
 
         QueryResponse response = solr.query(sq);
         List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_ASSAY_DOC, HL_FIELD);
@@ -119,9 +122,6 @@ public class AssaySearch extends SolrSearch {
             Collection<Object> keys = doc.getFieldValues("ak_dict_label");
             Collection<Object> values = doc.getFieldValues("av_dict_label");
             if (keys == null || values == null) continue;
-            //            if (keys.size() != values.size())
-            //                log.error("for assay_id = " + doc.getFieldValue("assay_id") + " keys had " + keys.size() + " elements and values had " + values.size() + " elements");
-
             List<Object> keyList = new ArrayList<Object>(keys);
             List<Object> valueList = new ArrayList<Object>(values);
             for (Facet facet : facets) {
