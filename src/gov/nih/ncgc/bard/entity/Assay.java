@@ -274,7 +274,7 @@ public class Assay implements BardEntity {
      * @return The path to this resource
      */
     public String getResourcePath() {
-        return BARDConstants.API_BASE + "/assays/" + aid;
+        return BARDConstants.API_BASE + "/assays/" + bardAssayId;
     }
 
     /**
