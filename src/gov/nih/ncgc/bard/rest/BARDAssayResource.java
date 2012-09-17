@@ -15,6 +15,7 @@ import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
+import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.util.functional.Functional;
@@ -511,6 +512,26 @@ public class BARDAssayResource extends BARDResource<Assay> {
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (Exception e) {
             throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    @GET
+    @Path("/etag/{etag}/facets")
+    public Response getFacets(@PathParam("etag") String resourceId) {
+        DBUtils db = new DBUtils();
+        try {
+            List<Facet> facets = db.getAssayFacets(resourceId);
+            return Response.ok(Util.toJson(facets),
+                    MediaType.APPLICATION_JSON).build();
+        } catch (Exception ex) {
+            throw new WebApplicationException(ex, 500);
         } finally {
             try {
                 db.closeConnection();
