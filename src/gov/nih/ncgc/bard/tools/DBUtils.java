@@ -966,8 +966,10 @@ public class DBUtils {
             c.setSmiles(rs.getString("iso_smiles"));
        }
 
-        // not what we want... place holder for now
-        c.setName(rs.getString("pubchem_iupac_name"));
+        String prefName = rs.getString("preferred_term");
+        if (prefName != null) c.setName(prefName);
+        else c.setName(rs.getString("pubchem_iupac_name"));
+
         c.setMwt(rs.getDouble("pubchem_molecular_weight"));
         if (rs.wasNull()) {
             c.setMwt(null);
@@ -1000,8 +1002,6 @@ public class DBUtils {
         if (rs.wasNull()) {
             c.setHbondDonor(null);
         }
-        c.setPreferredTerm(rs.getString("preferred_term"));
-        if (rs.wasNull()) c.setPreferredTerm(null);
     }
 
     /**
