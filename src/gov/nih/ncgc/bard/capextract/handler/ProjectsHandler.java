@@ -3,13 +3,11 @@ package gov.nih.ncgc.bard.capextract.handler;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Project;
 import gov.nih.ncgc.bard.capextract.jaxb.Projects;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.List;
 
 /**
  * A one line summary.
@@ -35,24 +33,21 @@ public class ProjectsHandler extends CapResourceHandler implements ICapResourceH
 
         // get the Projects object here
         Projects projects = getResponse(url, resource);
+        
+        // map CAP project IDs to BARD project IDs !!! done by hand in excel !!!
+        
+        // load project annotations
+        ProjectHandler ph = (ProjectHandler)CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.PROJECT);
         for (Project project : projects.getProject()) {
+            //ph.process(CAPConstants.CAP_ROOT+"/projects/"+project.getProjectId(), CAPConstants.CapResource.PROJECT);
             String readyToXtract = project.getReadyForExtraction();
             String title = project.getProjectName();
             BigInteger pid = project.getProjectId();
 
-            log.info("\taurl = [" + readyToXtract + "] for " + title);
+            log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
             if (readyToXtract.equals("Ready")) {
                 log.info("\tExtracting " + title);
-
-                List<Link> links = project.getLink();
-                for (Link link : links) {
-                    String href = link.getHref();
-                    String type = link.getType();
-                    String ltitle = link.getTitle();
-                    if (CAPConstants.getResource(type) != CAPConstants.CapResource.PROJECT) continue;
-                    log.info("\t\t" + ltitle + "/" + type + "/ href = " + href);
-                    CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.PROJECT).process(href, CAPConstants.CapResource.PROJECT);
-                }
+                ph.process(project);
             }
         }
     }
