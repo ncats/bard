@@ -121,7 +121,7 @@ public class CompoundSearch extends SolrSearch {
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
-        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "cid", "iso_smiles", "iupac_name", "highlight");
+        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "cid", "iso_smiles", "iupac_name", "preferred_term", "highlight");
         SearchMeta meta = new SearchMeta();
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
