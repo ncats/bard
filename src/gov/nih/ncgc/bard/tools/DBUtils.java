@@ -2308,6 +2308,41 @@ public class DBUtils {
             targets.addAll(getAssayTargets(bardAssayId));
         }
         p.setTargets(new ArrayList<ProteinTarget>(targets));
+
+        List<String> l1 = new ArrayList<String>();
+        List<String> l2 = new ArrayList<String>();
+        // pull in KEGG disease annotations
+//        pst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.proj_id = ? and b.gene_id = c.gene_id");
+//        pst.setLong(1, bardProjId);
+//        ResultSet resultSet = pst.executeQuery();
+//        while (resultSet.next()) {
+//            String[] toks = resultSet.getString("disease_names").split(";");
+//            for (String tok : toks) l1.add(tok.trim());
+//            toks = resultSet.getString("disease_category").split(";");
+//            for (String tok : toks) l2.add(tok.trim());
+//        }
+//        p.setKegg_disease_names(l1);
+//        p.setKegg_disease_cat(l2);
+
+        // pull in CAP annotations
+        try {
+            CAPDictionary dict = getCAPDictionary();
+
+            List<CAPAssayAnnotation> capannots = getProjectAnnotations(bardProjId);
+            l1 = new ArrayList<String>();
+            l2 = new ArrayList<String>();
+            for (CAPAssayAnnotation capannot : capannots) {
+                l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
+                if (capannot.value != null) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
+                else l2.add(capannot.display);
+            }
+            p.setAk_dict_label(l1);
+            p.setAv_dict_label(l2);
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
         
         return p;
     }
@@ -2561,6 +2596,32 @@ public class DBUtils {
                 if (toks.length == 2) extValueId = toks[1];
             }
             // TODO Updated the related annotations field to support grouping
+            CAPAssayAnnotation anno = new CAPAssayAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source);
+            annos.add(anno);
+        }
+        rs.close();
+        pst.close();
+        return annos;
+    }
+
+    public List<CAPAssayAnnotation> getProjectAnnotations(Long bardProjectId) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id and a.source = 'cap'");
+        pst.setLong(1, bardProjectId);
+        ResultSet rs = pst.executeQuery();
+        List<CAPAssayAnnotation> annos = new ArrayList<CAPAssayAnnotation>();
+        while (rs.next()) {
+            String anno_id = rs.getString("anno_id");
+            String anno_key = rs.getString("anno_key");
+            String anno_value = rs.getString("anno_value");
+            String anno_display = rs.getString("anno_display");
+            String source = rs.getString("source");
+
+            String related = rs.getString("related");
+            String extValueId = null;
+            if (related != null && !related.trim().equals("")) {
+                String[] toks = related.split("\\|");
+                if (toks.length == 2) extValueId = toks[1];
+            }
             CAPAssayAnnotation anno = new CAPAssayAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source);
             annos.add(anno);
         }
