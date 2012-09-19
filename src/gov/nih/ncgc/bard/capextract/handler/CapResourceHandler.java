@@ -73,9 +73,10 @@ public abstract class CapResourceHandler {
         try {
             response = httpClient.execute(get);
         } catch (HttpHostConnectException ex) {
+            ex.printStackTrace();
             try {
-        	wait(5000);
-            } catch (InterruptedException ie) {;}
+        	Thread.sleep(5000);
+            } catch (InterruptedException ie) {ie.printStackTrace();}
             httpClient = SslHttpClient.getHttpClient();
             response = httpClient.execute(get);
         }
