@@ -40,11 +40,11 @@ public class BARDCapResource implements IBARDResource {
             db.closeConnection();
             return Response.ok(json).type(MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e).build());
         } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e).build());
         } catch (ClassNotFoundException e) {
-            throw new WebApplicationException(e, 500);
+            throw new WebApplicationException(Response.status(500).entity(e).build());
         }
 
     }

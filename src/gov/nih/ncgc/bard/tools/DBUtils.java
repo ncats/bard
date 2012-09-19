@@ -2572,10 +2572,11 @@ public class DBUtils {
     }
 
     public CAPDictionary getCAPDictionary() throws SQLException, IOException, ClassNotFoundException {
-        PreparedStatement pst = conn.prepareStatement("select dict from cap_dict order by ins_date desc");
+        PreparedStatement pst = conn.prepareStatement("select dict, ins_date from cap_dict_obj order by ins_date desc");
         ResultSet rs = pst.executeQuery();
         rs.next();
         byte[] buf = rs.getBytes(1);
+        log.info("Retrived CAP dictionary blob with ins_date = "+rs.getDate(2));
         ObjectInputStream objectIn = null;
         if (buf != null)
             objectIn = new ObjectInputStream(new ByteArrayInputStream(buf));
