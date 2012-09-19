@@ -5,8 +5,8 @@ import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Project;
 import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem;
-import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem.AttributeId;
-import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem.ValueId;
+import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem.Attribute;
+import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem.ValueControlled;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -111,7 +111,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 		    pst.setString(5, pci.getProjectContextItemId().toString());
 		    
 		    String key = null;
-		    AttributeId attr = pci.getAttribute();
+		    Attribute attr = pci.getAttribute();
 		    if (attr != null) {
 			attr.getLabel();
 			String[] toks = attr.getLink().getHref().split("/");
@@ -120,7 +120,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 		    pst.setString(6, key);
 
 		    String value = null;
-		    ValueId vc = pci.getValueControlled();
+		    ValueControlled vc = pci.getValueControlled();
 		    if (vc != null) {
 			vc.getLabel();
 			String[] toks = vc.getLink().getHref().split("/");
