@@ -1442,11 +1442,8 @@ public class DBUtils {
 
         try {
             CAPDictionary dict = getCAPDictionary();
-            
-            //JCB Note: this is pulling from cap_annotations using pubchem aid via a cap to pubchem mapping table
-            //this should be pulling based on a bard id since cap ids are not reliable.
-            //the cap annotation table should hold an appropriate id for queries
-            List<CAPAssayAnnotation> capannots = getAssayAnnotations(aid);
+
+            List<CAPAssayAnnotation> capannots = getAssayAnnotations(bardAssayId);
             l1 = new ArrayList<String>();
             l2 = new ArrayList<String>();
             for (CAPAssayAnnotation capannot : capannots) {
@@ -2541,13 +2538,13 @@ public class DBUtils {
      * <p/>
      * Currently the annotations are restricted to CAP derived annotations only.
      *
-     * @param assayId The assay identifier. This is currently a PubChem AID.
+     * @param bardAssayId The assay identifier. This is currently a BARD assay identifier.
      * @return A list of assay annotations
      * @throws SQLException
      */
-    public List<CAPAssayAnnotation> getAssayAnnotations(Long assayId) throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a, cap_pubchem_map b where b.pubchem_aid = ? and a.assay_id = b.bard_assay_id;");
-        pst.setLong(1, assayId);
+    public List<CAPAssayAnnotation> getAssayAnnotations(Long bardAssayId) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a, bard_assay b where b.bard_assay_id = ? and a.assay_id = b.cap_assay_id and a.source = 'cap'");
+        pst.setLong(1, bardAssayId);
         ResultSet rs = pst.executeQuery();
         List<CAPAssayAnnotation> annos = new ArrayList<CAPAssayAnnotation>();
         while (rs.next()) {
@@ -2563,6 +2560,7 @@ public class DBUtils {
                 String[] toks = related.split("\\|");
                 if (toks.length == 2) extValueId = toks[1];
             }
+            // TODO Updated the related annotations field to support grouping
             CAPAssayAnnotation anno = new CAPAssayAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source);
             annos.add(anno);
         }
