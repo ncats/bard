@@ -435,19 +435,19 @@ public class ObjectFactory {
     }
 
     /**
-     * Create an instance of {@link Project.ProjectContextItems.ProjectContextItem.Attribute }
+     * Create an instance of {@link Project.ProjectContextItems.ProjectContextItem.AttributeId }
      * 
      */
-    public Project.ProjectContextItems.ProjectContextItem.Attribute createProjectProjectContextItemsProjectContextItemAttribute() {
-        return new Project.ProjectContextItems.ProjectContextItem.Attribute();
+    public Project.ProjectContextItems.ProjectContextItem.AttributeId createProjectProjectContextItemsProjectContextItemAttribute() {
+        return new Project.ProjectContextItems.ProjectContextItem.AttributeId();
     }
 
     /**
-     * Create an instance of {@link Project.ProjectContextItems.ProjectContextItem.ValueControlled }
+     * Create an instance of {@link Project.ProjectContextItems.ProjectContextItem.ValueId }
      * 
      */
-    public Project.ProjectContextItems.ProjectContextItem.ValueControlled createProjectProjectContextItemsProjectContextItemValueControlled() {
-        return new Project.ProjectContextItems.ProjectContextItem.ValueControlled();
+    public Project.ProjectContextItems.ProjectContextItem.ValueId createProjectProjectContextItemsProjectContextItemValueControlled() {
+        return new Project.ProjectContextItems.ProjectContextItem.ValueId();
     }
 
     /**

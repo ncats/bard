@@ -71,7 +71,7 @@ import javax.xml.bind.annotation.XmlType;
  *                       &lt;complexContent>
  *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *                           &lt;sequence>
- *                             &lt;element name="attribute" minOccurs="0">
+ *                             &lt;element name="attributeId" minOccurs="0">
  *                               &lt;complexType>
  *                                 &lt;complexContent>
  *                                   &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
@@ -372,7 +372,7 @@ public class Project {
      *             &lt;complexContent>
      *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
      *                 &lt;sequence>
-     *                   &lt;element name="attribute" minOccurs="0">
+     *                   &lt;element name="attributeId" minOccurs="0">
      *                     &lt;complexType>
      *                       &lt;complexContent>
      *                         &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
@@ -466,7 +466,7 @@ public class Project {
          *   &lt;complexContent>
          *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
          *       &lt;sequence>
-         *         &lt;element name="attribute" minOccurs="0">
+         *         &lt;element name="attributeId" minOccurs="0">
          *           &lt;complexType>
          *             &lt;complexContent>
          *               &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
@@ -508,14 +508,14 @@ public class Project {
          */
         @XmlAccessorType(XmlAccessType.FIELD)
         @XmlType(name = "", propOrder = {
-            "attribute",
-            "valueControlled",
+            "attributeId",
+            "valueId",
             "extValueId"
         })
         public static class ProjectContextItem {
 
-            protected Project.ProjectContextItems.ProjectContextItem.Attribute attribute;
-            protected Project.ProjectContextItems.ProjectContextItem.ValueControlled valueControlled;
+            protected Project.ProjectContextItems.ProjectContextItem.AttributeId attributeId;
+            protected Project.ProjectContextItems.ProjectContextItem.ValueId valueId;
             protected String extValueId;
             @XmlAttribute(name = "projectContextItemId", required = true)
             protected BigInteger projectContextItemId;
@@ -537,11 +537,11 @@ public class Project {
              * 
              * @return
              *     possible object is
-             *     {@link Project.ProjectContextItems.ProjectContextItem.Attribute }
+             *     {@link Project.ProjectContextItems.ProjectContextItem.AttributeId }
              *     
              */
-            public Project.ProjectContextItems.ProjectContextItem.Attribute getAttribute() {
-                return attribute;
+            public Project.ProjectContextItems.ProjectContextItem.AttributeId getAttribute() {
+                return attributeId;
             }
 
             /**
@@ -549,11 +549,11 @@ public class Project {
              * 
              * @param value
              *     allowed object is
-             *     {@link Project.ProjectContextItems.ProjectContextItem.Attribute }
+             *     {@link Project.ProjectContextItems.ProjectContextItem.AttributeId }
              *     
              */
-            public void setAttribute(Project.ProjectContextItems.ProjectContextItem.Attribute value) {
-                this.attribute = value;
+            public void setAttribute(Project.ProjectContextItems.ProjectContextItem.AttributeId value) {
+                this.attributeId = value;
             }
 
             /**
@@ -561,11 +561,11 @@ public class Project {
              * 
              * @return
              *     possible object is
-             *     {@link Project.ProjectContextItems.ProjectContextItem.ValueControlled }
+             *     {@link Project.ProjectContextItems.ProjectContextItem.ValueId }
              *     
              */
-            public Project.ProjectContextItems.ProjectContextItem.ValueControlled getValueControlled() {
-                return valueControlled;
+            public Project.ProjectContextItems.ProjectContextItem.ValueId getValueControlled() {
+                return valueId;
             }
 
             /**
@@ -573,11 +573,11 @@ public class Project {
              * 
              * @param value
              *     allowed object is
-             *     {@link Project.ProjectContextItems.ProjectContextItem.ValueControlled }
+             *     {@link Project.ProjectContextItems.ProjectContextItem.ValueId }
              *     
              */
-            public void setValueControlled(Project.ProjectContextItems.ProjectContextItem.ValueControlled value) {
-                this.valueControlled = value;
+            public void setValueControlled(Project.ProjectContextItems.ProjectContextItem.ValueId value) {
+                this.valueId = value;
             }
 
             /**
@@ -797,7 +797,7 @@ public class Project {
             @XmlType(name = "", propOrder = {
                 "link"
             })
-            public static class Attribute {
+            public static class AttributeId {
 
                 protected Link link;
                 @XmlAttribute(name = "label", required = true)
@@ -878,7 +878,7 @@ public class Project {
             @XmlType(name = "", propOrder = {
                 "link"
             })
-            public static class ValueControlled {
+            public static class ValueId {
 
                 protected Link link;
                 @XmlAttribute(name = "label", required = true)

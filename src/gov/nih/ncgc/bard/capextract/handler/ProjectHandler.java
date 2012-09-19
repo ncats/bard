@@ -5,8 +5,8 @@ import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Project;
 import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem;
-import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem.Attribute;
-import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem.ValueControlled;
+import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem.AttributeId;
+import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem.ValueId;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -100,7 +100,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 		}
 	        
 	        // add project annotations
-		PreparedStatement pst = conn.prepareStatement("insert into cap_project_annotations (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related) values (?,?,?,?,?,?,?,?,?)");
+		PreparedStatement pst = conn.prepareStatement("insert into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related) values (?,?,?,?,?,?,?,?,?)");
 
 		if (project.getProjectContextItems() != null)
 		for (ProjectContextItem pci: project.getProjectContextItems().getProjectContextItem()) {
@@ -111,7 +111,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 		    pst.setString(5, pci.getProjectContextItemId().toString());
 		    
 		    String key = null;
-		    Attribute attr = pci.getAttribute();
+		    AttributeId attr = pci.getAttribute();
 		    if (attr != null) {
 			attr.getLabel();
 			String[] toks = attr.getLink().getHref().split("/");
@@ -120,7 +120,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 		    pst.setString(6, key);
 
 		    String value = null;
-		    ValueControlled vc = pci.getValueControlled();
+		    ValueId vc = pci.getValueControlled();
 		    if (vc != null) {
 			vc.getLabel();
 			String[] toks = vc.getLink().getHref().split("/");
@@ -139,7 +139,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 		    
 		    pst.addBatch();
 		}
-		//pst.executeBatch();
+		pst.executeBatch();
 
 	    } else {
 		log.error("Database has no project with cap_proj_id="+project.getProjectId());
