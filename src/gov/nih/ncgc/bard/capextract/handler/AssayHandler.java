@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Assay;
@@ -79,6 +80,8 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             }
         }
 
+        CAPDictionary dict = CAPConstants.getDictionary();
+
         /* This block extracts the annotations for the assay */
         List<AssayContextItems.AssayContextItem> mcis = null;
         Map<String, CAPAssayAnnotation> annos = new HashMap<String, CAPAssayAnnotation>();
@@ -89,6 +92,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 String valueid = null, attrid = null, attrtype = null;
                 String displayValue = mci.getValueDisplay();
                 BigInteger id = mci.getAssayContextItemId();
+
                 String refid = mci.getAssayContextRef(); // may be null                
                 String contextref = mci.getAssayContextRef(); //  may be null
 
@@ -103,6 +107,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             }
         }
         log.info("\tGot " + annos.size() + " annotations");
+        for (CAPAssayAnnotation anno : annos.values()) log.debug("\t"+anno);
 
         // ok, we have a list of annotations, now we reconstruct the groups
         Map<String, List<String>> annogrps = new HashMap<String, List<String>>();
@@ -150,7 +155,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             Connection conn = CAPUtil.connectToBARD();
             PreparedStatement pst = conn.prepareStatement("insert into cap_annotation (entity, source,  assay_id, anno_id, anno_key, anno_value, anno_display, related) values('assay', 'cap', ?,?,?, ?,?,?)");
             for (CAPAssayAnnotation anno : annos.values()) {
-                if (anno.contextRef != null) continue;
+//                if (anno.contextRef != null) continue;
 
                 pst.setInt(1, aid.intValue());
                 pst.setString(2, anno.id);
