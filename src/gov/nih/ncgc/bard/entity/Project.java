@@ -49,7 +49,7 @@ public class Project implements BardEntity {
 
     List<Long> probeIds;
     List<Long> eids; // experiments
-    List<Long> aids; // assays
+    List<Long> aids; // assays (using bard_assay_id)
     List<Publication> publications;
     List<ProteinTarget> targets;
 

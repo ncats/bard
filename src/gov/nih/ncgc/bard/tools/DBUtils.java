@@ -124,8 +124,6 @@ public class DBUtils {
             put(Project.class, new Query(projectFields, "bard_proj_id", null, "bard_project"));
             put(ProteinTarget.class, new Query(targetFields, "accession", null, "protein_target"));
             put(Experiment.class, new Query(experimentFields, "bard_expt_id", null, "bard_experiment"));
-            //put(Compound.class, new Query(compoundFields, "cid", null, "compound"));
-            //put(Compound.class, new Query(compoundFields, "druglike desc, activity desc", "a.cid", "compound_rank a, compound b",  "a.cid=b.cid"));
             put(Compound.class, new Query(compoundFields, "druglike desc, activity desc", "cid", "compound_rank"));
             put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
             put(Assay.class, new Query(assayFields, "bard_assay_id", null, "bard_assay"));
@@ -2131,6 +2129,40 @@ public class DBUtils {
     }
 
     /**
+     * Return a list of protein targets based on on a bard project id
+     *
+     * @param bardProjectid
+     * @return
+     * @throws SQLException
+     */
+    public List<ProteinTarget> getProjectTargets(Long bardProjectid) throws SQLException {
+        PreparedStatement pst2 = null;
+        ResultSet rs2 = null;
+        List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
+        try {
+            pst2 = conn.prepareStatement("select a.* from protein_target a, project_target b where b.proj_id = ? and a.gene_id = b.gene_id");
+            pst2.setLong(1, bardProjectid);
+            rs2 = pst2.executeQuery();
+
+            while (rs2.next()) {
+                ProteinTarget t = new ProteinTarget();
+                t.setDescription(rs2.getString("description"));
+                t.setGeneId(rs2.getLong("gene_id"));
+                t.setName(rs2.getString("name"));
+                t.setStatus(rs2.getString("uniprot_status"));
+                t.setAcc(rs2.getString("accession"));
+                t.setTaxId(rs2.getLong("taxid"));
+                targets.add(t);
+            }
+        } finally {
+            if (rs2 != null) rs2.close();
+            if (pst2 != null) pst2.close();
+        }
+        return targets;
+    }
+
+
+    /**
      * Retrieve assays based on query.
      * <p/>
      * Currently a crude query language is supported which requries you to specify the field
@@ -2317,27 +2349,22 @@ public class DBUtils {
         }
 
         //find targets, get collected bard_assay_ids, for each bard_assay_id under the project
-        List<Long> bardAssayIdList = p.getAids();
-        Set<ProteinTarget> targets = new HashSet<ProteinTarget>();
-        for (Long bardAssayId : bardAssayIdList) {
-            targets.addAll(getAssayTargets(bardAssayId));
-        }
-        p.setTargets(new ArrayList<ProteinTarget>(targets));
+        p.setTargets(getProjectTargets(bardProjId));
 
         List<String> l1 = new ArrayList<String>();
         List<String> l2 = new ArrayList<String>();
         // pull in KEGG disease annotations
-//        pst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.proj_id = ? and b.gene_id = c.gene_id");
-//        pst.setLong(1, bardProjId);
-//        ResultSet resultSet = pst.executeQuery();
-//        while (resultSet.next()) {
-//            String[] toks = resultSet.getString("disease_names").split(";");
-//            for (String tok : toks) l1.add(tok.trim());
-//            toks = resultSet.getString("disease_category").split(";");
-//            for (String tok : toks) l2.add(tok.trim());
-//        }
-//        p.setKegg_disease_names(l1);
-//        p.setKegg_disease_cat(l2);
+        pst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.proj_id = ? and b.gene_id = c.gene_id");
+        pst.setLong(1, bardProjId);
+        ResultSet resultSet = pst.executeQuery();
+        while (resultSet.next()) {
+            String[] toks = resultSet.getString("disease_names").split(";");
+            for (String tok : toks) l1.add(tok.trim());
+            toks = resultSet.getString("disease_category").split(";");
+            for (String tok : toks) l2.add(tok.trim());
+        }
+        p.setKegg_disease_names(l1);
+        p.setKegg_disease_cat(l2);
 
         // pull in CAP annotations
         try {
