@@ -271,7 +271,7 @@ public class BARDExperimentDataResource implements IBARDResource {
 
                 DataResultObject res = null;
                 for (DataResultObject r : results) {
-                    if (tid == r.getTid()-7) {
+                    if (tid == r.getTid()) {
                         res = r;
                         break;
                     }
