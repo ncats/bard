@@ -25,6 +25,7 @@ public class Compound implements BardEntity {
     String url = null;
     String smiles = null;
     String name;
+    String iupacName;
     Double mwt;
     Double tpsa;
     Double exactMass;
@@ -102,6 +103,9 @@ public class Compound implements BardEntity {
 
     public void setName (String name) { this.name = name; }
     public String getName () { return name; }
+
+    public void setIupacName (String iupac) { this.iupacName = iupac; }
+    public String getIupacName () { return iupacName; }
 
     public void setMwt (Double mwt) { this.mwt = mwt; }
     public Double getMwt () { return mwt; }
