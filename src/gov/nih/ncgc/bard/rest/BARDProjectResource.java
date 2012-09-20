@@ -1,11 +1,15 @@
 package gov.nih.ncgc.bard.rest;
 
+import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
+import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
+import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -21,6 +25,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -304,6 +309,62 @@ public class BARDProjectResource extends BARDResource<Project> {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
+    @Path("/{pid}/annotations")
+    public Response getAnnotations(@PathParam("pid") Long resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
+        DBUtils db = new DBUtils();
+        List<CAPAssayAnnotation> a;
+        CAPDictionary dict = db.getCAPDictionary();
+        try {
+            a = db.getProjectAnnotations(resourceId);
+            if (a == null) throw new WebApplicationException(404);
+            CAPDictionaryElement node;
+            for (CAPAssayAnnotation as : a) {
+                if (as.key != null) {
+                    node = dict.getNode(new BigInteger(as.key));
+                    as.key = node != null ? node.getLabel() : as.key;
+                }
+                if (as.value != null) {
+                    node = dict.getNode(new BigInteger(as.value));
+                    as.value = node != null ? node.getLabel() : as.value;
+                }
+            }
+            String json = Util.toJson(a);
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
+        } catch (IOException e) {
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+
+    @Override
+    @GET
+    @Path("/etag/{etag}/facets")
+    public Response getFacets(@PathParam("etag") String resourceId) {
+        DBUtils db = new DBUtils();
+        try {
+            List<Facet> facets = db.getProjectFacets(resourceId);
+            return Response.ok(Util.toJson(facets),
+                    MediaType.APPLICATION_JSON).build();
+        } catch (Exception ex) {
+            throw new WebApplicationException(ex, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
     }
 }

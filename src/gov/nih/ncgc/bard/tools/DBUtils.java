@@ -801,6 +801,72 @@ public class DBUtils {
         }
     }
 
+    public List<Facet> getProjectFacets(String etagId) throws SQLException {
+        List<Facet> facets = new ArrayList<Facet>();
+
+        ETag etag = getEtagByEtagId(etagId);
+        if (!etag.getType().equals("gov.nih.ncgc.bard.entity.Project"))
+            throw new IllegalArgumentException("ETag " + etag + " is of type " + etag.getType());
+
+        PreparedStatement pst = conn.prepareStatement("select data_id from etag_data where etag_id = ?");
+        try {
+            pst.setString(1, etagId);
+            ResultSet rs = pst.executeQuery();
+
+            Map<String, Integer> tcounts = new HashMap<String, Integer>();
+            Map<String, Integer> dcounts = new HashMap<String, Integer>();
+            Map<String, Integer> ecounts = new HashMap<String, Integer>();
+
+            while (rs.next()) {
+                Long bardProjectId = rs.getLong(1);
+//                List<CAPAssayAnnotation> capannots = getProjectAnnotations(bardProjectId);
+//                for (CAPAssayAnnotation annot : capannots) {
+//                    if (annot.key.equals("detection_method_type")) {
+//                        if (dtcounts.containsKey(annot.value)) {
+//                            dtcounts.put(annot.value, dtcounts.get(annot.value) + 1);
+//                        } else dtcounts.put(annot.value, 1);
+//                    }
+//                }
+
+                // target facet
+                List<ProteinTarget> targets = getProjectTargets(bardProjectId);
+                for (ProteinTarget t : targets) {
+                    if (tcounts.containsKey(t.getName())) {
+                        tcounts.put(t.getName(), tcounts.get(t.getName()) + 1);
+                    } else tcounts.put(t.getName(), 1);
+                }
+
+                // disease facet
+                PreparedStatement pst2 = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.bard_proj_id = ? and b.gene_id = c.gene_id");
+                pst2.setLong(1, bardProjectId);
+                ResultSet rs2 = pst2.executeQuery();
+                while (rs2.next()) {
+                    String dcat = rs2.getString(1);
+                    if (dcounts.containsKey(dcat)) {
+                        dcounts.put(dcat, dcounts.get(dcat) + 1);
+                    } else dcounts.put(dcat, 1);
+                }
+            }
+
+            Facet facet = new Facet("target_name");
+            facet.setCounts(tcounts);
+            facets.add(facet);
+
+            facet = new Facet("kegg_disease_cat");
+            facet.setCounts(dcounts);
+            facets.add(facet);
+
+//            facet = new Facet("detection_method_type");
+//            facet.setCounts(dtcounts);
+//            facets.add(facet);
+        } finally {
+            pst.close();
+        }
+
+        return facets;
+
+    }
+
     public List<Facet> getAssayFacets(String etagId) throws SQLException {
         List<Facet> facets = new ArrayList<Facet>();
 
