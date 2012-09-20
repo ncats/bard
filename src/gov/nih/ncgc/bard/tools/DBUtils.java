@@ -137,11 +137,11 @@ public class DBUtils {
         try {
             dict = getCAPDictionary();
         } catch (SQLException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            e.printStackTrace();
         } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            e.printStackTrace();
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            e.printStackTrace();
         }
     }
 
@@ -383,7 +383,7 @@ public class DBUtils {
             pst.setString(1, name);
             rs = pst.executeQuery();
             while (rs.next())
-                cmpds.addAll(getCompoundsByCid(new Long[]{rs.getLong(1)}));
+                cmpds.addAll(getCompoundsByCid(rs.getLong(1)));
             rs.close();
         }
         return cmpds;
@@ -1031,9 +1031,9 @@ public class DBUtils {
             }
             rs.close();
 
-            Map<String, String[]> anno = new TreeMap();
-            anno.put("anno_key", keys.toArray(new String[0]));
-            anno.put("anno_val", vals.toArray(new String[0]));
+            Map<String, String[]> anno = new TreeMap<String, String[]>();
+            anno.put("anno_key", keys.toArray(new String[keys.size()]));
+            anno.put("anno_val", vals.toArray(new String[vals.size()]));
 
             return anno;
         } finally {
@@ -1232,9 +1232,9 @@ public class DBUtils {
         }
 
         if (skip >= 0 && top > 0) {
-            sql.append(" limit " + skip + "," + top);
+            sql.append(" limit ").append(skip).append(",").append(top);
         } else if (top > 0) {
-            sql.append(" limit " + top);
+            sql.append(" limit ").append(top);
         }
 
         PreparedStatement pst = conn.prepareStatement(sql.toString());
@@ -2504,7 +2504,7 @@ public class DBUtils {
         while (rs.next()) pids.add(rs.getLong("bard_proj_id"));
         rs.close();
         pst.close();
-        return getProjects(pids.toArray(new Long[]{}));
+        return getProjects(pids.toArray(new Long[pids.size()]));
     }
 
     public List<Long> getProbesForProject(Long bardExptId) throws SQLException {
@@ -2613,37 +2613,37 @@ public class DBUtils {
             }
             sql += " order by " + queryParams.getOrderField() 
                 + " " + limitClause;
-        } else if (!query.contains("[")) {
+        } else if (query != null && !query.contains("[")) {
             String q = "'%" + query + "%' ";
             List<String> tmp = new ArrayList<String>();
-            for (String s : queryParams.getValidFields()) 
+            for (String s : queryParams.getValidFields())
                 tmp.add(s + " like " + q);
 
             String tmp2 = "";
-            if (!tmp.isEmpty()) 
+            if (!tmp.isEmpty())
                 tmp2 = "(" + Util.join(tmp, " or ") + ")";
-            
-            sql = "select " + queryParams.getIdField() + " from " 
+
+            sql = "select " + queryParams.getIdField() + " from "
                 + queryParams.getTableName() + " where ";
             if (queryParams.getJoin() != null) {
                 sql += queryParams.getJoin() + " AND ";
             }
-            sql += tmp2 + " order by " + queryParams.getOrderField() 
+            sql += tmp2 + " order by " + queryParams.getOrderField()
                 + " " + limitClause;
         } else {
             // TODO we currently only assume a single query field is specified
             String[] toks = query.split("\\[");
             String q = toks[0].trim();
             String field = toks[1].trim().replace("]", "");
-            if (!queryParams.getValidFields().contains(field)) 
+            if (!queryParams.getValidFields().contains(field))
                 throw new SQLException("Invalid field was specified");
 
-            sql = "select " + queryParams.getIdField() + " from " 
+            sql = "select " + queryParams.getIdField() + " from "
                 + queryParams.getTableName() + " where ";
             if (queryParams.getJoin() != null) {
                 sql += queryParams.getJoin()+" AND ";
             }
-            sql += field + " like '%" + q + "%' order by " 
+            sql += field + " like '%" + q + "%' order by "
                 + queryParams.getOrderField() + "  " + limitClause;
         }
 
