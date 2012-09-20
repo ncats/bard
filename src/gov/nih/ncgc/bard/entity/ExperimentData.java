@@ -9,6 +9,8 @@ import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A representation of experiment data (ie measurements).
@@ -76,17 +78,70 @@ public class ExperimentData implements BardEntity {
         } else {
             // probably a single point
             for (DataResultObject o : results) {
-                if (o.getResultName().equals("PERCENT_RESPONSE")) {
-                    FitModel model = new FitModel();
-                    model.setDescription("single point");
-                    Double[][] cr = new Double[1][2];
-                    cr[0][0] = null;
-                    cr[0][1] = ((String) o.getValue()).trim().equals("\"\"") ? null : Double.parseDouble((String) o.getValue());
-                    break;
+
+                // we're going to force all non-PubChem TID's into individual readouts.
+                // ideally we should recognize relevant readouts, but that's not happening soon
+                if (o.getTid() == -1) continue;
+
+                FitModel model = new FitModel();
+                model.setDescription("single point");
+                model.setName(o.getResultName());
+                Double[][] cr = new Double[1][2];
+                cr[0][0] = null;
+                cr[0][1] = null;
+
+                String val = (String) o.getValue();
+                Double dval = null;
+                try {
+                    if (val != null) {
+                        cr[0][1] = Double.parseDouble(val);
+                        String[] concAndUnit = getConcAndUnitsFromTitle(o.getResultName());
+                        if (concAndUnit[0] != null) {
+                            cr[0][0] = Double.parseDouble(concAndUnit[0]);
+                            model.setConcUnit(concAndUnit[1]);
+                        }
+                    }
+                } catch (NumberFormatException e) {
+
                 }
+
+                model.setCr(cr);
+                readouts.add(model);
             }
         }
     }
+
+    String[] getConcAndUnitsFromTitle(String title) {
+        String conc = null, unit = null;
+
+        Pattern uM = Pattern.compile("(\\d+\\.?\\d+?\\s?)uM");
+        Pattern nM = Pattern.compile("(\\d+\\.?\\d+?\\s?)nM");
+        Pattern M = Pattern.compile("(\\d+\\.?\\d+?\\s?)M");
+
+        Matcher matcher = uM.matcher(title);
+        if (matcher.find()) {
+            conc = matcher.group(1);
+            unit = "uM";
+        }
+
+        if (conc == null) {
+            matcher = nM.matcher(title);
+            if (matcher.find()) {
+                conc = matcher.group(1);
+                unit = "nM";
+            }
+        }
+
+        if (conc == null) {
+            matcher = M.matcher(title);
+            if (matcher.find()) {
+                conc = matcher.group(1);
+                unit = "M";
+            }
+        }
+        return new String[]{conc, unit};
+    }
+
 
     public DoseResponseResultObject[] getDr() {
         return dr;
