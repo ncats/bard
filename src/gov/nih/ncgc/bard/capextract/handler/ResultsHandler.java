@@ -1,14 +1,11 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.CAPConstants;
-import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Results;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.List;
 
 /**
  * A one line summary.
@@ -37,25 +34,21 @@ public class ResultsHandler extends CapResourceHandler implements ICapResourceHa
             url = null;
             BigInteger n = results.getCount();
             log.info("\tWill be processing " + n + " results");
-            List<Link> links = results.getLink();
-            for (Link link : links) {
-        	if (link.getRel().equals("next")) {
-        	    url = link.getHref();
-        	} else if (link.getRel().equals("related") && 
-        		link.getType().equals(CAPConstants.CapResource.RESULT.getMimeType())) {
-        	    String href = link.getHref();
-        	    //String type = link.getType();
-        	    //String title = link.getTitle();
-
-        	    // for now lets just handle a few specific experiments
-        	    if (href.endsWith("414")) {
-        	    //if (true) {
-        		//log.info("\t" + title + "/" + type + "/ href = " + href);
-        		ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.RESULT);
-        		if (handler != null) handler.process(href, CAPConstants.CapResource.RESULT);
-        	    }
-        	}
-            }
+// !!! For now we will not load experiment results directly from CAP Extract API        	    
+//            List<Link> links = results.getLink();
+//            for (Link link : links) {
+//        	if (link.getRel().equals("next")) {
+//        	    url = link.getHref();
+//        	} else if (link.getRel().equals("related") && 
+//        		link.getType().equals(CAPConstants.CapResource.RESULT.getMimeType())) {
+//        	    String href = link.getHref();
+//        	    link.getTitle();
+//
+//        	    //log.info("\t" + title + "/" + type + "/ href = " + href);
+//        	    ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.RESULT);
+//        	    if (handler != null) handler.process(href, CAPConstants.CapResource.RESULT);
+//        	}
+//            }
         }
     }
 }
