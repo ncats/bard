@@ -29,8 +29,15 @@ public class ExperimentData implements BardEntity {
 
     List<FitModel> readouts;
 
+    /**
+     * Reperesents the context of <code>bard_experiment_data.json_data_array</code>.
+     */
     @JsonIgnore
     DataResultObject[] results;
+
+    /**
+     * Reperesents the context of <code>bard_experiment_data.json_dose_response</code>.
+     */
     @JsonIgnore
     DoseResponseResultObject[] dr = null;
     @JsonIgnore
@@ -97,6 +104,11 @@ public class ExperimentData implements BardEntity {
         this.readouts = readouts;
     }
 
+    /**
+     * Reperesents the context of <code>bard_experiment_data.json_data_array</code>.
+     *
+     * @return
+     */
     public DataResultObject[] getResults() {
         return results;
     }
@@ -148,8 +160,8 @@ public class ExperimentData implements BardEntity {
         if (exptDataId != null && exptDataId.contains(".")) {
             String[] toks = exptDataId.split("\\.");
             if (toks.length == 2) {
-            bardExptId = Long.parseLong(toks[0]);
-            sid = Long.parseLong(toks[1]);
+                bardExptId = Long.parseLong(toks[0]);
+                sid = Long.parseLong(toks[1]);
             }
         }
     }
