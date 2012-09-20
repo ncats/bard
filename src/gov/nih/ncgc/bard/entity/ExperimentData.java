@@ -2,9 +2,9 @@ package gov.nih.ncgc.bard.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
+import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
-import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 
 import java.sql.Date;
 import java.util.ArrayList;
@@ -106,12 +106,12 @@ public class ExperimentData implements BardEntity {
     }
 
     @JsonIgnore
-    public AssayDefinitionObject[] getDefs () {
+    public AssayDefinitionObject[] getDefs() {
         return ado;
     }
 
     @JsonIgnore
-    public void setDefs (AssayDefinitionObject[] ado) {
+    public void setDefs(AssayDefinitionObject[] ado) {
         this.ado = ado;
     }
 
@@ -154,16 +154,16 @@ public class ExperimentData implements BardEntity {
     public void setEid(Long eid) {
         this.eid = eid;
     }
-    
+
     public Long getBardExptId() {
-		return bardExptId;
-	}
+        return bardExptId;
+    }
 
-	public void setBardExptId(Long bardExptId) {
-		this.bardExptId = bardExptId;
-	}
+    public void setBardExptId(Long bardExptId) {
+        this.bardExptId = bardExptId;
+    }
 
-	public Long getCid() {
+    public Long getCid() {
         return cid;
     }
 
@@ -217,7 +217,7 @@ public class ExperimentData implements BardEntity {
      *         to be publically available via the REST API
      */
     public String getResourcePath() {
-        return BARDConstants.API_BASE + "/exptdata/" + exptDataId;
+        return BARDConstants.API_BASE + "/exptdata/" + bardExptId + "." + sid;
     }
 
     /**

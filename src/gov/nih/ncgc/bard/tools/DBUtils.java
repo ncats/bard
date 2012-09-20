@@ -1270,7 +1270,7 @@ public class DBUtils {
         ed.setBardExptId(rs.getLong("bard_expt_id"));
         ed.setSid(rs.getLong("sid"));
         ed.setCid(rs.getLong("cid"));
-        ed.setExptDataId(ed.getEid()+"."+ed.getSid());
+        ed.setExptDataId(ed.getBardExptId()+"."+ed.getSid());
 
         Integer classification = rs.getInt("classification");
         if (rs.wasNull()) classification = null;
