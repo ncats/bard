@@ -145,6 +145,13 @@ public class ExperimentData implements BardEntity {
 
     public void setExptDataId(String exptDataId) {
         this.exptDataId = exptDataId;
+        if (exptDataId != null && exptDataId.contains(".")) {
+            String[] toks = exptDataId.split("\\.");
+            if (toks.length == 2) {
+            bardExptId = Long.parseLong(toks[0]);
+            sid = Long.parseLong(toks[1]);
+            }
+        }
     }
 
     public Long getEid() {
