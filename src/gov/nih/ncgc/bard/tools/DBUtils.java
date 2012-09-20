@@ -69,14 +69,22 @@ public class DBUtils {
 
     class Query {
         List<String> validFields;
-        String orderField, tableName, idField;
+        String orderField, tableName, idField, join;
 
-        Query(List<String> validFields, String orderField, String idField, String tableName) {
+        Query(List<String> validFields, String orderField, 
+              String idField, String tableName) {
+            this (validFields, orderField, idField, tableName, null);
+        }
+
+        Query(List<String> validFields, String orderField, 
+              String idField, String tableName, String join) {
             this.validFields = validFields;
             this.orderField = orderField;
             this.tableName = tableName;
+            this.join = join;
 
             if (idField == null) this.idField = orderField;
+            else this.idField = idField;
         }
 
         public List<String> getValidFields() {
@@ -94,6 +102,8 @@ public class DBUtils {
         public String getIdField() {
             return idField;
         }
+
+        public String getJoin () { return join; }
     }
 
     public DBUtils() {
@@ -103,7 +113,7 @@ public class DBUtils {
         final List<String> projectFields = Arrays.asList("name", "description");
         final List<String> targetFields = Arrays.asList("accession", "name", "description", "uniprot_status");
         final List<String> experimentFields = Arrays.asList("name", "description", "source", "grant_no");
-        final List<String> compoundFields = Arrays.asList("url");
+        final List<String> compoundFields = new ArrayList<String>();//Arrays.asList("url");
         final List<String> substanceFields = Arrays.asList("url");
         final List<String> assayFields = Arrays.asList("name", "description", "protocol", "comemnt", "source", "grant_no");
         final List<String> edFields = Arrays.asList();
@@ -114,7 +124,9 @@ public class DBUtils {
             put(Project.class, new Query(projectFields, "bard_proj_id", null, "bard_project"));
             put(ProteinTarget.class, new Query(targetFields, "accession", null, "protein_target"));
             put(Experiment.class, new Query(experimentFields, "bard_expt_id", null, "bard_experiment"));
-            put(Compound.class, new Query(compoundFields, "cid", null, "compound"));
+            //put(Compound.class, new Query(compoundFields, "cid", null, "compound"));
+            //put(Compound.class, new Query(compoundFields, "druglike desc, activity desc", "a.cid", "compound_rank a, compound b",  "a.cid=b.cid"));
+            put(Compound.class, new Query(compoundFields, "druglike desc, activity desc", "cid", "compound_rank"));
             put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
             put(Assay.class, new Query(assayFields, "bard_assay_id", null, "bard_assay"));
             put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "bard_experiment_data"));
@@ -959,6 +971,7 @@ public class DBUtils {
         c.setCid(rs.getLong("cid"));
         c.setProbeId(rs.getString("probe_id"));
 
+        // huh? why?
         try {
             Molecule m = MolImporter.importMol(rs.getString("iso_smiles"));
             c.setSmiles(m.toFormat("smiles"));
@@ -966,9 +979,11 @@ public class DBUtils {
             c.setSmiles(rs.getString("iso_smiles"));
        }
 
+        String iupac = rs.getString("pubchem_iupac_name");
         String prefName = rs.getString("preferred_term");
         if (prefName != null) c.setName(prefName);
-        else c.setName(rs.getString("pubchem_iupac_name"));
+        else c.setName(iupac);
+        c.setIupacName(iupac);
 
         c.setMwt(rs.getDouble("pubchem_molecular_weight"));
         if (rs.wasNull()) {
@@ -2456,6 +2471,9 @@ public class DBUtils {
         else throw new IllegalArgumentException("Invalid entity class was specified");
 
         String sql = "select count(" + queryParams.getIdField() + ") from " + queryParams.getTableName();
+        if (queryParams.getJoin() != null) {
+            sql += " where "+queryParams.getJoin();
+        }
         PreparedStatement pst = conn.prepareStatement(sql);
         ResultSet rs = pst.executeQuery();
         int n = 0;
@@ -2497,22 +2515,48 @@ public class DBUtils {
         PreparedStatement pst;
         String sql;
         if (query == null && top > 0) { // get all rows - caller had better implement paging
-            sql = "select " + queryParams.getIdField() + " from " + queryParams.getTableName() + " order by " + queryParams.getOrderField() + " " + limitClause;
+            sql = "select " + queryParams.getIdField() 
+                + " from " + queryParams.getTableName();
+            if (queryParams.getJoin() != null) {
+                sql += " where "+queryParams.getJoin();
+            }
+            sql += " order by " + queryParams.getOrderField() 
+                + " " + limitClause;
         } else if (!query.contains("[")) {
             String q = "'%" + query + "%' ";
             List<String> tmp = new ArrayList<String>();
-            for (String s : queryParams.getValidFields()) tmp.add(s + " like " + q);
-            String tmp2 = Util.join(tmp, " or ");
+            for (String s : queryParams.getValidFields()) 
+                tmp.add(s + " like " + q);
 
-            sql = "select " + queryParams.getIdField() + " from " + queryParams.getTableName() + " where (" + tmp2 + ") order by " + queryParams.getOrderField() + " " + limitClause;
+            String tmp2 = "";
+            if (!tmp.isEmpty()) 
+                tmp2 = "(" + Util.join(tmp, " or ") + ")";
+            
+            sql = "select " + queryParams.getIdField() + " from " 
+                + queryParams.getTableName() + " where ";
+            if (queryParams.getJoin() != null) {
+                sql += queryParams.getJoin() + " AND ";
+            }
+            sql += tmp2 + " order by " + queryParams.getOrderField() 
+                + " " + limitClause;
         } else {
             // TODO we currently only assume a single query field is specified
             String[] toks = query.split("\\[");
             String q = toks[0].trim();
             String field = toks[1].trim().replace("]", "");
-            if (!queryParams.getValidFields().contains(field)) throw new SQLException("Invalid field was specified");
-            sql = "select " + queryParams.getIdField() + " from " + queryParams.getTableName() + " where " + field + " like '%" + q + "%' order by " + queryParams.getOrderField() + "  " + limitClause;
+            if (!queryParams.getValidFields().contains(field)) 
+                throw new SQLException("Invalid field was specified");
+
+            sql = "select " + queryParams.getIdField() + " from " 
+                + queryParams.getTableName() + " where ";
+            if (queryParams.getJoin() != null) {
+                sql += queryParams.getJoin()+" AND ";
+            }
+            sql += field + " like '%" + q + "%' order by " 
+                + queryParams.getOrderField() + "  " + limitClause;
         }
+
+        log.info("## SQL: "+sql);
 
         pst = conn.prepareStatement(sql);
         ResultSet rs = pst.executeQuery();

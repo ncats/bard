@@ -247,7 +247,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
                 ObjectMapper mapper = new ObjectMapper();
                 ArrayNode an = mapper.createArrayNode();
                 for (Assay a : assays) {
-                    an.add(getExpandedJson(a, a.getAid(), db));
+                    an.add(getExpandedJson(a, a.getBardAssayId(), db));
                 }
                 json = an.toString();
                 db.closeConnection();
