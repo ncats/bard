@@ -4,6 +4,8 @@ import chemaxon.formats.MolFormatException;
 import chemaxon.formats.MolImporter;
 import chemaxon.struc.Molecule;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
@@ -1114,7 +1116,7 @@ public class DBUtils {
         String[] toks = edid.split("\\.");
         Long bardExptId = Long.parseLong(toks[0]);
         Long sid = Long.parseLong(toks[1]);
-
+        System.out.println(bardExptId+" "+sid);
         PreparedStatement pst = conn.prepareStatement("select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.bard_expt_id = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id");
         ExperimentData ed = null;
         try {
@@ -1322,6 +1324,108 @@ public class DBUtils {
         return ed;
     }
 
+    ObjectNode getExperimentDataJsonByExperimentDataId(ExperimentData experimentData, String edid) throws Exception {
+
+            String exptId = "";
+            String[] tokens = edid.split("\\.");
+            if (tokens.length < 2) {
+                throw new Exception("Bogus experiment data id: " + edid);
+            } else if (tokens.length == 2) {
+                exptId = edid;
+            } else {
+                exptId = tokens[0] + "." + tokens[1];
+            }
+            if (experimentData == null || experimentData.getExptDataId() == null)
+                throw new Exception("experimentData should not be null");
+
+            //System.err.println("*** "+ Util.toJson(experimentData));
+
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode root = mapper.createObjectNode();
+            root.putPOJO("exptdata", experimentData);
+
+            ArrayNode array = root.putArray("results");
+            AssayDefinitionObject[] ado = experimentData.getDefs();
+            DataResultObject[] results = experimentData.getResults();
+
+            // check the tid; data tid are stored in column coordinate,
+            //  so we need to offset by 8
+            int tid = Integer.parseInt(tokens[2]);
+            if (tid == 0) { // return all?
+                for (AssayDefinitionObject d : ado) {
+                    if ("DoseResponse".equals(d.getType())) {
+                        // ignore dose response
+                        continue;
+                    }
+
+                    tid = Integer.parseInt(d.getTid());
+                    DataResultObject res = null;
+                    for (DataResultObject r : results) {
+                        if (tid == r.getTid() - 7) {
+                            res = r;
+                            break;
+                        }
+                    }
+
+                    ObjectNode node = array.addObject();
+                    node.putPOJO("result", d);
+                    Object value = res.getValue();
+                    if (value instanceof String) {
+                        value = ((String) value).replaceAll("\"", "");
+                        if ("".equals(value)) {
+                            value = null;
+                        }
+                    }
+                    node.putPOJO("value", value);
+                }
+            } else {
+                AssayDefinitionObject def = null;
+                for (AssayDefinitionObject d : ado) {
+                    if (tid == Integer.parseInt(d.getTid())) {
+                        def = d;
+                        break;
+                    }
+                }
+
+                DataResultObject res = null;
+                for (DataResultObject r : results) {
+                    if (tid == r.getTid() - 7) {
+                        res = r;
+                        break;
+                    }
+                }
+
+                ObjectNode node = array.addObject();
+                node.putPOJO("result", def);
+
+                if ("DoseResponse".equals(def.getType())) {
+                    DoseResponseResultObject drObj = null;
+                    for (DoseResponseResultObject dr :
+                            experimentData.getDr()) {
+                        if (tid == Integer.parseInt(dr.getTid())) {
+                            drObj = dr;
+                            break;
+                        }
+                    }
+
+                    node.putPOJO("value", drObj);
+                } else {
+                    Object value = res.getValue();
+                    if (value instanceof String) {
+                        value = ((String) value).replaceAll("\"", "");
+                        if ("".equals(value)) {
+                            value = null;
+                        }
+                    }
+                    node.putPOJO("value", value);
+                }
+            }
+            return root;
+
+            }
+
+
+
     /**
      * Retrieves the experiment result definition based on the bard_expt_id
      * 
@@ -1449,6 +1553,9 @@ public class DBUtils {
         Assay a = new Assay();
         long aid = rs.getLong("pubchem_aid");
         a.setAid(aid);
+
+        Long capAssayId = rs.getLong("cap_assay_id");
+        a.setCapAssayId(capAssayId);
 
         long bardAssayId = rs.getLong("bard_assay_id");
         //add the bard assay id
