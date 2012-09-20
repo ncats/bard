@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.rest;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -40,6 +43,8 @@ import java.util.List;
  */
 @Path("/exptdata")
 public class BARDExperimentDataResource implements IBARDResource {
+    static final Logger logger =
+            Logger.getLogger(BARDExperimentDataResource.class.getName());
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -232,10 +237,15 @@ public class BARDExperimentDataResource implements IBARDResource {
                     tid = Integer.parseInt(d.getTid());
                     DataResultObject res = null;
                     for (DataResultObject r : results) {
-                        if (tid == r.getTid() - 7) {
+                        if (tid == r.getTid()) {
                             res = r;
                             break;
                         }
+                    }
+
+                    if (res == null) {
+                        logger.info("no matching result object for tid="+tid);
+                        continue;
                     }
 
                     ObjectNode node = array.addObject();
