@@ -61,6 +61,7 @@ public class DBUtils {
      */
     static final int MAX_ETAG_SIZE = 10000;
     static final int CHUNK_SIZE = 400;
+    static CAPDictionary dict = null;
 
     Logger log;
     Connection conn;
@@ -132,6 +133,16 @@ public class DBUtils {
         }};
 
         conn = getConnection();
+
+        try {
+            dict = getCAPDictionary();
+        } catch (SQLException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
     }
 
     /**
@@ -1453,25 +1464,16 @@ public class DBUtils {
         a.setKegg_disease_names(l1);
         a.setKegg_disease_cat(l2);
 
-        try {
-            CAPDictionary dict = getCAPDictionary();
-
-            List<CAPAssayAnnotation> capannots = getAssayAnnotations(bardAssayId);
-            l1 = new ArrayList<String>();
-            l2 = new ArrayList<String>();
-            for (CAPAssayAnnotation capannot : capannots) {
-                l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
-                if (capannot.value != null) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
-                else l2.add(capannot.display);
-            }
-            a.setAk_dict_label(l1);
-            a.setAv_dict_label(l2);
-
-        } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        List<CAPAssayAnnotation> capannots = getAssayAnnotations(bardAssayId);
+        l1 = new ArrayList<String>();
+        l2 = new ArrayList<String>();
+        for (CAPAssayAnnotation capannot : capannots) {
+            l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
+            if (capannot.value != null) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
+            else l2.add(capannot.display);
         }
+        a.setAk_dict_label(l1);
+        a.setAv_dict_label(l2);
 
         return a;
     }
@@ -2140,7 +2142,7 @@ public class DBUtils {
         ResultSet rs2 = null;
         List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
         try {
-            pst2 = conn.prepareStatement("select a.* from protein_target a, project_target b where b.proj_id = ? and a.gene_id = b.gene_id");
+            pst2 = conn.prepareStatement("select a.* from protein_target a, project_target b where b.bard_proj_id = ? and a.gene_id = b.gene_id");
             pst2.setLong(1, bardProjectid);
             rs2 = pst2.executeQuery();
 
@@ -2354,38 +2356,34 @@ public class DBUtils {
         List<String> l1 = new ArrayList<String>();
         List<String> l2 = new ArrayList<String>();
         // pull in KEGG disease annotations
-        pst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.proj_id = ? and b.gene_id = c.gene_id");
+        pst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.bard_proj_id = ? and b.gene_id = c.gene_id");
         pst.setLong(1, bardProjId);
         ResultSet resultSet = pst.executeQuery();
         while (resultSet.next()) {
             String[] toks = resultSet.getString("disease_names").split(";");
             for (String tok : toks) l1.add(tok.trim());
-            toks = resultSet.getString("disease_category").split(";");
-            for (String tok : toks) l2.add(tok.trim());
+
+            String cat = resultSet.getString("disease_category");
+            if (cat != null) {
+                toks = resultSet.getString("disease_category").split(";");
+                for (String tok : toks) l2.add(tok.trim());
+            }
         }
         p.setKegg_disease_names(l1);
         p.setKegg_disease_cat(l2);
 
         // pull in CAP annotations
-        try {
-            CAPDictionary dict = getCAPDictionary();
-
-            List<CAPAssayAnnotation> capannots = getProjectAnnotations(bardProjId);
-            l1 = new ArrayList<String>();
-            l2 = new ArrayList<String>();
-            for (CAPAssayAnnotation capannot : capannots) {
-                l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
-                if (capannot.value != null) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
-                else l2.add(capannot.display);
-            }
-            p.setAk_dict_label(l1);
-            p.setAv_dict_label(l2);
-        } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        List<CAPAssayAnnotation> capannots = getProjectAnnotations(bardProjId);
+        l1 = new ArrayList<String>();
+        l2 = new ArrayList<String>();
+        for (CAPAssayAnnotation capannot : capannots) {
+            l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
+            if (capannot.value != null) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
+            else l2.add(capannot.display);
         }
-        
+        p.setAk_dict_label(l1);
+        p.setAv_dict_label(l2);
+
         return p;
     }
 

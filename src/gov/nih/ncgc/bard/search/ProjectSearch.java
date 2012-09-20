@@ -5,6 +5,7 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
+import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.slf4j.Logger;
@@ -26,7 +27,7 @@ public class ProjectSearch extends SolrSearch {
 
     Logger log;
 
-    String[] facetNames = {"num_expt"};
+    String[] facetNames = {"num_expt", "target_name", "kegg_disease_cat"};
 
     public ProjectSearch(String query) {
         super(query);
@@ -54,6 +55,9 @@ public class ProjectSearch extends SolrSearch {
         sq.addFacetQuery("num_expt:[5 TO 10]");
         sq.addFacetQuery("num_expt:[10 TO *]");
 
+        sq.addFacetField("target_name");
+        sq.addFacetField("kegg_disease_cat");
+
         response = solr.query(sq);
         List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_PROJECT_DOC, HL_FIELD);
 
@@ -62,6 +66,19 @@ public class ProjectSearch extends SolrSearch {
         facets = new ArrayList<Facet>();
         for (String f : facetNames) facets.add(new Facet(f));
 
+        // non-range facets
+        for (Facet aFacet : facets) {
+            FacetField targetFacet = response.getFacetField(aFacet.getFacetName());
+            if (targetFacet == null) continue;
+            List<FacetField.Count> fcounts = targetFacet.getValues();
+            if (fcounts != null) {
+                for (FacetField.Count fcount : fcounts) {
+                    if (fcount.getCount() > 0) aFacet.counts.put(fcount.getName(), (int) fcount.getCount());
+                }
+            }
+        }
+
+        // range facets
         Map<String, Integer> solrf = response.getFacetQuery();
         if (solrf != null) {
             for (Facet f : facets) {
