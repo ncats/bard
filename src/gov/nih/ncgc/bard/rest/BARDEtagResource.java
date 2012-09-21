@@ -113,11 +113,15 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
 
     @GET
     @Path("/{etag}")
-    public Response getEtag(@PathParam("etag") String etagId) {
+    public Response getEtag(@PathParam("etag") String etagId, 
+                            @QueryParam("skip") Integer skip, 
+                            @QueryParam("top") Integer top) {
         DBUtils db = new DBUtils();
         try {
             ETag etag = db.getEtagByEtagId(etagId);
-            List entities = db.getEntitiesByEtag(etag.getEtag(), 0, 0);
+            List entities = db.getEntitiesByEtag
+                (etag.getEtag(), skip != null ? skip : -1, 
+                 top != null ? top : -1);
             if (entities == null || entities.size() == 0)
                 return Response.status(404).entity("No objects associated with etag " + etagId).type("text/plain").build();
             return Response.ok(Util.toJson(entities), MediaType.APPLICATION_JSON).build();

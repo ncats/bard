@@ -731,7 +731,7 @@ public class DBUtils {
     public List<Facet> getCompoundPropertyFacets(String etag)
             throws SQLException {
         Object[][] props = new Object[][]{
-                {"xlogp", "PUBCHEM_XLOGP3_AA", 0},
+                {"xlogp", "PUBCHEM_XLOGP3", 0},
                 {"exact_mass", "PUBCHEM_EXACT_MASS", -2},
                 {"mwt", "PUBCHEM_MOLECULAR_WEIGHT", -2},
                 {"complexity", "PUBCHEM_CACTVS_COMPLEXITY", -2},
@@ -1020,9 +1020,13 @@ public class DBUtils {
             }
             rs.close();
 
-            touchETag(etag);
+            //touchETag(etag);
             for (Compound c : compounds) {
                 c.setSids(getSidsByCid(c.getCid()));
+                Map<String, String[]> annots = 
+                    getCompoundAnnotations(c.getCid());
+                c.setAnno_key(annots.get("anno_key"));
+                c.setAnno_val(annots.get("anno_val"));
             }
 
             return compounds;
@@ -1092,10 +1096,15 @@ public class DBUtils {
         if (rs.wasNull()) {
             c.setExactMass(null);
         }
-        c.setXlogp(rs.getDouble("pubchem_xlogp3_aa"));
+
+        c.setXlogp(rs.getDouble("pubchem_xlogp3"));
         if (rs.wasNull()) {
-            c.setXlogp(null);
+            c.setXlogp(rs.getDouble("pubchem_xlogp3_aa"));
+            if (rs.wasNull()) {
+                c.setXlogp(null);
+            }
         }
+
         c.setComplexity(rs.getInt("pubchem_cactvs_complexity"));
         if (rs.wasNull()) {
             c.setComplexity(null);
