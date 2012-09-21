@@ -1,5 +1,10 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
@@ -184,15 +189,48 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
         Experiment experiment;
         try {
             experiment = db.getExperimentByExptId(Long.valueOf(resourceId));
-            db.closeConnection();
             if (experiment.getExptId() == null) throw new WebApplicationException(404);
             String json = Util.toJson(experiment);
+            if (expand != null && expand.toLowerCase().trim().equals("true")) { // expand experiment and project entries
+                json = getExpandedJson(experiment, Long.parseLong(resourceId), db).toString();
+            }
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
+            e.printStackTrace();
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
+            e.printStackTrace();
             throw new WebApplicationException(e, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (SQLException e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            }
         }
+    }
+
+    JsonNode getExpandedJson(Experiment e, Long eid, DBUtils db) throws SQLException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode t = mapper.valueToTree(e);
+
+        List<Assay> assays = db.getAssaysByExperimentId(eid);
+        ArrayNode an = mapper.createArrayNode();
+        for (Assay a : assays) {
+            ObjectNode on = mapper.valueToTree(a);
+            an.add(on);
+        }
+        ((ObjectNode) t).put("assayId", an);
+
+//        List<Project> projs = db.getProjectByAssayId(eid);
+//        an = mapper.createArrayNode();
+//        for (Project e : projs) {
+//            ObjectNode on = mapper.valueToTree(e);
+//            an.add(on);
+//        }
+//        ((ObjectNode) t).put("projects", an);
+
+        return t;
     }
 
     @GET

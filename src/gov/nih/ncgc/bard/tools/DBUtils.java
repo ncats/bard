@@ -674,7 +674,7 @@ public class DBUtils {
                 "NPC screening",
                 "DrugBank v3.0",
                 "NPC informatics",
-                "INN"
+                "INN", "Withdrawn"
         };
 
         try {
@@ -2436,6 +2436,16 @@ public class DBUtils {
         return assays;
     }
 
+
+    public List<Assay> getAssaysByExperimentId(Long eid) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement("select distinct bard_assay_id from bard_experiment where bard_expt_id = ?");
+        pst.setLong(1, eid);
+        List<Assay> assays = new ArrayList<Assay>();
+        ResultSet rs = pst.executeQuery();
+        while (rs.next()) assays.add(getAssayByAid(rs.getLong(1)));
+        pst.close();
+        return assays;
+    }
 
     /**
      * Returns assays for a given accession 
