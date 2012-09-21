@@ -1850,12 +1850,33 @@ public class DBUtils {
         return ret;
     }
 
+    List<ExperimentData> getExperimentData(PreparedStatement pst) throws SQLException, IOException {
+        ResultSet rs = pst.executeQuery();
+        List<ExperimentData> ret = new ArrayList<ExperimentData>();
+
+        List<String> chunk = new ArrayList<String>();
+        int chunkSize = 1000;
+        int n = 0;
+        while (rs.next()) {
+            chunk.add(rs.getString(1));
+            n++;
+            if (n == chunkSize) {
+                ret.addAll(getExperimentDataByDataId(chunk));
+                chunk.clear();
+                n = 0;
+            }
+        }
+        if (chunk.size() > 0) ret.addAll(getExperimentDataByDataId(chunk));
+        rs.close();
+        return ret;
+    }
+
     /**
      * Return experiment data objects for an experiment.
      *
-     * @param bardExptId  The experiment id (AKA Pubchem AID for experiments taken from Pubchem)
-     * @param skip how many records to skip
-     * @param top  how many records to return
+     * @param bardExptId The experiment id (AKA Pubchem AID for experiments taken from Pubchem)
+     * @param skip       how many records to skip
+     * @param top        how many records to return
      * @return
      * @throws SQLException
      */
@@ -1870,23 +1891,32 @@ public class DBUtils {
 
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? order by score desc, bard_expt_id, sid " + limitClause);
         pst.setLong(1, bardExptId);
-        ResultSet rs = pst.executeQuery();
-        List<ExperimentData> ret = new ArrayList<ExperimentData>();
-        
-        List<String> chunk = new ArrayList<String>();
-        int chunkSize = 1000;
-        int n = 0;
-        while (rs.next()) {
-            chunk.add(rs.getString(1));
-            n++;
-            if (n == chunkSize) {                
-                ret.addAll(getExperimentDataByDataId(chunk));
-                chunk.clear();
-                n = 0;
-            }
+        List<ExperimentData> ret = getExperimentData(pst);
+        pst.close();
+        return ret;
+    }
+
+    /**
+     * Return experiment data objects for an experiment.
+     *
+     * @param bardExptId The experiment id (AKA Pubchem AID for experiments taken from Pubchem)
+     * @param skip       how many records to skip
+     * @param top        how many records to return
+     * @return
+     * @throws SQLException
+     */
+    public List<ExperimentData> getActiveExperimentData(Long bardExptId, int skip, int top) throws SQLException, IOException {
+        if (bardExptId == null || bardExptId < 0) return null;
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
         }
-        if (chunk.size() > 0) ret.addAll(getExperimentDataByDataId(chunk));
-        rs.close();
+
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? and outcome = 2 order by score desc, bard_expt_id, sid " + limitClause);
+        pst.setLong(1, bardExptId);
+        List<ExperimentData> ret = getExperimentData(pst);
         pst.close();
         return ret;
     }

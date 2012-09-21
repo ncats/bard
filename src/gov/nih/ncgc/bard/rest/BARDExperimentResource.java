@@ -29,7 +29,9 @@ import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Prototype of MLBD REST resources.
@@ -500,5 +502,48 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
                 ex.printStackTrace();
             }
         }
+    }
+
+    @GET
+    @Path("/{eid}/summary")
+    public Response getSummary(@PathParam("eid") Long eid) throws IOException, SQLException {
+        long start = System.currentTimeMillis();
+
+        Map<String, Object> s = new HashMap<String, Object>();
+        DBUtils db = new DBUtils();
+
+        Experiment e = db.getExperimentByExptId(eid);
+        if (e == null || e.getExptId() == null) throw new WebApplicationException(404);
+        int nsub = e.getSubstances();
+
+        s.put("compounds.tested", e.getCompounds());
+        s.put("substances.tested", nsub);
+
+        int nhit = 0;
+        Map<String, Integer> colanno = new HashMap<String, Integer>();
+
+        List<ExperimentData> data = db.getActiveExperimentData(eid, -1, -1);
+        for (ExperimentData ed : data) {
+            // should we check whether it is a confirmatory screen?
+//            if (ed.getOutcome() == 2 && e.getType() == 2) {
+//                nhit++;
+//            }
+            Map<String, String[]> annos = db.getCompoundAnnotations(ed.getCid());
+            String[] keys = annos.get("anno_key");
+            String[] vals = annos.get("anno_val");
+            for (int i = 0; i < keys.length; i++) {
+                if (keys[i].equals("COLLECTION")) {
+                    String val = vals[i].trim().split("\\|")[0];
+                    if (colanno.containsKey(val)) colanno.put(val, colanno.get(val) + 1);
+                    else colanno.put(val, 1);
+                }
+            }
+        }
+
+        s.put("COLLECTION", colanno);
+        s.put("nhit", data.size());
+        double duration = (System.currentTimeMillis() - start) / 1000.0;
+        logger.info("Time to generate summary was " + duration + "s");
+        return Response.ok(Util.toJson(s), MediaType.APPLICATION_JSON).build();
     }
 }
