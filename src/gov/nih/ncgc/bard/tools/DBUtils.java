@@ -993,10 +993,15 @@ public class DBUtils {
                         + "and c.cid = e2.data_id "
                         + "and d.pubchem_compound_cid = e2.data_id "
                         + "order by e2.index");
+        /*
+         * for some reaon, mysql takes much longer when limit <= 5.
+         * perhaps a bug in the query planner. we simply guard it here
+         * but not sure if we should do it elsewhere too!
+         */
         if (skip >= 0 && top > 0) {
-            sql.append(" limit " + skip + "," + top);
+            sql.append(" limit " + skip + "," + Math.max(6, top));
         } else if (top > 0) {
-            sql.append(" limit " + top);
+            sql.append(" limit " + Math.max(6, top));
         }
 
         PreparedStatement pst1 = conn.prepareStatement(sql.toString());
@@ -1019,6 +1024,11 @@ public class DBUtils {
                 }
             }
             rs.close();
+
+            if (top > 0 && top != compounds.size()) {
+                // truncate it to fit the desired size
+                compounds = compounds.subList(0, top);
+            }
 
             //touchETag(etag);
             for (Compound c : compounds) {
