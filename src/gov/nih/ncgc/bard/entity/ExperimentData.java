@@ -99,6 +99,16 @@ public class ExperimentData implements BardEntity {
                         if (concAndUnit[0] != null) {
                             cr[0][0] = Double.parseDouble(concAndUnit[0]);
                             model.setConcUnit(concAndUnit[1]);
+                        } else { // try pulling it from the result type definition
+                            for (AssayDefinitionObject ao : ado) {
+                                if (o.getTid() == Integer.parseInt(ao.getTid())) {
+                                    if (ao.getTestConcUnit() != null && !ao.getTestConcUnit().equals("none"))
+                                        model.setConcUnit(ao.getTestConcUnit());
+                                    if (ao.getTestConcentration() != null && ao.getTestConcentration().length > 0) {
+                                        cr[0][0] = (double) ao.getTestConcentration()[0];
+                                    }
+                                }
+                            }
                         }
                     }
                 } catch (NumberFormatException e) {
