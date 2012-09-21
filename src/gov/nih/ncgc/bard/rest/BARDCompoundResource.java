@@ -680,6 +680,22 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     }
 
     @GET
+    @Path("/{cid}/synonyms")
+    public Response getSynonymsForCompound (@PathParam("cid") Long cid)
+            throws SQLException, IOException {
+        DBUtils db = new DBUtils();
+        try {
+            List<String> syns = db.getCompoundSynonyms(cid);
+            return Response.ok(Util.toJson(syns))
+                    .type(MediaType.APPLICATION_JSON).build();
+        } 
+        finally {
+            db.closeConnection();
+        }
+    }
+
+
+    @GET
     @Path("/{cid}/assays")
     public Response getAssaysForCompound(@PathParam("cid") Long cid, String expand,
                                          @QueryParam("skip") Integer skip,

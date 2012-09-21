@@ -131,7 +131,7 @@ public class DBUtils {
             put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
             put(Assay.class, new Query(assayFields, "bard_assay_id", null, "bard_assay"));
             put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "bard_experiment_data"));
-            put(ETag.class, new Query(etagFields, "etag_id", null, "etag"));
+            put(ETag.class, new Query(etagFields, "etag_id", null, "etag", "status=1"));
         }};
 
         conn = getConnection();
@@ -708,6 +708,24 @@ public class DBUtils {
         } finally {
             pst.close();
         }
+    }
+
+    public List<String> getCompoundSynonyms (Long cid) throws SQLException {
+        PreparedStatement pst = conn.prepareStatement
+            ("select syn from synonyms where id = ? and type=1");
+        List<String> syns = new ArrayList<String>();
+        try {
+            pst.setLong(1, cid);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                syns.add(rs.getString(1));
+            }
+            rs.close();
+        }
+        finally {
+            pst.close();
+        }
+        return syns;
     }
 
     public List<Facet> getCompoundPropertyFacets(String etag)
