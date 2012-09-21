@@ -1,12 +1,10 @@
 package gov.nih.ncgc.bard.rest;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.entity.FitModel;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
@@ -31,7 +29,9 @@ import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Prototype of MLBD REST resources.
@@ -214,8 +214,11 @@ public class BARDExperimentDataResource implements IBARDResource {
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
 
-            //System.err.println("*** "+ Util.toJson(experimentData));
-
+            int tid = Integer.parseInt(tokens[2]);
+            if (tid != 0) { // only keep the specific entry from readout[]
+                FitModel m = experimentData.getReadouts().get(tid-1);
+                experimentData.setReadouts(Arrays.asList(m));
+            }
             ObjectMapper mapper = new ObjectMapper ();
             ObjectNode root = mapper.createObjectNode();
             root.putPOJO("exptdata", experimentData);
@@ -226,7 +229,6 @@ public class BARDExperimentDataResource implements IBARDResource {
 
             // check the tid; data tid are stored in column coordinate,
             //  so we need to offset by 8
-            int tid = Integer.parseInt(tokens[2]);
             if (tid == 0) { // return all?
                 for (AssayDefinitionObject d : ado) {
                     if ("DoseResponse".equals(d.getType())) {
