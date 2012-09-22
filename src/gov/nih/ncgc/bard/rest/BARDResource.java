@@ -27,6 +27,7 @@ import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -140,14 +141,10 @@ public abstract class BARDResource<T extends BardEntity>
                                        MediaType.APPLICATION_JSON).build();
             }
             else {
-                List<String> links = new ArrayList<String>();
-                for (String e : etags) {
-                    links.add(getResourceBase ()+"/etag/"+e);
-                }
-
-                BardLinkedEntity linkedEntity = 
-                    new BardLinkedEntity (links, linkString);
-                response = Response.ok(Util.toJson(linkedEntity), 
+                Map res = new TreeMap ();
+                res.put("collection", etags);
+                res.put("link", linkString);
+                response = Response.ok(Util.toJson(res), 
                                        MediaType.APPLICATION_JSON).build();
             }
 
