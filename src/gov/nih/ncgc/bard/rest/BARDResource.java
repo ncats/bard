@@ -129,15 +129,16 @@ public abstract class BARDResource<T extends BardEntity>
             }
             
             if (expandEntries (expand)) {
-                List<ETag> entities = new ArrayList<ETag>();
+                List<Map> entities = new ArrayList<Map>();
                 for (String e : etags) {
-                    ETag et = db.getEtagByEtagId(e);
+                    Map et = db.getETagInfo(e);
                     entities.add(et);
                 }
 
-                BardLinkedEntity linkedEntity = new BardLinkedEntity
-                    (entities, linkString);
-                response = Response.ok(Util.toJson(linkedEntity), 
+                Map map = new TreeMap ();
+                map.put("collection", entities);
+                map.put("link", linkString);
+                response = Response.ok(Util.toJson(map), 
                                        MediaType.APPLICATION_JSON).build();
             }
             else {
