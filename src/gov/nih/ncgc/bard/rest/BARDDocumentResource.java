@@ -33,6 +33,9 @@ public class BARDDocumentResource extends BARDResource<Publication> {
     static final String VERSION = "1.0";
 
     public Class<Publication> getEntityClass () { return Publication.class; }
+    public String getResourceBase () {
+        return BARDConstants.API_BASE+"/documents";
+    }
 
     @GET
     @Produces("text/plain")

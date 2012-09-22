@@ -45,6 +45,9 @@ public class BARDProjectResource extends BARDResource<Project> {
     static final String VERSION = "1.0";
 
     public Class<Project> getEntityClass () { return Project.class; }
+    public String getResourceBase () {
+        return BARDConstants.API_BASE+"/projects";
+    }
 
     @GET
     @Produces("text/plain")

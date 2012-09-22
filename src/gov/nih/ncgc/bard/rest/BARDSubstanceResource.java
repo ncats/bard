@@ -49,6 +49,10 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
         return Substance.class;
     }
 
+    public String getResourceBase () {
+        return BARDConstants.API_BASE+"/substances";
+    }
+
     @GET
     @Produces("text/plain")
     @Path("/_info")

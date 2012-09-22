@@ -1,6 +1,8 @@
 package gov.nih.ncgc.bard.rest;
 
 import gov.nih.ncgc.bard.entity.BardEntity;
+import gov.nih.ncgc.bard.entity.ETag;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -95,11 +97,74 @@ public abstract class BARDResource<T extends BardEntity>
                 + (query != null ? ("?" + query) : ""));
     }
 
-    public abstract Class<T> getEntityClass();
+    public abstract Class<T> getEntityClass ();
+    public abstract String getResourceBase ();
 
     /*
      * ETag common resources
      */
+    @GET
+    @Path("/etag")
+    public Response getETags (@QueryParam("expand") String expand,
+                              @QueryParam("skip") Integer skip,
+                              @QueryParam("top") Integer top) {
+        DBUtils db = new DBUtils ();
+        try {
+            Response response = null;
+            if (top == null) {
+                top = BARDConstants.MAX_DATA_COUNT;
+            }
+            if (skip == null) {
+                skip = 0;
+            }
+
+            List<String> etags = db.getETagsForEntity 
+                (skip, top, null /* Principal */, getEntityClass());
+
+            String linkString = null;
+            if (etags.size() == top) { // there are more
+                linkString = getResourceBase()+"/etag?skip="+(skip+top)
+                    +"&top="+top+"&expand="+expand;
+            }
+            
+            if (expandEntries (expand)) {
+                List<ETag> entities = new ArrayList<ETag>();
+                for (String e : etags) {
+                    ETag et = db.getEtagByEtagId(e);
+                    entities.add(et);
+                }
+
+                BardLinkedEntity linkedEntity = new BardLinkedEntity
+                    (entities, linkString);
+                response = Response.ok(Util.toJson(linkedEntity), 
+                                       MediaType.APPLICATION_JSON).build();
+            }
+            else {
+                List<String> links = new ArrayList<String>();
+                for (String e : etags) {
+                    links.add(getResourceBase ()+"/etag/"+e);
+                }
+
+                BardLinkedEntity linkedEntity = 
+                    new BardLinkedEntity (links, linkString);
+                response = Response.ok(Util.toJson(linkedEntity), 
+                                       MediaType.APPLICATION_JSON).build();
+            }
+
+            return response;
+        }
+        catch (Exception ex) {
+            throw new WebApplicationException (ex, 500);            
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (Exception ex) {
+            }
+        }
+    }
+
     @GET
     @Path("/etag/{etag}")
     public Response getEntitiesByETag(@PathParam("etag") String resourceId,

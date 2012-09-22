@@ -47,6 +47,9 @@ public class BARDTargetResource extends BARDResource<ProteinTarget> {
     public Class<ProteinTarget> getEntityClass () { 
         return ProteinTarget.class; 
     }
+    public String getResourceBase () {
+        return BARDConstants.API_BASE+"/targets";
+    }
 
     @GET
     @Produces("text/plain")

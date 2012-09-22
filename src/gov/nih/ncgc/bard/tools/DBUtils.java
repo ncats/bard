@@ -52,6 +52,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import java.security.Principal;
+
 /**
  * Utility methods to interact with the database backend.
  *
@@ -2872,6 +2874,51 @@ public class DBUtils {
         else if (Experiment.class.getName().equals(etag.getType()))
             entities = (List<T>) getExperimentsByETag(skip, top, etag.getEtag());
         return entities;
+    }
+
+    /*
+     * Return all known ETag's for a given principal
+     */
+    public List<String> getETagsForEntity (int skip, int top,
+                                           Principal principal, 
+                                           Class<? extends BardEntity> clazz) 
+        throws SQLException {
+
+        String limits = "";
+        if (skip >= 0 && top > 0) {
+            limits = " limit "+skip+","+top;
+        }
+        else if (top > 0) {
+            limits = " limit "+top;
+        }
+
+        /*
+         * TODO: we should do proper checking of principal here!
+         */
+        String sql = "select etag_id from etag where status = 1";
+        PreparedStatement pst;
+        if (clazz != null) {
+            pst = conn.prepareStatement(sql+" and type = ?" + limits);
+            pst.setString(1, clazz.getName());
+        }
+        else {
+            pst = conn.prepareStatement(sql+limits);
+        }
+
+        try {
+            List<String> etags = new ArrayList<String>();
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                String id = rs.getString(1);
+                etags.add(id);
+            }
+            rs.close();
+
+            return etags;
+        }
+        finally {
+            pst.close();
+        }
     }
 
 

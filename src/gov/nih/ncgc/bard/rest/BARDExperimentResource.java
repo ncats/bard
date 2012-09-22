@@ -60,6 +60,9 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
     HttpHeaders headers;
 
     public Class<Experiment> getEntityClass () { return Experiment.class; }
+    public String getResourceBase () {
+        return BARDConstants.API_BASE+"/experiments";
+    }
 
     @GET
     @Produces("text/plain")

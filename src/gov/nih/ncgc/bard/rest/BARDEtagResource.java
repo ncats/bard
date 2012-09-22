@@ -30,6 +30,10 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
         return ETag.class;
     }
 
+    public String getResourceBase () {
+        return BARDConstants.API_BASE+"/etags";
+    }
+
     @GET
     @Path("/_info")
     public String info() {

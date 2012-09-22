@@ -72,6 +72,9 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
     public Class<Assay> getEntityClass () { return Assay.class; }
+    public String getResourceBase () { 
+        return BARDConstants.API_BASE+"/assays";
+    }
 
     @GET
     @Produces("text/plain")

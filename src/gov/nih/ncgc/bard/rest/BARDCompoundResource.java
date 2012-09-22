@@ -66,6 +66,10 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         return Compound.class;
     }
 
+    public String getResourceBase () { 
+        return BARDConstants.API_BASE+"/compounds";
+    }
+
     @GET
     @Produces("text/plain")
     @Path("/_info")
