@@ -1669,10 +1669,17 @@ public class DBUtils {
         l1 = new ArrayList<String>();
         l2 = new ArrayList<String>();
         while (resultSet.next()) {
-            String[] toks = resultSet.getString("disease_names").split(";");
-            for (String tok : toks) l1.add(tok.trim());
-            toks = resultSet.getString("disease_category").split(";");
-            for (String tok : toks) l2.add(tok.trim());
+            String[] toks;
+            String diseaseName = resultSet.getString("disease_names");
+            if (diseaseName != null) {
+                toks = diseaseName.split(";");
+                for (String tok : toks) l1.add(tok.trim());
+            }
+            String diseaseCat = resultSet.getString("disease_category");
+            if (diseaseCat != null) {
+                toks = diseaseCat.split(";");
+                for (String tok : toks) l2.add(tok.trim());
+            }
         }
         a.setKegg_disease_names(l1);
         a.setKegg_disease_cat(l2);
