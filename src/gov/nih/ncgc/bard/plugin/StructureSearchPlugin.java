@@ -52,6 +52,13 @@ public class StructureSearchPlugin implements IPlugin {
     }
 
     /**
+     * Initialization method.
+     */
+    public void init() {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    /**
      * Get a description of the plugin.
      * <p/>
      * In the implementing class, this method should be annotated using
