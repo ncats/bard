@@ -778,12 +778,18 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     @Path("/{cid}/assays")
     public Response getAssaysForCompound(@PathParam("cid") Long cid,
                                          @QueryParam("expand") String expand,
+                                         @QueryParam("filter") String filter,
                                          @QueryParam("skip") Integer skip,
                                          @QueryParam("top") Integer top) throws SQLException, IOException {
         DBUtils db = new DBUtils();
         Response response;
         String linkString = null;
-        List<Assay> p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
+        List<Assay> p;
+
+        if (filter == null || !filter.trim().toLowerCase().equals("active"))
+            p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
+        else p = db.getEntitiesByActiveCid(cid, Assay.class, -1, -1);
+
         if (p == null) p = new ArrayList<Assay>();
         if (countRequested) return Response.ok(String.valueOf(p.size())).type(MediaType.TEXT_PLAIN).build();
 
@@ -863,7 +869,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                     json = Util.toJson(linkedEntity);
                 }
             } else {
-                List<ExperimentData> data = db.getCompoundData(Long.valueOf(resourceId), skip, top);
+                List<ExperimentData> data = db.getEntitiesByCid(Long.valueOf(resourceId), ExperimentData.class, skip, top);
                 if (countRequested) json = String.valueOf(data.size());
                 else {
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
@@ -908,8 +914,14 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             }
 
             String json;
+            List<Experiment> data;
+            if (filter == null || !filter.trim().toLowerCase().equals("active"))
+                data = db.getEntitiesByCid(Long.valueOf(resourceId), Experiment.class, skip, top);
+            else data = db.getEntitiesByActiveCid(Long.valueOf(resourceId), Experiment.class, skip, top);
+
             if (!expandEntries(expand)) {
-                List<Long> eids = db.getCompoundExperimentIds(Long.valueOf(resourceId), skip, top);
+                List<Long> eids = new ArrayList<Long>();
+                for (Experiment expt : data) eids.add(expt.getExptId());
                 if (countRequested) json = String.valueOf(eids.size());
                 else {
                     List<String> links = new ArrayList<String>();
@@ -922,7 +934,6 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                     json = Util.toJson(linkedEntity);
                 }
             } else {
-                List<Experiment> data = db.getCompoundExperiment(Long.valueOf(resourceId), skip, top);
                 if (countRequested) json = String.valueOf(data.size());
                 else {
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);
@@ -950,7 +961,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         if (skip == null) skip = -1;
         if (top == null) top = -1;
 
-        List<ExperimentData> data = db.getCompoundData(cid, skip, top);
+        List<ExperimentData> data = db.getEntitiesByCid(cid, ExperimentData.class, skip, top);
         int nhit = 0;
         List<String> hitExpts = new ArrayList<String>();
         List<String> hitAssays = new ArrayList<String>();
@@ -970,7 +981,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             testedAssays.add(db.getAssayByAid(expt.getAssayId()));
 
             // if cid was active in experiment_data (outcome = 2) and experiment was a confirmatory screen, we call it a hit
-            if (ed.getOutcome() == 2 && expt.getType() == 2) {
+            if (ed.getOutcome() == 2) {
                 nhit++;
                 hitExpts.add(expt.getResourcePath());
                 hitAssays.add(db.getAssayByAid(expt.getAssayId()).getResourcePath());

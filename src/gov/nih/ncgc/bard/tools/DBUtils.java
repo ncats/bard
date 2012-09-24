@@ -1148,7 +1148,7 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public ExperimentData getExperimentDataByDataId(String edid) throws SQLException, IOException {
+    public ExperimentData getExperimentDataByDataId(String edid) throws SQLException {
 
         if (edid == null || !edid.contains(".")) return null;
 
@@ -1167,6 +1167,8 @@ public class DBUtils {
                 ed.setExptDataId(edid);
             }
             rs.close();
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         } finally {
             pst.close();
         }
@@ -2123,34 +2125,6 @@ public class DBUtils {
     }
 
     /**
-     * Return experiment objects for a compound.
-     *
-     * @param cid  The Pubchem CID
-     * @param skip how many records to skip
-     * @param top  how many records to return
-     * @return
-     * @throws SQLException
-     */
-    public List<Experiment> getCompoundExperiment(Long cid, int skip, int top) throws SQLException {
-        if (cid == null || cid < 0) return null;
-
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
-
-        PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where cid = ? order by bard_expt_id " + limitClause);
-        pst.setLong(1, cid);
-        ResultSet rs = pst.executeQuery();
-        List<Experiment> ret = new ArrayList<Experiment>();
-        while (rs.next()) ret.add(getExperimentByExptId(rs.getLong(1)));
-        rs.close();
-        pst.close();
-        return ret;
-    }
-
-    /**
      * Return experiment objects for a subtstance.
      *
      * @param sid  The Pubchem SID
@@ -2205,38 +2179,6 @@ public class DBUtils {
         pst.close();
         return ret;
     }
-
-    /**
-     * Return experiment data objects for a compound.
-     *
-     * @param cid  The Pubchem CID
-     * @param skip how many records to skip
-     * @param top  how many records to return
-     * @return
-     * @throws SQLException
-     */
-    public List<ExperimentData> getCompoundData(Long cid, int skip, int top) throws SQLException, IOException {
-        if (cid == null || cid < 0) return null;
-
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
-
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where cid = ? order by expt_data_id " + limitClause);
-        pst.setLong(1, cid);
-        ResultSet rs = pst.executeQuery();
-        List<ExperimentData> ret = new ArrayList<ExperimentData>();
-        while (rs.next()) {
-            ExperimentData ed = getExperimentDataByDataId(rs.getString(1));
-            ret.add(ed);
-        }
-        rs.close();
-        pst.close();
-        return ret;
-    }
-
 
     /**
      * Retrieve SIDs for compounds associated with an experiment.
@@ -3044,6 +2986,70 @@ public class DBUtils {
         return nrow;
     }
 
+    /**
+     * Return a list of entities in which the specified CID is active.
+     *
+     * In general this is based on the experiment that the CID is active in
+     *
+     * @param cid
+     * @param entity
+     * @param skip
+     * @param top
+     * @param <T>
+     * @return
+     * @throws SQLException
+     */
+    public <T> List<T> getEntitiesByActiveCid(Long cid, Class<T> entity, Integer skip, Integer top) throws SQLException {
+        String sql = null;
+        PreparedStatement pst;
+
+        if (cid == null || cid < 0) return null;
+        String limitClause = "";
+        if (skip == null) skip = -1;
+        if (top == null) top = -1;
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        if (entity.isAssignableFrom(Assay.class)) {
+            sql = "select distinct b.bard_assay_id from bard_experiment_data a, bard_experiment b where a.cid = ? and a.bard_expt_id = b.bard_expt_id  and a.outcome = 2 " + limitClause;
+        } else if (entity.isAssignableFrom(Project.class)) {
+//			JB: original sql joined compound and used the proj_id in experiment which no longer exists since one experiment can have multiple projects
+//        	It also used a nested select.
+//			I'll leave this here for review in case the new query doesn't perform as expected
+//
+//            sql = "select p.bard_proj_id from project p, bard_experiment e where e.bard_expt_id in " +
+//            		"(select distinct ed.bard_expt_id from bard_experiment_data ed, bard_experiment e, compound a " +
+//            		"where a.cid = ? and ed.cid = a.cid and ed.bard_expt_id = e.bard_expt_id) and e.proj_id = p.proj_id";
+
+            //new query: uses bard_project, doesn't join with compound
+            sql = "select distinct(pe.bard_proj_id) from bard_experiment_data ed, bard_project_experiment pe " +
+                    "where ed.cid = ? and pe.bard_expt_id=ed.bard_expt_id and ed.outcome = 2 ";
+        } else if (entity.isAssignableFrom(Substance.class)) {
+            sql = "select a.sid from cid_sid a, bard_experiment_data b where a.cid = ? and a.cid = b.cid and b.outcome = 2";
+        } else if (entity.isAssignableFrom(ExperimentData.class)) {
+            sql = "select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where cid = ? and outcome = 2 order by expt_data_id";
+        } else if (entity.isAssignableFrom(Experiment.class)) {
+            sql = "select distinct bard_expt_id from bard_experiment_data where cid = ? and outcome = 2 order by expt_data_id";
+        }
+
+        pst = conn.prepareStatement(sql);
+        pst.setLong(1, cid);
+        ResultSet rs = pst.executeQuery();
+        List<T> ret = new ArrayList<T>();
+        while (rs.next()) {
+            if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(rs.getLong(1)));
+            else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(rs.getLong(1)));
+            else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(rs.getLong(1)));
+            else if (entity.isAssignableFrom(Experiment.class)) ret.add((T) getExperimentByExptId(rs.getLong(1)));
+            else if (entity.isAssignableFrom(ExperimentData.class)) ret.add((T) getExperimentDataByDataId(rs.getString(1)));
+        }
+        rs.close();
+        pst.close();
+        return ret;
+    }
+
     public <T> List<T> getEntitiesByCid(Long cid, Class<T> entity, Integer skip, Integer top) throws SQLException {
         String sql = null;
         PreparedStatement pst;
@@ -3073,6 +3079,10 @@ public class DBUtils {
         			"where ed.cid = ? and pe.bard_expt_id=ed.bard_expt_id";
         } else if (entity.isAssignableFrom(Substance.class)) {
             sql = "select sid from cid_sid where cid = ?";
+        } else if (entity.isAssignableFrom(ExperimentData.class)) {
+            sql = "select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where cid = ? order by expt_data_id";
+        } else if (entity.isAssignableFrom(Experiment.class)) {
+            sql = "select distinct bard_expt_id from bard_experiment_data where cid = ? order by expt_data_id";
         }
 
         pst = conn.prepareStatement(sql);
@@ -3083,6 +3093,8 @@ public class DBUtils {
             if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(rs.getLong(1)));
             else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(rs.getLong(1)));
             else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(rs.getLong(1)));
+            else if (entity.isAssignableFrom(Experiment.class)) ret.add((T) getExperimentByExptId(rs.getLong(1)));
+            else if (entity.isAssignableFrom(ExperimentData.class)) ret.add((T) getExperimentDataByDataId(rs.getString(1)));
         }
         rs.close();
         pst.close();
