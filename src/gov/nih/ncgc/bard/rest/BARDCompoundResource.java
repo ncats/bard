@@ -509,7 +509,12 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             Map<Long, List> ret = new HashMap<Long, List>();
             for (Compound ac : c) {
                 Long cid = ac.getCid();
-                List<Assay> p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
+
+                List<Assay> p;
+                if (filter == null || !filter.trim().toLowerCase().equals("active"))
+                    p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
+                else p = db.getEntitiesByActiveCid(cid, Assay.class, -1, -1);
+
                 if (p == null) p = new ArrayList<Assay>();
                 if (expandEntries(expand)) ret.put(cid, p);
                 else {
