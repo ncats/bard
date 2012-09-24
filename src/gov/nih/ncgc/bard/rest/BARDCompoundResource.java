@@ -658,7 +658,8 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
     @GET
     @Path("/{cid}/projects")
-    public Response getProjectsForCompound(@PathParam("cid") Long cid, String expand,
+    public Response getProjectsForCompound(@PathParam("cid") Long cid, 
+                                           @QueryParam("expand") String expand,
                                            @QueryParam("skip") Integer skip,
                                            @QueryParam("top") Integer top) throws SQLException, IOException {
         DBUtils db = new DBUtils();
@@ -790,9 +791,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
         else p = db.getEntitiesByActiveCid(cid, Assay.class, -1, -1);
 
-        if (p == null) p = new ArrayList<Assay>();
         if (countRequested) return Response.ok(String.valueOf(p.size())).type(MediaType.TEXT_PLAIN).build();
-
         if (top == null) top = -1;
         if (skip == null) skip = -1;
         if (p.size() > BARDConstants.MAX_DATA_COUNT) {
