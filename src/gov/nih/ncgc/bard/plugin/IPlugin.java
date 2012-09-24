@@ -18,6 +18,11 @@ package gov.nih.ncgc.bard.plugin;
 public interface IPlugin {
 
     /**
+     * Initialization method.
+     */
+    public void init();
+
+    /**
      * Get a description of the plugin.
      * <p/>
      * In the implementing class, this method should be annotated using
