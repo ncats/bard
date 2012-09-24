@@ -494,6 +494,46 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         }
     }
 
+    @GET
+    @Path("/etag/{etag}/assays")
+    public Response getAssaysByETag(@PathParam("etag") String resourceId,
+                                      @QueryParam("filter") String filter,
+                                      @QueryParam("expand") String expand,
+                                      @QueryParam("skip") Integer skip,
+                                      @QueryParam("top") Integer top) {
+        DBUtils db = new DBUtils();
+        try {
+            List<Compound> c = db.getCompoundsByETag
+                    (skip != null ? skip : -1, top != null ? top : -1, resourceId);
+
+            Map<Long, List> ret = new HashMap<Long, List>();
+            for (Compound ac : c) {
+                Long cid = ac.getCid();
+                List<Assay> p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
+                if (p == null) p = new ArrayList<Assay>();
+                if (expandEntries(expand)) ret.put(cid, p);
+                else {
+                    List<String> links = Functional.Apply(p, new IApplyFunction<Assay, String>() {
+                        public String eval(Assay assay) {
+                            return assay.getResourcePath();
+                        }
+                    });
+                    ret.put(cid, links);
+                }
+            }
+            String json = Util.toJson(ret);
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
     @Override
     @GET
     @Path("/etag/{etag}/facets")
@@ -696,6 +736,41 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         finally {
             db.closeConnection();
         }
+    }
+
+    @POST
+    @Path("/assays")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response getAssaysForCompounds(@FormParam("ids") String ids,
+                                          @QueryParam("expand") String expand,
+                                          @QueryParam("skip") Integer skip,
+                                          @QueryParam("top") Integer top) throws SQLException, IOException {
+        DBUtils db = new DBUtils();
+        Response response;
+        String linkString = null;
+
+        String[] toks = ids.split(",");
+        Long[] cids = new Long[toks.length];
+        for (int i = 0; i < toks.length; i++) cids[i] = Long.parseLong(toks[i].trim());
+
+        Map<Long, List> ret = new HashMap<Long, List>();
+        for (Long cid : cids) {
+            List<Assay> p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
+            if (p == null) p = new ArrayList<Assay>();
+            if (expandEntries(expand)) ret.put(cid, p);
+            else {
+                List<String> links = Functional.Apply(p, new IApplyFunction<Assay, String>() {
+                    public String eval(Assay assay) {
+                        return assay.getResourcePath();
+                    }
+                });
+                ret.put(cid, links);
+            }
+        }
+
+        response = Response.ok(Util.toJson(ret)).type(MediaType.APPLICATION_JSON).build();
+        db.closeConnection();
+        return response;
     }
 
 
