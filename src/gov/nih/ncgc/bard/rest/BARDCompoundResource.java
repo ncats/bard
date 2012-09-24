@@ -708,7 +708,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         Response response;
         String linkString = null;
 //        List<Assay> p = db.getCompoundAssays(cid, -1, -1);
-        List<Assay> p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
+        List<Assay> p = db.getEntitiesByCid(cid, Assay.class, skip, top);
         if (p == null) p = new ArrayList<Assay>();
         if (countRequested) response = Response.ok(String.valueOf(p.size())).type(MediaType.TEXT_PLAIN).build();
 
