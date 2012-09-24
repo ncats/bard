@@ -2089,7 +2089,7 @@ public class DBUtils {
             limitClause = " limit "+skip+","+CHUNK_SIZE;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where cid = ? order by bard_expt_id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where cid = ? order by classification desc, score desc " + limitClause);
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
@@ -2117,7 +2117,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where sid = ? order by bard_expt_id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
         pst.setLong(1, sid);
         ResultSet rs = pst.executeQuery();
         List<Long> ret = new ArrayList<Long>();
@@ -2150,7 +2150,7 @@ public class DBUtils {
             limitClause = " limit "+skip+","+CHUNK_SIZE;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where cid = ? order by bard_expt_id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where cid = ? order by classification desc,score desc  " + limitClause);
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         List<Experiment> ret = new ArrayList<Experiment>();
