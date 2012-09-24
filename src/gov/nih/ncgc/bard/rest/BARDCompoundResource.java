@@ -787,8 +787,10 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         if (p == null) p = new ArrayList<Assay>();
         if (countRequested) return Response.ok(String.valueOf(p.size())).type(MediaType.TEXT_PLAIN).build();
 
+        if (top == null) top = -1;
+        if (skip == null) skip = -1;
         if (p.size() > BARDConstants.MAX_DATA_COUNT) {
-            if ((top == -1)) { // top was not specified, so we start from the beginning
+            if (top == -1) { // top was not specified, so we start from the beginning
                 top = BARDConstants.MAX_DATA_COUNT;
             }
             if (skip == -1) skip = 0;
