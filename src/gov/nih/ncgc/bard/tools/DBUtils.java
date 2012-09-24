@@ -3062,6 +3062,7 @@ public class DBUtils {
         if (cid == null || cid < 0) return null;
 
         String limitClause = "";
+
         if (skip != null && top != null) {
             limitClause = " limit "+skip+","+top;
         }

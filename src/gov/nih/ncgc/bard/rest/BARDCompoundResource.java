@@ -512,8 +512,8 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
                 List<Assay> p;
                 if (filter == null || !filter.trim().toLowerCase().equals("active"))
-                    p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
-                else p = db.getEntitiesByActiveCid(cid, Assay.class, -1, -1);
+                    p = db.getEntitiesByCid(cid, Assay.class, 0, -1);
+                else p = db.getEntitiesByActiveCid(cid, Assay.class, 0, -1);
 
                 if (p == null) p = new ArrayList<Assay>();
                 if (expandEntries(expand)) ret.put(cid, p);
@@ -749,6 +749,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     @Consumes("application/x-www-form-urlencoded")
     public Response getAssaysForCompounds(@FormParam("ids") String ids,
                                           @QueryParam("expand") String expand,
+                                          @QueryParam("filter") String filter,
                                           @QueryParam("skip") Integer skip,
                                           @QueryParam("top") Integer top) throws SQLException, IOException {
         DBUtils db = new DBUtils();
@@ -761,7 +762,12 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
         Map<Long, List> ret = new HashMap<Long, List>();
         for (Long cid : cids) {
-            List<Assay> p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
+            List<Assay> p;
+
+            if (filter == null || !filter.trim().toLowerCase().equals("active"))
+                p = db.getEntitiesByCid(cid, Assay.class, skip, top);
+            else p = db.getEntitiesByActiveCid(cid, Assay.class, skip, top);
+
             if (p == null) p = new ArrayList<Assay>();
             if (expandEntries(expand)) ret.put(cid, p);
             else {
@@ -793,8 +799,8 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         List<Assay> p;
 
         if (filter == null || !filter.trim().toLowerCase().equals("active"))
-            p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
-        else p = db.getEntitiesByActiveCid(cid, Assay.class, -1, -1);
+            p = db.getEntitiesByCid(cid, Assay.class, skip, top);
+        else p = db.getEntitiesByActiveCid(cid, Assay.class, skip, top);
 
         if (countRequested) return Response.ok(String.valueOf(p.size())).type(MediaType.TEXT_PLAIN).build();
         if (top == null) top = -1;
