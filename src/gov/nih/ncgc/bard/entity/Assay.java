@@ -162,7 +162,7 @@ public class Assay implements BardEntity {
 	}
 
 	public String toString() {
-        return aid + "[" + name + "]";
+        return bardAssayId + "[" + name + "]";
     }
 
     public Assay() {

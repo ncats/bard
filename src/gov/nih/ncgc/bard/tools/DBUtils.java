@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Reader;
 import java.math.BigInteger;
+import java.security.Principal;
 import java.security.SecureRandom;
 import java.sql.Blob;
 import java.sql.Connection;
@@ -51,8 +52,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
-import java.security.Principal;
 
 /**
  * Utility methods to interact with the database backend.
@@ -1150,12 +1149,13 @@ public class DBUtils {
      * @throws SQLException
      */
     public ExperimentData getExperimentDataByDataId(String edid) throws SQLException, IOException {
+
         if (edid == null || !edid.contains(".")) return null;
 
         String[] toks = edid.split("\\.");
         Long bardExptId = Long.parseLong(toks[0]);
         Long sid = Long.parseLong(toks[1]);
-        System.out.println(bardExptId+" "+sid);
+
         PreparedStatement pst = conn.prepareStatement("select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.bard_expt_id = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id");
         ExperimentData ed = null;
         try {
@@ -1669,10 +1669,17 @@ public class DBUtils {
         l1 = new ArrayList<String>();
         l2 = new ArrayList<String>();
         while (resultSet.next()) {
-            String[] toks = resultSet.getString("disease_names").split(";");
-            for (String tok : toks) l1.add(tok.trim());
-            toks = resultSet.getString("disease_category").split(";");
-            for (String tok : toks) l2.add(tok.trim());
+            String[] toks;
+            String diseaseName = resultSet.getString("disease_names");
+            if (diseaseName != null) {
+                toks = diseaseName.split(";");
+                for (String tok : toks) l1.add(tok.trim());
+            }
+            String diseaseCat = resultSet.getString("disease_category");
+            if (diseaseCat != null) {
+                toks = diseaseCat.split(";");
+                for (String tok : toks) l2.add(tok.trim());
+            }
         }
         a.setKegg_disease_names(l1);
         a.setKegg_disease_cat(l2);
@@ -2072,9 +2079,14 @@ public class DBUtils {
         if (cid == null || cid < 0) return null;
 
         String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+        if (skip >= 0 && top > 0) {
             limitClause = "  limit " + skip + "," + top;
+        }
+        else if (top > 0) {
+            limitClause = "  limit " + top;
+        }
+        else if (skip >= 0) {
+            limitClause = " limit "+skip+","+CHUNK_SIZE;
         }
 
         PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where cid = ? order by bard_expt_id " + limitClause);
@@ -2128,9 +2140,14 @@ public class DBUtils {
         if (cid == null || cid < 0) return null;
 
         String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+        if (skip >= 0  && top > 0) {
             limitClause = "  limit " + skip + "," + top;
+        }
+        else if (top > 0) {
+            limitClause = "  limit " + top;
+        }
+        else if (skip >= 0) {
+            limitClause = " limit "+skip+","+CHUNK_SIZE;
         }
 
         PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where cid = ? order by bard_expt_id " + limitClause);
@@ -2221,7 +2238,10 @@ public class DBUtils {
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         List<ExperimentData> ret = new ArrayList<ExperimentData>();
-        while (rs.next()) ret.add(getExperimentDataByDataId(rs.getString(1)));
+        while (rs.next()) {
+            ExperimentData ed = getExperimentDataByDataId(rs.getString(1));
+            ret.add(ed);
+        }
         rs.close();
         pst.close();
         return ret;
@@ -3034,21 +3054,31 @@ public class DBUtils {
         return nrow;
     }
 
-    public <T> List<T> getEntitiesByCid(Long cid, Class<T> entity, Integer skip, Integer top) throws SQLException {
+    public <T> List<T> getEntitiesByCid
+        (Long cid, Class<T> entity, 
+         Integer skip, Integer top) throws SQLException {
         String sql = null;
         PreparedStatement pst;
 
         if (cid == null || cid < 0) return null;
+
         String limitClause = "";
-        if (skip == null) skip = -1;
-        if (top == null) top = -1;
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
+        if (skip != null && top != null) {
+            limitClause = " limit "+skip+","+top;
+        }
+        else if (top != null) {
+            limitClause = " limit "+top;
+        }
+        else if (skip != null) {
+            limitClause = " limit "+skip+","+CHUNK_SIZE;
         }
 
         if (entity.isAssignableFrom(Assay.class)) {
-            sql = "select distinct b.bard_assay_id from bard_experiment_data a, bard_experiment b where a.cid = ? and a.bard_expt_id = b.bard_expt_id  " + limitClause;
+            sql = "select distinct b.bard_assay_id "
+                +"from bard_experiment_data a, bard_experiment b "
+                +"where a.cid = ? and a.bard_expt_id = b.bard_expt_id  " 
+                +"order by score desc "
+                + limitClause;
         } else if (entity.isAssignableFrom(Project.class)) {        	
 //			JB: original sql joined compound and used the proj_id in experiment which no longer exists since one experiment can have multiple projects
 //        	It also used a nested select.
@@ -3059,10 +3089,15 @@ public class DBUtils {
 //            		"where a.cid = ? and ed.cid = a.cid and ed.bard_expt_id = e.bard_expt_id) and e.proj_id = p.proj_id";
 
         	//new query: uses bard_project, doesn't join with compound
-        	sql = "select distinct(pe.bard_proj_id) from bard_experiment_data ed, bard_project_experiment pe " +
-        			"where ed.cid = ? and pe.bard_expt_id=ed.bard_expt_id";
+        	sql = "select distinct(pe.bard_proj_id) "
+                    +"from bard_experiment_data ed,bard_project_experiment pe " 
+                    +"where ed.cid = ? and pe.bard_expt_id=ed.bard_expt_id "
+                    +"and pe.bard_proj_id > 0 "
+                    +"order by score desc "
+                    +limitClause;
         } else if (entity.isAssignableFrom(Substance.class)) {
-            sql = "select sid from cid_sid where cid = ?";
+            sql = "select sid from cid_sid where cid = ? order by sid "
+                +limitClause;
         }
 
         pst = conn.prepareStatement(sql);

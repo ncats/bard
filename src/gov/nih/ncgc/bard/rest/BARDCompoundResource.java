@@ -494,6 +494,46 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         }
     }
 
+    @GET
+    @Path("/etag/{etag}/assays")
+    public Response getAssaysByETag(@PathParam("etag") String resourceId,
+                                      @QueryParam("filter") String filter,
+                                      @QueryParam("expand") String expand,
+                                      @QueryParam("skip") Integer skip,
+                                      @QueryParam("top") Integer top) {
+        DBUtils db = new DBUtils();
+        try {
+            List<Compound> c = db.getCompoundsByETag
+                    (skip != null ? skip : -1, top != null ? top : -1, resourceId);
+
+            Map<Long, List> ret = new HashMap<Long, List>();
+            for (Compound ac : c) {
+                Long cid = ac.getCid();
+                List<Assay> p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
+                if (p == null) p = new ArrayList<Assay>();
+                if (expandEntries(expand)) ret.put(cid, p);
+                else {
+                    List<String> links = Functional.Apply(p, new IApplyFunction<Assay, String>() {
+                        public String eval(Assay assay) {
+                            return assay.getResourcePath();
+                        }
+                    });
+                    ret.put(cid, links);
+                }
+            }
+            String json = Util.toJson(ret);
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
     @Override
     @GET
     @Path("/etag/{etag}/facets")
@@ -618,7 +658,8 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
     @GET
     @Path("/{cid}/projects")
-    public Response getProjectsForCompound(@PathParam("cid") Long cid, String expand,
+    public Response getProjectsForCompound(@PathParam("cid") Long cid, 
+                                           @QueryParam("expand") String expand,
                                            @QueryParam("skip") Integer skip,
                                            @QueryParam("top") Integer top) throws SQLException, IOException {
         DBUtils db = new DBUtils();
@@ -698,22 +739,59 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         }
     }
 
+    @POST
+    @Path("/assays")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response getAssaysForCompounds(@FormParam("ids") String ids,
+                                          @QueryParam("expand") String expand,
+                                          @QueryParam("skip") Integer skip,
+                                          @QueryParam("top") Integer top) throws SQLException, IOException {
+        DBUtils db = new DBUtils();
+        Response response;
+        String linkString = null;
+
+        String[] toks = ids.split(",");
+        Long[] cids = new Long[toks.length];
+        for (int i = 0; i < toks.length; i++) cids[i] = Long.parseLong(toks[i].trim());
+
+        Map<Long, List> ret = new HashMap<Long, List>();
+        for (Long cid : cids) {
+            List<Assay> p = db.getEntitiesByCid(cid, Assay.class, -1, -1);
+            if (p == null) p = new ArrayList<Assay>();
+            if (expandEntries(expand)) ret.put(cid, p);
+            else {
+                List<String> links = Functional.Apply(p, new IApplyFunction<Assay, String>() {
+                    public String eval(Assay assay) {
+                        return assay.getResourcePath();
+                    }
+                });
+                ret.put(cid, links);
+            }
+        }
+
+        response = Response.ok(Util.toJson(ret)).type(MediaType.APPLICATION_JSON).build();
+        db.closeConnection();
+        return response;
+    }
+
 
     @GET
     @Path("/{cid}/assays")
-    public Response getAssaysForCompound(@PathParam("cid") Long cid, String expand,
+    public Response getAssaysForCompound(@PathParam("cid") Long cid,
+                                         @QueryParam("expand") String expand,
                                          @QueryParam("skip") Integer skip,
                                          @QueryParam("top") Integer top) throws SQLException, IOException {
         DBUtils db = new DBUtils();
         Response response;
         String linkString = null;
-//        List<Assay> p = db.getCompoundAssays(cid, -1, -1);
         List<Assay> p = db.getEntitiesByCid(cid, Assay.class, skip, top);
         if (p == null) p = new ArrayList<Assay>();
-        if (countRequested) response = Response.ok(String.valueOf(p.size())).type(MediaType.TEXT_PLAIN).build();
+        if (countRequested) return Response.ok(String.valueOf(p.size())).type(MediaType.TEXT_PLAIN).build();
 
+        if (top == null) top = -1;
+        if (skip == null) skip = -1;
         if (p.size() > BARDConstants.MAX_DATA_COUNT) {
-            if ((top == -1)) { // top was not specified, so we start from the beginning
+            if (top == -1) { // top was not specified, so we start from the beginning
                 top = BARDConstants.MAX_DATA_COUNT;
             }
             if (skip == -1) skip = 0;
@@ -877,9 +955,20 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         int nhit = 0;
         List<String> hitExpts = new ArrayList<String>();
         List<String> hitAssays = new ArrayList<String>();
+
+        List<Assay> testedAssays = new ArrayList<Assay>();
+        List<Experiment> testedExperiments = new ArrayList<Experiment>();
+
         for (ExperimentData ed : data) {
+            if (ed == null) {
+                logger.warning("Should not have a null ExperimentData object for compound " + cid + ". Skipping");
+                continue;
+            }
             Long eid = ed.getEid();
             Experiment expt = db.getExperimentByExptId(eid);
+
+            testedExperiments.add(expt);
+            testedAssays.add(db.getAssayByAid(expt.getAssayId()));
 
             // if cid was active in experiment_data (outcome = 2) and experiment was a confirmatory screen, we call it a hit
             if (ed.getOutcome() == 2 && expt.getType() == 2) {
@@ -893,6 +982,23 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         s.put("hitExperiments", hitExpts);
         s.put("hitAssays", hitAssays);
 
+        if (expand != null && expand.trim().toLowerCase().equals("true")) {
+            s.put("testedExperiments", testedExperiments);
+            s.put("testedAssays", testedAssays);
+        } else {
+            List<String> l = new ArrayList<String>();
+            for (Experiment e : testedExperiments) {
+                if (e.getExptId() != null)
+                    l.add(e.getResourcePath());
+            }
+            s.put("testedExperiments", l);
+            l = new ArrayList<String>();
+            for (Assay a : testedAssays) {
+                if (a != null) l.add(a.getResourcePath());
+                else logger.warning("Should not have a null assay for compound " + cid + ". Skipping");
+            }
+            s.put("testedAssays", l);
+        }
         return Response.ok(Util.toJson(s), MediaType.APPLICATION_JSON).build();
 
     }
