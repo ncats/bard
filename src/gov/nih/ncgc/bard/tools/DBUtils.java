@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Reader;
 import java.math.BigInteger;
+import java.security.Principal;
 import java.security.SecureRandom;
 import java.sql.Blob;
 import java.sql.Connection;
@@ -51,8 +52,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
-import java.security.Principal;
 
 /**
  * Utility methods to interact with the database backend.
@@ -1155,7 +1154,6 @@ public class DBUtils {
         String[] toks = edid.split("\\.");
         Long bardExptId = Long.parseLong(toks[0]);
         Long sid = Long.parseLong(toks[1]);
-        System.out.println(bardExptId+" "+sid);
         PreparedStatement pst = conn.prepareStatement("select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.bard_expt_id = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id");
         ExperimentData ed = null;
         try {
