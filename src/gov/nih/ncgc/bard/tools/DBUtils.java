@@ -1149,11 +1149,13 @@ public class DBUtils {
      * @throws SQLException
      */
     public ExperimentData getExperimentDataByDataId(String edid) throws SQLException, IOException {
+
         if (edid == null || !edid.contains(".")) return null;
 
         String[] toks = edid.split("\\.");
         Long bardExptId = Long.parseLong(toks[0]);
         Long sid = Long.parseLong(toks[1]);
+
         PreparedStatement pst = conn.prepareStatement("select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.bard_expt_id = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id");
         ExperimentData ed = null;
         try {
@@ -2219,7 +2221,10 @@ public class DBUtils {
         pst.setLong(1, cid);
         ResultSet rs = pst.executeQuery();
         List<ExperimentData> ret = new ArrayList<ExperimentData>();
-        while (rs.next()) ret.add(getExperimentDataByDataId(rs.getString(1)));
+        while (rs.next()) {
+            ExperimentData ed = getExperimentDataByDataId(rs.getString(1));
+            ret.add(ed);
+        }
         rs.close();
         pst.close();
         return ret;

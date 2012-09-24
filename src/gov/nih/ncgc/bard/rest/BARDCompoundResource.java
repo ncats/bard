@@ -878,6 +878,10 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         List<String> hitExpts = new ArrayList<String>();
         List<String> hitAssays = new ArrayList<String>();
         for (ExperimentData ed : data) {
+            if (ed == null) {
+                logger.warning("Should not have a null ExperimentData object for compound " + cid + ". Skipping");
+                continue;
+            }
             Long eid = ed.getEid();
             Experiment expt = db.getExperimentByExptId(eid);
 
