@@ -3920,6 +3920,39 @@ public class DBUtils {
         }
     }
 
+    public Map<String, Object> getProjectSumary(Long projectId) throws SQLException {
+        Project project = getProject(projectId);
+        if (project == null || project.getProjectId() == null)
+            return null;
+
+        int pcount = 0, syncount = 0, nassay = 0, nexpt = 0;
+
+        PreparedStatement pst = conn.prepareStatement("select sum(a.purchased_count) as pcount, sum(a.synthesized_count) as scount from bard_experiment a join bard_project_experiment b on a.bard_expt_id=b.bard_expt_id where  b.bard_proj_id = ?");
+        pst.setLong(1, projectId);
+        ResultSet rs = pst.executeQuery();
+        while(rs.next()) {
+            pcount = rs.getInt("pcount");
+            syncount = rs.getInt("scount");
+        }
+        pst.close();
+
+        List<Long> probeIds = project.getProbeIds();
+        List<Compound> probes = getCompoundsByCid(probeIds.toArray(new Long[]{}));
+
+        Map<String, Object> ret = new HashMap<String, Object>();
+        ret.put("name", project.getName());
+        ret.put("probes", probes);
+        ret.put("depositor", project.getSource());
+        ret.put("description", project.getDescription());
+        ret.put("targets", project.getTargets());
+        ret.put("cmpd_purchase_count", pcount);
+        ret.put("cmpd_synthesis_count", syncount);
+        ret.put("assay_count", nassay);
+        ret.put("experiment_count", nexpt);
+
+        return ret;
+    }
+
 
     public static void main(String[] argv) throws Exception {
         if (argv.length == 0) {
