@@ -124,7 +124,6 @@
         <copy file="${bard.lib}/functional.jar" tofile="${bard.explode.dir}/WEB-INF/lib/functional.jar"/>
         <copy file="${bard.lib}/xom-1.2.5.jar" tofile="${bard.explode.dir}/WEB-INF/lib/xom-1.2.5.jar"/>
         <copy file="${bard.lib}/asm-3.1.jar" tofile="${bard.explode.dir}/WEB-INF/lib/asm-3.1.jar"/>
-        <copy file="${bard.lib}/ehcache-core-2.2.0.jar" tofile="${bard.explode.dir}/WEB-INF/lib/ehcache-core-2.2.0.jar"/>
 
         <copy file="${bard.lib}/solr/apache-solr-solrj-3.6.1.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/apache-solr-solrj-3.6.1.jar"/>
