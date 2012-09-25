@@ -11,22 +11,11 @@ import gov.nih.ncgc.search.SearchService2;
 import gov.nih.ncgc.util.MolRenderer;
 
 import javax.imageio.ImageIO;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
-import java.awt.Color;
+import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
+import java.io.*;
 import java.util.List;
 
 
@@ -49,13 +38,6 @@ public class StructureSearchPlugin implements IPlugin {
 
         // get an instance of the search service
         search = Util.getSearchService();
-    }
-
-    /**
-     * Initialization method.
-     */
-    public void init() {
-        //To change body of implemented methods use File | Settings | File Templates.
     }
 
     /**
