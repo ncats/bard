@@ -278,7 +278,7 @@ public class BARDProjectResource extends BARDResource<Project> {
         DBUtils db = new DBUtils();
         Response response = null;
         try {
-            List<Long> probes = db.getProbesForProject(Long.valueOf(resourceId));
+            List<Long> probes = db.getProbeCidsForProject(Long.valueOf(resourceId));
             if (countRequested) response = Response.ok(Util.toJson(probes.size()), MediaType.APPLICATION_JSON).build();
             else if (types.contains(BARDConstants.MIME_SMILES)) {
                 List<String> smiles = new ArrayList<String>();

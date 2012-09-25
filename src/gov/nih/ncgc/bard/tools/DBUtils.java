@@ -3355,22 +3355,23 @@ public class DBUtils {
         }
     }
 
-    public List<Long> getProbesForProject(Long bardExptId) 
+    public List<Long> getProbeCidsForProject(Long bardProjectId)
         throws SQLException {
         Cache cache = getCache ("ProbesForProjectCache");
-        Element el = cache.get(bardExptId);
+        Element el = cache.get(bardProjectId);
         if (el != null) {
             return (List<Long>)el.getObjectValue();
         }
 
-        PreparedStatement pst = conn.prepareStatement("select a.cid from bard_experiment_data a, compound b where b.probe_id is not null and a.bard_expt_id = ? and a.cid = b.cid");
+//        PreparedStatement pst = conn.prepareStatement("select a.cid from bard_experiment_data a, compound b where b.probe_id is not null and a.bard_expt_id = ? and a.cid = b.cid");
+        PreparedStatement pst = conn.prepareStatement("select * from project_probe where bard_proj_id = ?");
         try {
-            pst.setLong(1, bardExptId);
+            pst.setLong(1, bardProjectId);
             ResultSet rs = pst.executeQuery();
             List<Long> probeids = new ArrayList<Long>();
             while (rs.next()) probeids.add(rs.getLong("cid"));
             rs.close();
-            cache.put(new Element (bardExptId, probeids));
+            cache.put(new Element (bardProjectId, probeids));
             return probeids;
         }
         finally {
@@ -3936,7 +3937,7 @@ public class DBUtils {
         }
         pst.close();
 
-        List<Long> probeIds = project.getProbeIds();
+        List<Long> probeIds = getProbeCidsForProject(projectId);
         List<Compound> probes = getCompoundsByCid(probeIds.toArray(new Long[]{}));
 
         Map<String, Object> ret = new HashMap<String, Object>();
