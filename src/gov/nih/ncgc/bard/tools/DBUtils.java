@@ -53,6 +53,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import net.sf.ehcache.Element;
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+
+
+
 /**
  * Utility methods to interact with the database backend.
  *
@@ -65,6 +71,25 @@ public class DBUtils {
     static final int MAX_ETAG_SIZE = 10000;
     static final int CHUNK_SIZE = 400;
     static CAPDictionary dict = null;
+
+    static final int MAX_CACHE_SIZE = 10000;
+
+    static final CacheManager cacheManager = CacheManager.getInstance();
+
+    static synchronized Cache getCache (String name) {
+        Cache cache = cacheManager.getCache(name);
+        if (cache == null) {
+            cache = new Cache (name, 
+                               MAX_CACHE_SIZE, 
+                               false, // overflowToDisk
+                               false, // eternal (never expire)
+                               2*60*60, // time to live (seconds)
+                               2*60*60 // time to idle (seconds)
+                               );
+            cacheManager.addCache(cache);
+        }
+        return cache;
+    }
 
     Logger log;
     Connection conn;
@@ -205,113 +230,198 @@ public class DBUtils {
 
     public Publication getPublicationByPmid(Long pmid) throws SQLException, IOException {
         if (pmid == null) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from publication where pmid = ?");
-        pst.setLong(1, pmid);
-        ResultSet rs = pst.executeQuery();
-        Publication p = new Publication();
-        while (rs.next()) {
-            p.setTitle(rs.getString("title"));
-            p.setDoi(rs.getString("doi"));
-            p.setPubmedId(pmid);
-            p.setAbs(readFromClob(rs.getCharacterStream("abstract")));
+        Cache cache = getCache ("PublicationByPmidCache");
+        Element el = cache.get(pmid);
+        if (el != null) {
+            return (Publication)el.getObjectValue();
         }
-        rs.close();
-        pst.close();
-        return p;
+
+        PreparedStatement pst = conn.prepareStatement("select * from publication where pmid = ?");
+        try {
+            pst.setLong(1, pmid);
+            ResultSet rs = pst.executeQuery();
+            Publication p = new Publication();
+            while (rs.next()) {
+                p.setTitle(rs.getString("title"));
+                p.setDoi(rs.getString("doi"));
+                p.setPubmedId(pmid);
+                p.setAbs(readFromClob(rs.getCharacterStream("abstract")));
+            }
+            rs.close();
+            cache.put(new Element (pmid, p));
+            return p;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     public Publication getPublicationByDoi(String doi) throws SQLException, IOException {
         if (doi == null || doi.trim().equals("")) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from publication where doi = ?");
-        pst.setString(1, doi);
-        ResultSet rs = pst.executeQuery();
-        Publication p = new Publication();
-        while (rs.next()) {
-            p.setTitle(rs.getString("title"));
-            p.setDoi(rs.getString("doi"));
-            p.setPubmedId(rs.getLong("pmid"));
-            p.setAbs(readFromClob(rs.getCharacterStream("abstract")));
+        Cache cache = getCache ("PublicationByDoiCache");
+        Element el = cache.get(doi);
+        if (el != null) {
+            return (Publication)el.getObjectValue();
         }
-        rs.close();
-        pst.close();
-        return p;
+
+        PreparedStatement pst = conn.prepareStatement("select * from publication where doi = ?");
+        try {
+            pst.setString(1, doi);
+            ResultSet rs = pst.executeQuery();
+            Publication p = new Publication();
+            while (rs.next()) {
+                p.setTitle(rs.getString("title"));
+                p.setDoi(rs.getString("doi"));
+                p.setPubmedId(rs.getLong("pmid"));
+                p.setAbs(readFromClob(rs.getCharacterStream("abstract")));
+            }
+            rs.close();
+            cache.put(new Element (doi, p));
+            return p;
+        }
+        finally {
+            pst.close();
+        }            
     }
 
     public List<Publication> getProteinTargetPublications(String accession) throws SQLException {
         if (accession == null || accession.trim().equals("")) return null;
 
-        PreparedStatement pst2 = conn.prepareStatement("select a.* from publication a, target_pub b where b.accession = ? and b.pmid = a.pmid");
-        pst2.setString(1, accession);
-        ResultSet rs2 = pst2.executeQuery();
-        List<Publication> pubs = new ArrayList<Publication>();
-        while (rs2.next()) {
-            Publication p = new Publication();
-            p.setDoi(rs2.getString("doi"));
-            p.setTitle(rs2.getString("title"));
-            p.setPubmedId(rs2.getLong("pmid"));
-            p.setAbs(rs2.getString("abstract"));
-            pubs.add(p);
+        Cache cache = getCache ("ProteinTargetPublicationsCache");
+        Element el = cache.get(accession);
+        if (el != null) {
+            return (List)el.getObjectValue();
         }
-        rs2.close();
-        pst2.close();
-        return pubs;
+
+        PreparedStatement pst2 = conn.prepareStatement("select a.* from publication a, target_pub b where b.accession = ? and b.pmid = a.pmid");
+        try {
+            pst2.setString(1, accession);
+            ResultSet rs2 = pst2.executeQuery();
+            List<Publication> pubs = new ArrayList<Publication>();
+            while (rs2.next()) {
+                Publication p = new Publication();
+                p.setDoi(rs2.getString("doi"));
+                p.setTitle(rs2.getString("title"));
+                p.setPubmedId(rs2.getLong("pmid"));
+                p.setAbs(rs2.getString("abstract"));
+                pubs.add(p);
+            }
+            rs2.close();
+            cache.put(new Element (accession, pubs));
+            return pubs;
+        }
+        finally {
+            pst2.close();
+        }
     }
 
     public ProteinTarget getProteinTargetByAccession(String accession) throws SQLException {
         if (accession == null || accession.trim().equals("")) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from protein_target where accession  = ?");
-        pst.setString(1, accession);
-        ResultSet rs = pst.executeQuery();
-        ProteinTarget p = new ProteinTarget();
-        while (rs.next()) {
-            p.setAcc(accession);
-            p.setDescription(rs.getString("description"));
-            p.setGeneId(rs.getLong("gene_id"));
-            p.setTaxId(rs.getLong("taxid"));
-            p.setName(rs.getString("name"));
-            p.setStatus(rs.getString("uniprot_status"));
+        Cache cache = getCache ("ProteinTargetByAccessionCache");
+        Element el = cache.get(accession);
+        if (el != null) {
+            return (ProteinTarget)el.getObjectValue();
         }
-        pst.close();
-        return p;
+
+        PreparedStatement pst = conn.prepareStatement("select * from protein_target where accession  = ?");
+        try {
+            pst.setString(1, accession);
+            ResultSet rs = pst.executeQuery();
+            ProteinTarget p = new ProteinTarget();
+            while (rs.next()) {
+                p.setAcc(accession);
+                p.setDescription(rs.getString("description"));
+                p.setGeneId(rs.getLong("gene_id"));
+                p.setTaxId(rs.getLong("taxid"));
+                p.setName(rs.getString("name"));
+                p.setStatus(rs.getString("uniprot_status"));
+            }
+            rs.close();
+            cache.put(new Element (accession, p));
+            return p;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     public ProteinTarget getProteinTargetByGeneid(Long geneId) throws SQLException {
         if (geneId == null) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from protein_target where gene_id = ?");
-        pst.setLong(1, geneId);
-        ResultSet rs = pst.executeQuery();
-        ProteinTarget p = new ProteinTarget();
-        while (rs.next()) {
-            p.setAcc(rs.getString("accession"));
-            p.setDescription(rs.getString("description"));
-            p.setGeneId(rs.getLong("gene_id"));
-            p.setTaxId(rs.getLong("taxid"));
-            p.setName(rs.getString("name"));
-            p.setStatus(rs.getString("uniprot_status"));
+
+        Cache cache = getCache ("ProteinTargetByGeneIdCache");
+        Element el = cache.get(geneId);
+        ProteinTarget p;
+        if (el != null) {
+            p = (ProteinTarget)el.getObjectValue();
         }
-        pst.close();
+        else {
+            PreparedStatement pst = conn.prepareStatement
+                ("select * from protein_target where gene_id = ?");
+            try {
+                pst.setLong(1, geneId);
+                ResultSet rs = pst.executeQuery();
+                p = new ProteinTarget();
+                while (rs.next()) {
+                    p.setAcc(rs.getString("accession"));
+                    p.setDescription(rs.getString("description"));
+                    p.setGeneId(rs.getLong("gene_id"));
+                    p.setTaxId(rs.getLong("taxid"));
+                    p.setName(rs.getString("name"));
+                    p.setStatus(rs.getString("uniprot_status"));
+                }
+                rs.close();
+
+                cache.put(new Element (geneId, p));
+            }
+            finally {
+                pst.close();
+            }
+        }
         return p;
     }
 
-    public Long getCidBySid(Long sid) throws SQLException {
+    public Long getCidBySid (Long sid) throws SQLException {
+        Cache cache = getCache ("CidBySidCache");
+        Element el = cache.get(sid);
+        if (el != null) {
+            return (Long)el.getObjectValue();
+        }
+
         PreparedStatement pst = conn.prepareStatement("select cid from cid_sid where sid = ?");
-        pst.setLong(1, sid);
-        ResultSet rs = pst.executeQuery();
-        long cid = -1L;
-        while (rs.next()) cid = rs.getLong(1);
-        pst.close();
-        return cid;
+        try {
+            pst.setLong(1, sid);
+            ResultSet rs = pst.executeQuery();
+            long cid = -1L;
+            if (rs.next()) cid = rs.getLong(1);
+            rs.close();
+            cache.put(new Element (sid, cid));
+            return cid;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     public List<Long> getSidsByCid(Long cid) throws SQLException {
+        Cache cache = getCache ("SidsByCidCache");
+        Element el = cache.get(cid);
+        if (el != null) {
+            return (List)el.getObjectValue();
+        }
+
         List<Long> sids = new ArrayList<Long>();
         PreparedStatement pst = conn.prepareStatement("select sid from cid_sid where cid = ?");
-        pst.setLong(1, cid);
-        ResultSet rs = pst.executeQuery();
-        while (rs.next()) sids.add(rs.getLong(1));
-        rs.close();
-        pst.close();
-        return sids;
+        try {
+            pst.setLong(1, cid);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) sids.add(rs.getLong(1));
+            rs.close();
+            cache.put(new Element (cid, sids));
+            return sids;
+        }
+        finally {
+            pst.close();
+        }
     }
 
 
@@ -326,38 +436,57 @@ public class DBUtils {
             throws SQLException {
 
         if (cids == null || cids.length < 0) return null;
+
+        Cache cache = getCache ("CompoundsByCidCache");
+        List<Compound> compounds = new ArrayList<Compound>();        
+        List<Long> notcached = new ArrayList<Long>();
+
         for (Long acid : cids) {
-            if (acid == null) return null;
+            Element el = cache.get(acid);
+            if (el != null) {
+                compounds.add((Compound)el.getObjectValue());
+            }
+            else {
+                notcached.add(acid);
+            }
         }
-        List<List<Long>> chunks = Util.chunk(cids, CHUNK_SIZE);
-        List<Compound> compounds = new ArrayList<Compound>();
-        for (List<Long> chunk : chunks) {
-            String cidClause = Util.join(chunk, ",");
-            String sql = ("select a.*,b.* from compound a, compound_props b "
-                    + "where a.cid in (" + cidClause + ") and "
-                    + "b.pubchem_compound_cid = a.cid");
-            Statement stm = conn.createStatement();
-            try {
-                ResultSet rs = stm.executeQuery(sql);
-                while (rs.next()) {
-                    Compound c = new Compound();
-                    c.setCid(rs.getLong("cid"));
-                    fillCompound(rs, c);
-                    compounds.add(c);
+
+        if (!notcached.isEmpty()) {
+            cids = notcached.toArray(new Long[0]);
+            List<List<Long>> chunks = Util.chunk(cids, CHUNK_SIZE);
+            
+            for (List<Long> chunk : chunks) {
+                String cidClause = Util.join(chunk, ",");
+                String sql = ("select a.*,b.* from compound a, compound_props b "
+                              + "where a.cid in (" + cidClause + ") and "
+                              + "b.pubchem_compound_cid = a.cid");
+                Statement stm = conn.createStatement();
+                try {
+                    ResultSet rs = stm.executeQuery(sql);
+                    while (rs.next()) {
+                        Compound c = new Compound();
+                        c.setCid(rs.getLong("cid"));
+                        fillCompound(rs, c);
+                        compounds.add(c);
+                        
+                        cache.put(new Element (c.getCid(), c));
+                    }
+                    rs.close();
+                    
+                    // get Sids and annotations
+                    for (Compound c : compounds) {
+                        c.setSids(getSidsByCid(c.getCid()));
+                        Map<String, String[]> annots = 
+                            getCompoundAnnotations(c.getCid());
+                        c.setAnno_key(annots.get("anno_key"));
+                        c.setAnno_val(annots.get("anno_val"));
+                    }
+                    
+                    
+                } 
+                finally {
+                    stm.close();
                 }
-                rs.close();
-
-                // get Sids and annotations
-                for (Compound c : compounds) {
-                    c.setSids(getSidsByCid(c.getCid()));
-                    Map<String, String[]> annots = getCompoundAnnotations(c.getCid());
-                    c.setAnno_key(annots.get("anno_key"));
-                    c.setAnno_val(annots.get("anno_val"));
-                }
-
-
-            } finally {
-                stm.close();
             }
         }
 
@@ -377,25 +506,51 @@ public class DBUtils {
      * @throws SQLException
      */
 
-    public List<Compound> getCompoundsByName(String... names) throws SQLException {
+    public List<Compound> getCompoundsByName (String... names) 
+        throws SQLException {
         if (names == null || names.length == 0) return null;
         List<Compound> cmpds = new ArrayList<Compound>();
-        PreparedStatement pst = conn.prepareStatement("select distinct id from synonyms where type = 1 and match(syn) against (? in boolean mode)");
-        ResultSet rs;
-        for (String name : names) {
-            pst.setString(1, name);
-            rs = pst.executeQuery();
-            while (rs.next())
-                cmpds.addAll(getCompoundsByCid(rs.getLong(1)));
-            rs.close();
+        List<String> notcached = new ArrayList<String>();
+
+        Cache cache = getCache ("CompoundsByNameCache");
+        for (String n : names) {
+            Element el = cache.get(n);
+            if (el != null) {
+                cmpds.addAll((List<Compound>)el.getObjectValue());
+            }
+            else {
+                notcached.add(n);
+            }
         }
-        return cmpds;
+        
+        PreparedStatement pst = conn.prepareStatement("select distinct id from synonyms where type = 1 and match(syn) against (? in boolean mode)");
+        try {
+            ResultSet rs;
+            for (String name : notcached) {
+                pst.setString(1, name);
+                rs = pst.executeQuery();
+                List<Compound> c = new ArrayList<Compound>();
+                while (rs.next()) {
+                    c.addAll(getCompoundsByCid(rs.getLong(1)));
+                }
+                rs.close();
+
+                cache.put(new Element (name, c));
+                cmpds.addAll(c);
+            }
+            
+            return cmpds;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     public List<Compound> getCompoundsBySid(Long... sids) throws SQLException {
         if (sids == null || sids.length == 0) return null;
-        List<List<Long>> chunks = Util.chunk(sids, CHUNK_SIZE);
+
         List<Compound> cmpds = new ArrayList<Compound>();
+        List<List<Long>> chunks = Util.chunk(sids, CHUNK_SIZE);
         for (List<Long> chunk : chunks) {
             String sidClause = Util.join(chunk, ",");
             String sql = "select cid from cid_sid s where s.sid in (" + sidClause + ")";
@@ -414,6 +569,7 @@ public class DBUtils {
             cmpds.addAll(getCompoundsByCid(cids.toArray(new Long[]{})));
             pst.close();
         }
+
         return cmpds;
     }
 
@@ -493,7 +649,7 @@ public class DBUtils {
         }
     }
 
-    public int putETag(String etag, Long... ids) throws SQLException {
+    public int putETag (String etag, Long... ids) throws SQLException {
         int cnt = 0;
         PreparedStatement pst = conn.prepareStatement
                 ("select a.*,count(*) as size from etag a, etag_data b "
@@ -634,7 +790,7 @@ public class DBUtils {
         }
     }
 
-    public Map getETagInfo(String etag) throws SQLException {
+    public Map getETagInfo (String etag) throws SQLException {
         PreparedStatement pst = conn.prepareStatement
                 ("select a.*,count(*) as count from etag a, etag_data b "
                         + "where a.etag_id = ? and a.etag_id = b.etag_id");
@@ -658,8 +814,20 @@ public class DBUtils {
         }
     }
 
-    public Facet getCompoundCollectionFacet(String etag)
+    public Facet getCompoundCollectionFacet (String etag)
             throws SQLException {
+
+        Map info = getETagInfo (etag);
+
+        Cache cache = getCache ("CompoundCollectionFacetCache");
+        Element el = cache.get(etag);
+        if (el != null) {
+            Timestamp ts = (Timestamp)info.get("accessed");
+            if (ts.getTime() < el.getLastAccessTime()) {
+                return (Facet)el.getObjectValue();
+            }
+        }
+
         PreparedStatement pst = conn.prepareStatement
                 ("select val,count(*) as cnt from "
                         + "compound_annot a, etag_data b "
@@ -705,6 +873,8 @@ public class DBUtils {
             Facet facet = new Facet("COLLECTION");
             facet.setCounts(counts);
 
+            cache.put(new Element (etag, facet));
+
             return facet;
         } finally {
             pst.close();
@@ -712,6 +882,12 @@ public class DBUtils {
     }
 
     public List<String> getCompoundSynonyms (Long cid) throws SQLException {
+        Cache cache = getCache ("CompoundSynonymsCache");
+        Element el = cache.get(cid);
+        if (el != null) {
+            return (List)el.getObjectValue();
+        }
+
         PreparedStatement pst = conn.prepareStatement
             ("select syn from synonyms where id = ? and type=1");
         List<String> syns = new ArrayList<String>();
@@ -722,6 +898,8 @@ public class DBUtils {
                 syns.add(rs.getString(1));
             }
             rs.close();
+
+            cache.put(new Element (cid, syns));
         }
         finally {
             pst.close();
@@ -1046,33 +1224,45 @@ public class DBUtils {
         }
     }
 
-    public Map<String, String[]> getCompoundAnnotations(Long cid) throws SQLException {
-        PreparedStatement pst = conn.prepareStatement
+    public Map<String, String[]> getCompoundAnnotations
+        (Long cid) throws SQLException {
+
+        Cache cache = getCache ("CompoundAnnotationCache");
+        Element el = cache.get(cid);
+        if (el != null) {
+            return (Map<String, String[]>)el.getObjectValue();
+        }
+        else {
+            PreparedStatement pst = conn.prepareStatement
                 ("select * from compound_annot where cid = ?");
-        try {
-            pst.setLong(1, cid);
-
-            List<String> keys = new ArrayList<String>();
-            List<String> vals = new ArrayList<String>();
-
-            ResultSet rs = pst.executeQuery();
-            while (rs.next()) {
-                String key = rs.getString("annot_key");
-                String val = rs.getString("val");
-                if (val != null) {
-                    keys.add(key);
-                    vals.add(val.trim());
+            try {
+                pst.setLong(1, cid);
+                
+                List<String> keys = new ArrayList<String>();
+                List<String> vals = new ArrayList<String>();
+                
+                ResultSet rs = pst.executeQuery();
+                while (rs.next()) {
+                    String key = rs.getString("annot_key");
+                    String val = rs.getString("val");
+                    if (val != null) {
+                        keys.add(key);
+                        vals.add(val.trim());
+                    }
                 }
+                rs.close();
+                
+                Map<String, String[]> anno = new TreeMap<String, String[]>();
+                anno.put("anno_key", keys.toArray(new String[keys.size()]));
+                anno.put("anno_val", vals.toArray(new String[vals.size()]));
+
+                cache.put(new Element (cid, anno));
+
+                return anno;
+            } 
+            finally {
+                pst.close();
             }
-            rs.close();
-
-            Map<String, String[]> anno = new TreeMap<String, String[]>();
-            anno.put("anno_key", keys.toArray(new String[keys.size()]));
-            anno.put("anno_val", vals.toArray(new String[vals.size()]));
-
-            return anno;
-        } finally {
-            pst.close();
         }
     }
 
@@ -1148,7 +1338,14 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public ExperimentData getExperimentDataByDataId(String edid) throws SQLException {
+    public ExperimentData getExperimentDataByDataId
+        (String edid) throws SQLException {
+
+        Cache cache = getCache ("ExperimentDataByDataIdCache");
+        Element el = cache.get(edid);
+        if (el != null) {
+            return (ExperimentData)el.getObjectValue();
+        }
 
         if (edid == null || !edid.contains(".")) return null;
 
@@ -1167,9 +1364,13 @@ public class DBUtils {
                 ed.setExptDataId(edid);
             }
             rs.close();
-        } catch (IOException e) {
+
+            cache.put(new Element (edid, ed));
+        } 
+        catch (IOException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } finally {
+        } 
+        finally {
             pst.close();
         }
         return ed;
@@ -1187,36 +1388,53 @@ public class DBUtils {
      * @throws SQLException
      * @throws IOException
      */
-    List<ExperimentData> getExperimentDataByDataId(List<String> edids) throws SQLException, IOException {
+    List<ExperimentData> getExperimentDataByDataId(List<String> edids) 
+        throws SQLException, IOException {
         if (edids == null || edids.size() == 0) return null;
+
+        Cache cache = getCache ("ExperimentDataByDataIdCache");
         List<ExperimentData> ret = new ArrayList<ExperimentData>();
-
-        Long bardExptId = -1L;
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("(");
-        String sep = "";
-        for (String edid : edids) {
-            String[] toks = edid.split("\\.");
-            bardExptId = Long.parseLong(toks[0]);
-            Long sid = Long.parseLong(toks[1]);
-            sb.append(sep).append(sid);
-            sep = ",";
-        }
-        sb.append(")");
-
-        String sql = "select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id";
-        PreparedStatement pst = conn.prepareStatement(sql);
-        ExperimentData ed = null;
-        try {
-            ResultSet rs = pst.executeQuery();
-            while (rs.next()) {
-                ed = getExperimentData(rs);
-                ret.add(ed);
+        List<String> notcached = new ArrayList<String>();
+        for (String edi : edids) {
+            Element el = cache.get(edi);
+            if (el != null) {
+                ret.add((ExperimentData)el.getObjectValue());
             }
-            rs.close();
-        } finally {
-            pst.close();
+            else {
+                notcached.add(edi);
+            }
+        }
+
+        if (!notcached.isEmpty()) {
+            Long bardExptId = -1L;
+            StringBuilder sb = new StringBuilder();
+            sb.append("(");
+            String sep = "";
+            for (String edid : notcached) {
+                String[] toks = edid.split("\\.");
+                bardExptId = Long.parseLong(toks[0]);
+                Long sid = Long.parseLong(toks[1]);
+                sb.append(sep).append(sid);
+                sep = ",";
+            }
+            sb.append(")");
+            
+            String sql = "select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id";
+            PreparedStatement pst = conn.prepareStatement(sql);
+            ExperimentData ed = null;
+            try {
+                ResultSet rs = pst.executeQuery();
+                while (rs.next()) {
+                    ed = getExperimentData(rs);
+                    ret.add(ed);
+
+                    cache.put(new Element (ed.getEid(), ed));
+                }
+                rs.close();
+            } 
+            finally {
+                pst.close();
+            }
         }
         return ret;
     }
@@ -1238,7 +1456,18 @@ public class DBUtils {
             throws SQLException, IOException {
         List<ExperimentData> data = new ArrayList<ExperimentData>();
 
-        Map info = getETagInfo(etag);
+        Map info = getETagInfo (etag);
+        
+        Cache cache = getCache ("ExperimentDataByETagCache");
+        Element el = cache.get(etag);
+        if (el != null) {
+            Timestamp ts = (Timestamp)info.get("accessed");
+            if (ts.getTime() < el.getLastAccessTime()) {
+                // cache still good
+                return (List<ExperimentData>)el.getObjectValue();
+            }
+        }
+
         String type = (String) info.get("type");
 
         log.info("## ETag=" + etag + " info=" + info);
@@ -1291,7 +1520,10 @@ public class DBUtils {
                 data.add(ed);
             }
             rs.close();
-        } finally {
+            
+            cache.put(new Element (etag, data));
+        } 
+        finally {
             pst.close();
         }
 
@@ -1479,22 +1711,31 @@ public class DBUtils {
             throws SQLException {
 
         if (bardExptId == null || bardExptId <= 0) return null;
-        PreparedStatement pst = conn.prepareStatement
+
+        Cache cache = getCache ("ExperimentMetadataByExptIdCache");
+        Element el = cache.get(bardExptId);
+        if (el != null) {
+            return (String)el.getObjectValue();
+        }
+        else {
+            PreparedStatement pst = conn.prepareStatement
                 ("select expt_result_def from bard_experiment where bard_expt_id = ?");
-        pst.setLong(1, bardExptId);
-        ResultSet rs = pst.executeQuery();
+            pst.setLong(1, bardExptId);
+            ResultSet rs = pst.executeQuery();
+            String json = null;
+            try {
+                if (rs.next()) {
+                    Blob blob = rs.getBlob("expt_result_def");
+                    json = new String(blob.getBytes(1, (int) blob.length()));
+                }
+                rs.close();
+                cache.put(new Element (bardExptId, json));
 
-        String json = null;
-        try {
-            if (rs.next()) {
-                Blob blob = rs.getBlob("expt_result_def");
-                json = new String(blob.getBytes(1, (int) blob.length()));
+                return json;
+            } 
+            finally {
+                pst.close();
             }
-
-            return json;
-        } finally {
-            rs.close();
-            pst.close();
         }
     }
 
@@ -1504,43 +1745,58 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public Experiment getExperimentByExptId(Long bardExptId) throws SQLException {
+    public Experiment getExperimentByExptId (Long bardExptId) 
+        throws SQLException {
         if (bardExptId == null || bardExptId <= 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from bard_experiment where bard_expt_id = ?");
-        pst.setLong(1, bardExptId);
-        ResultSet rs = pst.executeQuery();
-        Experiment e = new Experiment();
-        while (rs.next()) {
-            e.setExptId(bardExptId);
-            e.setAssayId(rs.getLong("bard_assay_id"));
-   
-            e.setName(rs.getString("name"));
-            e.setDescription(rs.getString("description"));
 
-            e.setCategory(rs.getInt("category"));
-            e.setClassification(rs.getInt("classification"));
-            e.setClassification(rs.getInt("type"));
-
-            e.setDeposited(rs.getDate("deposited"));
-            e.setUpdated(rs.getDate("updated"));
-
-            e.setSubstances(rs.getInt("sample_count"));
-            e.setCompounds(rs.getInt("cid_count"));
-
-            e.setHasProbe(rs.getBoolean("have_probe"));
+        Cache cache = getCache ("ExperimentByExptIdCache");
+        Element el = cache.get(bardExptId);
+        if (el != null) {
+            return (Experiment)el.getObjectValue();
         }
-        
-        //JCB: capture all projects behind the experiment
-        List<Project> projects = getProjectByExperimentId(bardExptId);
-        for (Project project : projects) {
-            Long projectId = project.getProjectId();
-            if (projectId != null)
-                e.addProjectID(project.getProjectId());
-        }
+        else {
+            PreparedStatement pst = conn.prepareStatement
+                ("select * from bard_experiment where bard_expt_id = ?");
+            try {
+                pst.setLong(1, bardExptId);
+                ResultSet rs = pst.executeQuery();
+                Experiment e = new Experiment();
+                if (rs.next()) {
+                    e.setExptId(bardExptId);
+                    e.setAssayId(rs.getLong("bard_assay_id"));
+                    
+                    e.setName(rs.getString("name"));
+                    e.setDescription(rs.getString("description"));
+                    
+                    e.setCategory(rs.getInt("category"));
+                    e.setClassification(rs.getInt("classification"));
+                    e.setClassification(rs.getInt("type"));
+                    
+                    e.setDeposited(rs.getDate("deposited"));
+                    e.setUpdated(rs.getDate("updated"));
+                    
+                    e.setSubstances(rs.getInt("sample_count"));
+                    e.setCompounds(rs.getInt("cid_count"));
+                    
+                    e.setHasProbe(rs.getBoolean("have_probe"));
+                }
+                rs.close();
 
-        rs.close();
-        pst.close();
-        return e;
+                //JCB: capture all projects behind the experiment
+                List<Project> projects = getProjectByExperimentId (bardExptId);
+                for (Project project : projects) {
+                    Long projectId = project.getProjectId();
+                    if (projectId != null)
+                        e.addProjectID(project.getProjectId());
+                }
+
+                cache.put(new Element (bardExptId, e));
+                return e;
+            }
+            finally {
+                pst.close();
+            }
+        }
     }
 
     /**
@@ -1549,15 +1805,34 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<Experiment> getExperimentByAssayId(Long bardAssayId) throws SQLException {
+    public List<Experiment> getExperimentByAssayId
+        (Long bardAssayId) throws SQLException {
         if (bardAssayId == null || bardAssayId <= 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select bard_expt_id from bard_experiment where bard_assay_id = ?");
-        pst.setLong(1, bardAssayId);
-        ResultSet rs = pst.executeQuery();
-        List<Experiment> experiments = new ArrayList<Experiment>();
-        while (rs.next()) experiments.add(getExperimentByExptId(rs.getLong(1)));
-        pst.close();
-        return experiments;
+
+        Cache cache = getCache ("ExperimentByAssayIdCache");
+        Element el = cache.get(bardAssayId);
+        if (el != null) {
+            return (List<Experiment>)el.getObjectValue();
+        }
+        else {
+            PreparedStatement pst = conn.prepareStatement
+                ("select bard_expt_id from bard_experiment where bard_assay_id = ?");
+            try {
+                pst.setLong(1, bardAssayId);
+                ResultSet rs = pst.executeQuery();
+                List<Experiment> experiments = new ArrayList<Experiment>();
+                while (rs.next()) {
+                    experiments.add(getExperimentByExptId(rs.getLong(1)));
+                }
+                rs.close();
+
+                cache.put(new Element (bardAssayId, experiments));
+                return experiments;
+            }
+            finally {
+                pst.close();
+            }
+        }
     }
 
     /**
@@ -1568,19 +1843,31 @@ public class DBUtils {
      */
     public Assay getAssayByAid(Long bardAssayID) throws SQLException {
         if (bardAssayID == null || bardAssayID <= 0) return null;
-        PreparedStatement pst = conn.prepareStatement("select * from bard_assay where bard_assay_id = ?");
-        Assay a = null;
-        try {
-            pst.setLong(1, bardAssayID);
-            ResultSet rs = pst.executeQuery();
-            if (rs.next()) {
-                a = getAssay(rs);
-            }
-            rs.close();
-        } finally {
-            pst.close();
+
+        Cache cache = getCache ("AssayByAidCache");
+        Element el = cache.get(bardAssayID);
+        if (el != null) {
+            return (Assay)el.getObjectValue();
         }
-        return a;
+        else {
+            PreparedStatement pst = conn.prepareStatement
+                ("select * from bard_assay where bard_assay_id = ?");
+            Assay a = null;
+            try {
+                pst.setLong(1, bardAssayID);
+                ResultSet rs = pst.executeQuery();
+                if (rs.next()) {
+                    a = getAssay(rs);
+                }
+                rs.close();
+                cache.put(new Element (bardAssayID, a));
+
+                return a;
+            } 
+            finally {
+                pst.close();
+            }
+        }
     }
 
     /**
@@ -1591,7 +1878,7 @@ public class DBUtils {
      * @throws SQLException
      */
      
-    Assay getAssay(ResultSet rs) throws SQLException {
+    Assay getAssay (ResultSet rs) throws SQLException {
         Assay a = new Assay();
         long aid = rs.getLong("pubchem_aid");
         a.setAid(aid);
@@ -1716,6 +2003,15 @@ public class DBUtils {
                     ("ETag " + etag + " not of type " + Assay.class.getName());
         }
 
+        Cache cache = getCache ("AssaysByETagCache");
+        Element el = cache.get(etag);
+        if (el != null) {
+            Timestamp ts = (Timestamp)info.get("accessed");
+            if (ts.getTime() < el.getLastAccessTime()) {
+                return (List<Assay>)el.getObjectValue();
+            }
+        }
+
         StringBuilder sql = new StringBuilder
                 ("select a.* from bard_assay a, etag_data e where etag_id = ? "
                         + "and a.bard_assay_id = e.data_id order by e.index");
@@ -1735,17 +2031,30 @@ public class DBUtils {
                 assays.add(getAssay(rs));
             }
             rs.close();
-        } finally {
+
+            cache.put(new Element (etag, assays));
+        } 
+        finally {
             pst.close();
         }
         return assays;
     }
 
-    public List<Substance> getSubstanceByETag(int skip, int top, String etag) throws SQLException {
-        ETag info = getEtagByEtagId(etag);
-        if (!Substance.class.getName().equals(info.getType())) {
+    public List<Substance> getSubstanceByETag(int skip, int top, String etag) 
+        throws SQLException {
+        Map info = getETagInfo (etag);
+        if (!Substance.class.getName().equals(info.get("type"))) {
             throw new IllegalArgumentException
                     ("ETag " + etag + " not of type " + Substance.class.getName());
+        }
+
+        Cache cache = getCache ("SubstanceByETagCache");
+        Element el = cache.get(etag);
+        if (el != null) {
+            Timestamp ts = (Timestamp)info.get("accessed");
+            if (ts.getTime() < el.getLastAccessTime()) {
+                return (List<Substance>)el.getObjectValue();
+            }
         }
 
         StringBuilder sql = new StringBuilder
@@ -1767,10 +2076,13 @@ public class DBUtils {
                 substances.add(getSubstanceBySid(rs.getLong("sid")));
             }
             rs.close();
-        } finally {
+
+            cache.put(new Element (etag, substances));
+            return substances;
+        } 
+        finally {
             pst.close();
         }
-        return substances;
     }
 
     /**
@@ -1781,11 +2093,21 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<Experiment> getExperimentsByETag(int skip, int top, String etag) throws SQLException {
-        ETag info = getEtagByEtagId(etag);
-        if (!Experiment.class.getName().equals(info.getType())) {
+    public List<Experiment> getExperimentsByETag
+        (int skip, int top, String etag) throws SQLException {
+        Map info = getETagInfo (etag);
+        if (!Experiment.class.getName().equals(info.get("type"))) {
             throw new IllegalArgumentException
                     ("ETag " + etag + " not of type " + Experiment.class.getName());
+        }
+
+        Cache cache = getCache ("ExperimentsByETagCache");
+        Element el = cache.get(etag);
+        if (el != null) {
+            Timestamp ts = (Timestamp)info.get("accessed");
+            if (ts.getTime() < el.getLastAccessTime()) {
+                return (List<Experiment>)el.getObjectValue();
+            }
         }
 
         StringBuilder sql = new StringBuilder
@@ -1807,10 +2129,13 @@ public class DBUtils {
                 expts.add(getExperimentByExptId(rs.getLong("bard_expt_id")));
             }
             rs.close();
-        } finally {
+
+            cache.put(new Element (etag, expts));
+            return expts;
+        } 
+        finally {
             pst.close();
         }
-        return expts;
     }
 
 
@@ -1830,8 +2155,15 @@ public class DBUtils {
      * @return A list of compound CIDs
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Long> getExperimentCids(Long bardExptId, int skip, int top) throws SQLException {
+    public List<Long> getExperimentCids(Long bardExptId, int skip, int top) 
+        throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
+
+        Cache cache = getCache ("ExperimentCidsCache");
+        Element el = cache.get(bardExptId);
+        if (el != null) {
+            return (List<Long>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip != -1) {
@@ -1839,14 +2171,21 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct cid from bard_experiment_data where bard_expt_id = ? order by cid " + limitClause);
-        pst.setLong(1, bardExptId);
-        ResultSet rs = pst.executeQuery();
-        List<Long> ret = new ArrayList<Long>();
-        while (rs.next()) ret.add(rs.getLong("cid"));
-        rs.close();
-        pst.close();
-        return ret;
+        PreparedStatement pst = conn.prepareStatement
+            ("select distinct cid from bard_experiment_data where bard_expt_id = ? order by cid " + limitClause);
+        try {
+            pst.setLong(1, bardExptId);
+            ResultSet rs = pst.executeQuery();
+            List<Long> ret = new ArrayList<Long>();
+            while (rs.next()) ret.add(rs.getLong("cid"));
+            rs.close();
+
+            cache.put(new Element (bardExptId, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -1861,8 +2200,15 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<String> getExperimentDataIds(Long bardExptId, int skip, int top) throws SQLException {
+    public List<String> getExperimentDataIds 
+        (Long bardExptId, int skip, int top) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
+
+        Cache cache = getCache ("ExperimentDataIdsCache");
+        Element el = cache.get(bardExptId);
+        if (el != null) {
+            return (List<String>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip != -1) {
@@ -1871,13 +2217,19 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? order by id " + limitClause);
-        pst.setLong(1, bardExptId);
-        ResultSet rs = pst.executeQuery();
-        List<String> ret = new ArrayList<String>();
-        while (rs.next()) ret.add(rs.getString(1));
-        rs.close();
-        pst.close();
-        return ret;
+        try {
+            pst.setLong(1, bardExptId);
+            ResultSet rs = pst.executeQuery();
+            List<String> ret = new ArrayList<String>();
+            while (rs.next()) ret.add(rs.getString(1));
+            rs.close();
+
+            cache.put(new Element (bardExptId, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     List<ExperimentData> getExperimentData(PreparedStatement pst) throws SQLException, IOException {
@@ -1910,8 +2262,15 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<ExperimentData> getExperimentData(Long bardExptId, int skip, int top) throws SQLException, IOException {
+    public List<ExperimentData> getExperimentData
+        (Long bardExptId, int skip, int top) throws SQLException, IOException {
         if (bardExptId == null || bardExptId < 0) return null;
+
+        Cache cache = getCache ("ExperimentDataCache");
+        Element el = cache.get(bardExptId);
+        if (el != null) {
+            return (List<ExperimentData>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip != -1) {
@@ -1920,10 +2279,15 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? order by score desc, bard_expt_id, sid " + limitClause);
-        pst.setLong(1, bardExptId);
-        List<ExperimentData> ret = getExperimentData(pst);
-        pst.close();
-        return ret;
+        try {
+            pst.setLong(1, bardExptId);
+            List<ExperimentData> ret = getExperimentData(pst);
+            cache.put(new Element (bardExptId, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -1935,8 +2299,15 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<ExperimentData> getActiveExperimentData(Long bardExptId, int skip, int top) throws SQLException, IOException {
+    public List<ExperimentData> getActiveExperimentData
+        (Long bardExptId, int skip, int top) throws SQLException, IOException {
         if (bardExptId == null || bardExptId < 0) return null;
+
+        Cache cache = getCache ("ActiveExperimentDataCache");
+        Element el = cache.get(bardExptId);
+        if (el != null) {
+            return (List<ExperimentData>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip != -1) {
@@ -1945,10 +2316,15 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? and outcome = 2 order by score desc, bard_expt_id, sid " + limitClause);
-        pst.setLong(1, bardExptId);
-        List<ExperimentData> ret = getExperimentData(pst);
-        pst.close();
-        return ret;
+        try {
+            pst.setLong(1, bardExptId);
+            List<ExperimentData> ret = getExperimentData(pst);
+            cache.put(new Element (bardExptId, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -1960,8 +2336,15 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<String> getSubstanceDataIds(Long sid, int skip, int top) throws SQLException {
+    public List<String> getSubstanceDataIds(Long sid, int skip, int top)
+        throws SQLException {
         if (sid == null || sid < 0) return null;
+
+        Cache cache = getCache ("SubstanceDataIdsCache");
+        Element el = cache.get(sid);
+        if (el != null) {
+            return (List<String>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip >= 0 && top > 0) {
@@ -1975,13 +2358,20 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
-        pst.setLong(1, sid);
-        ResultSet rs = pst.executeQuery();
-        List<String> ret = new ArrayList<String>();
-        while (rs.next()) ret.add(rs.getString(1));
-        rs.close();
-        pst.close();
-        return ret;
+        try {
+            pst.setLong(1, sid);
+            ResultSet rs = pst.executeQuery();
+            List<String> ret = new ArrayList<String>();
+            while (rs.next()) ret.add(rs.getString(1));
+            rs.close();
+
+            cache.put(new Element (sid, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
+
     }
 
     /**
@@ -1991,30 +2381,42 @@ public class DBUtils {
      * @return a {@link Substance} object
      * @throws SQLException TODO Should include CID and also include SMILES from CID (rel_type=1)
      */
-    public Substance getSubstanceBySid(Long sid) throws SQLException {
+    public Substance getSubstanceBySid (Long sid) throws SQLException {
         if (sid == null || sid < 0) return null;
+
+        Cache cache = getCache ("SubstanceBySidCache");
+        Element el = cache.get(sid);
+        if (el != null) {
+            return (Substance)el.getObjectValue();
+        }
+
         PreparedStatement pst = conn.prepareStatement("select a.*, b.cid, c.iso_smiles from substance a, cid_sid b, compound c where a.sid = ? and a.sid = b.sid and b.rel_type = 1 and c.cid = b.cid");
         //        PreparedStatement pst = conn.prepareStatement("select a.* from substance a where a.sid = ? ");
-        pst.setLong(1, sid);
-        ResultSet rs = pst.executeQuery();
-        Substance s = new Substance();
-        while (rs.next()) {
-            s.setDepRegId(rs.getString("dep_regid"));
-            s.setSourceName(rs.getString("source_name"));
-            s.setUrl(rs.getString("substance_url"));
-            s.setSid(sid);
-            s.setDeposited(rs.getDate("deposited"));
-            s.setUpdated(rs.getDate("updated"));
-            String pidText = rs.getString("patent_ids");
-            if (pidText != null) s.setPatentIds(pidText.split("\\s+"));
+        try {
+            pst.setLong(1, sid);
+            ResultSet rs = pst.executeQuery();
+            Substance s = new Substance();
+            if (rs.next()) {
+                s.setDepRegId(rs.getString("dep_regid"));
+                s.setSourceName(rs.getString("source_name"));
+                s.setUrl(rs.getString("substance_url"));
+                s.setSid(sid);
+                s.setDeposited(rs.getDate("deposited"));
+                s.setUpdated(rs.getDate("updated"));
+                String pidText = rs.getString("patent_ids");
+                if (pidText != null) s.setPatentIds(pidText.split("\\s+"));
+                
+                s.setCid(rs.getLong("cid"));
+                s.setSmiles(rs.getString("iso_smiles"));
+            }
+            rs.close();
 
-            s.setCid(rs.getLong("cid"));
-            s.setSmiles(rs.getString("iso_smiles"));
+            cache.put(new Element (sid, s));
+            return s;
         }
-        rs.close();
-        pst.close();
-
-        return s;
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2026,8 +2428,15 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<ExperimentData> getSubstanceData(Long sid, int skip, int top) throws SQLException, IOException {
+    public List<ExperimentData> getSubstanceData
+        (Long sid, int skip, int top) throws SQLException, IOException {
         if (sid == null || sid < 0) return null;
+
+        Cache cache = getCache ("SubstanceDataCache");
+        Element el = cache.get(sid);
+        if (el != null) {
+            return (List<ExperimentData>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip >= 0 && top > 0) {
@@ -2041,13 +2450,20 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
-        pst.setLong(1, sid);
-        ResultSet rs = pst.executeQuery();
-        List<ExperimentData> ret = new ArrayList<ExperimentData>();
-        while (rs.next()) ret.add(getExperimentDataByDataId(rs.getString(1)));
-        rs.close();
-        pst.close();
-        return ret;
+        try {
+            pst.setLong(1, sid);
+            ResultSet rs = pst.executeQuery();
+            List<ExperimentData> ret = new ArrayList<ExperimentData>();
+            while (rs.next()) 
+                ret.add(getExperimentDataByDataId(rs.getString(1)));
+            rs.close();
+
+            cache.put(new Element (sid, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2059,8 +2475,15 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<String> getCompoundDataIds(Long cid, int skip, int top) throws SQLException {
+    public List<String> getCompoundDataIds(Long cid, int skip, int top) 
+        throws SQLException {
         if (cid == null || cid < 0) return null;
+
+        Cache cache = getCache ("CompoundDataIdsCache");
+        Element el = cache.get(cid);
+        if (el != null) {
+            return (List<String>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip >= 0 && top > 0) {
@@ -2074,13 +2497,18 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where cid = ? order by classification desc, score desc " + limitClause);
-        pst.setLong(1, cid);
-        ResultSet rs = pst.executeQuery();
-        List<String> ret = new ArrayList<String>();
-        while (rs.next()) ret.add(rs.getString(1));
-        rs.close();
-        pst.close();
-        return ret;
+        try {
+            pst.setLong(1, cid);
+            ResultSet rs = pst.executeQuery();
+            List<String> ret = new ArrayList<String>();
+            while (rs.next()) ret.add(rs.getString(1));
+            rs.close();
+            cache.put(new Element (cid, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2092,8 +2520,15 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<Long> getCompoundExperimentIds(Long cid, int skip, int top) throws SQLException {
+    public List<Long> getCompoundExperimentIds(Long cid, int skip, int top)
+        throws SQLException {
         if (cid == null || cid < 0) return null;
+
+        Cache cache = getCache ("CompoundExperimentIdsCache");
+        Element el = cache.get(cid);
+        if (el != null) {
+            return (List<Long>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip >= 0 && top > 0) {
@@ -2107,13 +2542,19 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where cid = ? order by classification desc, score desc " + limitClause);
-        pst.setLong(1, cid);
-        ResultSet rs = pst.executeQuery();
-        List<Long> ret = new ArrayList<Long>();
-        while (rs.next()) ret.add(rs.getLong(1));
-        rs.close();
-        pst.close();
-        return ret;
+        try {
+            pst.setLong(1, cid);
+            ResultSet rs = pst.executeQuery();
+            List<Long> ret = new ArrayList<Long>();
+            while (rs.next()) ret.add(rs.getLong(1));
+            rs.close();
+
+            cache.put(new Element (cid, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2125,8 +2566,15 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<Long> getSubstanceExperimentIds(Long sid, int skip, int top) throws SQLException {
+    public List<Long> getSubstanceExperimentIds(Long sid, int skip, int top) 
+        throws SQLException {
         if (sid == null || sid < 0) return null;
+
+        Cache cache = getCache ("SubstanceExperimentIdsCache");
+        Element el = cache.get(sid);
+        if (el != null) {
+            return (List<Long>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip != -1) {
@@ -2135,13 +2583,18 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
-        pst.setLong(1, sid);
-        ResultSet rs = pst.executeQuery();
-        List<Long> ret = new ArrayList<Long>();
-        while (rs.next()) ret.add(rs.getLong(1));
-        rs.close();
-        pst.close();
-        return ret;
+        try {
+            pst.setLong(1, sid);
+            ResultSet rs = pst.executeQuery();
+            List<Long> ret = new ArrayList<Long>();
+            while (rs.next()) ret.add(rs.getLong(1));
+            rs.close();
+            cache.put(new Element (sid, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2153,8 +2606,15 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<Experiment> getCompoundExperiment(Long cid, int skip, int top) throws SQLException {
+    public List<Experiment> getCompoundExperiment
+        (Long cid, int skip, int top) throws SQLException {
         if (cid == null || cid < 0) return null;
+
+        Cache cache = getCache ("CompoundExperimentCache");
+        Element el = cache.get(cid);
+        if (el != null) {
+            return (List<Experiment>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip >= 0  && top > 0) {
@@ -2168,13 +2628,18 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where cid = ? order by classification desc,score desc  " + limitClause);
-        pst.setLong(1, cid);
-        ResultSet rs = pst.executeQuery();
-        List<Experiment> ret = new ArrayList<Experiment>();
-        while (rs.next()) ret.add(getExperimentByExptId(rs.getLong(1)));
-        rs.close();
-        pst.close();
-        return ret;
+        try {
+            pst.setLong(1, cid);
+            ResultSet rs = pst.executeQuery();
+            List<Experiment> ret = new ArrayList<Experiment>();
+            while (rs.next()) ret.add(getExperimentByExptId(rs.getLong(1)));
+            rs.close();
+            cache.put(new Element (cid, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2186,8 +2651,15 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<Experiment> getSubstanceExperiment(Long sid, int skip, int top) throws SQLException {
+    public List<Experiment> getSubstanceExperiment
+        (Long sid, int skip, int top) throws SQLException {
         if (sid == null || sid < 0) return null;
+
+        Cache cache = getCache ("SubstanceExperimentCache");
+        Element el = cache.get(sid);
+        if (el != null) {
+            return (List<Experiment>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip >= 0  && top > 0) {
@@ -2201,13 +2673,18 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
-        pst.setLong(1, sid);
-        ResultSet rs = pst.executeQuery();
-        List<Experiment> ret = new ArrayList<Experiment>();
-        while (rs.next()) ret.add(getExperimentByExptId(rs.getLong(1)));
-        rs.close();
-        pst.close();
-        return ret;
+        try {
+            pst.setLong(1, sid);
+            ResultSet rs = pst.executeQuery();
+            List<Experiment> ret = new ArrayList<Experiment>();
+            while (rs.next()) ret.add(getExperimentByExptId(rs.getLong(1)));
+            rs.close();
+            cache.put(new Element (sid, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2219,8 +2696,15 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<Assay> getSubstanceAssays(Long sid, int skip, int top) throws SQLException {
+    public List<Assay> getSubstanceAssays(Long sid, int skip, int top) 
+        throws SQLException {
         if (sid == null || sid < 0) return null;
+
+        Cache cache = getCache ("SubstanceAssaysCache");
+        Element el = cache.get(sid);
+        if (el != null) {
+            return (List<Assay>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip != -1) {
@@ -2229,13 +2713,18 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select distinct b.bard_assay_id from bard_experiment_data a, bard_experiment b where a.sid = ? and a.bard_expt_id = b.bard_expt_id  " + limitClause);
-        pst.setLong(1, sid);
-        ResultSet rs = pst.executeQuery();
-        List<Assay> ret = new ArrayList<Assay>();
-        while (rs.next()) ret.add(getAssayByAid(rs.getLong(1)));
-        rs.close();
-        pst.close();
-        return ret;
+        try {
+            pst.setLong(1, sid);
+            ResultSet rs = pst.executeQuery();
+            List<Assay> ret = new ArrayList<Assay>();
+            while (rs.next()) ret.add(getAssayByAid(rs.getLong(1)));
+            rs.close();
+            cache.put(new Element (sid, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2247,8 +2736,15 @@ public class DBUtils {
      * @return A list of compound SIDs
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Long> getExperimentSids(Long bardExptId, int skip, int top) throws SQLException {
+    public List<Long> getExperimentSids(Long bardExptId, int skip, int top) 
+        throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
+
+        Cache cache = getCache ("ExperimentSidsCache");
+        Element el = cache.get(bardExptId);
+        if (el != null) {
+            return (List<Long>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip != -1) {
@@ -2257,13 +2753,18 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select distinct sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
-        pst.setLong(1, bardExptId);
-        ResultSet rs = pst.executeQuery();
-        List<Long> ret = new ArrayList<Long>();
-        while (rs.next()) ret.add(rs.getLong("sid"));
-        rs.close();
-        pst.close();
-        return ret;
+        try {
+            pst.setLong(1, bardExptId);
+            ResultSet rs = pst.executeQuery();
+            List<Long> ret = new ArrayList<Long>();
+            while (rs.next()) ret.add(rs.getLong("sid"));
+            rs.close();
+            cache.put(new Element (bardExptId, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2275,8 +2776,15 @@ public class DBUtils {
      * @return A list of {@link Compound} objects
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Compound> getExperimentCompounds(Long bardExptId, int skip, int top) throws SQLException {
+    public List<Compound> getExperimentCompounds
+        (Long bardExptId, int skip, int top) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
+
+        Cache cache = getCache ("ExperimentCompoundsCache");
+        Element el = cache.get(bardExptId);
+        if (el != null) {
+            return (List<Compound>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip != -1) {
@@ -2285,16 +2793,21 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
-        pst.setLong(1, bardExptId);
-        ResultSet rs = pst.executeQuery();
-        List<Compound> ret = new ArrayList<Compound>();
-
-        while (rs.next()) {
-            ret.addAll(getCompoundsByCid(rs.getLong("cid")));
+        try {
+            pst.setLong(1, bardExptId);
+            ResultSet rs = pst.executeQuery();
+            List<Compound> ret = new ArrayList<Compound>();
+            
+            while (rs.next()) {
+                ret.addAll(getCompoundsByCid(rs.getLong("cid")));
+            }
+            rs.close();
+            cache.put(new Element (bardExptId, ret));
+            return ret;
         }
-        rs.close();
-        pst.close();
-        return ret;
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2306,8 +2819,15 @@ public class DBUtils {
      * @return A list of {@link Compound} objects
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Compound> getExperimentSubstances(Long bardExptId, int skip, int top) throws SQLException {
+    public List<Compound> getExperimentSubstances
+        (Long bardExptId, int skip, int top) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
+
+        Cache cache = getCache ("ExperimentSubstancesCache");
+        Element el = cache.get(bardExptId);
+        if (el != null) {
+            return (List<Compound>)el.getObjectValue();
+        }
 
         String limitClause = "";
         if (skip != -1) {
@@ -2316,16 +2836,22 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
-        pst.setLong(1, bardExptId);
-        ResultSet rs = pst.executeQuery();
-        List<Compound> ret = new ArrayList<Compound>();
-
-        while (rs.next()) {
-            // TODO should return a Substance entity
-            ret.addAll(getCompoundsBySid(rs.getLong("sid")));
+        try {
+            pst.setLong(1, bardExptId);
+            ResultSet rs = pst.executeQuery();
+            List<Compound> ret = new ArrayList<Compound>();
+            
+            while (rs.next()) {
+                // TODO should return a Substance entity
+                ret.addAll(getCompoundsBySid(rs.getLong("sid")));
+            }
+            rs.close();
+            cache.put(new Element (bardExptId, ret));
+            return ret;
         }
-        pst.close();
-        return ret;
+        finally {
+            pst.close();
+        }
     }
 
 
@@ -2340,21 +2866,34 @@ public class DBUtils {
      */
     public List<Publication> getAssayPublications(Long bardAssayId) throws SQLException {
         if (bardAssayId == null || bardAssayId <= 0) return null;
-        PreparedStatement pst2 = conn.prepareStatement("select a.* from publication a, assay_pub b where b.bard_assay_id = ? and b.pmid = a.pmid");
-        pst2.setLong(1, bardAssayId);
-        ResultSet rs2 = pst2.executeQuery();
-        List<Publication> pubs = new ArrayList<Publication>();
-        while (rs2.next()) {
-            Publication p = new Publication();
-            p.setDoi(rs2.getString("doi"));
-            p.setTitle(rs2.getString("title"));
-            p.setPubmedId(rs2.getLong("pmid"));
-            p.setAbs(rs2.getString("abstract"));
-            pubs.add(p);
+
+        Cache cache = getCache ("AssayPublicationsCache");
+        Element el = cache.get(bardAssayId);
+        if (el != null) {
+            return (List<Publication>)el.getObjectValue();
         }
-        rs2.close();
-        pst2.close();
-        return pubs;
+
+        PreparedStatement pst2 = conn.prepareStatement("select a.* from publication a, assay_pub b where b.bard_assay_id = ? and b.pmid = a.pmid");
+        try {
+            pst2.setLong(1, bardAssayId);
+            ResultSet rs2 = pst2.executeQuery();
+            List<Publication> pubs = new ArrayList<Publication>();
+            while (rs2.next()) {
+                Publication p = new Publication();
+                p.setDoi(rs2.getString("doi"));
+                p.setTitle(rs2.getString("title"));
+                p.setPubmedId(rs2.getLong("pmid"));
+                p.setAbs(rs2.getString("abstract"));
+                pubs.add(p);
+            }
+            rs2.close();
+
+            cache.put(new Element (bardAssayId, pubs));
+            return pubs;
+        }
+        finally {
+            pst2.close();
+        }
     }
 
     /**
@@ -2363,24 +2902,37 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<ProteinTarget> getAssayTargets(Long bardAssayId) throws SQLException {
-        PreparedStatement pst2 = conn.prepareStatement("select a.* from protein_target a, assay_target b where b.bard_assay_id = ? and a.gene_id = b.gene_id");
-        pst2.setLong(1, bardAssayId);
-        ResultSet rs2 = pst2.executeQuery();
-        List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
-        while (rs2.next()) {
-            ProteinTarget t = new ProteinTarget();
-            t.setDescription(rs2.getString("description"));
-            t.setGeneId(rs2.getLong("gene_id"));
-            t.setName(rs2.getString("name"));
-            t.setStatus(rs2.getString("uniprot_status"));
-            t.setAcc(rs2.getString("accession"));
-            t.setTaxId(rs2.getLong("taxid"));
-            targets.add(t);
+    public List<ProteinTarget> getAssayTargets(Long bardAssayId) 
+        throws SQLException {
+
+        Cache cache = getCache ("AssayTargetsCache");
+        Element el = cache.get(bardAssayId);
+        if (el != null) {
+            return (List<ProteinTarget>)el.getObjectValue();
         }
-        rs2.close();
-        pst2.close();
-        return targets;
+
+        PreparedStatement pst2 = conn.prepareStatement("select a.* from protein_target a, assay_target b where b.bard_assay_id = ? and a.gene_id = b.gene_id");
+        try {
+            pst2.setLong(1, bardAssayId);
+            ResultSet rs2 = pst2.executeQuery();
+            List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
+            while (rs2.next()) {
+                ProteinTarget t = new ProteinTarget();
+                t.setDescription(rs2.getString("description"));
+                t.setGeneId(rs2.getLong("gene_id"));
+                t.setName(rs2.getString("name"));
+                t.setStatus(rs2.getString("uniprot_status"));
+                t.setAcc(rs2.getString("accession"));
+                t.setTaxId(rs2.getLong("taxid"));
+                targets.add(t);
+            }
+            rs2.close();
+            cache.put(new Element (bardAssayId, targets));
+            return targets;
+        }
+        finally {
+            pst2.close();
+        }
     }
 
     /**
@@ -2390,7 +2942,15 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<ProteinTarget> getProjectTargets(Long bardProjectid) throws SQLException {
+    public List<ProteinTarget> getProjectTargets(Long bardProjectid) 
+        throws SQLException {
+
+        Cache cache = getCache ("ProjectTargetsCache");
+        Element el = cache.get(bardProjectid);
+        if (el != null) {
+            return (List<ProteinTarget>)el.getObjectValue();
+        }
+        
         PreparedStatement pst2 = null;
         ResultSet rs2 = null;
         List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
@@ -2409,6 +2969,8 @@ public class DBUtils {
                 t.setTaxId(rs2.getLong("taxid"));
                 targets.add(t);
             }
+            
+            cache.put(new Element (bardProjectid, targets));
         } finally {
             if (rs2 != null) rs2.close();
             if (pst2 != null) pst2.close();
@@ -2434,6 +2996,13 @@ public class DBUtils {
      * @deprecated
      */
     public List<Assay> searchForAssay(String query) throws SQLException {
+
+        Cache cache = getCache ("SearchAssayCache");
+        Element el = cache.get(query);
+        if (el != null) {
+            return (List<Assay>)el.getObjectValue();
+        }
+
         boolean freeTextQuery = false;
 
         if (!query.contains("[")) freeTextQuery = true;
@@ -2454,28 +3023,43 @@ public class DBUtils {
             String sql = "select bard_assay_id from bard_assay where " + field + " like '%" + q + "%'";
             pst = conn.prepareStatement(sql);
         }
+        try {
+            ResultSet rs = pst.executeQuery();
+            List<Assay> assays = new ArrayList<Assay>();
+            while (rs.next()) {
+                Long aid = rs.getLong("bard_assay_id");
+                assays.add(getAssayByAid(aid));
+            }
+            rs.close();
 
-        ResultSet rs = pst.executeQuery();
-        List<Assay> assays = new ArrayList<Assay>();
-        while (rs.next()) {
-            Long aid = rs.getLong("bard_assay_id");
-            assays.add(getAssayByAid(aid));
+            cache.put(new Element (query, assays));
+            return assays;
         }
-        rs.close();
-        pst.close();
-
-        return assays;
+        finally {
+            pst.close();
+        }
     }
 
 
     public List<Assay> getAssaysByExperimentId(Long eid) throws SQLException {
+        Cache cache = getCache ("AssaysByExperimentIdCache");
+        Element el = cache.get(eid);
+        if (el != null) {
+            return (List<Assay>)el.getObjectValue();
+        }
         PreparedStatement pst = conn.prepareStatement("select distinct bard_assay_id from bard_experiment where bard_expt_id = ?");
-        pst.setLong(1, eid);
-        List<Assay> assays = new ArrayList<Assay>();
-        ResultSet rs = pst.executeQuery();
-        while (rs.next()) assays.add(getAssayByAid(rs.getLong(1)));
-        pst.close();
-        return assays;
+        try {
+            pst.setLong(1, eid);
+            List<Assay> assays = new ArrayList<Assay>();
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) assays.add(getAssayByAid(rs.getLong(1)));
+            rs.close();
+            cache.put(new Element (eid, assays));
+            return assays;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2484,14 +3068,27 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<Assay> getAssaysByTargetAccession(String acc) throws SQLException {
+    public List<Assay> getAssaysByTargetAccession(String acc) 
+        throws SQLException {
+        Cache cache = getCache ("AssaysByTargetAccessionCache");
+        Element el = cache.get(acc);
+        if (el != null) {
+            return (List<Assay>)el.getObjectValue();
+        }
+
         PreparedStatement pst = conn.prepareStatement("select distinct b.bard_assay_id from protein_target a, assay_target b where a.accession = ? and a.accession = b.accession");
-        pst.setString(1, acc);
-        List<Assay> assays = new ArrayList<Assay>();
-        ResultSet rs = pst.executeQuery();
-        while (rs.next()) assays.add(getAssayByAid(rs.getLong(1)));
-        pst.close();
-        return assays;
+        try {
+            pst.setString(1, acc);
+            List<Assay> assays = new ArrayList<Assay>();
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) assays.add(getAssayByAid(rs.getLong(1)));
+            rs.close();
+            cache.put(new Element (acc, assays));
+            return assays;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2500,28 +3097,50 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<Assay> getAssaysByTargetGeneid(Long geneid) throws SQLException {
+    public List<Assay> getAssaysByTargetGeneid(Long geneid) 
+        throws SQLException {
+        Cache cache = getCache ("AssaysByTargetGeneidCache");
+        Element el = cache.get(geneid);
+        if (el != null) {
+            return (List<Assay>)el.getObjectValue();
+        }
         PreparedStatement pst = conn.prepareStatement("select distinct b.bard_assay_id from protein_target a, assay_target b where a.gene_id = ? and a.accession = b.accession");
-        pst.setLong(1, geneid);
-        List<Assay> assays = new ArrayList<Assay>();
-        ResultSet rs = pst.executeQuery();
-        while (rs.next()) assays.add(getAssayByAid(rs.getLong(1)));
-        rs.close();
-        pst.close();
-        return assays;
+        try {
+            pst.setLong(1, geneid);
+            List<Assay> assays = new ArrayList<Assay>();
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) assays.add(getAssayByAid(rs.getLong(1)));
+            rs.close();
+            cache.put(new Element (geneid, assays));
+            return assays;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     
     public List<Long> getProjectIds() throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select bard_proj_id from bard_project");
-        ResultSet rs = pst.executeQuery();
-        List<Long> ret = new ArrayList<Long>();
-        while (rs.next()) {
-            ret.add(rs.getLong(1));
+        Cache cache = getCache ("ProjectIdsCache");
+        Element el = cache.get("all");
+        if (el != null) {
+            return (List)el.getObjectValue();
         }
-        rs.close();
-        pst.close();
-        return ret;
+
+        PreparedStatement pst = conn.prepareStatement("select bard_proj_id from bard_project");
+        try {
+            ResultSet rs = pst.executeQuery();
+            List<Long> ret = new ArrayList<Long>();
+            while (rs.next()) {
+                ret.add(rs.getLong(1));
+            }
+            rs.close();
+            cache.put(new Element ("all", ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2531,15 +3150,26 @@ public class DBUtils {
      * @throws SQLException
      */
     public List<Long> getAssayCount() throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select bard_assay_id from bard_assay order by bard_assay_id");
-        ResultSet rs = pst.executeQuery();
-        List<Long> ret = new ArrayList<Long>();
-        while (rs.next()) {
-            ret.add(rs.getLong(1));
+        Cache cache = getCache ("AssayCountCache");
+        Element el = cache.get("all");
+        if (el != null) {
+            return (List)el.getObjectValue();
         }
-        rs.close();
-        pst.close();
-        return ret;
+
+        PreparedStatement pst = conn.prepareStatement("select bard_assay_id from bard_assay order by bard_assay_id");
+        try {
+            ResultSet rs = pst.executeQuery();
+            List<Long> ret = new ArrayList<Long>();
+            while (rs.next()) {
+                ret.add(rs.getLong(1));
+            }
+            rs.close();
+            cache.put(new Element ("all", ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2549,19 +3179,36 @@ public class DBUtils {
      * @throws SQLException
      */
     public List<Long> getExperimentIds() throws SQLException {
-        PreparedStatement pst = conn.prepareStatement("select bard_expt_id from bard_experiment order by bard_expt_id");
-        ResultSet rs = pst.executeQuery();
-        List<Long> ret = new ArrayList<Long>();
-        while (rs.next()) {
-            ret.add(rs.getLong("bard_expt_id"));
+        Cache cache = getCache ("ExperimentIdsCache");
+        Element el = cache.get("all");
+        if (el != null) {
+            return (List)el.getObjectValue();
         }
-        rs.close();
-        pst.close();
-        return ret;
+
+        PreparedStatement pst = conn.prepareStatement("select bard_expt_id from bard_experiment order by bard_expt_id");
+        try {
+            ResultSet rs = pst.executeQuery();
+            List<Long> ret = new ArrayList<Long>();
+            while (rs.next()) {
+                ret.add(rs.getLong("bard_expt_id"));
+            }
+            rs.close();
+            cache.put(new Element ("all", ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     // TOOD handle depositor id - should resolve the integer to a string
     public Project getProject(Long bardProjId) throws SQLException {
+        Cache cache = getCache ("ProjectCache");
+        Element el = cache.get(bardProjId);
+        if (el != null) {
+            return (Project)el.getObjectValue();
+        }
+
         Project p = null;
         PreparedStatement pst = conn.prepareStatement("select * from bard_project where bard_proj_id = ?");
         try {
@@ -2575,6 +3222,8 @@ public class DBUtils {
                 p.setDeposited(rs.getDate("deposited"));
             }
             rs.close();
+
+            cache.put(new Element (bardProjId, p));
         } finally {
             pst.close();
         }
@@ -2672,19 +3321,32 @@ public class DBUtils {
      * @return A {@link Project} object
      * @throws SQLException
      */
-    public List<Project> getProjectByExperimentId(Long bardExptId) throws SQLException {
+    public List<Project> getProjectByExperimentId(Long bardExptId) 
+        throws SQLException {
+
+        Cache cache = getCache ("ProjectByExperimentIdCache");
+        Element el = cache.get(bardExptId);
+        if (el != null) {
+            return (List<Project>)el.getObjectValue();
+        }
 
         PreparedStatement pst = conn.prepareStatement("select bard_proj_id from bard_project_experiment where bard_expt_id = ?");
-        pst.setLong(1, bardExptId);
-        ResultSet rs = pst.executeQuery();
-        List<Project> ps = new ArrayList<Project>();
-        while (rs.next()) {
-            Project project = getProject(rs.getLong("bard_proj_id"));
-            if (project != null) ps.add(project);
+        try {
+            pst.setLong(1, bardExptId);
+            ResultSet rs = pst.executeQuery();
+            List<Project> ps = new ArrayList<Project>();
+            while (rs.next()) {
+                Project project = getProject(rs.getLong("bard_proj_id"));
+                if (project != null) ps.add(project);
+            }
+            rs.close();
+
+            cache.put(new Element (bardExptId, ps));
+            return ps;
         }
-        rs.close();
-        pst.close();
-        return ps;
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -2693,25 +3355,54 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<Project> getProjectByAssayId(Long bardAssayId) throws SQLException {
+    public List<Project> getProjectByAssayId(Long bardAssayId) 
+        throws SQLException {
+        Cache cache = getCache ("ProjectByAssayIdCache");
+        Element el = cache.get(bardAssayId);
+        if (el != null) {
+            return (List<Project>)el.getObjectValue();
+        }
+
         PreparedStatement pst = conn.prepareStatement("select distinct b.bard_proj_id from bard_experiment a, bard_project_experiment b where a.bard_assay_id = ? and a.bard_expt_id = b.bard_expt_id");
-        pst.setLong(1, bardAssayId);
-        ResultSet rs = pst.executeQuery();
-        List<Long> pids = new ArrayList<Long>();
-        while (rs.next()) pids.add(rs.getLong("bard_proj_id"));
-        rs.close();
-        pst.close();
-        return getProjects(pids.toArray(new Long[pids.size()]));
+        try {
+            pst.setLong(1, bardAssayId);
+            ResultSet rs = pst.executeQuery();
+            List<Long> pids = new ArrayList<Long>();
+            while (rs.next()) pids.add(rs.getLong("bard_proj_id"));
+            rs.close();
+
+            List<Project> projs = getProjects
+                (pids.toArray(new Long[pids.size()]));
+
+            cache.put(new Element (bardAssayId, projs));
+            return projs;
+        }
+        finally {
+            pst.close();
+        }
     }
 
-    public List<Long> getProbesForProject(Long bardExptId) throws SQLException {
+    public List<Long> getProbesForProject(Long bardExptId) 
+        throws SQLException {
+        Cache cache = getCache ("ProbesForProjectCache");
+        Element el = cache.get(bardExptId);
+        if (el != null) {
+            return (List<Long>)el.getObjectValue();
+        }
+
         PreparedStatement pst = conn.prepareStatement("select a.cid from bard_experiment_data a, compound b where b.probe_id is not null and a.bard_expt_id = ? and a.cid = b.cid");
-        pst.setLong(1, bardExptId);
-        ResultSet rs = pst.executeQuery();
-        List<Long> probeids = new ArrayList<Long>();
-        while (rs.next()) probeids.add(rs.getLong("cid"));
-        rs.close();
-        return probeids;
+        try {
+            pst.setLong(1, bardExptId);
+            ResultSet rs = pst.executeQuery();
+            List<Long> probeids = new ArrayList<Long>();
+            while (rs.next()) probeids.add(rs.getLong("cid"));
+            rs.close();
+            cache.put(new Element (bardExptId, probeids));
+            return probeids;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /* ****************/
@@ -2719,6 +3410,13 @@ public class DBUtils {
     /* ****************/
 
     public List<ExperimentData> searchForExperimentData(String query, int skip, int top) throws SQLException, IOException {
+
+        Cache cache = getCache ("SearchForExperimentDataCache");
+        Element el = cache.get(query);
+        if (el != null) {
+            return (List<ExperimentData>)el.getObjectValue();
+        }
+
         boolean freeTextQuery = false;
 
         if (!query.contains("[")) freeTextQuery = true;
@@ -2743,6 +3441,7 @@ public class DBUtils {
         }
         rs.close();
         pst.close();
+        cache.put(new Element (query, experimentData));
         return experimentData;
     }
 
@@ -2844,6 +3543,12 @@ public class DBUtils {
                 + queryParams.getOrderField() + "  " + limitClause;
         }
 
+        Cache cache = getCache ("SearchForEntityCache");
+        Element el = cache.get(sql);
+        if (el != null) {
+            return (List)el.getObjectValue();
+        }
+
         log.info("## SQL: "+sql);
 
         pst = conn.prepareStatement(sql);
@@ -2866,6 +3571,8 @@ public class DBUtils {
         }
         rs.close();
         pst.close();
+
+        cache.put(new Element (sql, entities));
         return entities;
     }
 
@@ -2955,72 +3662,113 @@ public class DBUtils {
      * @throws SQLException
      */
     public List<CAPAssayAnnotation> getAssayAnnotations(Long bardAssayId) throws SQLException {
+
+        Cache cache = getCache ("AssayAnnotationsCache");
+        Element el = cache.get(bardAssayId);
+        if (el != null) {
+            return (List)el.getObjectValue();
+        }
+        
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a, bard_assay b where b.bard_assay_id = ? and a.assay_id = b.cap_assay_id and a.source = 'cap'");
-        pst.setLong(1, bardAssayId);
-        ResultSet rs = pst.executeQuery();
-        List<CAPAssayAnnotation> annos = new ArrayList<CAPAssayAnnotation>();
-        while (rs.next()) {
-            String anno_id = rs.getString("anno_id");
-            String anno_key = rs.getString("anno_key");
-            String anno_value = rs.getString("anno_value");
-            String anno_display = rs.getString("anno_display");
-            String source = rs.getString("source");
-
-            String related = rs.getString("related");
-            String extValueId = null;
-            if (related != null && !related.trim().equals("")) {
-                String[] toks = related.split("\\|");
-                if (toks.length == 2) extValueId = toks[1];
+        try {
+            pst.setLong(1, bardAssayId);
+            ResultSet rs = pst.executeQuery();
+            List<CAPAssayAnnotation> annos = new ArrayList<CAPAssayAnnotation>();
+            while (rs.next()) {
+                String anno_id = rs.getString("anno_id");
+                String anno_key = rs.getString("anno_key");
+                String anno_value = rs.getString("anno_value");
+                String anno_display = rs.getString("anno_display");
+                String source = rs.getString("source");
+                
+                String related = rs.getString("related");
+                String extValueId = null;
+                if (related != null && !related.trim().equals("")) {
+                    String[] toks = related.split("\\|");
+                    if (toks.length == 2) extValueId = toks[1];
+                }
+                // TODO Updated the related annotations field to support grouping
+                CAPAssayAnnotation anno = new CAPAssayAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source);
+                annos.add(anno);
             }
-            // TODO Updated the related annotations field to support grouping
-            CAPAssayAnnotation anno = new CAPAssayAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source);
-            annos.add(anno);
+            rs.close();
+
+            cache.put(new Element (bardAssayId, annos));
+            return annos;
         }
-        rs.close();
-        pst.close();
-        return annos;
+        finally {
+            pst.close();
+        }
     }
 
-    public List<CAPAssayAnnotation> getProjectAnnotations(Long bardProjectId) throws SQLException {
+    public List<CAPAssayAnnotation> getProjectAnnotations(Long bardProjectId) 
+        throws SQLException {
+        Cache cache = getCache ("ProjectAnnotationsCache");
+        Element el = cache.get(bardProjectId);
+        if (el != null) {
+            return (List)el.getObjectValue();
+        }
+
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id and a.source = 'cap'");
-        pst.setLong(1, bardProjectId);
-        ResultSet rs = pst.executeQuery();
-        List<CAPAssayAnnotation> annos = new ArrayList<CAPAssayAnnotation>();
-        while (rs.next()) {
-            String anno_id = rs.getString("anno_id");
-            String anno_key = rs.getString("anno_key");
-            String anno_value = rs.getString("anno_value");
-            String anno_display = rs.getString("anno_display");
-            String source = rs.getString("source");
-
-            String related = rs.getString("related");
-            String extValueId = null;
-            if (related != null && !related.trim().equals("")) {
-                String[] toks = related.split("\\|");
-                if (toks.length == 2) extValueId = toks[1];
+        try {
+            pst.setLong(1, bardProjectId);
+            ResultSet rs = pst.executeQuery();
+            List<CAPAssayAnnotation> annos = new ArrayList<CAPAssayAnnotation>();
+            while (rs.next()) {
+                String anno_id = rs.getString("anno_id");
+                String anno_key = rs.getString("anno_key");
+                String anno_value = rs.getString("anno_value");
+                String anno_display = rs.getString("anno_display");
+                String source = rs.getString("source");
+                
+                String related = rs.getString("related");
+                String extValueId = null;
+                if (related != null && !related.trim().equals("")) {
+                    String[] toks = related.split("\\|");
+                    if (toks.length == 2) extValueId = toks[1];
+                }
+                CAPAssayAnnotation anno = new CAPAssayAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source);
+                annos.add(anno);
             }
-            CAPAssayAnnotation anno = new CAPAssayAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source);
-            annos.add(anno);
+            rs.close();
+
+            cache.put(new Element (bardProjectId, annos));
+            return annos;
         }
-        rs.close();
-        pst.close();
-        return annos;
+        finally {
+            pst.close();
+        }
     }
 
-    public CAPDictionary getCAPDictionary() throws SQLException, IOException, ClassNotFoundException {
+    public CAPDictionary getCAPDictionary() 
+        throws SQLException, IOException, ClassNotFoundException {
+
+        Cache cache = getCache ("CAPDictionaryCache");
+        Element el = cache.get("cap");
+        if (el != null) {
+            return (CAPDictionary)el.getObjectValue();
+        }
+
         PreparedStatement pst = conn.prepareStatement("select dict, ins_date from cap_dict_obj order by ins_date desc");
-        ResultSet rs = pst.executeQuery();
-        rs.next();
-        byte[] buf = rs.getBytes(1);
-        log.info("Retrived CAP dictionary blob with ins_date = "+rs.getDate(2));
-        ObjectInputStream objectIn = null;
-        if (buf != null)
-            objectIn = new ObjectInputStream(new ByteArrayInputStream(buf));
-        Object o = objectIn.readObject();
-        rs.close();
-        pst.close();
-        if (!(o instanceof CAPDictionary)) return null;
-        return (CAPDictionary) o;
+        try {
+            ResultSet rs = pst.executeQuery();
+            rs.next();
+            byte[] buf = rs.getBytes(1);
+            log.info("Retrived CAP dictionary blob with ins_date = "+rs.getDate(2));
+            ObjectInputStream objectIn = null;
+            if (buf != null)
+                objectIn = new ObjectInputStream(new ByteArrayInputStream(buf));
+            Object o = objectIn.readObject();
+            rs.close();
+
+            if (!(o instanceof CAPDictionary)) return null;
+
+            cache.put(new Element ("cap", o));
+            return (CAPDictionary) o;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -3057,7 +3805,9 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public <T> List<T> getEntitiesByActiveCid(Long cid, Class<T> entity, Integer skip, Integer top) throws SQLException {
+    public <T> List<T> getEntitiesByActiveCid
+        (Long cid, Class<T> entity, Integer skip, Integer top) 
+        throws SQLException {
         String sql = null;
         PreparedStatement pst;
 
@@ -3096,20 +3846,31 @@ public class DBUtils {
             sql = "select distinct bard_expt_id from bard_experiment_data where cid = ? and outcome = 2 order by classification desc, score desc "+limitClause;
         }
 
-        pst = conn.prepareStatement(sql);
-        pst.setLong(1, cid);
-        ResultSet rs = pst.executeQuery();
-        List<T> ret = new ArrayList<T>();
-        while (rs.next()) {
-            if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(rs.getLong(1)));
-            else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(rs.getLong(1)));
-            else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(rs.getLong(1)));
-            else if (entity.isAssignableFrom(Experiment.class)) ret.add((T) getExperimentByExptId(rs.getLong(1)));
-            else if (entity.isAssignableFrom(ExperimentData.class)) ret.add((T) getExperimentDataByDataId(rs.getString(1)));
+        Cache cache = getCache ("EntitiesByActiveCid");
+        Element el = cache.get(sql);
+        if (el != null) {
+            return (List)el.getObjectValue();
         }
-        rs.close();
-        pst.close();
-        return ret;
+
+        pst = conn.prepareStatement(sql);
+        try {
+            pst.setLong(1, cid);
+            ResultSet rs = pst.executeQuery();
+            List<T> ret = new ArrayList<T>();
+            while (rs.next()) {
+                if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Experiment.class)) ret.add((T) getExperimentByExptId(rs.getLong(1)));
+                else if (entity.isAssignableFrom(ExperimentData.class)) ret.add((T) getExperimentDataByDataId(rs.getString(1)));
+            }
+            rs.close();
+            cache.put(new Element (sql, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     public <T> List<T> getEntitiesByCid(Long cid, Class<T> entity, Integer skip, Integer top) throws SQLException {
@@ -3159,20 +3920,31 @@ public class DBUtils {
             sql = "select distinct bard_expt_id from bard_experiment_data where cid = ? order by classification desc, score desc "+limitClause;
         }
 
-        pst = conn.prepareStatement(sql);
-        pst.setLong(1, cid);
-        ResultSet rs = pst.executeQuery();
-        List<T> ret = new ArrayList<T>();
-        while (rs.next()) {
-            if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(rs.getLong(1)));
-            else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(rs.getLong(1)));
-            else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(rs.getLong(1)));
-            else if (entity.isAssignableFrom(Experiment.class)) ret.add((T) getExperimentByExptId(rs.getLong(1)));
-            else if (entity.isAssignableFrom(ExperimentData.class)) ret.add((T) getExperimentDataByDataId(rs.getString(1)));
+        Cache cache = getCache ("EntitiesByCidCache");
+        Element el = cache.get(sql);
+        if (el != null) {
+            return (List)el.getObjectValue();
         }
-        rs.close();
-        pst.close();
-        return ret;
+
+        pst = conn.prepareStatement(sql);
+        try {
+            pst.setLong(1, cid);
+            ResultSet rs = pst.executeQuery();
+            List<T> ret = new ArrayList<T>();
+            while (rs.next()) {
+                if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Experiment.class)) ret.add((T) getExperimentByExptId(rs.getLong(1)));
+                else if (entity.isAssignableFrom(ExperimentData.class)) ret.add((T) getExperimentDataByDataId(rs.getString(1)));
+            }
+            rs.close();
+            cache.put(new Element (sql, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
 

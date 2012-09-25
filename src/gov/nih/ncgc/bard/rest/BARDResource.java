@@ -74,6 +74,8 @@ public abstract class BARDResource<T extends BardEntity>
             }
             System.err.println(" " + etagsRequested.size());
         }
+
+        System.err.println("## Request URI: "+getRequestURI ());
     }
 
     protected List<EntityTag> getETagsRequested() {
