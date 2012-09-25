@@ -3922,6 +3922,12 @@ public class DBUtils {
     }
 
     public Map<String, Object> getProjectSumary(Long projectId) throws SQLException {
+        Cache cache = getCache ("ProjectSummaryCache");
+        Element el = cache.get(projectId);
+        if (el != null) {
+            return (Map<String, Object>)el.getObjectValue();
+        }
+
         Project project = getProject(projectId);
         if (project == null || project.getProjectId() == null)
             return null;
@@ -3959,6 +3965,8 @@ public class DBUtils {
         ret.put("assay_count", nassay);
         ret.put("experiment_count", nexpt);
         ret.put("experiments", expts);
+
+        cache.put(new Element (projectId, ret));
 
         return ret;
     }
