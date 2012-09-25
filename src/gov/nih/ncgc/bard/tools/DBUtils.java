@@ -3937,6 +3937,14 @@ public class DBUtils {
         }
         pst.close();
 
+        List<Experiment> expts = new ArrayList<Experiment>();
+        pst = conn.prepareStatement("select * from project_experiment where proj_id = ?");
+        pst.setLong(1, projectId);
+        rs = pst.executeQuery();
+        while (rs.next()) expts.add(getExperimentByExptId(rs.getLong("bard_expt_id")));
+        pst.close();
+        nexpt = expts.size();
+
         List<Long> probeIds = getProbeCidsForProject(projectId);
         List<Compound> probes = getCompoundsByCid(probeIds.toArray(new Long[]{}));
 
@@ -3950,6 +3958,7 @@ public class DBUtils {
         ret.put("cmpd_synthesis_count", syncount);
         ret.put("assay_count", nassay);
         ret.put("experiment_count", nexpt);
+        ret.put("experiments", expts);
 
         return ret;
     }
