@@ -4,6 +4,8 @@ package gov.nih.ncgc.bard.pcparser;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -11,6 +13,7 @@ import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.BitSet;
@@ -1073,14 +1076,33 @@ public class PubChemAssayParser implements Constants {
 //
 //        System.exit(0);
         
+	BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream("ExptTIDs_merged.txt")));
+	String[] header = br.readLine().split("\t");
+	String line;
+	Map<String, Map<String, String>> exptTIDs = new HashMap<String, Map<String,String>>();
+	while ((line = br.readLine()) != null) {
+	    String[] sline = line.split("\t");
+	    String bardExptID = sline[0];
+	    String pubChemAID = sline[1];
+	    String TID = sline[2];
+	    String key = bardExptID+":"+pubChemAID+":"+TID;
+	    Map<String,String> entry = new HashMap<String,String>();
+	    for (int i=0; i<sline.length; i++) {
+		entry.put(header[i], sline[i]);
+	    }
+	    exptTIDs.put(key, entry);
+	}
+		
 	Connection conn;
 	try {
 	    conn = CAPUtil.connectToBARD();
+	    conn.setAutoCommit(false);
+	    PreparedStatement erdUpdate = conn.prepareStatement("update bard_experiment set bard_expt_result_def=? where bard_expt_id=?");
 	    Statement st = conn.createStatement();
 	    st.execute("select bard_expt_id, pubchem_aid, expt_result_def from bard_experiment"); // where pubchem_aid=2551");
 	    ResultSet result = st.getResultSet();
 	    
-	    System.out.println("BardExptID|PubChemAID|"+ResultType.printHeader());
+//	    System.out.println("BardExptID|PubChemAID|"+ResultType.printHeader());
 	    while (result.next()) {
 		String json = result.getString(3);
 		ObjectMapper mapper = new ObjectMapper ();
@@ -1090,9 +1112,61 @@ public class PubChemAssayParser implements Constants {
 		    assignDataTypes(exptDef);
 		    int bardExptId = result.getInt(1);
 		    int pubchemAID = result.getInt(2);
-		    for (ResultType rt: exptDef) { 
-			System.out.println(bardExptId+"|"+pubchemAID+"|"+rt.print());
+//		    for (ResultType rt: exptDef) { 
+//			System.out.println(bardExptId+"|"+pubchemAID+"|"+rt.print());
+//		    }
+		    for (ResultType rt: exptDef) {
+			String key = bardExptId+":"+pubchemAID+":"+rt.getTID();
+			Map<String,String> entry = exptTIDs.get(key);
+			if (!entry.get("DataTypeElem").equals(String.valueOf(rt.getDataType().getElem()))) {
+			    System.out.println("Updated data type: "+key+" |"+rt.getDataType()+":"+entry.get("DataType"));
+			    DataType dataType = DataType.getDataType(entry.get("DataType"));
+			    if (dataType == null) {
+				System.err.println("Data Type not found:"+entry.get("DataType"));
+//				System.exit(1);
+			    } else {
+				rt.setDataType(dataType);
+			    }
+			}
+			if (!entry.get("ContextGroup").equals(String.valueOf(rt.getContextGroup()))) {
+			    System.out.println("Updated ContextGroup: "+key+" |"+rt.getContextGroup()+":"+entry.get("ContextGroup"));
+			    rt.setContextGroup(Integer.valueOf(entry.get("ContextGroup")));
+			}
+			if (!entry.get("TestConcUnit").toLowerCase().equals(rt.getTestConcUnit().toString())) {
+			    System.out.println("Updated TestConcUnit: "+key+" |"+rt.getTestConcUnit()+":"+entry.get("TestConcUnit"));
+			    Unit unit = Unit.getUnit(entry.get("TestConcUnit").toLowerCase());
+			    if (unit == null) {
+				System.err.println("Unit not found:"+entry.get("TestConcUnit"));
+				System.exit(1);
+			    }
+			    rt.setTestConcUnit(unit);
+			}
+			if (entry.get("TestConcValue") != null && entry.get("TestConcValue").length() > 0 && entry.get("TestConcValue").indexOf(',') == -1) {
+			    Double[] entryValue = new Double[1];
+			    entryValue[0] = Double.valueOf(entry.get("TestConcValue"));
+			    Double[] rtValue = rt.getTestConcentration();
+			    if (rtValue.length == 0 || rtValue.length == 1 && !entryValue[0].equals(rtValue[0])) {
+				System.out.println("Updated TestConcValue: "+key+" |"+rtValue[0]+":"+entryValue[0]);
+				rt.setTestConcentration(entryValue);
+			    }
+			}
 		    }
+		    
+		    // remove DoseResponse resultTypes as they are now out-of-date anyway [contextTIDs, concs, etc.]
+		    for (int i=exptDef.size()-1; i>-1; i--) {
+			ResultType rt = exptDef.get(i);
+			if (rt.getType().equals(Type.DoseResponse))
+			    exptDef.remove(rt);
+		    }
+		    
+		    erdUpdate.setInt(2, bardExptId);
+		    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		    mapper.writeValue(baos, exptDef);
+		    String jsonOut = new String(baos.toByteArray());
+		    System.out.println(bardExptId+":"+jsonOut);
+		    erdUpdate.setString(1, jsonOut);
+//		    erdUpdate.executeUpdate();
+//		    conn.commit();
 		}
 	    }
 	    result.close();

@@ -61,6 +61,7 @@ public class ResultType implements Constants, Serializable {
     protected Unit testConcUnit = Unit.none;
 
     protected Constants.DataType dataType = Constants.DataType.Unknown;
+    protected int dataTypeElem = Constants.DataType.Unknown.getElem();
     
     int contextGroup = -1;
     
@@ -101,7 +102,10 @@ public class ResultType implements Constants, Serializable {
     public void setTestConcUnit (Unit unit) { testConcUnit = unit; }
 
     public Constants.DataType getDataType () { return dataType; }
-    public void setDataType (Constants.DataType dataType) { this.dataType = dataType; }
+    public void setDataType (Constants.DataType dataType) { this.dataType = dataType; dataTypeElem = dataType.getElem();}
+
+    public int getDataTypeElem () { return dataType.getElem(); }
+    public void setDataTypeElem (int elem) { this.dataType = DataType.getDataType(elem); dataTypeElem = elem;}
 
     public int getContextGroup () { return contextGroup; }
     public void setContextGroup (int contextGroup) { this.contextGroup = contextGroup; }
