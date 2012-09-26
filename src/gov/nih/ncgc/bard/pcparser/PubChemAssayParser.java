@@ -1099,7 +1099,7 @@ public class PubChemAssayParser implements Constants {
 	    conn.setAutoCommit(false);
 	    PreparedStatement erdUpdate = conn.prepareStatement("update bard_experiment set bard_expt_result_def=? where bard_expt_id=?");
 	    Statement st = conn.createStatement();
-	    st.execute("select bard_expt_id, pubchem_aid, expt_result_def from bard_experiment"); // where pubchem_aid=2551");
+	    st.execute("select bard_expt_id, pubchem_aid, expt_result_def from bard_experiment where bard_expt_id"); // where pubchem_aid=2551");
 	    ResultSet result = st.getResultSet();
 	    
 //	    System.out.println("BardExptID|PubChemAID|"+ResultType.printHeader());
@@ -1130,7 +1130,9 @@ public class PubChemAssayParser implements Constants {
 			}
 			if (!entry.get("ContextGroup").equals(String.valueOf(rt.getContextGroup()))) {
 			    System.out.println("Updated ContextGroup: "+key+" |"+rt.getContextGroup()+":"+entry.get("ContextGroup"));
-			    rt.setContextGroup(Integer.valueOf(entry.get("ContextGroup")));
+			    try {
+				rt.setContextGroup(Integer.valueOf(entry.get("ContextGroup")));
+			    } catch (Exception e) {e.printStackTrace();}
 			}
 			if (!entry.get("TestConcUnit").toLowerCase().equals(rt.getTestConcUnit().toString())) {
 			    System.out.println("Updated TestConcUnit: "+key+" |"+rt.getTestConcUnit()+":"+entry.get("TestConcUnit"));
@@ -1146,7 +1148,7 @@ public class PubChemAssayParser implements Constants {
 			    entryValue[0] = Double.valueOf(entry.get("TestConcValue"));
 			    Double[] rtValue = rt.getTestConcentration();
 			    if (rtValue.length == 0 || rtValue.length == 1 && !entryValue[0].equals(rtValue[0])) {
-				System.out.println("Updated TestConcValue: "+key+" |"+rtValue[0]+":"+entryValue[0]);
+				System.out.println("Updated TestConcValue: "+key+" |"+(rtValue.length == 0 ? "" : rtValue[0])+":"+entryValue[0]);
 				rt.setTestConcentration(entryValue);
 			    }
 			}
