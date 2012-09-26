@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
@@ -8,6 +9,9 @@ import gov.nih.ncgc.bard.capextract.jaxb.Link;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Vector;
 
@@ -78,7 +82,8 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         	log.error("experiment id: "+exptID+" external source is unknown: "+source);
             }
         }
-        // TODO handle project context of experiment
+        
+        // handle project context of experiment
         if (expt.getProjectSteps() != null)
             for (Experiment.ProjectSteps.ProjectStep projExpt: expt.getProjectSteps().getProjectStep()) {
         	projExpt.getDescription();
@@ -99,6 +104,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 
         	}
             }
+        
         // TODO handle result context of experiment
         if (expt.getExperimentContextItems() != null)
             for (Experiment.ExperimentContextItems.ExperimentContextItem context: expt.getExperimentContextItems().getExperimentContextItem()) {
@@ -118,11 +124,68 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
     }
     
     public void printLookup() {
+	try {
+	    Connection conn = CAPUtil.connectToBARD();
+	    Statement st = conn.createStatement();
+	    
+	    ResultSet result = st.executeQuery("select cap_expt_id, pubchem_aid from bard_experiment"); // where cap_expt_id=3134");
+	    while (result.next()) {
+		String capExptId = result.getString(1);
+		String pubchemAID = "aid="+result.getString(2);
+		if (!_CAP_ExptID_PubChemAID_lookup.containsKey(capExptId)) {
+		    log.error("CAP Experiment no longer exists: CAP Expt ID="+capExptId);
+		} else {
+		    if (!_CAP_ExptID_PubChemAID_lookup.get(capExptId).equals(pubchemAID))
+			log.error("CAP Experiment now maps to different PubChemAID: CAP Expt ID, PubChemAID="+capExptId+","+_CAP_ExptID_PubChemAID_lookup.get(capExptId));
+		    _CAP_ExptID_PubChemAID_lookup.remove(capExptId);
+		}
+	    }
+	    result.close();
+	    for (String capExptId: _CAP_ExptID_PubChemAID_lookup.keySet())
+		log.error("New CAP Experiment (and AID?): CAP Expt ID="+capExptId+" (AID="+_CAP_ExptID_PubChemAID_lookup.get(capExptId)+")");
+
+	    ResultSet result2 = st.executeQuery("select cap_expt_id, cap_assay_id from bard_experiment"); // where cap_expt_id=3134");
+	    while (result2.next()) {
+		String capExptId = result2.getString(1);
+		String capAssayId = result2.getString(2);
+		if (!_CAP_ExptID_AssayID_lookup.containsKey(capExptId)) {
+		    log.error("CAP Experiment no longer exists: CAP Expt ID="+capExptId);
+		} else {
+		    if (!_CAP_ExptID_AssayID_lookup.get(capExptId).equals(capAssayId))
+			log.error("CAP Experiment now maps to differen CAP Assay ID: CAP Expt ID="+capExptId);
+		    _CAP_ExptID_AssayID_lookup.remove(capExptId);
+		}
+	    }
+	    result2.close();
+	    for (String capExptId: _CAP_ExptID_AssayID_lookup.keySet())
+		log.error("New CAP Experiment (and CAP AID?): CAP Expt ID="+capExptId+" (AID="+_CAP_ExptID_AssayID_lookup.get(capExptId)+")");
+
+	    ResultSet result3 = st.executeQuery("select b.cap_proj_id, c.cap_expt_id, c.cap_assay_id, a.bard_expt_id, a.bard_proj_id, a.pubchem_aid from bard_project_experiment a, bard_project b, bard_experiment c where a.bard_proj_id=b.bard_proj_id and a.bard_expt_id=c.bard_expt_id"); // and cap_expt_id=3134");
+	    while (result3.next()) {
+		String capProjId = result3.getString(1);
+		String capExptId = result3.getString(2);
+		
+		int match = -1;
+		for (int i=_CAP_Proj_Expt_link.size()-1; i>-1; i--) {
+		    if (_CAP_Proj_Expt_link.get(i)[0].equals(capProjId) && 
+		    	_CAP_Proj_Expt_link.get(i)[1].equals(capExptId)) {
+			match = i;
+			_CAP_Proj_Expt_link.remove(match);
+		    }
+		}
+		if (match == -1)
+		    log.error("Project Expt link no longer exists: CAP Proj, Expt="+capProjId+","+capExptId);
+	    }
+	    result3.close();
+	    for (String[] newer: _CAP_Proj_Expt_link)
+		log.error("New Project Expt link: CAP Proj, Expt="+newer[0]+","+newer[1]);
+	} catch (Exception e) {e.printStackTrace();}
+		
 //	for (String key: _CAP_ExptID_PubChemAID_lookup.keySet())
 //	    System.out.println(key+","+_CAP_ExptID_PubChemAID_lookup.get(key)+","+_CAP_ExptID_AssayID_lookup.get(key)+","+_CAP_ExptID_ProjID_lookup.get(key));
 //	System.out.println("CAP Project -> Expt Links");
-	for (String[] entry: _CAP_Proj_Expt_link) {
-	    System.out.println(entry[0]+","+entry[1]+","+_CAP_ExptID_AssayID_lookup.get(entry[1])+","+_CAP_ExptID_PubChemAID_lookup.get(entry[1]));
-	}
+//	for (String[] entry: _CAP_Proj_Expt_link) {
+//	    System.out.println(entry[0]+","+entry[1]+","+_CAP_ExptID_AssayID_lookup.get(entry[1])+","+_CAP_ExptID_PubChemAID_lookup.get(entry[1]));
+	
     }
 }

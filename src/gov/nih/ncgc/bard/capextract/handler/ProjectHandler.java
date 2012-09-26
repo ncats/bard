@@ -139,7 +139,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 		    
 		    pst.addBatch();
 		}
-		pst.executeBatch();
+		//pst.executeBatch();
 
 	    } else {
 		log.error("Database has no project with cap_proj_id="+project.getProjectId());

@@ -5,8 +5,11 @@ import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
 import gov.nih.ncgc.bard.capextract.handler.BardexportHandler;
 import gov.nih.ncgc.bard.capextract.handler.DictionaryHandler;
 import gov.nih.ncgc.bard.capextract.handler.ExperimentHandler;
+import gov.nih.ncgc.bard.capextract.handler.ExperimentsHandler;
 import gov.nih.ncgc.bard.capextract.handler.ProjectHandler;
 import gov.nih.ncgc.bard.capextract.handler.ProjectsHandler;
+import gov.nih.ncgc.bard.capextract.handler.ResultHandler;
+import gov.nih.ncgc.bard.capextract.handler.ResultsHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Assay;
 import gov.nih.ncgc.bard.capextract.jaxb.Assays;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
@@ -114,21 +117,22 @@ public class CAPExtractor {
 
     public void setHandlers() {
         registry = CapResourceHandlerRegistry.getInstance();
-//        registry.setHandler(CAPConstants.CapResource.PROJECTS, new ProjectsHandler());
-//        registry.setHandler(CAPConstants.CapResource.PROJECT, new ProjectHandler());
+        registry.setHandler(CAPConstants.CapResource.PROJECTS, new ProjectsHandler());
+        registry.setHandler(CAPConstants.CapResource.PROJECT, new ProjectHandler());
         registry.setHandler(CAPConstants.CapResource.ASSAYS, new AssaysHandler());
         registry.setHandler(CAPConstants.CapResource.ASSAY, new AssayHandler());
-//        registry.setHandler(CAPConstants.CapResource.EXPERIMENTS, new ExperimentsHandler());
-//        registry.setHandler(CAPConstants.CapResource.EXPERIMENT, new ExperimentHandler());
-//        registry.setHandler(CAPConstants.CapResource.RESULTS, new ResultsHandler());
-//        registry.setHandler(CAPConstants.CapResource.RESULT, new ResultHandler());
+        registry.setHandler(CAPConstants.CapResource.EXPERIMENTS, new ExperimentsHandler());
+        registry.setHandler(CAPConstants.CapResource.EXPERIMENT, new ExperimentHandler());
+        registry.setHandler(CAPConstants.CapResource.RESULTS, new ResultsHandler());
+        registry.setHandler(CAPConstants.CapResource.RESULT, new ResultHandler());
         registry.setHandler(CAPConstants.CapResource.BARDEXPORT, new BardexportHandler());
-//        registry.setHandler(CAPConstants.CapResource.DICTIONARY, new DictionaryHandler());
+        registry.setHandler(CAPConstants.CapResource.DICTIONARY, new DictionaryHandler());
     }
 
     public void test() throws IOException {
 	registry.getHandler(CAPConstants.CapResource.EXPERIMENTS).process(CAPConstants.CAP_ROOT+"/experiments", CAPConstants.CapResource.EXPERIMENTS);
-	registry.getHandler(CAPConstants.CapResource.PROJECTS).process(CAPConstants.CAP_ROOT+"/projects", CAPConstants.CapResource.PROJECTS);
+//	registry.getHandler(CAPConstants.CapResource.EXPERIMENT).process(CAPConstants.CAP_ROOT+"/experiments/3134", CAPConstants.CapResource.EXPERIMENT);
+//	registry.getHandler(CAPConstants.CapResource.PROJECTS).process(CAPConstants.CAP_ROOT+"/projects", CAPConstants.CapResource.PROJECTS);
   
 	((ExperimentHandler)registry.getHandler(CAPConstants.CapResource.EXPERIMENT)).printLookup();
     }
@@ -143,8 +147,9 @@ public class CAPExtractor {
 //        c.poll();
 
         // lets start pulling
-        c.run();
+//        c.run();
         
+        c.test();
     }
 
 
