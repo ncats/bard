@@ -12,7 +12,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Experiment implements BardEntity {
-    Long exptId, assayId;
+    Long exptId, assayId, pubchemAid;
     int category, type, summary, assays, classification, substances, compounds;
     String name, description, source, grantNo;
     Date deposited, updated;
@@ -21,6 +21,14 @@ public class Experiment implements BardEntity {
     
     public Experiment() {
     	projectIdList = new ArrayList<Long>();
+    }
+
+    public Long getPubchemAid() {
+        return pubchemAid;
+    }
+
+    public void setPubchemAid(Long pubchemAid) {
+        this.pubchemAid = pubchemAid;
     }
 
     public Long getExptId() {
