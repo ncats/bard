@@ -25,4 +25,43 @@ public class BARDConstants {
 
     public static final String REQUEST_HEADER_COUNT = "x-count-entities";
 
+    public static enum ExperimentClassification {
+        primary,
+        counterscreen,
+        secondaryConfirmatory,
+        secondaryAlternate,
+        secondaryOrthogonal,
+        secondarySelectivity,
+        Unknown;
+
+        public static ExperimentClassification valueOf(int i) {
+            for (ExperimentClassification c : values()) {
+                if (i == c.ordinal())
+                    return c;
+            }
+            return Unknown;
+        }
+
+        @Override
+        public String toString() {
+            switch (this) {
+                case primary:
+                    return "Primary";
+                case counterscreen:
+                    return "Counterscreen";
+                case secondaryConfirmatory:
+                    return "Secondary confirmatory";
+                case secondaryAlternate:
+                    return "Secondary alternate";
+                case secondaryOrthogonal:
+                    return "Secondary orthogonal";
+                case secondarySelectivity:
+                    return "Secondary selectivity";
+                case Unknown:
+                    return "unknown";
+            }
+            return super.toString();
+        }
+    }
+
 }
