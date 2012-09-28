@@ -1204,7 +1204,7 @@ public class DBUtils {
             }
             rs.close();
 
-            if (top > 0 && top != compounds.size()) {
+            if (top > 0 && top < 6) {
                 // truncate it to fit the desired size
                 compounds = compounds.subList(0, top);
             }
@@ -1270,6 +1270,7 @@ public class DBUtils {
             throws SQLException {
         c.setCid(rs.getLong("cid"));
         c.setProbeId(rs.getString("probe_id"));
+        c.setUrl(rs.getString("url"));
 
         // huh? why?
         try {
