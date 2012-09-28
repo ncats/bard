@@ -670,14 +670,16 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         DBUtils db = new DBUtils();
         Response response;
         String linkString = null;
+
+        if (top == null || top == -1) { // top was not specified, so we start from the beginning
+            top = BARDConstants.MAX_DATA_COUNT;
+        }
+        if (skip == null || skip == -1) skip = 0;
+
         List<Project> p = db.getEntitiesByCid(cid, Project.class, skip, top);
         if (countRequested) response = Response.ok(String.valueOf(p.size())).type(MediaType.TEXT_PLAIN).build();
 
         if (p.size() > BARDConstants.MAX_DATA_COUNT) {
-            if ((top == -1)) { // top was not specified, so we start from the beginning
-                top = BARDConstants.MAX_DATA_COUNT;
-            }
-            if (skip == -1) skip = 0;
             String expandClause = "expand=false";
             if (expandEntries(expand)) expandClause = "expand=true";
             if (skip + top <= p.size())
