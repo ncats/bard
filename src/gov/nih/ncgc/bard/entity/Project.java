@@ -47,12 +47,21 @@ public class Project implements BardEntity {
      */
     Date updated;
 
+    List<Compound> probes;
     List<Long> probeIds;
     List<Long> eids; // experiments
     List<Long> aids; // assays (using bard_assay_id)
     List<Publication> publications;
     List<ProteinTarget> targets;
 
+
+    public List<Compound> getProbes() {
+        return probes;
+    }
+
+    public void setProbes(List<Compound> probes) {
+        this.probes = probes;
+    }
 
     public List<String> getGobp_id() {
         return gobp_id;

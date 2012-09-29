@@ -3275,6 +3275,7 @@ public class DBUtils {
         // probe details
         List<Long> probeIds = getProbeCidsForProject(bardProjId);
         p.setProbeIds(probeIds);
+        p.setProbes(getCompoundsByCid(probeIds.toArray(new Long[]{})));
 
         // find all experiments for this project
         pst = conn.prepareStatement("select bard_expt_id from bard_project_experiment where bard_proj_id = ?");
