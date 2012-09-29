@@ -3241,7 +3241,6 @@ public class DBUtils {
     }
         */
 
-    // TOOD handle depositor id - should resolve the integer to a string
     public Project getProject(Long bardProjId) throws SQLException {
         Cache cache = getCache ("ProjectCache");
         Project value = (Project) getCacheValue (cache, bardProjId);
@@ -3272,6 +3271,10 @@ public class DBUtils {
         if (p == null) {
             return p;
         }
+
+        // probe details
+        List<Long> probeIds = getProbeCidsForProject(bardProjId);
+        p.setProbeIds(probeIds);
 
         // find all experiments for this project
         pst = conn.prepareStatement("select bard_expt_id from bard_project_experiment where bard_proj_id = ?");
