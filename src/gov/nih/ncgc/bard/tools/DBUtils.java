@@ -3250,7 +3250,7 @@ public class DBUtils {
         }
 
         Project p = null;
-        PreparedStatement pst = conn.prepareStatement("select * from bard_project where bard_proj_id = ?");
+        PreparedStatement pst = conn.prepareStatement("select a.*, b.name as source_name from bard_project a, source b where a.bard_proj_id = ? and a.depositor_id = b.source_id");
         try {
             pst.setLong(1, bardProjId);
             ResultSet rs = pst.executeQuery();
@@ -3260,6 +3260,7 @@ public class DBUtils {
                 p.setDescription(rs.getString("description"));
                 p.setName(rs.getString("name"));
                 p.setDeposited(rs.getDate("deposited"));
+                p.setSource(rs.getString("source_name"));
 
                 cache.put(new Element (bardProjId, p));
             }
