@@ -82,11 +82,12 @@
 
     <target name='compile-rest' id='compile-rest'>
         <mkdir dir="${bard.build}"/>
-        <javac srcdir="${bard.src}" destdir="${bard.build}"
+        <javac srcdir="${bard.src}" destdir="${bard.build}" includeantruntime="FALSE"
                debug="yes" target="1.6"
-               includes="**/rest/*.java, **/rest/filter/*.java, **entity/*.java, **/tools/*.java, **/plugin/*.java,**/search/*.java">
+               includes="**/rest/*.java, **/rest/filter/*.java, **entity/*.java, **/tools/*.java, **/plugin/*.java,**/search/*.java, **/servlet/*.java">
             <classpath refid="compile.classpath"/>
         </javac>
+    	<!-- copy properties -->
     </target>
 
     <target name="jar-rest" id='jar-rest' depends="compile-rest">
@@ -152,8 +153,13 @@
         </copy>
         <!--Copy misc web pages, resources etc -->
         <copy todir="${bard.explode.dir}/">
-            <fileset dir="web"/>
+            <fileset dir="web"/>        	
         </copy>
+    	<!--Copy Properties file-->
+        <copy todir="${bard.explode.dir}/WEB-INF/classes/gov/nih/ncgc/bard/props">
+            <fileset dir="${bard.src}/gov/nih/ncgc/bard/props"/>        	
+        </copy>
+    	
     </target>
 
     <property name="war.filename" value="${bard.deploy}/bard.war"/>

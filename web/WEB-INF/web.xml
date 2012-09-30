@@ -1,41 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<web-app xmlns="http://java.sun.com/xml/ns/javaee"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
-		  http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
-         version="2.5">
-    <description>BARD Web Services</description>
-    <display-name>BARD Web Services</display-name>
-    <distributable/>
-
-    <context-param>
-        <param-name>privateService</param-name>
-        <param-value>false</param-value>
-    </context-param>
-
-    <context-param>
-         <param-name>solr-server</param-name>
-         <!--<param-value>http://protease.nhgri.nih.gov/servlet/solr/</param-value>-->
-        <param-value>http://localhost:8090/solr/</param-value>
-    </context-param>
-
-    <servlet>
-        <description>BARD REST Services</description>
-        <display-name>BARD REST Web Services</display-name>
-        <servlet-name>ServletAdaptor</servlet-name>
-        <servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
-        <init-param>
-            <param-name>com.sun.jersey.spi.container.ContainerRequestFilters</param-name>
-            <param-value>gov.nih.ncgc.bard.rest.filter.CountFilter</param-value>
-        </init-param>
-        <!-- this must always be after init-param !-->
-        <load-on-startup>1</load-on-startup>
-    </servlet>
-
-    <servlet-mapping>
-        <servlet-name>ServletAdaptor</servlet-name>
-        <url-pattern>/*</url-pattern>
-    </servlet-mapping>
-
+<web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee     http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
+ <description>BARD Web Services</description>
+ <display-name>BARD Web Services</display-name>
+ <distributable/>
+ <context-param>
+  <param-name>privateService</param-name>
+  <param-value>false</param-value>
+ </context-param>
+ <context-param>
+  <param-name>solr-server</param-name>
+  <!--<param-value>http://protease.nhgri.nih.gov/servlet/solr/</param-value>-->
+  <param-value>http://localhost:8090/solr/</param-value>
+ </context-param>
+ <servlet>
+  <description>BARD REST Services</description>
+  <display-name>BARD REST Web Services</display-name>
+  <servlet-name>ServletAdaptor</servlet-name>
+  <servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
+  <!-- this must always be after init-param !-->
+  <init-param>
+   <param-name>com.sun.jersey.spi.container.ContainerRequestFilters</param-name>
+   <param-value>gov.nih.ncgc.bard.rest.filter.CountFilter</param-value>
+  </init-param>
+  <load-on-startup>1</load-on-startup>
+ </servlet>
+ <servlet>
+  <description>generates bard jnlp</description>
+  <display-name>BARD JNLP Launcher</display-name>
+  <servlet-name>BardLaunch</servlet-name>
+  <servlet-class>gov.nih.ncgc.bard.servlet.BardJNLPLaunchServlet</servlet-class>
+ </servlet>
+ <servlet-mapping>
+  <servlet-name>ServletAdaptor</servlet-name>
+  <url-pattern>/*</url-pattern>
+ </servlet-mapping>
+ <servlet-mapping>
+  <servlet-name>BardLaunch</servlet-name>
+  <url-pattern>/BardLaunch</url-pattern>
+ </servlet-mapping>
 </web-app>
-
