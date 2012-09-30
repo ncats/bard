@@ -3716,7 +3716,7 @@ public class DBUtils {
             return value;
         }
         
-        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a, bard_assay b where b.bard_assay_id = ? and a.assay_id = b.cap_assay_id and a.source = 'cap'");
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a, bard_assay b where b.bard_assay_id = ? and a.assay_id = b.cap_assay_id and a.source in ('cap', 'bao')");
         try {
             pst.setLong(1, bardAssayId);
             ResultSet rs = pst.executeQuery();
@@ -3756,7 +3756,7 @@ public class DBUtils {
             return value;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id and a.source = 'cap'");
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id and a.source in ('cap', 'bao')");
         try {
             pst.setLong(1, bardProjectId);
             ResultSet rs = pst.executeQuery();
