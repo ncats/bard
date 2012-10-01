@@ -3,12 +3,25 @@ package gov.nih.ncgc.bard.rest;
 import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
-import gov.nih.ncgc.bard.entity.*;
+import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
+import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -269,10 +282,6 @@ public class BARDProjectResource extends BARDResource<Project> {
     @GET
     @Path("/{id}/probes")
     public Response getProbesForProject(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
-        boolean expandEntries = false;
-        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
-            expandEntries = true;
-
         List<MediaType> types = headers.getAcceptableMediaTypes();
 
         DBUtils db = new DBUtils();
@@ -292,7 +301,12 @@ public class BARDProjectResource extends BARDResource<Project> {
             } else {
                 List<String> links = new ArrayList<String>();
                 for (Long id : probes) links.add(BARDConstants.API_BASE + "/compounds/" + id);
-                response = Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
+                if (expandEntries(expand)) {
+                    List<Compound> cmpds = db.getCompoundsByCid(probes.toArray(new Long[]{}));
+                    response = Response.ok(Util.toJson(cmpds), MediaType.APPLICATION_JSON).build();
+                } else {
+                    response = Response.ok(Util.toJson(links), MediaType.APPLICATION_JSON).build();
+                }
             }
             db.closeConnection();
             return response;
