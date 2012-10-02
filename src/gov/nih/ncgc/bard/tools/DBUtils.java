@@ -72,21 +72,29 @@ public class DBUtils {
     static final int CHUNK_SIZE = 400;
     static CAPDictionary dict = null;
 
-    static final int MAX_CACHE_SIZE = 10000;
+    /**
+     * IMPORTANT: please update this version string to keep it seperate 
+     * from other versions that might be deployed on the same server!
+     */
+    static final String VERSION = "v6";
 
+
+    static final int MAX_CACHE_SIZE = 10000;
     static final CacheManager cacheManager = CacheManager.getInstance();
 
     static synchronized Cache getCache (String name) {
-        Cache cache = cacheManager.getCache(name);
+        String cacheName = VERSION+"::"+name;
+
+        Cache cache = cacheManager.getCache(cacheName);
         if (cache == null) {
-            cache = new Cache (name, 
+            cache = new Cache (cacheName, 
                                MAX_CACHE_SIZE, 
                                false, // overflowToDisk
                                false, // eternal (never expire)
                                2*60*60, // time to live (seconds)
                                2*60*60 // time to idle (seconds)
                                );
-            cacheManager.addCache(cache);
+            cacheManager.addCacheIfAbsent(cache);
         }
         return cache;
     }
@@ -3954,7 +3962,7 @@ public class DBUtils {
 
     public CAPDictionary getCAPDictionary() 
         throws SQLException, IOException, ClassNotFoundException {
-
+        /*
         Cache cache = getCache ("CAPDictionaryCache");
         try {
             CAPDictionary cap = getCacheValue (cache, "cap");
@@ -3965,6 +3973,7 @@ public class DBUtils {
         catch (ClassCastException ex) {
             log.warn("** Cache miss due to ClassLoader changed");
         }
+        */
 
         PreparedStatement pst = conn.prepareStatement("select dict, ins_date from cap_dict_obj order by ins_date desc");
         try {
@@ -3980,7 +3989,7 @@ public class DBUtils {
 
             if (!(o instanceof CAPDictionary)) return null;
 
-            cache.put(new Element ("cap", o));
+            //cache.put(new Element ("cap", o));
             return (CAPDictionary)o;
         }
         finally {
