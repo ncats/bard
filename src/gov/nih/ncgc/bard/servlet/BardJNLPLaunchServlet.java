@@ -13,8 +13,8 @@ public class BardJNLPLaunchServlet extends HttpServlet {
 	public void service(HttpServletRequest req,
 			HttpServletResponse res) throws IOException {
 		ResourceBundle resource = ResourceBundle.getBundle("gov.nih.ncgc.bard.props.bard");
-		String restURL = resource.getString("local.rest.base.url");
-		String codeBaseURL = resource.getString("local.bard.client.jnlp.codebase");
+		String restURL = resource.getString("prod.rest.base.url");
+		String codeBaseURL = resource.getString("prod.bard.client.jnlp.codebase");
 
 		//grab the entity argument
 		String entityArg = req.getParameter("entity");
@@ -107,10 +107,12 @@ public class BardJNLPLaunchServlet extends HttpServlet {
 				"<jar href=\"xercesImpl-2.8.1.jar\"/>"+
 				"</resources>"+
 				"<application-desc name=\"Bard Client\" main-class=\"bard.ui.main.BARD\" " +
-				"width=\"300\" height=\"300\">"+
+				//"width=\"300\" height=\"300\"" +
+				">"+
 				"<argument>"+restURL+"</argument>"
 				+entityArg+  //optional entity argument
 				"</application-desc>"+
+				"<security><all-permissions/></security>"+
 				"<update check=\"background\"/>"+
 				"</jnlp>";
 		out.println(jnlp);

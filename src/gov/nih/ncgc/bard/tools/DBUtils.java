@@ -2170,6 +2170,7 @@ public class DBUtils {
 
         // find all experiments for this project
         pst = conn.prepareStatement("select bard_expt_id from bard_project_experiment where bard_proj_id = ?");
+        
         try {
             pst.setLong(1, bardProjId);
             ResultSet rs = pst.executeQuery();
