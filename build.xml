@@ -170,6 +170,23 @@
         </jar>
     </target>
 
+    <target name="caching-service">
+        <mkdir dir="${bard.build}"/>
+        <javac srcdir="${bard.src}" destdir="${bard.build}"
+               debug="yes" target="1.6"
+               includes="**/service/*.java">
+            <classpath refid="compile.classpath"/>
+        </javac>
+        <jar destfile="${bard.deploy}/caching-service.jar" duplicate="preserve">
+            <manifest>
+                <attribute name="Created-By" value="NCGC"/>
+                <attribute name="Manifest-Version" value="1.0"/>
+            </manifest>
+            <fileset dir="${bard.build}" casesensitive="yes">
+                <include name="**/service/*"/>
+            </fileset>
+        </jar>
+    </target>
 
     <target name="plugins" depends="jar-rest">
         <path id="plugin.compile.classpath">

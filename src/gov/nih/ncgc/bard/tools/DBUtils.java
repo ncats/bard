@@ -842,7 +842,7 @@ public class DBUtils {
                 for (int c = 0; c < meta.getColumnCount(); ++c) {
                     int type = meta.getColumnType(c + 1);
                     String name = meta.getColumnName(c + 1);
-                    info.put(name, rs.getString(c + 1));
+                    info.put(name, rs.getObject(c + 1));
                 }
             }
             rs.close();

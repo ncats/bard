@@ -144,14 +144,19 @@ public class BARDAssayResource extends BARDResource<Assay> {
                 if (skip + top <= db.getEntityCount(Assay.class))
                     linkString = BARDConstants.API_BASE + "/assays?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
-            log.info("Request had skip = " + skip + ", top = " + top + ", filter = " + filter);
 
+            long start = System.currentTimeMillis();
             List<Assay> assays = db.searchForEntity(filter, skip, top, Assay.class);
+            log.info(getRequestURI()+"..."+assays.size()+" in "
+                     +String.format("%1$.3fs", 1.e-3*(System.currentTimeMillis()-start)));
 
             if (countRequested) return Response.ok(String.valueOf(assays.size()), MediaType.TEXT_PLAIN).build();
             if (expandEntries) {
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(assays, linkString);
-                return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+                start = System.currentTimeMillis();
+                String json = Util.toJson(linkedEntity);
+                log.info("## Generating json in "+String.format("%1$.3fs", 1.e-3*(System.currentTimeMillis()-start)));
+                return Response.ok(json, MediaType.APPLICATION_JSON).build();
             } else {
                 List<String> links = new ArrayList<String>();
                 for (Assay a : assays) links.add(a.getResourcePath());

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.search.MoleculeService;
 import gov.nih.ncgc.search.SearchService2;
+import gov.nih.ncgc.bard.service.CachingService;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -201,6 +202,24 @@ public class Util {
             try {
                 InitialContext ctx = new InitialContext();
                 return (MoleculeService) ctx.lookup("bard/structure-search");
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                throw new Exception("Can't get the search service");
+            }
+        }
+    }
+
+    static public CachingService getCachingService () throws Exception {
+        try {
+            InitialContext ctx = new InitialContext();
+            return (CachingService) ctx.lookup
+                ("java:comp/env/bard/caching-service");
+        } 
+        catch (Exception ex) {
+            try {
+                InitialContext ctx = new InitialContext();
+                return (CachingService) ctx.lookup("bard/caching-service");
             }
             catch (Exception e) {
                 e.printStackTrace();
