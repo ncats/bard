@@ -1515,15 +1515,14 @@ public class DBUtils {
         List<ExperimentData> data = new ArrayList<ExperimentData>();
 
         Map info = getETagInfo (etag);
-        
         Cache cache = getCache ("ExperimentDataByETagCache");
-        Element el = cache.get(etag);
+        Object key = etag+"::"+bardExptId+"::"+skip+"::"+top;
+        Element el = cache.get(key);
         if (el != null) {
             Timestamp ts = (Timestamp)info.get("accessed");
             if (ts.getTime() < el.getLastAccessTime()) {
                 try {
-                    List<ExperimentData> value = 
-                        getCacheValue (cache, etag);
+                    List<ExperimentData> value = getCacheValue (cache, key);
                     if (value != null) 
                         return value;
                 }
@@ -1584,7 +1583,7 @@ public class DBUtils {
             }
             rs.close();
             
-            cache.put(new Element (etag, data));
+            cache.put(new Element (key, data));
         } 
         finally {
             pst.close();
@@ -2077,12 +2076,13 @@ public class DBUtils {
         }
 
         Cache cache = getCache ("AssaysByETagCache");
-        Element el = cache.get(etag);
+        Object key = etag+"::"+skip+"::"+top;
+        Element el = cache.get(key);
         if (el != null) {
             Timestamp ts = (Timestamp)info.get("accessed");
             if (ts.getTime() < el.getLastAccessTime()) {
                 try {
-                    List<Assay> value = (List)getCacheValue (cache, etag);
+                    List<Assay> value = (List)getCacheValue (cache, key);
                     if (value != null) 
                         return value;
                 }
@@ -2110,7 +2110,7 @@ public class DBUtils {
             }
             rs.close();
 
-            cache.put(new Element (etag, assays));
+            cache.put(new Element (key, assays));
         } 
         finally {
             pst.close();
@@ -2127,12 +2127,13 @@ public class DBUtils {
         }
 
         Cache cache = getCache ("SubstanceByETagCache");
+        Object key = etag+"::"+skip+"::"+top;
         Element el = cache.get(etag);
         if (el != null) {
             Timestamp ts = (Timestamp)info.get("accessed");
             if (ts.getTime() < el.getLastAccessTime()) {
                 try {
-                    List<Substance> value = (List) getCacheValue (cache, etag);
+                    List<Substance> value = (List) getCacheValue (cache, key);
                     if (value != null) 
                         return value;
                 }
@@ -2160,7 +2161,7 @@ public class DBUtils {
             }
             rs.close();
 
-            cache.put(new Element (etag, substances));
+            cache.put(new Element (key, substances));
             return substances;
         } 
         finally {
@@ -2185,12 +2186,13 @@ public class DBUtils {
         }
 
         Cache cache = getCache ("ExperimentsByETagCache");
-        Element el = cache.get(etag);
+        Object key = etag+"::"+skip+"::"+top;
+        Element el = cache.get(key);
         if (el != null) {
             Timestamp ts = (Timestamp)info.get("accessed");
             if (ts.getTime() < el.getLastAccessTime()) {
                 try {
-                    List<Experiment> value = getCacheValue (cache, etag);
+                    List<Experiment> value = getCacheValue (cache, key);
                     if (value != null)
                         return value;
                 }
@@ -2218,7 +2220,7 @@ public class DBUtils {
             }
             rs.close();
 
-            cache.put(new Element (etag, expts));
+            cache.put(new Element (key, expts));
             return expts;
         } 
         finally {
