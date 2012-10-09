@@ -35,6 +35,7 @@ public class Compound implements BardEntity {
     Integer hbondAcceptor;
     Integer hbondDonor;
     String[] anno_val, anno_key;
+    String highlight;
 
     public Compound(Long cid, String probeId, String url) {
         this.cid = cid;
@@ -138,6 +139,11 @@ public class Compound implements BardEntity {
         this.hbondDonor = hbondDonor;
     }
     public Integer getHbondDonor () { return hbondDonor; }
+
+    public void setHighlight (String highlight) {
+        this.highlight = highlight;
+    }
+    public String getHighlight () { return highlight; }
 
     public String toJson() throws IOException {
         ObjectMapper mapper = new ObjectMapper();

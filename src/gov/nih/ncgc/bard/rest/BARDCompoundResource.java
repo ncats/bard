@@ -188,9 +188,21 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 String cidsStr = writer.getBuffer().toString();
                 String[] cidStrs = cidsStr.split("\n");
                 List<Long> cids = new ArrayList<Long>();
+                Map<Long, String> highlights = new HashMap<Long, String>();
                 for (String cidstr : cidStrs) {
+                    String[] toks = cidstr.split("\t");
+                    String hl = null;
+                    if (toks.length == 2) {
+                        cidstr = toks[0];
+                        hl = toks[1];
+                    }
+
                     if (cidstr.equals("")) continue;
-                    cids.add(Long.parseLong(cidstr));
+                    Long cid = Long.parseLong(cidstr);
+                    cids.add(cid);
+                    if (hl != null) {
+                        highlights.put(cid, hl);
+                    }
                 }
 
                 Long[] ids = cids.toArray(new Long[0]);
@@ -199,6 +211,10 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 //                List<Long> cids = handler.getCids();
                 if (expandEntries) {
                     List<Compound> cs = db.getCompoundsByCid(ids);
+                    for (Compound c : cs) {
+                        String hl = highlights.get(c.getCid());
+                        c.setHighlight(hl);
+                    }
                     response = Response.ok(Util.toJson(cs), MediaType.APPLICATION_JSON).tag(etag).build();
                 } else {
                     List<String> paths = new ArrayList<String>();

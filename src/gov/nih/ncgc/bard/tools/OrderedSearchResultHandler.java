@@ -90,6 +90,7 @@ public class OrderedSearchResultHandler implements SearchCallback<SearchService2
                         }
                     }
                 }
+                mol.setProperty("HIGHLIGHT", mol.toFormat("smiles:q"));
             }
             break;
 
@@ -101,6 +102,7 @@ public class OrderedSearchResultHandler implements SearchCallback<SearchService2
                         }
                     }
                 }
+                mol.setProperty("HIGHLIGHT", mol.toFormat("smiles:q"));
             }
             break;
         }
@@ -108,6 +110,7 @@ public class OrderedSearchResultHandler implements SearchCallback<SearchService2
                 String.format("%1$.3f", entry.getSimilarity()));
         mol.setProperty("RANKING",
                 String.format("%1$.3f", entry.getRank()));
+
         writeOutput(mol);
         return true;
     }
@@ -124,7 +127,8 @@ public class OrderedSearchResultHandler implements SearchCallback<SearchService2
     }
 
     synchronized void writeOutput(Molecule mol) {
-        pw.println(mol.getName());
+        String highlight = mol.getProperty("HIGHLIGHT");
+        pw.println(mol.getName()+(highlight != null ? ("\t"+highlight) : ""));
         cids.add(Long.valueOf(mol.getName()));
     }
 
