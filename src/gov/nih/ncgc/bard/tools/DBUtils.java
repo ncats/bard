@@ -64,6 +64,7 @@ import java.util.TreeMap;
  *
  * @author Rajarshi Guha
  */
+
 public class DBUtils {
     /*
      * maximum size for an ETag
@@ -72,18 +73,21 @@ public class DBUtils {
     static final int CHUNK_SIZE = 400;
     static CAPDictionary dict = null;
 
-    /**
-     * IMPORTANT: please update this version string to keep it seperate 
-     * from other versions that might be deployed on the same server!
-     */
-    static final String VERSION = "v6";
+    static final String CACHE_PREFIX;
+    static {
+        SecureRandom rand = new SecureRandom ();
+        byte[] id = new byte[8];
+        rand.nextBytes(id);
+        CACHE_PREFIX = Util.toString(id);
 
+        System.err.println("** CACHE PREFIX: "+CACHE_PREFIX+" **");
+    }
 
     static final int MAX_CACHE_SIZE = 10000;
     static final CacheManager cacheManager = CacheManager.getInstance();
 
     static synchronized Cache getCache (String name) {
-        String cacheName = VERSION+"::"+name;
+        String cacheName = CACHE_PREFIX+"::"+name;
 
         Cache cache = cacheManager.getCache(cacheName);
         if (cache == null) {
