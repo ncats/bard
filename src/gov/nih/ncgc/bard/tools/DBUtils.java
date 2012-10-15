@@ -1453,7 +1453,7 @@ public class DBUtils {
      * @throws SQLException
      * @throws IOException
      */
-    List<ExperimentData> getExperimentDataByDataId(List<String> edids) 
+    public List<ExperimentData> getExperimentDataByDataId(List<String> edids)
         throws SQLException, IOException {
         if (edids == null || edids.size() == 0) return null;
 

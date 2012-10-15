@@ -145,17 +145,33 @@ public class BARDExperimentDataResource implements IBARDResource {
     @POST
     @Path("/")
     @Consumes("application/x-www-form-urlencoded")
-    public Response getExptDataByIds(@FormParam("ids") String ids, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws IOException {
+    public Response getExptDataByIds(@FormParam("ids") String ids,
+                                     @FormParam("eids") String eids,
+                                     @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws IOException, SQLException {
         if (ids == null || ids.trim().equals("")) throw new BadRequestException("Must specify the ids form field");
-        String[] toks = ids.split(",");
+        List<ExperimentData> edlist = new ArrayList();
+        DBUtils db = new DBUtils();
 
-        List<ExperimentData> edlist = null;
-        try {
-            edlist = getExperimentData(toks, filter);
-        } catch (SQLException e) {
-            return Response.status(500).entity("Error while retrieving experiment data for: "+ids).type(MediaType.TEXT_PLAIN).build();
+        if (eids != null) { // we assume ids == SID list and eids == EID list
+            String[] sida = ids.split(",");
+            String[] eida = eids.split(",");
+            for (String eid : eida) {
+                List<String> idl = new ArrayList<String>();
+                for (String sid : sida) idl.add(eid + "." + sid);
+                List<ExperimentData> tmp = db.getExperimentDataByDataId(idl);
+                edlist.addAll(tmp);
+            }
+        } else {
+            String[] toks = ids.split(",");
+            try {
+                edlist = getExperimentData(toks, filter);
+            } catch (SQLException e) {
+                return Response.status(500).entity("Error while retrieving experiment data for: " + ids).type(MediaType.TEXT_PLAIN).build();
+            }
         }
-        if (edlist.size() == 0) return Response.status(404).entity("No data available for ids: "+ids).type(MediaType.TEXT_PLAIN).build();
+        db.closeConnection();
+        if (edlist.size() == 0)
+            return Response.status(404).entity("No data available for ids: " + ids).type(MediaType.TEXT_PLAIN).build();
         else return Response.ok(Util.toJson(edlist)).type(MediaType.APPLICATION_JSON).build();
     }
 
