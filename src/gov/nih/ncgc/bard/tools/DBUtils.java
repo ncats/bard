@@ -4153,9 +4153,16 @@ public class DBUtils {
             sql = "select distinct bard_expt_id from bard_experiment_data where cid = ? order by classification desc, score desc "+limitClause;
         }
 
-        Cache cache = getCache ("EntitiesByCidCache::"+entity.getClass());
+        String cacheName = "Class";
+        if (entity.isAssignableFrom(Assay.class)) cacheName = "Assay" ;
+        else if (entity.isAssignableFrom(Project.class)) cacheName = "Project";
+        else if (entity.isAssignableFrom(Substance.class)) cacheName = "Substance";
+        else if (entity.isAssignableFrom(Experiment.class)) cacheName = "Experiment";
+        else if (entity.isAssignableFrom(ExperimentData.class)) cacheName = "ExperimentData";
+        Cache cache = getCache ("EntitiesByCidCache::"+cacheName);
+
         try {
-            List<T> value = (List) getCacheValue (cache, cid);
+            List<T> value = (List<T>) getCacheValue (cache, cid);
             if (value != null) {
                 return value;
             }
