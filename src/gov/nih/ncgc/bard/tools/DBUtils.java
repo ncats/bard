@@ -99,6 +99,7 @@ public class DBUtils {
                                2*60*60 // time to idle (seconds)
                                );
             cacheManager.addCacheIfAbsent(cache);
+            cache.setStatisticsEnabled(true);
         }
         return cache;
     }
@@ -247,6 +248,15 @@ public class DBUtils {
             sb.append(buffer);
         }
         return sb.toString();
+    }
+
+    public Map<String, String> getCacheStatistics() {
+        Map<String, String> statMap = new HashMap<String, String>();
+        String[] cacheNames = cacheManager.getCacheNames();
+        for (String cacheName : cacheNames) {
+            statMap.put(cacheName, cacheManager.getCache(cacheName).getStatistics().toString());
+        }
+        return statMap;
     }
 
     public Publication getPublicationByPmid(Long pmid) throws SQLException, IOException {
