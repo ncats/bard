@@ -1,12 +1,11 @@
 package gov.nih.ncgc.bard.service;
 
-import java.util.logging.Logger;
-import java.util.logging.Level;
-
-import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
+
+import java.util.logging.Logger;
 
 public class CachingService {
     static final String CACHE_MANAGER = 
@@ -47,6 +46,7 @@ public class CachingService {
                                10*60*60 // time to idle (seconds)
                                );
             cacheManager.addCacheIfAbsent(cache);
+            cache.setStatisticsEnabled(true);
         }
         return cache;
     }
