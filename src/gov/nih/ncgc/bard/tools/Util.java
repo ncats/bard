@@ -2,11 +2,10 @@ package gov.nih.ncgc.bard.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
+import gov.nih.ncgc.bard.service.CachingService;
 import gov.nih.ncgc.search.MoleculeService;
 import gov.nih.ncgc.search.SearchService2;
-import gov.nih.ncgc.bard.service.CachingService;
 
-import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -223,7 +222,7 @@ public class Util {
             }
             catch (Exception e) {
                 e.printStackTrace();
-                throw new Exception("Can't get the search service");
+                throw new Exception("Can't get the caching service");
             }
         }
     }

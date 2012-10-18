@@ -51,6 +51,10 @@ public class CachingService {
         return cache;
     }
 
+    public String[] getCacheNames() {
+        return cacheManager.getCacheNames();
+    }
+
     public Element putCache (Ehcache cache, Object key, Object value) {
         Element el = new Element (key, value);
         cache.put(el);

@@ -84,7 +84,8 @@
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
                debug="yes" target="1.6"
-               includes="**/rest/*.java, **/rest/filter/*.java, **entity/*.java, **/tools/*.java, **/plugin/*.java,**/search/*.java">
+               includes="**/rest/*.java, **/rest/filter/*.java, **entity/*.java, **/tools/*.java, **/plugin/*.java,**/search/*.java"
+               >
             <classpath refid="compile.classpath"/>
         </javac>
     </target>
@@ -148,7 +149,7 @@
               tofile="${bard.explode.dir}/WEB-INF/lib/jackson-databind-2.0.0.jar"/>
         <!--Move compiled classes into WEB-INF-->
         <copy todir="${bard.explode.dir}/WEB-INF/classes">
-            <fileset dir="${bard.build}/"/>
+            <fileset dir="${bard.build}/" excludes="**/service/*"/>
         </copy>
         <!--Copy misc web pages, resources etc -->
         <copy todir="${bard.explode.dir}/">

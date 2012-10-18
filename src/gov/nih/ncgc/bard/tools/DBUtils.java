@@ -23,8 +23,8 @@ import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.search.Facet;
+import gov.nih.ncgc.bard.service.CachingService;
 import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,35 +84,22 @@ public class DBUtils {
     }
 
     static final int MAX_CACHE_SIZE = 10000;
-    static final CacheManager cacheManager = CacheManager.getInstance();
+//    static final CacheManager cacheManager = CacheManager.getInstance();
 
-    static synchronized Cache getCache (String name) {
-        String cacheName = CACHE_PREFIX+"::"+name;
+    static synchronized Cache getCache(String name) {
+        String cacheName = CACHE_PREFIX + "::" + name;
 
-        Cache cache = cacheManager.getCache(cacheName);
-        if (cache == null) {
-            cache = new Cache (cacheName, 
-                               MAX_CACHE_SIZE, 
-                               false, // overflowToDisk
-                               false, // eternal (never expire)
-                               2*60*60, // time to live (seconds)
-                               2*60*60 // time to idle (seconds)
-                               );
-            cacheManager.addCacheIfAbsent(cache);
-            cache.setStatisticsEnabled(true);
+        Cache cache = null;
+        try {
+            cache = (Cache) Util.getCachingService().getCache(cacheName);
+        } catch (Exception e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
         return cache;
     }
 
-    <T> T getCacheValue (Cache cache, Object key) {
-        Element el = cache.get(key);
-        if (el != null) {
-            return (T) el.getObjectValue();
-        }
-        return null;
-    }
 
-
+    CachingService cs = null;
     Logger log;
     Connection conn;
     Map<Class, Query> fieldMap;
@@ -159,6 +146,12 @@ public class DBUtils {
 
     public DBUtils() {
         log = LoggerFactory.getLogger(this.getClass());
+        try {
+            cs = Util.getCachingService();
+        } catch (Exception e) {
+            log.info(e.toString());
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
 
         final List<String> publicationFields = Arrays.asList("pmid", "title", "abstract", "doi");
         final List<String> projectFields = Arrays.asList("name", "description");
@@ -251,10 +244,17 @@ public class DBUtils {
     }
 
     public Map<String, String> getCacheStatistics() {
+
         Map<String, String> statMap = new HashMap<String, String>();
-        String[] cacheNames = cacheManager.getCacheNames();
-        for (String cacheName : cacheNames) {
-            statMap.put(cacheName, cacheManager.getCache(cacheName).getStatistics().toString());
+        String[] cacheNames = new String[0];
+        try {
+            CachingService cs = Util.getCachingService();
+            cacheNames = cs.getCacheNames();
+            for (String cacheName : cacheNames) {
+                statMap.put(cacheName, cs.getCache(cacheName).getStatistics().toString());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
         return statMap;
     }
@@ -263,7 +263,7 @@ public class DBUtils {
         if (pmid == null) return null;
         Cache cache = getCache ("PublicationByPmidCache");
         try {
-            Publication pub = (Publication)getCacheValue (cache, pmid);
+            Publication pub = (Publication)cs.getCacheValue (cache, pmid);
             if (pub != null) 
                 return pub;
         }
@@ -295,7 +295,7 @@ public class DBUtils {
         if (doi == null || doi.trim().equals("")) return null;
         Cache cache = getCache ("PublicationByDoiCache");
         try {
-            Publication pub = (Publication)getCacheValue (cache, doi);
+            Publication pub = (Publication)cs.getCacheValue (cache, doi);
             if (pub != null) {
                 return pub;
             }
@@ -328,7 +328,7 @@ public class DBUtils {
 
         Cache cache = getCache ("ProteinTargetPublicationsCache");
         try {
-            List list = getCacheValue (cache, accession);
+            List list = cs.getCacheValue (cache, accession);
             if (list != null) {
                 return list;
             }
@@ -362,7 +362,7 @@ public class DBUtils {
         if (accession == null || accession.trim().equals("")) return null;
         Cache cache = getCache ("ProteinTargetByAccessionCache");
         try {
-            ProteinTarget value = getCacheValue (cache, accession);
+            ProteinTarget value = cs.getCacheValue (cache, accession);
             if (value != null) 
                 return value;
         }
@@ -396,7 +396,7 @@ public class DBUtils {
         Cache cache = getCache ("ProteinTargetByGeneIdCache");
         ProteinTarget p = null;
         try {
-            p = getCacheValue (cache, geneId);
+            p = cs.getCacheValue (cache, geneId);
         }
         catch (ClassCastException ex) {}
 
@@ -429,7 +429,7 @@ public class DBUtils {
     public Long getCidBySid (Long sid) throws SQLException {
         Cache cache = getCache ("CidBySidCache");
         try {
-            Long value = getCacheValue (cache, sid);
+            Long value = cs.getCacheValue (cache, sid);
             if (value != null) {
                 return value;
             }
@@ -454,7 +454,7 @@ public class DBUtils {
     public List<Long> getSidsByCid(Long cid) throws SQLException {
         Cache cache = getCache ("SidsByCidCache");
         try {
-            List value = getCacheValue (cache, cid);
+            List value = cs.getCacheValue (cache, cid);
             if (value != null) {
                 return value;
             }
@@ -496,7 +496,7 @@ public class DBUtils {
         for (Long acid : cids) {
             Compound value = null;
             try {
-                value = getCacheValue (cache, acid);
+                value = cs.getCacheValue (cache, acid);
             }
             catch (ClassCastException ex) {}
 
@@ -573,7 +573,7 @@ public class DBUtils {
         for (String n : names) {
             List<Compound> value = null;
             try {
-                value = getCacheValue (cache, n);
+                value = cs.getCacheValue (cache, n);
             }
             catch (ClassCastException ex) {}
             if (value != null) {
@@ -886,7 +886,7 @@ public class DBUtils {
             Timestamp ts = (Timestamp)info.get("accessed");
             if (ts.getTime() < el.getLastAccessTime()) {
                 try {
-                    Facet value = getCacheValue (cache, etag);
+                    Facet value = cs.getCacheValue (cache, etag);
                     if (value != null) 
                         return value;
                 }
@@ -950,7 +950,7 @@ public class DBUtils {
     public List<String> getCompoundSynonyms (Long cid) throws SQLException {
         Cache cache = getCache ("CompoundSynonymsCache");
         try {
-            List value = getCacheValue (cache, cid);
+            List value = cs.getCacheValue (cache, cid);
             if (value != null) {
                 return value;
             }
@@ -1298,7 +1298,7 @@ public class DBUtils {
 
         Cache cache = getCache ("CompoundAnnotationCache");
         try {
-            Map<String, String[]> value = getCacheValue (cache, cid);
+            Map<String, String[]> value = cs.getCacheValue (cache, cid);
             if (value != null) {
                 return value;
             }
@@ -1415,7 +1415,7 @@ public class DBUtils {
 
         Cache cache = getCache ("ExperimentDataByDataIdCache");
         try {
-            ExperimentData value = getCacheValue (cache, edid);
+            ExperimentData value = cs.getCacheValue (cache, edid);
             if (value != null) {
                 return value;
             }
@@ -1473,7 +1473,7 @@ public class DBUtils {
         for (String edi : edids) {
             ExperimentData value = null;
             try {
-                value = getCacheValue (cache, edi);
+                value = cs.getCacheValue (cache, edi);
             }
             catch (ClassCastException ex) {}
 
@@ -1544,7 +1544,7 @@ public class DBUtils {
             Timestamp ts = (Timestamp)info.get("accessed");
             if (ts.getTime() < el.getLastAccessTime()) {
                 try {
-                    List<ExperimentData> value = getCacheValue (cache, key);
+                    List<ExperimentData> value = cs.getCacheValue (cache, key);
                     if (value != null) 
                         return value;
                 }
@@ -1798,7 +1798,7 @@ public class DBUtils {
 
         Cache cache = getCache ("ExperimentMetadataByExptIdCache");
         try {
-            String value = (String) getCacheValue (cache, bardExptId);
+            String value = (String) cs.getCacheValue (cache, bardExptId);
             if (value != null) {
                 return value;
             }
@@ -1837,7 +1837,7 @@ public class DBUtils {
 
         Cache cache = getCache ("ExperimentByExptIdCache");
         try {
-            Experiment value = getCacheValue (cache, bardExptId);
+            Experiment value = cs.getCacheValue (cache, bardExptId);
             if (value != null) {
                 return value;
             }
@@ -1901,7 +1901,7 @@ public class DBUtils {
 
         Cache cache = getCache ("ExperimentByAssayIdCache");
         try {
-            List<Experiment> value = getCacheValue (cache, bardAssayId);
+            List<Experiment> value = cs.getCacheValue (cache, bardAssayId);
             if (value != null) {
                 return value;
             }
@@ -1938,7 +1938,7 @@ public class DBUtils {
 
         Cache cache = getCache ("AssayByAidCache");
         try {
-            Assay value = (Assay) getCacheValue (cache, bardAssayID);
+            Assay value = (Assay) cs.getCacheValue (cache, bardAssayID);
             if (value != null) {
                 return value;
             }
@@ -2104,7 +2104,7 @@ public class DBUtils {
             Timestamp ts = (Timestamp)info.get("accessed");
             if (ts.getTime() < el.getLastAccessTime()) {
                 try {
-                    List<Assay> value = (List)getCacheValue (cache, key);
+                    List<Assay> value = (List)cs.getCacheValue (cache, key);
                     if (value != null) 
                         return value;
                 }
@@ -2155,7 +2155,7 @@ public class DBUtils {
             Timestamp ts = (Timestamp)info.get("accessed");
             if (ts.getTime() < el.getLastAccessTime()) {
                 try {
-                    List<Substance> value = (List) getCacheValue (cache, key);
+                    List<Substance> value = (List) cs.getCacheValue (cache, key);
                     if (value != null) 
                         return value;
                 }
@@ -2214,7 +2214,7 @@ public class DBUtils {
             Timestamp ts = (Timestamp)info.get("accessed");
             if (ts.getTime() < el.getLastAccessTime()) {
                 try {
-                    List<Experiment> value = getCacheValue (cache, key);
+                    List<Experiment> value = cs.getCacheValue (cache, key);
                     if (value != null)
                         return value;
                 }
@@ -2274,7 +2274,7 @@ public class DBUtils {
         String cacheKey = bardExptId + "#" + skip + "#" + top;
         Cache cache = getCache ("ExperimentCidsCache");
         try {
-            List<Long> value = (List) getCacheValue (cache, cacheKey);
+            List<Long> value = (List) cs.getCacheValue (cache, cacheKey);
             if (value != null) {
                 return value;
             }
@@ -2323,7 +2323,7 @@ public class DBUtils {
         String cacheKey = bardExptId + "#" + skip + "#" + top;
         Cache cache = getCache ("ExperimentDataIdsCache");
         try {
-            List<String> value = (List) getCacheValue (cache, cacheKey);
+            List<String> value = (List) cs.getCacheValue (cache, cacheKey);
             if (value != null) {
                 return value;
             }
@@ -2389,7 +2389,7 @@ public class DBUtils {
         String cacheKey = bardExptId + "#" + skip + "#" + top;
         Cache cache = getCache ("ExperimentDataCache");
         try {
-            List<ExperimentData> value = getCacheValue (cache, cacheKey);
+            List<ExperimentData> value = cs.getCacheValue (cache, cacheKey);
             if (value != null) {
                 return value;
             }
@@ -2429,7 +2429,7 @@ public class DBUtils {
         String cacheKey = bardExptId + "#" + skip + "#" + top;
         Cache cache = getCache ("ActiveExperimentDataCache");
         try {
-            List<ExperimentData> value = getCacheValue (cache, cacheKey);
+            List<ExperimentData> value = cs.getCacheValue (cache, cacheKey);
             if (value != null) {
                 return value;
             }
@@ -2470,7 +2470,7 @@ public class DBUtils {
         String cacheKey = sid + "#" + skip + "#" + top;
         Cache cache = getCache ("SubstanceDataIdsCache");
         try {
-            List<String> value = getCacheValue (cache, cacheKey);
+            List<String> value = cs.getCacheValue (cache, cacheKey);
             if (value != null) {
                 return value;
             }
@@ -2517,7 +2517,7 @@ public class DBUtils {
 
         Cache cache = getCache ("SubstanceBySidCache");
         try {
-            Substance value = getCacheValue (cache, sid);
+            Substance value = cs.getCacheValue (cache, sid);
             if (value != null) {
                 return value;
             }
@@ -2569,7 +2569,7 @@ public class DBUtils {
         String cacheKey = sid + "#" + skip + "#" + top;
         Cache cache = getCache ("SubstanceDataCache");
         try {
-            List<ExperimentData> value = getCacheValue (cache, cacheKey);
+            List<ExperimentData> value = cs.getCacheValue (cache, cacheKey);
             if (value != null) {
                 return value;
             }
@@ -2620,7 +2620,7 @@ public class DBUtils {
         String cacheKey = cid + "#" + skip + "#" + top;
         Cache cache = getCache ("CompoundDataIdsCache");
         try {
-            List<String> value = getCacheValue (cache, cacheKey);
+            List<String> value = cs.getCacheValue (cache, cacheKey);
             if (value != null) {
                 return value;
             }
@@ -2668,7 +2668,7 @@ public class DBUtils {
       if (cid == null || cid < 0) return null;
 
       Cache cache = getCache ("CompoundExperimentIdsCache");
-      List<Long> value = (List) getCacheValue (cache, cid);
+      List<Long> value = (List) cs.getCacheValue (cache, cid);
       if (value != null) {
       return value;
       }
@@ -2717,7 +2717,7 @@ public class DBUtils {
         String cacheKey = sid + "#" + skip + "#" + top;
         Cache cache = getCache ("SubstanceExperimentIdsCache");
         try {
-            List<Long> value = getCacheValue (cache, cacheKey);        
+            List<Long> value = cs.getCacheValue (cache, cacheKey);        
             if (value != null) {
                 return value;
             }
@@ -2761,7 +2761,7 @@ public class DBUtils {
       if (cid == null || cid < 0) return null;
 
       Cache cache = getCache ("CompoundExperimentCache");
-      List<Experiment> value = (List) getCacheValue (cache, cid);
+      List<Experiment> value = (List) cs.getCacheValue (cache, cid);
       if (value != null) {
       return value;
       }
@@ -2809,7 +2809,7 @@ public class DBUtils {
         String cacheKey = sid + "#" + skip + "#" + top;
         Cache cache = getCache ("SubstanceExperimentCache");
         try {
-            List<Experiment> value = (List) getCacheValue (cache, cacheKey);
+            List<Experiment> value = (List) cs.getCacheValue (cache, cacheKey);
             if (value != null) {
                 return value;
             }
@@ -2858,7 +2858,7 @@ public class DBUtils {
         String cacheKey = sid + "#" + skip + "#" + top;
         Cache cache = getCache ("SubstanceAssaysCache");
         try {
-            List<Assay> value = getCacheValue (cache, cacheKey);
+            List<Assay> value = cs.getCacheValue (cache, cacheKey);
             if (value != null) {
                 return value;
             }
@@ -2902,7 +2902,7 @@ public class DBUtils {
         String cacheKey = bardExptId + "#" + skip + "#" + top;
         Cache cache = getCache ("ExperimentSidsCache");
         try {
-            List<Long> value = getCacheValue (cache, cacheKey);
+            List<Long> value = cs.getCacheValue (cache, cacheKey);
             if (value != null) {
                 return value;
             }
@@ -2946,7 +2946,7 @@ public class DBUtils {
         String cacheKey = bardExptId + "#" + skip + "#" + top;
         Cache cache = getCache ("ExperimentCompoundsCache");
         try {
-            List<Compound> value = getCacheValue (cache, cacheKey);
+            List<Compound> value = cs.getCacheValue (cache, cacheKey);
             if (value != null) {
                 return value;
             }
@@ -2993,7 +2993,7 @@ public class DBUtils {
         String cacheKey = bardExptId + "#" + skip + "#" + top;
         Cache cache = getCache ("ExperimentSubstancesCache");
         try {
-            List<Compound> value = getCacheValue (cache, cacheKey);
+            List<Compound> value = cs.getCacheValue (cache, cacheKey);
             if (value != null) {
                 return value;
             }
@@ -3040,7 +3040,7 @@ public class DBUtils {
 
         Cache cache = getCache ("AssayPublicationsCache");
         try {
-            List<Publication> value = getCacheValue (cache, bardAssayId);
+            List<Publication> value = cs.getCacheValue (cache, bardAssayId);
             if (value != null) {
                 return value;
             }
@@ -3081,7 +3081,7 @@ public class DBUtils {
 
         Cache cache = getCache ("AssayTargetsCache");
         try {
-            List<ProteinTarget> value = getCacheValue (cache, bardAssayId);
+            List<ProteinTarget> value = cs.getCacheValue (cache, bardAssayId);
             if (value != null) {
                 return value;
             }
@@ -3124,7 +3124,7 @@ public class DBUtils {
 
         Cache cache = getCache ("ProjectTargetsCache");
         try {
-            List<ProteinTarget> value = getCacheValue (cache, bardProjectid);
+            List<ProteinTarget> value = cs.getCacheValue (cache, bardProjectid);
             if (value != null) {
                 return value;
             }
@@ -3179,7 +3179,7 @@ public class DBUtils {
 
         Cache cache = getCache ("SearchAssayCache");
         try {
-            List<Assay> value = getCacheValue (cache, query);
+            List<Assay> value = cs.getCacheValue (cache, query);
             if (value != null) {
                 return value;
             }
@@ -3227,7 +3227,7 @@ public class DBUtils {
     public List<Assay> getAssaysByExperimentId(Long eid) throws SQLException {
         Cache cache = getCache ("AssaysByExperimentIdCache");
         try {
-            List<Assay> value = getCacheValue (cache, eid);
+            List<Assay> value = cs.getCacheValue (cache, eid);
             if (value != null) {
                 return value;
             }
@@ -3259,7 +3259,7 @@ public class DBUtils {
         throws SQLException {
         Cache cache = getCache ("AssaysByTargetAccessionCache");
         try {
-            List<Assay> value = getCacheValue (cache, acc);
+            List<Assay> value = cs.getCacheValue (cache, acc);
             if (value != null) {
                 return value;
             }
@@ -3291,7 +3291,7 @@ public class DBUtils {
         throws SQLException {
         Cache cache = getCache ("AssaysByTargetGeneidCache");
         try {
-            List<Assay> value = getCacheValue (cache, geneid);
+            List<Assay> value = cs.getCacheValue (cache, geneid);
             if (value != null) {
                 return value;
             }
@@ -3317,7 +3317,7 @@ public class DBUtils {
     public List<Long> getProjectIds() throws SQLException {
         Cache cache = getCache ("ProjectIdsCache");
         try {
-            List<Long> value = getCacheValue (cache, "all");
+            List<Long> value = cs.getCacheValue (cache, "all");
             if (value != null) {
                 return value;
             }
@@ -3349,7 +3349,7 @@ public class DBUtils {
     public List<Long> getAssayCount() throws SQLException {
         Cache cache = getCache ("AssayCountCache");
         try {
-            List<Long> value = getCacheValue (cache, "all");
+            List<Long> value = cs.getCacheValue (cache, "all");
             if (value != null) {
                 return value;
             }
@@ -3381,7 +3381,7 @@ public class DBUtils {
     /*
       public List<Long> getExperimentIds() throws SQLException {
       Cache cache = getCache ("ExperimentIdsCache");
-      List<Long> value = (List) getCacheValue (cache, "all");
+      List<Long> value = (List) cs.getCacheValue (cache, "all");
       if (value != null) {
       return value;
       }
@@ -3406,7 +3406,7 @@ public class DBUtils {
     public Project getProject(Long bardProjId) throws SQLException {
         Cache cache = getCache ("ProjectCache");
         try {
-            Project value =  getCacheValue (cache, bardProjId);
+            Project value =  cs.getCacheValue (cache, bardProjId);
             if (value != null) {
                 return value;
             }
@@ -3536,7 +3536,7 @@ public class DBUtils {
 
         Cache cache = getCache ("ProjectByExperimentIdCache");
         try {
-            List<Project> value = getCacheValue (cache, bardExptId);
+            List<Project> value = cs.getCacheValue (cache, bardExptId);
             if (value != null) {
                 return value;
             }
@@ -3572,7 +3572,7 @@ public class DBUtils {
         throws SQLException {
         Cache cache = getCache ("ProjectByAssayIdCache");
         try {
-            List<Project> value = getCacheValue (cache, bardAssayId);
+            List<Project> value = cs.getCacheValue (cache, bardAssayId);
             if (value != null) {
                 return value;
             }
@@ -3602,7 +3602,7 @@ public class DBUtils {
         throws SQLException {
         Cache cache = getCache ("ProbesForProjectCache");
         try {
-            List<Long> value = getCacheValue (cache, bardProjectId);
+            List<Long> value = cs.getCacheValue (cache, bardProjectId);
             if (value != null) {
                 return value;
             }
@@ -3633,7 +3633,7 @@ public class DBUtils {
 
         Cache cache = getCache ("SearchForExperimentDataCache");
         try {
-            List<ExperimentData> value = getCacheValue (cache, query);
+            List<ExperimentData> value = cs.getCacheValue (cache, query);
             if (value != null) {
                 return value;
             }
@@ -3768,7 +3768,7 @@ public class DBUtils {
 
         Cache cache = getCache ("SearchForEntityCache");
         try {
-            List<T> value = getCacheValue (cache, sql);
+            List<T> value = cs.getCacheValue (cache, sql);
             if (value != null) {
                 return value;
             }
@@ -3777,23 +3777,46 @@ public class DBUtils {
 
         log.info("## SQL: "+sql);
 
+        long t1, t2;
+
         pst = conn.prepareStatement(sql);
+        t1 = System.currentTimeMillis();
         ResultSet rs = pst.executeQuery();
+        t2 = System.currentTimeMillis();
+        System.out.println("## Time for ID query = "+((t2-t1)/1000.0)+" sec");
+
         List<T> entities = new ArrayList<T>();
-        while (rs.next()) {
-            Object id = rs.getObject(queryParams.getIdField());
-            Object entity = null;
-            if (klass.equals(Publication.class)) entity = getPublicationByPmid((Long) id);
-            else if (klass.equals(ProteinTarget.class)) entity = getProteinTargetByAccession((String) id);
-            else if (klass.equals(Project.class)) entity = getProject((Long) id);
-            else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
-            else if (klass.equals(Compound.class)) entity = getCompoundsByCid((Long) id);
-            else if (klass.equals(Assay.class)) entity = getAssayByAid((Long) id);
-            else if (klass.equals(ETag.class)) entity = getEtagByEtagId((String) id);
-            if (entity != null) {
-                if (entity instanceof List) entities.addAll((Collection<T>) entity);
-                else if (entity instanceof BardEntity) entities.add((T) entity);
+        if (klass.equals(Compound.class)) {
+            t1 = System.currentTimeMillis();
+            List<Long> cids = new ArrayList<Long>();
+            while (rs.next()) cids.add(rs.getLong(queryParams.getIdField()));
+            entities.addAll((Collection<? extends T>) getCompoundsByCid(cids.toArray(new Long[0])));
+            t2 = System.currentTimeMillis();
+            System.out.println("## Time for bulk Compound query = "+((t2-t1)/1000.0)+" sec");
+        } else if (klass.equals(Assay.class)) {
+            t1 = System.currentTimeMillis();
+            List<Long> aids = new ArrayList<Long>();
+            while (rs.next()) aids.add(rs.getLong(queryParams.getIdField()));
+            entities.addAll((Collection<? extends T>) getAssays(aids.toArray(new Long[0])));
+            t2 = System.currentTimeMillis();
+            System.out.println("## Time for bulk Assay query = "+((t2-t1)/1000.0)+" sec");
+        }else {
+            t1 = System.currentTimeMillis();
+            while (rs.next()) {
+                Object id = rs.getObject(queryParams.getIdField());
+                Object entity = null;
+                if (klass.equals(Publication.class)) entity = getPublicationByPmid((Long) id);
+                else if (klass.equals(ProteinTarget.class)) entity = getProteinTargetByAccession((String) id);
+                else if (klass.equals(Project.class)) entity = getProject((Long) id);
+                else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
+                else if (klass.equals(ETag.class)) entity = getEtagByEtagId((String) id);
+                if (entity != null) {
+                    if (entity instanceof List) entities.addAll((Collection<T>) entity);
+                    else if (entity instanceof BardEntity) entities.add((T) entity);
+                }
             }
+            t2 = System.currentTimeMillis();
+            System.out.println("## Time for iterating query = "+((t2-t1)/1000.0)+" sec");
         }
         rs.close();
         pst.close();
@@ -3891,7 +3914,7 @@ public class DBUtils {
 
         Cache cache = getCache ("AssayAnnotationsCache");
         try {
-            List<CAPAssayAnnotation> value = getCacheValue 
+            List<CAPAssayAnnotation> value = cs.getCacheValue 
                 (cache, bardAssayId);
             if (value != null) {
                 return value;
@@ -3936,7 +3959,7 @@ public class DBUtils {
         Cache cache = getCache ("ProjectAnnotationsCache");
         try {
             List<CAPAssayAnnotation> value = 
-                getCacheValue (cache, bardProjectId);
+                cs.getCacheValue (cache, bardProjectId);
             if (value != null) {
                 return value;
             }
@@ -3979,7 +4002,7 @@ public class DBUtils {
         /*
         Cache cache = getCache ("CAPDictionaryCache");
         try {
-            CAPDictionary cap = getCacheValue (cache, "cap");
+            CAPDictionary cap = cs.getCacheValue (cache, "cap");
             if (cap != null) {
                 return cap;
             }
@@ -4088,7 +4111,7 @@ public class DBUtils {
 
         Cache cache = getCache ("EntitiesByActiveCid::"+entity.getClass());
         try {
-            List<T> value = (List) getCacheValue (cache, cid);
+            List<T> value = (List) cs.getCacheValue (cache, cid);
             if (value != null) {
                 return value;
             }
@@ -4172,7 +4195,7 @@ public class DBUtils {
         Cache cache = getCache ("EntitiesByCidCache::"+cacheName);
 
         try {
-            List<T> value = (List<T>) getCacheValue (cache, cid);
+            List<T> value = (List<T>) cs.getCacheValue (cache, cid);
             if (value != null) {
                 return value;
             }
@@ -4203,7 +4226,7 @@ public class DBUtils {
     public Map<String, Object> getProjectSumary(Long projectId) throws SQLException {
         Cache cache = getCache ("ProjectSummaryCache");
         try {
-            Map<String, Object> value = getCacheValue (cache, projectId);
+            Map<String, Object> value = cs.getCacheValue (cache, projectId);
             if (value != null) {
                 return value;
             }
