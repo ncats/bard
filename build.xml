@@ -149,7 +149,7 @@
               tofile="${bard.explode.dir}/WEB-INF/lib/jackson-databind-2.0.0.jar"/>
         <!--Move compiled classes into WEB-INF-->
         <copy todir="${bard.explode.dir}/WEB-INF/classes">
-            <fileset dir="${bard.build}/" excludes="**/service/*"/>
+            <fileset dir="${bard.build}/" excludes="**/service/* **/plugin/* **/rest/*Plugin*"/>
         </copy>
         <!--Copy misc web pages, resources etc -->
         <copy todir="${bard.explode.dir}/">
@@ -171,20 +171,54 @@
         </jar>
     </target>
 
-    <target name="caching-service">
-        <mkdir dir="${bard.build}"/>
-        <javac srcdir="${bard.src}" destdir="${bard.build}"
-               debug="yes" target="1.6"
-               includes="**/service/*.java">
-            <classpath refid="compile.classpath"/>
-        </javac>
-        <jar destfile="${bard.deploy}/caching-service.jar" duplicate="preserve">
+    
+    <!-- ############################################################################
+    ##
+    ## Plugin related targets
+    ##
+    ################################################################################ -->
+    <property name="bard.plugin.explode.dir" value="${bard.deploy}/exploded-plugin"/>
+    <target name='explode-plugin' depends='compile-rest'>
+        <copy file="${basedir}/web-plugin/WEB-INF/web.xml" tofile="${bard.plugin.explode.dir}/WEB-INF/web.xml"/>
+        <copy file="${basedir}/web-plugin/META-INF/context.xml" tofile="${bard.plugin.explode.dir}/META-INF/context.xml"/>
+        <copy file="${basedir}/web-plugin/WEB-INF/web.xml" tofile="${bard.plugin.explode.dir}/WEB-INF/web.xml"/>
+        <copy file="${bard.lib}/molrenderer.jar" tofile="${bard.plugin.explode.dir}/WEB-INF/lib/molrenderer.jar"/>
+        <copy file="${bard.lib}/functional.jar" tofile="${bard.plugin.explode.dir}/WEB-INF/lib/functional.jar"/>
+        <copy file="${bard.lib}/xom-1.2.5.jar" tofile="${bard.plugin.explode.dir}/WEB-INF/lib/xom-1.2.5.jar"/>
+        <copy file="${bard.lib}/asm-3.1.jar" tofile="${bard.plugin.explode.dir}/WEB-INF/lib/asm-3.1.jar"/>
+
+        <copy file="${bard.lib}/jackson-core-2.0.0.jar"
+              tofile="${bard.plugin.explode.dir}/WEB-INF/lib/jackson-core-2.0.0.jar"/>
+        <copy file="${bard.lib}/jackson-annotations-2.0.0.jar"
+              tofile="${bard.plugin.explode.dir}/WEB-INF/lib/jackson-annotations-2.0.0.jar"/>
+        <copy file="${bard.lib}/jackson-databind-2.0.0.jar"
+              tofile="${bard.plugin.explode.dir}/WEB-INF/lib/jackson-databind-2.0.0.jar"/>
+        <!--Move compiled classes into WEB-INF-->
+        <copy todir="${bard.plugin.explode.dir}/WEB-INF/classes">
+            <fileset dir="${bard.build}/">
+                <include name="**/plugin/*"/>
+                <include name="**/rest/*Plugin*"/>
+                <include name="**/rest/IBARDResource*"/>
+                <include name="**/entity/*"/>
+                <include name="**/tools/*"/>
+                <include name="**/filter/*"/>
+            </fileset>
+        </copy>
+        <!--Copy misc web pages, resources etc -->
+        <copy todir="${bard.plugin.explode.dir}/">
+            <fileset dir="web-plugin"/>
+        </copy>
+    </target>
+    
+    <target name='war-plugin' depends="explode-plugin">
+        <mkdir dir="${bard.deploy}"/>
+        <jar destfile="${bard.deploy}/bard-plugin.war" duplicate="preserve">
             <manifest>
                 <attribute name="Created-By" value="NCGC"/>
                 <attribute name="Manifest-Version" value="1.0"/>
             </manifest>
-            <fileset dir="${bard.build}" casesensitive="yes">
-                <include name="**/service/*"/>
+            <fileset dir="${bard.plugin.explode.dir}" casesensitive="yes">
+                <include name="**/*"/>
             </fileset>
         </jar>
     </target>
@@ -199,7 +233,7 @@
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
                debug="yes" target="1.6"
-               includes="**/plugin/*">
+               includes="**/plugin/* **/rest/*Plugin*">
             <classpath refid="compile.classpath"/>
         </javac>
         <jar destfile="${bard.deploy}/bard-plugins.jar">
@@ -209,6 +243,35 @@
             </manifest>
             <fileset dir="${bard.build}" casesensitive="yes">
                 <include name="**/plugin/*"/>
+                <include name="**/rest/*Plugin*"/>
+                <include name="**/rest/IBARDResource*"/>
+                <include name="**/entity/*"/>
+                <include name="**/tools/*"/>
+                <include name="**/filter/*"/>
+            </fileset>
+        </jar>
+    </target>
+
+    <!-- ############################################################################
+    ##
+    ## Caching related targets
+    ##
+    ################################################################################ -->
+
+    <target name="caching-service">
+        <mkdir dir="${bard.build}"/>
+        <javac srcdir="${bard.src}" destdir="${bard.build}"
+               debug="yes" target="1.6"
+               includes="**/service/*.java">
+            <classpath refid="compile.classpath"/>
+        </javac>
+        <jar destfile="${bard.deploy}/caching-service.jar" duplicate="preserve">
+            <manifest>
+                <attribute name="Created-By" value="NCGC"/>
+                <attribute name="Manifest-Version" value="1.0"/>
+            </manifest>
+            <fileset dir="${bard.build}" casesensitive="yes">
+                <include name="**/service/*"/>
             </fileset>
         </jar>
     </target>
