@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 
@@ -20,7 +21,10 @@ import java.util.List;
  */
 public class Compound implements BardEntity {
     Long cid;
+
+    @JsonIgnore
     List<Long> sids;
+
     String probeId = null;
     String url = null;
     String smiles = null;
@@ -34,7 +38,10 @@ public class Compound implements BardEntity {
     Integer rotatable;
     Integer hbondAcceptor;
     Integer hbondDonor;
+
+    @JsonIgnore
     String[] anno_val, anno_key;
+
     String highlight;
 
     public Compound(Long cid, String probeId, String url) {
