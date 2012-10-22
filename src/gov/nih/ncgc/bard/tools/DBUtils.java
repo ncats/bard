@@ -95,8 +95,8 @@ public class DBUtils {
                                MAX_CACHE_SIZE, 
                                false, // overflowToDisk
                                false, // eternal (never expire)
-                               2*60*60, // time to live (seconds)
-                               2*60*60 // time to idle (seconds)
+                               24*60*60, // time to live (seconds)
+                               24*60*60 // time to idle (seconds)
                                );
             cacheManager.addCacheIfAbsent(cache);
             cache.setStatisticsEnabled(true);
