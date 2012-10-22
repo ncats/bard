@@ -529,17 +529,6 @@ public class DBUtils {
                         cache.put(new Element (c.getCid(), c));
                     }
                     rs.close();
-                    
-                    // get Sids and annotations
-                    for (Compound c : compounds) {
-                        c.setSids(getSidsByCid(c.getCid()));
-                        Map<String, String[]> annots = 
-                            getCompoundAnnotations(c.getCid());
-                        c.setAnno_key(annots.get("anno_key"));
-                        c.setAnno_val(annots.get("anno_val"));
-                    }
-                    
-                    
                 } 
                 finally {
                     stm.close();
