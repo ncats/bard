@@ -3414,7 +3414,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         Project p = null;
-        PreparedStatement pst = conn.prepareStatement("select a.*, b.name as source_name from bard_project a, source b where a.bard_proj_id = ? and a.depositor_id = b.source_id");
+        PreparedStatement pst = conn.prepareStatement("select a.*, b.name as source_name from bard_project a left join source b on a.depositor_id = b.source_id where a.bard_proj_id = ?");
         try {
             pst.setLong(1, bardProjId);
             ResultSet rs = pst.executeQuery();
