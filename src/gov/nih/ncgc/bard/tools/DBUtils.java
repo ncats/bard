@@ -3965,7 +3965,7 @@ public class DBUtils {
 
     public CAPDictionary getCAPDictionary() 
         throws SQLException, IOException, ClassNotFoundException {
-        /*
+
         Cache cache = getCache ("CAPDictionaryCache");
         try {
             CAPDictionary cap = getCacheValue (cache, "cap");
@@ -3976,7 +3976,7 @@ public class DBUtils {
         catch (ClassCastException ex) {
             log.warn("** Cache miss due to ClassLoader changed");
         }
-        */
+
 
         PreparedStatement pst = conn.prepareStatement("select dict, ins_date from cap_dict_obj order by ins_date desc");
         try {
@@ -3992,7 +3992,7 @@ public class DBUtils {
 
             if (!(o instanceof CAPDictionary)) return null;
 
-            //cache.put(new Element ("cap", o));
+            cache.put(new Element ("cap", o));
             return (CAPDictionary)o;
         }
         finally {
