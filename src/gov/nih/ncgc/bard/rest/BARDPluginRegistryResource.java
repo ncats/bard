@@ -2,13 +2,18 @@ package gov.nih.ncgc.bard.rest;
 
 import gov.nih.ncgc.bard.plugin.IPlugin;
 import gov.nih.ncgc.bard.tools.Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.servlet.ServletConfig;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.File;
@@ -21,11 +26,6 @@ import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Context;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
-
 
 /**
  * A one line summary.
@@ -34,10 +34,16 @@ import javax.servlet.ServletContext;
  */
 @Path("/plugins/registry")
 public class BARDPluginRegistryResource implements IBARDResource {
+    Logger logger;
+
     @Context
     ServletConfig servletConfig;
     @Context
     protected HttpHeaders headers;
+
+    public BARDPluginRegistryResource() {
+        logger = LoggerFactory.getLogger(this.getClass());
+    }
 
     @GET
     @Produces("text/plain")
@@ -77,7 +83,7 @@ public class BARDPluginRegistryResource implements IBARDResource {
             } catch (NoClassDefFoundError e) {
                 // ignore this exception
             } catch (ClassNotFoundException e) {
-                throw new WebApplicationException(e, 500);
+                logger.warn(e.toString());
             } catch (InstantiationException e) {
                 throw new WebApplicationException(e, 500);
             } catch (IllegalAccessException e) {
