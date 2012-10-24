@@ -2256,11 +2256,11 @@ public class DBUtils {
      * @return A list of compound CIDs
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Long> getExperimentCids(Long bardExptId, int skip, int top) 
+    public List<Long> getExperimentCids(Long bardExptId, int skip, int top, boolean actives)
         throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
 
-        String cacheKey = bardExptId + "#" + skip + "#" + top;
+        String cacheKey = bardExptId + "#" + skip + "#" + top + "#" + actives;
         Cache cache = getCache ("ExperimentCidsCache");
         try {
             List<Long> value = (List) getCacheValue (cache, cacheKey);
@@ -2276,8 +2276,13 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement
-            ("select distinct cid from bard_experiment_data where bard_expt_id = ? order by cid " + limitClause);
+        PreparedStatement pst;
+
+        if (!actives)
+            pst = conn.prepareStatement("select distinct cid from bard_experiment_data where bard_expt_id = ? order by cid " + limitClause);
+        else
+            pst = conn.prepareStatement("select distinct cid from bard_experiment_data where bard_expt_id = ? and outcome = 2 order by cid " + limitClause);
+
         try {
             pst.setLong(1, bardExptId);
             ResultSet rs = pst.executeQuery();
@@ -2884,11 +2889,11 @@ public class DBUtils {
      * @return A list of compound SIDs
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
-    public List<Long> getExperimentSids(Long bardExptId, int skip, int top) 
+    public List<Long> getExperimentSids(Long bardExptId, int skip, int top, boolean actives)
         throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
 
-        String cacheKey = bardExptId + "#" + skip + "#" + top;
+        String cacheKey = bardExptId + "#" + skip + "#" + top + "#" + actives;
         Cache cache = getCache ("ExperimentSidsCache");
         try {
             List<Long> value = getCacheValue (cache, cacheKey);
@@ -2904,7 +2909,10 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select distinct sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
+        PreparedStatement pst;
+        if (!actives) pst = conn.prepareStatement("select distinct sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
+        else pst = conn.prepareStatement("select distinct sid from bard_experiment_data where bard_expt_id = ? and outcome = 2 order by sid " + limitClause);
+
         try {
             pst.setLong(1, bardExptId);
             ResultSet rs = pst.executeQuery();
@@ -2929,10 +2937,10 @@ public class DBUtils {
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
     public List<Compound> getExperimentCompounds
-        (Long bardExptId, int skip, int top) throws SQLException {
+        (Long bardExptId, int skip, int top, boolean actives) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
 
-        String cacheKey = bardExptId + "#" + skip + "#" + top;
+        String cacheKey = bardExptId + "#" + skip + "#" + top + "#" + actives;
         Cache cache = getCache ("ExperimentCompoundsCache");
         try {
             List<Compound> value = getCacheValue (cache, cacheKey);
@@ -2948,7 +2956,12 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
+        PreparedStatement pst;
+        if (!actives)
+            pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
+        else
+            pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? and outcome = 2 order by sid " + limitClause);
+
         try {
             pst.setLong(1, bardExptId);
             ResultSet rs = pst.executeQuery();
@@ -2976,10 +2989,10 @@ public class DBUtils {
      * @throws SQLException if an invalid limit specification is supplied or there is an error in the SQL query
      */
     public List<Compound> getExperimentSubstances
-        (Long bardExptId, int skip, int top) throws SQLException {
+        (Long bardExptId, int skip, int top, boolean actives) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
 
-        String cacheKey = bardExptId + "#" + skip + "#" + top;
+        String cacheKey = bardExptId + "#" + skip + "#" + top + "#" + actives;
         Cache cache = getCache ("ExperimentSubstancesCache");
         try {
             List<Compound> value = getCacheValue (cache, cacheKey);
@@ -2995,7 +3008,10 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
-        PreparedStatement pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
+        PreparedStatement pst;
+        if (!actives) pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
+        else pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? and outcome = 2 order by sid " + limitClause);
+
         try {
             pst.setLong(1, bardExptId);
             ResultSet rs = pst.executeQuery();

@@ -278,19 +278,24 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
         if (skip == null) skip = -1;
         if (top == null) top = -1;
 
+        boolean filterActives = false;
+        if (filter != null && filter.contains("[active]")) filterActives = true;
         try {
             Experiment experiment = db.getExperimentByExptId(Long.valueOf(resourceId));
 
             // set up skip and top params
-            if (experiment.getSubstances() > BARDConstants.MAX_COMPOUND_COUNT) {
+            if (experiment.getCompounds() > BARDConstants.MAX_COMPOUND_COUNT) {
                 if ((top == -1)) { // top was not specified, so we start from the beginning
                     top = BARDConstants.MAX_COMPOUND_COUNT;
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
                 if (expandEntries) expandClause = "expand=true";
-                if (skip + top <= experiment.getSubstances())
-                    linkString = BARDConstants.API_BASE + "/experiments/" + resourceId + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+                String filterClause = "";
+                if (filterActives) filterClause = "&filter=[active]";
+
+                if (skip + top <= experiment.getCompounds())
+                    linkString = BARDConstants.API_BASE + "/experiments/" + resourceId + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause+filterClause;
             }
 
             if (types.contains(BARDConstants.MIME_SMILES)) {
@@ -300,14 +305,14 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
             } else { // JSON
                 String json;
                 if (!expandEntries) {
-                    List<Long> cids = db.getExperimentCids(Long.valueOf(resourceId), skip, top);
+                    List<Long> cids = db.getExperimentCids(Long.valueOf(resourceId), skip, top, filterActives);
                     List<String> links = new ArrayList<String>();
                     for (Long cid : cids) links.add((new Compound(cid, null, null)).getResourcePath());
 
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
                     json = Util.toJson(linkedEntity);
                 } else {
-                    List<Compound> compounds = db.getExperimentCompounds(Long.valueOf(resourceId), skip, top);
+                    List<Compound> compounds = db.getExperimentCompounds(Long.valueOf(resourceId), skip, top, filterActives);
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(compounds, linkString);
                     json = Util.toJson(linkedEntity);
                 }
@@ -340,6 +345,9 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
         if (skip == null) skip = -1;
         if (top == null) top = -1;
 
+        boolean filterActives = false;
+        if (filter != null && filter.contains("[active]")) filterActives = true;
+
         try {
             Experiment experiemnt = db.getExperimentByExptId(Long.valueOf(resourceId));
 
@@ -351,8 +359,10 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
                 if (expandEntries) expandClause = "expand=true";
+                String filterClause = "";
+                if (filterActives) filterClause = "&filter=[active]";
                 if (skip + top <= experiemnt.getSubstances())
-                    linkString = BARDConstants.API_BASE + "/experiments/" + resourceId + "/substances?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+                    linkString = BARDConstants.API_BASE + "/experiments/" + resourceId + "/substances?skip=" + (skip + top) + "&top=" + top + "&" + expandClause + filterClause;
             }
 
             if (types.contains(BARDConstants.MIME_SMILES)) {
@@ -362,13 +372,13 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
             } else { // JSON
                 String json;
                 if (!expandEntries) {
-                    List<Long> sids = db.getExperimentSids(Long.valueOf(resourceId), skip, top);
+                    List<Long> sids = db.getExperimentSids(Long.valueOf(resourceId), skip, top, filterActives);
                     List<String> links = new ArrayList<String>();
                     for (Long sid : sids) links.add((new Substance(sid, null)).getResourcePath());
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
                     json = Util.toJson(linkedEntity);
                 } else {
-                    List<Compound> compounds = db.getExperimentSubstances(Long.valueOf(resourceId), skip, top);
+                    List<Compound> compounds = db.getExperimentSubstances(Long.valueOf(resourceId), skip, top, filterActives);
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(compounds, linkString);
                     json = Util.toJson(linkedEntity);
                 }
