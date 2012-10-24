@@ -280,7 +280,14 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
 
         boolean filterActives = false;
         if (filter != null && filter.contains("[active]")) filterActives = true;
+
         try {
+            if (countRequested) {
+                int n = db.getExperimentCidCount(Long.valueOf(resourceId), filterActives);
+                db.closeConnection();
+                return Response.ok(String.valueOf(n), MediaType.TEXT_PLAIN).build();
+            }
+
             Experiment experiment = db.getExperimentByExptId(Long.valueOf(resourceId));
 
             // set up skip and top params
@@ -349,6 +356,12 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
         if (filter != null && filter.contains("[active]")) filterActives = true;
 
         try {
+            if (countRequested) {
+                int n = db.getExperimentSidCount(Long.valueOf(resourceId), filterActives);
+                db.closeConnection();
+                return Response.ok(String.valueOf(n), MediaType.TEXT_PLAIN).build();
+            }
+
             Experiment experiemnt = db.getExperimentByExptId(Long.valueOf(resourceId));
 
             // set up skip and top params
@@ -386,8 +399,10 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
             }
         } catch (SQLException e) {
+            logger.warning(e.toString());
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
+            logger.warning(e.toString());
             throw new WebApplicationException(e, 500);
         }
         return null;

@@ -2246,7 +2246,37 @@ public class DBUtils {
         return assays;
     }
 
+    public int getExperimentCidCount(Long bardExptId, boolean actives) throws SQLException {
+        if (bardExptId == null || bardExptId < 0) return -1;
+        PreparedStatement pst;
+        if (!actives)
+            pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data where bard_expt_id = ?");
+        else
+            pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data where bard_expt_id = ? and outcome = 2");
+        pst.setLong(1, bardExptId);
+        ResultSet rs = pst.executeQuery();
+        rs.next();
+        int n = rs.getInt(1);
+        pst.close();
+        return n;
+    }
 
+    public int getExperimentSidCount(Long bardExptId, boolean actives) throws SQLException {
+        if (bardExptId == null || bardExptId < 0) return -1;
+        PreparedStatement pst;
+        if (!actives)
+            pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data where bard_expt_id = ?");
+        else
+            pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data where bard_expt_id = ? and outcome = 2");
+        pst.setLong(1, bardExptId);
+        ResultSet rs = pst.executeQuery();
+        rs.next();
+        int n = rs.getInt(1);
+        pst.close();
+        return n;
+    }
+
+    
     /**
      * Retrieve CIDs for compounds associated with an experiment (based on bard_expt_id).
      *
