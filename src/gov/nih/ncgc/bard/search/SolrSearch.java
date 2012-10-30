@@ -172,8 +172,8 @@ public abstract class SolrSearch implements ISolrSearch {
                         sb.append(" OR ").append("\"").append(fvalues.get(i).replace("\"", "")).append("\"");
                     }
                 }
-                System.out.println(fname+":"+sb.toString());
-                solrQuery.addFilterQuery(fname + ":" + sb.toString());
+                System.out.println(fname+":("+sb.toString()+")");
+                solrQuery.addFilterQuery(fname + ":(" + sb.toString()+")");
             }
         } catch (Exception e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
