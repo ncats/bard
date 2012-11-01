@@ -2249,6 +2249,48 @@ public class DBUtils {
         return assays;
     }
 
+    public int getAssayCidCount(Long bardAssayId, boolean actives) throws SQLException {
+        if (bardAssayId == null || bardAssayId < 0) return -1;
+        PreparedStatement pst;
+        if (!actives)
+            pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
+                    "where b.bard_assay_id = ? " +
+                    "and b.bard_assay_id = c.bard_assay_id " +
+                    "and c.bard_expt_id = a.bard_expt_id");
+        else
+            pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
+                    "where b.bard_assay_id = ? " +
+                    "and b.bard_assay_id = c.bard_assay_id " +
+                    "and c.bard_expt_id = a.bard_expt_id and a.outcome = 2");
+        pst.setLong(1, bardAssayId);
+        ResultSet rs = pst.executeQuery();
+        rs.next();
+        int n = rs.getInt(1);
+        pst.close();
+        return n;
+    }
+
+    public int getAssaySidCount(Long bardAssayId, boolean actives) throws SQLException {
+        if (bardAssayId == null || bardAssayId < 0) return -1;
+        PreparedStatement pst;
+        if (!actives)
+            pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
+                    "where b.bard_assay_id = ? " +
+                    "and b.bard_assay_id = c.bard_assay_id " +
+                    "and c.bard_expt_id = a.bard_expt_id");
+        else
+            pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
+                    "where b.bard_assay_id = ? " +
+                    "and b.bard_assay_id = c.bard_assay_id " +
+                    "and c.bard_expt_id = a.bard_expt_id and a.outcome = 2");
+        pst.setLong(1, bardAssayId);
+        ResultSet rs = pst.executeQuery();
+        rs.next();
+        int n = rs.getInt(1);
+        pst.close();
+        return n;
+    }
+
     public int getExperimentCidCount(Long bardExptId, boolean actives) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return -1;
         PreparedStatement pst;
@@ -2279,7 +2321,176 @@ public class DBUtils {
         return n;
     }
 
-    
+    public List<Long> getAssaySids(Long bardAssayId, int skip, int top, boolean actives)
+           throws SQLException {
+           if (bardAssayId == null || bardAssayId < 0) return null;
+
+           String cacheKey = bardAssayId + "#" + skip + "#" + top + "#" + actives;
+           Cache cache = getCache ("AssaySidsCache");
+           try {
+               List<Long> value = (List) getCacheValue (cache, cacheKey);
+               if (value != null) {
+                   return value;
+               }
+           }
+           catch (ClassCastException ex) {}
+
+           String limitClause = "";
+           if (skip != -1) {
+               if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+               limitClause = "  limit " + skip + "," + top;
+           }
+
+           PreparedStatement pst;
+
+           if (!actives)
+               pst = conn.prepareStatement("select distinct sid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by sid " + limitClause);
+           else
+               pst = conn.prepareStatement("select distinct sid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id and a.outcome = 2 order by sid " + limitClause);
+
+           try {
+               pst.setLong(1, bardAssayId);
+               ResultSet rs = pst.executeQuery();
+               List<Long> ret = new ArrayList<Long>();
+               while (rs.next()) ret.add(rs.getLong("sid"));
+               rs.close();
+               cache.put(new Element (cacheKey, ret));
+               return ret;
+           }
+           finally {
+               pst.close();
+           }
+       }
+
+
+    public List<Long> getAssayCids(Long bardAssayId, int skip, int top, boolean actives)
+        throws SQLException {
+        if (bardAssayId == null || bardAssayId < 0) return null;
+
+        String cacheKey = bardAssayId + "#" + skip + "#" + top + "#" + actives;
+        Cache cache = getCache ("AssayCidsCache");
+        try {
+            List<Long> value = (List) getCacheValue (cache, cacheKey);
+            if (value != null) {
+                return value;
+            }
+        }
+        catch (ClassCastException ignored) {}
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst;
+
+        if (!actives)
+            pst = conn.prepareStatement("select distinct cid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by cid " + limitClause);
+        else
+            pst = conn.prepareStatement("select distinct cid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id and a.outcome = 2 order by cid " + limitClause);
+
+        try {
+            pst.setLong(1, bardAssayId);
+            ResultSet rs = pst.executeQuery();
+            List<Long> ret = new ArrayList<Long>();
+            while (rs.next()) ret.add(rs.getLong("cid"));
+            rs.close();
+            cache.put(new Element (cacheKey, ret));
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
+    }
+
+    public List<Compound> getAssayCompounds(Long bardAssayId, int skip, int top, boolean actives)
+         throws SQLException {
+         if (bardAssayId == null || bardAssayId < 0) return null;
+
+         String cacheKey = bardAssayId + "#" + skip + "#" + top + "#" + actives;
+         Cache cache = getCache ("AssayCompoundsCache");
+         try {
+             List<Compound> value = (List<Compound>) getCacheValue (cache, cacheKey);
+             if (value != null) {
+                 return value;
+             }
+         }
+         catch (ClassCastException ignored) {}
+
+         String limitClause = "";
+         if (skip != -1) {
+             if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+             limitClause = "  limit " + skip + "," + top;
+         }
+
+         PreparedStatement pst;
+
+         if (!actives)
+             pst = conn.prepareStatement("select distinct cid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by cid " + limitClause);
+         else
+             pst = conn.prepareStatement("select distinct cid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id and a.outcome = 2 order by cid " + limitClause);
+
+        try {
+            pst.setLong(1, bardAssayId);
+            ResultSet rs = pst.executeQuery();
+            List<Compound> ret = new ArrayList<Compound>();
+
+            while (rs.next()) {
+                ret.addAll(getCompoundsByCid(rs.getLong("cid")));
+            }
+            rs.close();
+            cache.put(new Element(cacheKey, ret));
+            return ret;
+        } finally {
+            pst.close();
+        }
+    }
+
+    public List<Substance> getAssaySubstances(Long bardAssayId, int skip, int top, boolean actives)
+            throws SQLException {
+        if (bardAssayId == null || bardAssayId < 0) return null;
+
+        String cacheKey = bardAssayId + "#" + skip + "#" + top + "#" + actives;
+        Cache cache = getCache("AssaySubstancesCache");
+        try {
+            List<Substance> value = (List<Substance>) getCacheValue(cache, cacheKey);
+            if (value != null) {
+                return value;
+            }
+        } catch (ClassCastException ignored) {
+        }
+
+        String limitClause = "";
+        if (skip != -1) {
+            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
+            limitClause = "  limit " + skip + "," + top;
+        }
+
+        PreparedStatement pst;
+
+        if (!actives)
+            pst = conn.prepareStatement("select distinct sid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by cid " + limitClause);
+        else
+            pst = conn.prepareStatement("select distinct sid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id and a.outcome = 2 order by cid " + limitClause);
+
+        try {
+            pst.setLong(1, bardAssayId);
+            ResultSet rs = pst.executeQuery();
+            List<Substance> ret = new ArrayList<Substance>();
+
+            while (rs.next()) {
+                ret.add(getSubstanceBySid(rs.getLong("sid")));
+            }
+            rs.close();
+            cache.put(new Element(cacheKey, ret));
+            return ret;
+        } finally {
+            pst.close();
+        }
+    }
+
+
     /**
      * Retrieve CIDs for compounds associated with an experiment (based on bard_expt_id).
      *
