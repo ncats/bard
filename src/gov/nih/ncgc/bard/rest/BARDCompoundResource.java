@@ -292,15 +292,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 String json;
                 ObjectMapper mapper = new ObjectMapper();
                 if (!type.equals("name") && c.size() == 1) {
-                    ObjectNode node = (ObjectNode) mapper
-                            .valueToTree(c.iterator().next());
-                    Map anno = db.getCompoundAnnotations
-                            (node.get("cid").asLong());
-                    for (Object key : anno.entrySet()) {
-                        Map.Entry me = (Map.Entry) key;
-                        node.putPOJO((String) me.getKey(), me.getValue());
-                    }
-                    json = mapper.writeValueAsString(node);
+                    json = Util.toJson(c);
                 } else {
                     if (expand) {
                         json = toJson(db, c, true);
