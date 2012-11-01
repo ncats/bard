@@ -525,7 +525,10 @@ public class DBUtils {
                         c.setCid(rs.getLong("cid"));
                         fillCompound(rs, c);
                         compounds.add(c);
-                        
+
+                        c.setNumAssay(getEntityCountByCid(c.getCid(), Assay.class));
+                        c.setNumActiveAssay(getEntityCountByActiveCid(c.getCid(), Assay.class));
+
                         cache.put(new Element (c.getCid(), c));
                     }
                     rs.close();
@@ -4231,6 +4234,100 @@ public class DBUtils {
             return ret;
         }
         finally {
+            pst.close();
+        }
+    }
+
+
+    public <T> Integer getEntityCountByCid(Long cid, Class<T> entity) throws SQLException {
+        String sql = null;
+        PreparedStatement pst;
+
+        if (cid == null || cid < 0) return null;
+
+        if (entity.isAssignableFrom(Assay.class)) {
+            sql = "select count(distinct b.bard_assay_id) "
+                    + "from bard_experiment_data a, bard_experiment b "
+                    + "where a.cid = ? and a.bard_expt_id = b.bard_expt_id  "
+                    + "order by a.classification desc, score desc ";
+        } else if (entity.isAssignableFrom(Project.class)) {
+            sql = "select count(distinct(pe.bard_proj_id)) "
+                    + "from bard_experiment_data ed,bard_project_experiment pe "
+                    + "where ed.cid = ? and pe.bard_expt_id=ed.bard_expt_id "
+                    + "and pe.bard_proj_id > 0 "
+                    + "order by ed.classification desc, score desc ";
+        } else if (entity.isAssignableFrom(Substance.class)) {
+            sql = "select count(sid) from cid_sid where cid = ? order by sid ";
+        } else if (entity.isAssignableFrom(ExperimentData.class)) {
+            sql = "select count(concat(cast(bard_expt_id as char), '.', cast(sid as char))) as id from bard_experiment_data where cid = ? order by classification desc, score desc ";
+        } else if (entity.isAssignableFrom(Experiment.class)) {
+            sql = "select count(distinct bard_expt_id) from bard_experiment_data where cid = ? order by classification desc, score desc ";
+        }
+
+        String cacheName = "Class";
+        if (entity.isAssignableFrom(Assay.class)) cacheName = "Assay";
+        else if (entity.isAssignableFrom(Project.class)) cacheName = "Project";
+        else if (entity.isAssignableFrom(Substance.class)) cacheName = "Substance";
+        else if (entity.isAssignableFrom(Experiment.class)) cacheName = "Experiment";
+        else if (entity.isAssignableFrom(ExperimentData.class)) cacheName = "ExperimentData";
+        Cache cache = getCache("EntityCountByCidCache::" + cacheName);
+
+        try {
+            Integer value = getCacheValue(cache, cid);
+            if (value != null) return value;
+        } catch (ClassCastException ignored) {
+        }
+
+        pst = conn.prepareStatement(sql);
+        try {
+            pst.setLong(1, cid);
+            ResultSet rs = pst.executeQuery();
+            rs.next();
+            Integer ret = rs.getInt(1);
+            rs.close();
+            cache.put(new Element(cid, ret));
+            return ret;
+        } finally {
+            pst.close();
+        }
+    }
+
+    public <T> Integer getEntityCountByActiveCid(Long cid, Class<T> entity)
+            throws SQLException {
+        String sql = null;
+        PreparedStatement pst;
+
+        if (entity.isAssignableFrom(Assay.class)) {
+            sql = "select count(distinct b.bard_assay_id) from bard_experiment_data a, bard_experiment b where a.cid = ? and a.bard_expt_id = b.bard_expt_id  and a.outcome = 2 order by a.classification desc, score desc ";
+        } else if (entity.isAssignableFrom(Project.class)) {
+            sql = "select count(distinct(pe.bard_proj_id)) from bard_experiment_data ed, bard_project_experiment pe " +
+                    "where ed.cid = ? and pe.bard_expt_id=ed.bard_expt_id and ed.outcome = 2 order by ed.classification desc, score desc ";
+        } else if (entity.isAssignableFrom(Substance.class)) {
+            sql = "select count(a.sid) from cid_sid a, bard_experiment_data b where a.cid = ? and a.cid = b.cid and b.outcome = 2 order by classification desc, score desc ";
+        } else if (entity.isAssignableFrom(ExperimentData.class)) {
+            sql = "select count(concat(cast(bard_expt_id as char), '.', cast(sid as char))) as id from bard_experiment_data where cid = ? and outcome = 2 order by expt_data_id order by classification desc, score desc ";
+        } else if (entity.isAssignableFrom(Experiment.class)) {
+            sql = "select count(distinct bard_expt_id) from bard_experiment_data where cid = ? and outcome = 2 order by classification desc, score desc ";
+        }
+
+        Cache cache = getCache("EntityCountByActiveCid::" + entity.getClass());
+        try {
+            Integer value = getCacheValue(cache, cid);
+            if (value != null) return value;
+        } catch (ClassCastException ignored) {
+        }
+
+        pst = conn.prepareStatement(sql);
+        try {
+            pst.setLong(1, cid);
+            ResultSet rs = pst.executeQuery();
+            rs.next();
+            Integer ret = rs.getInt(1);
+
+            rs.close();
+            cache.put(new Element(cid, ret));
+            return ret;
+        } finally {
             pst.close();
         }
     }

@@ -39,6 +39,12 @@ public class Compound implements BardEntity {
     Integer hbondAcceptor;
     Integer hbondDonor;
 
+
+    // number of assays compound is tested in
+    Integer numAssay;
+    // number of assays compound is tested in and is active
+    Integer numActiveAssay;
+
     @JsonIgnore
     String[] anno_val, anno_key;
 
@@ -51,6 +57,22 @@ public class Compound implements BardEntity {
     }
 
     public Compound() {
+    }
+
+    public Integer getNumAssay() {
+        return numAssay;
+    }
+
+    public void setNumAssay(Integer numAssay) {
+        this.numAssay = numAssay;
+    }
+
+    public Integer getNumActiveAssay() {
+        return numActiveAssay;
+    }
+
+    public void setNumActiveAssay(Integer numActiveAssay) {
+        this.numActiveAssay = numActiveAssay;
     }
 
     public String[] getAnno_val() {

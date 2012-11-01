@@ -151,6 +151,7 @@ public class Util {
                 else if (annot instanceof POST) httpMethod = "POST";
                 else if (annot instanceof PUT) httpMethod = "PUT";
             }
+            System.out.println("path = " + path);
             if (path != null) ret.add(httpMethod + " " + path);
         }
         return ret;
