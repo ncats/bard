@@ -190,6 +190,8 @@ public abstract class SolrSearch implements ISolrSearch {
             if (hls != null) {
                 doc.addField("highlight", hls.get(0));
             }
+            doc.removeFields("anno_val");
+            doc.removeFields("anno_key");
             docs.add(doc);
         }
         return docs;
