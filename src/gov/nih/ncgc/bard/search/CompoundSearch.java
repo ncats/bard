@@ -13,8 +13,10 @@ import org.slf4j.LoggerFactory;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Full text search for compound entities.
@@ -85,25 +87,31 @@ public class CompoundSearch extends SolrSearch {
             }
         }
 
+        // we manually update facet counts COLLECTION
         List<Long> cids = new ArrayList<Long>();
         for (SolrDocument doc : docs) {
 
-            Collection<Object> keys = doc.getFieldValues("anno_key");
-            Collection<Object> values = doc.getFieldValues("anno_val");
+            Collection<Object> collection = doc.getFieldValues("COLLECTION");
+            if (collection == null) {
+                log.warn("COLLECTION field was null for Compound document: " + doc.getFieldValue("cid"));
+                continue;
+            }
 
-            if (keys == null || values == null) continue;
-
-            List<Object> keyList = new ArrayList<Object>(keys);
-            List<Object> valueList = new ArrayList<Object>(values);
+            List<Object> clist = new ArrayList<Object>(collection);
+            Set<String> vset = new HashSet<String>();
             for (Facet facet : facets) {
-                for (int i = 0; i < keyList.size(); i++) {
-                    if (keyList.get(i).equals(facet.getFacetName())) {
-                        String v = ((String) valueList.get(i)).trim();
-                        if (v.length() == 0 || v.equals("")) continue;
-                        if (v.indexOf("|") >= 0) v = v.split("|")[0];
-                        facet.addFacetValue(v);
-                    }
+                if (!facet.getFacetName().equals("COLLECTION")) continue;
+                for (Object aClist : clist) {
+                    String v = ((String) aClist).trim();
+                    if (v == null || v.length() == 0 || v.equals("")) continue;
+                    if (v.contains("|")) v = v.split("|")[0].trim();
+                    if (v.length() == 0 || v.equals("")) continue;
+                    vset.add(v);
                 }
+
+                // at this stage we have a unique set of COLLECTION values for this document
+                // lets update the COLLECTION facet
+                for (String v : vset) facet.addFacetValue(v);
             }
 
             Object id = doc.getFieldValue("cid");
