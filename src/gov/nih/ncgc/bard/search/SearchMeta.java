@@ -10,6 +10,8 @@ import java.util.List;
 public class SearchMeta {
     Long nhit;
     List<Facet> facets;
+    int queryTime;
+    long elapsedTime;
 
     public SearchMeta() {
     }
@@ -28,5 +30,21 @@ public class SearchMeta {
 
     public void setFacets(List<Facet> facets) {
         this.facets = facets;
+    }
+
+    public int getQueryTime() {
+        return queryTime;
+    }
+
+    public void setQueryTime(int queryTime) {
+        this.queryTime = queryTime;
+    }
+
+    public long getElapsedTime() {
+        return elapsedTime;
+    }
+
+    public void setElapsedTime(long elapsedTime) {
+        this.elapsedTime = elapsedTime;
     }
 }

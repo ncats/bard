@@ -149,6 +149,8 @@ public class AssaySearch extends SolrSearch {
         SearchMeta meta = new SearchMeta();
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
+        meta.setQueryTime(response.getQTime());
+        meta.setElapsedTime(response.getElapsedTime());
 
         try {
             String etag = putEtag(aids, Assay.class);
