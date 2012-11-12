@@ -603,7 +603,17 @@ public class DBUtils {
         if (sids == null || sids.length == 0) return null;
 
         List<Compound> cmpds = new ArrayList<Compound>();
-        List<List<Long>> chunks = Util.chunk(sids, CHUNK_SIZE);
+
+        List<Long> notcached = new ArrayList<Long>();
+        Cache cache = getCache("CompoundsBySidCache");
+        for (Long sid : sids) {
+            Compound value = null;
+            value = getCacheValue(cache, sid);
+            if (value != null) cmpds.add(value);
+            else notcached.add(sid);
+        }
+
+        List<List<Long>> chunks = Util.chunk(notcached, CHUNK_SIZE);
         for (List<Long> chunk : chunks) {
             String sidClause = Util.join(chunk, ",");
             String sql = "select cid from cid_sid s where s.sid in (" + sidClause + ")";
@@ -619,7 +629,13 @@ public class DBUtils {
                 }
             }
             rs.close();
-            cmpds.addAll(getCompoundsByCid(cids.toArray(new Long[]{})));
+
+            List<Compound> notCachedCompounds = getCompoundsByCid(cids.toArray(new Long[]{}));
+            for (Compound c : notCachedCompounds) {
+                List<Long> notCachedSids = c.getSids();
+                for (Long sid : notCachedSids) cache.put(new Element(sid, c));
+            }
+            cmpds.addAll(notCachedCompounds);
             pst.close();
         }
 
