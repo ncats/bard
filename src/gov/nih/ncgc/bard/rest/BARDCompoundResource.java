@@ -66,8 +66,8 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         return Compound.class;
     }
 
-    public String getResourceBase () { 
-        return BARDConstants.API_BASE+"/compounds";
+    public String getResourceBase() {
+        return BARDConstants.API_BASE + "/compounds";
     }
 
     @GET
@@ -133,104 +133,138 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 }
             }
         } else {   // do a filtered search
+
             // examine the filter argument to see if we should do a structure search
-            if (filter.indexOf("[structure]") > 0) filter = filter.trim().replace("[structure]", "");
-            else
-                throw new BadRequestException("Currently filter only supports structure searches");
-
-            SearchService2 search = null;
-            try {
-                search = Util.getSearchService();
-            } catch (Exception e) {
-                throw new WebApplicationException(new Exception("Error in getting a search service instance", e), 500);
-            }
-
-            SearchParams params;
-            if (type != null) {
-                if (type.startsWith("sub")) {
-                    params = SearchParams.substructure();
-                } else if (type.startsWith("super")) {
-                    params = SearchParams.superstructure();
-                } else if (type.startsWith("sim")) {
-                    params = SearchParams.similarity();
-                    if (cutoff != null) {
-                        try {
-                            params.setSimilarity(cutoff);
-                        } catch (NumberFormatException e) {
-                            throw new BadRequestException("Bogus similarity value specified");
-                        }
-                    } else
-                        throw new BadRequestException("If similarity search is requested must specify the cutoff");
-                } else if (type.startsWith("exact")) {
-                    params = SearchParams.exact();
-                } else {
-                    params = SearchParams.substructure();
-                }
-            } else {
-                params = SearchParams.substructure();
-            }
-
-            if (rankBy != null) params.setRankBy(rankBy);
-
-            StringWriter writer = new StringWriter();
-            PrintWriter pw = new PrintWriter(writer);
-            if (skip == -1) skip = 0;
-            if (top == -1) top = 100;
-            OrderedSearchResultHandler handler = new OrderedSearchResultHandler(params, pw, skip, top);
-            if (countRequested) {
-                int n = search.count(filter, params);
-                response = Response.ok(String.valueOf(n)).build();
-            } else {
-                search.search(filter, params, handler);
-                handler.complete();
-
-                // TODO we should be directly getting a List of cid's rather than parsing a string
-                String cidsStr = writer.getBuffer().toString();
-                String[] cidStrs = cidsStr.split("\n");
-                List<Long> cids = new ArrayList<Long>();
-                Map<Long, String> highlights = new HashMap<Long, String>();
-                for (String cidstr : cidStrs) {
-                    String[] toks = cidstr.split("\t");
-                    String hl = null;
-                    if (toks.length == 2) {
-                        cidstr = toks[0];
-                        hl = toks[1];
+            if (filter.contains("[structure]")) {
+                filter = filter.trim().replace("[structure]", "");
+                response = doStructureSearch(filter, type, top, skip, cutoff, rankBy, db, expandEntries);
+            } else if (filter.contains("[tested]") || filter.contains("[active]")) {
+                if (countRequested && filter.contains("[tested]")) response = Response.ok(String.valueOf(db.getCompoundTestCount())).build();
+                else if (countRequested && filter.contains("[active]")) response = Response.ok(String.valueOf(db.getCompoundActiveCount())).build();
+                else {
+                    if ((top == -1)) { // top was not specified, so we start from the beginning
+                        top = BARDConstants.MAX_COMPOUND_COUNT;
                     }
+                    if (skip == -1) skip = 0;
+                    String expandClause = "expand=false";
+                    if (expandEntries) expandClause = "expand=true";
 
-                    if (cidstr.equals("")) continue;
-                    Long cid = Long.parseLong(cidstr);
-                    cids.add(cid);
-                    if (hl != null) {
-                        highlights.put(cid, hl);
-                    }
-                }
+                    String linkString = null;
+                    if (skip + top <= db.getCompoundTestCount())
+                        linkString = BARDConstants.API_BASE + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause + "&filter=[tested]";
 
-                Long[] ids = cids.toArray(new Long[0]);
-                EntityTag etag = newETag(db, ids);
-
-//                List<Long> cids = handler.getCids();
-                if (expandEntries) {
-                    List<Compound> cs = db.getCompoundsByCid(ids);
-                    for (Compound c : cs) {
-                        String hl = highlights.get(c.getCid());
-                        c.setHighlight(hl);
+                    List<Compound> compounds = db.searchForCompounds(filter, skip, top);
+                    if (expandEntries) {
+                        BardLinkedEntity linkedEntity = new BardLinkedEntity(compounds, linkString);
+                        response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+                    } else {
+                        List<String> links = new ArrayList<String>();
+                        for (Compound a : compounds) links.add(a.getResourcePath());
+                        BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                        response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
                     }
-                    response = Response.ok(Util.toJson(cs), MediaType.APPLICATION_JSON).tag(etag).build();
-                } else {
-                    List<String> paths = new ArrayList<String>();
-                    for (Long cid : cids) {
-                        Compound c = new Compound();
-                        c.setCid(cid);
-                        paths.add(c.getResourcePath());
-                    }
-                    String json = Util.toJson(paths);
-                    response = Response.ok(json, MediaType.APPLICATION_JSON).header("content-length", json.length()).tag(etag).build();
                 }
             }
         }
         db.closeConnection();
         return response;
     }
+
+    private Response doStructureSearch(String query, String type, int top, int skip, Double cutoff, String rankBy, DBUtils db, boolean expandEntries) throws SQLException, IOException {
+
+        Response response;
+        SearchService2 search = null;
+        try {
+            search = Util.getSearchService();
+        } catch (Exception e) {
+            throw new WebApplicationException(new Exception("Error in getting a search service instance", e), 500);
+        }
+
+        SearchParams params;
+        if (type != null) {
+            if (type.startsWith("sub")) {
+                params = SearchParams.substructure();
+            } else if (type.startsWith("super")) {
+                params = SearchParams.superstructure();
+            } else if (type.startsWith("sim")) {
+                params = SearchParams.similarity();
+                if (cutoff != null) {
+                    try {
+                        params.setSimilarity(cutoff);
+                    } catch (NumberFormatException e) {
+                        throw new BadRequestException("Bogus similarity value specified");
+                    }
+                } else
+                    throw new BadRequestException("If similarity search is requested must specify the cutoff");
+            } else if (type.startsWith("exact")) {
+                params = SearchParams.exact();
+            } else {
+                params = SearchParams.substructure();
+            }
+        } else {
+            params = SearchParams.substructure();
+        }
+
+        if (rankBy != null) params.setRankBy(rankBy);
+
+        StringWriter writer = new StringWriter();
+        PrintWriter pw = new PrintWriter(writer);
+        if (skip == -1) skip = 0;
+        if (top == -1) top = 100;
+        OrderedSearchResultHandler handler = new OrderedSearchResultHandler(params, pw, skip, top);
+        if (countRequested) {
+            int n = search.count(query, params);
+            response = Response.ok(String.valueOf(n)).build();
+        } else {
+            search.search(query, params, handler);
+            handler.complete();
+
+            // TODO we should be directly getting a List of cid's rather than parsing a string
+            String cidsStr = writer.getBuffer().toString();
+            String[] cidStrs = cidsStr.split("\n");
+            List<Long> cids = new ArrayList<Long>();
+            Map<Long, String> highlights = new HashMap<Long, String>();
+            for (String cidstr : cidStrs) {
+                String[] toks = cidstr.split("\t");
+                String hl = null;
+                if (toks.length == 2) {
+                    cidstr = toks[0];
+                    hl = toks[1];
+                }
+
+                if (cidstr.equals("")) continue;
+                Long cid = Long.parseLong(cidstr);
+                cids.add(cid);
+                if (hl != null) {
+                    highlights.put(cid, hl);
+                }
+            }
+
+            Long[] ids = cids.toArray(new Long[0]);
+            EntityTag etag = newETag(db, ids);
+
+//                List<Long> cids = handler.getCids();
+            if (expandEntries) {
+                List<Compound> cs = db.getCompoundsByCid(ids);
+                for (Compound c : cs) {
+                    String hl = highlights.get(c.getCid());
+                    c.setHighlight(hl);
+                }
+                response = Response.ok(Util.toJson(cs), MediaType.APPLICATION_JSON).tag(etag).build();
+            } else {
+                List<String> paths = new ArrayList<String>();
+                for (Long cid : cids) {
+                    Compound c = new Compound();
+                    c.setCid(cid);
+                    paths.add(c.getResourcePath());
+                }
+                String json = Util.toJson(paths);
+                response = Response.ok(json, MediaType.APPLICATION_JSON).header("content-length", json.length()).tag(etag).build();
+            }
+        }
+        return response;
+    }
+
 
     private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes, boolean expand) throws SQLException, IOException {
         DBUtils db = new DBUtils();
@@ -249,7 +283,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                         Long.parseLong(id);
                     } catch (NumberFormatException e) {
                         throw new BadRequestException
-                            ("Invalid format for a CID or SID: "+id);
+                                ("Invalid format for a CID or SID: " + id);
                     }
                 }
 
@@ -505,10 +539,10 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     @GET
     @Path("/etag/{etag}/assays")
     public Response getAssaysByETag(@PathParam("etag") String resourceId,
-                                      @QueryParam("filter") String filter,
-                                      @QueryParam("expand") String expand,
-                                      @QueryParam("skip") Integer skip,
-                                      @QueryParam("top") Integer top) {
+                                    @QueryParam("filter") String filter,
+                                    @QueryParam("expand") String expand,
+                                    @QueryParam("skip") Integer skip,
+                                    @QueryParam("top") Integer top) {
         DBUtils db = new DBUtils();
         try {
             List<Compound> c = db.getCompoundsByETag
@@ -671,7 +705,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
     @GET
     @Path("/{cid}/projects")
-    public Response getProjectsForCompound(@PathParam("cid") Long cid, 
+    public Response getProjectsForCompound(@PathParam("cid") Long cid,
                                            @QueryParam("expand") String expand,
                                            @QueryParam("skip") Integer skip,
                                            @QueryParam("top") Integer top) throws SQLException, IOException {
@@ -741,15 +775,14 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
     @GET
     @Path("/{cid}/synonyms")
-    public Response getSynonymsForCompound (@PathParam("cid") Long cid)
+    public Response getSynonymsForCompound(@PathParam("cid") Long cid)
             throws SQLException, IOException {
         DBUtils db = new DBUtils();
         try {
             List<String> syns = db.getCompoundSynonyms(cid);
             return Response.ok(Util.toJson(syns))
                     .type(MediaType.APPLICATION_JSON).build();
-        } 
-        finally {
+        } finally {
             db.closeConnection();
         }
     }
