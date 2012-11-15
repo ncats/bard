@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 
 import java.sql.Date;
@@ -13,14 +14,18 @@ import java.util.List;
 public class Assay implements BardEntity {
     Long aid, bardAssayId, capAssayId;
     int category, type, summary, assays, classification;
-    String name, description, source, grantNo, protocol, comments;
+    String name, source, grantNo;
     Date deposited, updated;
 
-    List<Publication> publications;
-    List<ProteinTarget> targets;
-
+    List<Long> publications;
+    List<String> targets; // Uniprot accession
     List<Long> experiments, projects; // experiments and projects
 
+    @JsonIgnore
+    String description, protocol, comments;
+
+
+    @JsonIgnore
     List<String> gobp_id, gobp_term, gomf_term, gomf_id, gocc_id, gocc_term, av_dict_label, ak_dict_label;
 
     public List<Long> getExperiments() {
@@ -193,19 +198,19 @@ public class Assay implements BardEntity {
         this.source = source;
     }
 
-    public List<Publication> getPublications() {
+    public List<Long> getPublications() {
         return publications;
     }
 
-    public void setPublications(List<Publication> publications) {
+    public void setPublications(List<Long> publications) {
         this.publications = publications;
     }
 
-    public List<ProteinTarget> getTargets() {
+    public List<String> getTargets() {
         return targets;
     }
 
-    public void setTargets(List<ProteinTarget> targets) {
+    public void setTargets(List<String> targets) {
         this.targets = targets;
     }
 

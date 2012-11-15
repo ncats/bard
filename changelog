@@ -5,3 +5,4 @@
 	 Faceting on compound_class is also supported
 11/15/12 Compound search results return concise form if expand=false, but if expand=true returns the usual compound JSON
 	 representation. Same for assays and projects
+11/15/12 Trimmed default (expand=false) assay JSON 
