@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 
 import java.sql.Date;
@@ -21,6 +22,7 @@ public class Assay implements BardEntity {
 
     List<Long> experiments, projects; // experiments and projects
 
+    @JsonIgnore
     List<String> gobp_id, gobp_term, gomf_term, gomf_id, gocc_id, gocc_term, av_dict_label, ak_dict_label;
 
     public List<Long> getExperiments() {
