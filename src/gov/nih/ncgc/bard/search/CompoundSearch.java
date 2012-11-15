@@ -5,6 +5,7 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
+import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.slf4j.Logger;
@@ -28,7 +29,7 @@ public class CompoundSearch extends SolrSearch {
     private final String PKEY_COMPOUND_DOC = "cid";
 
     Logger log;
-    String[] facetNames = {"COLLECTION", "mw", "tpsa", "xlogp"};
+    String[] facetNames = {"compound_class", "COLLECTION", "mw", "tpsa", "xlogp"};
 
     public CompoundSearch(String query) {
         super(query);
@@ -66,6 +67,9 @@ public class CompoundSearch extends SolrSearch {
         sq.addFacetQuery("xlogp:[3 TO 5]");
         sq.addFacetQuery("xlogp:[5 TO *]");
 
+        sq.setFacetMinCount(1);
+        sq.addFacetField("compound_class");
+
         response = solr.query(sq);
         List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_COMPOUND_DOC, HL_FIELD);
 
@@ -75,7 +79,7 @@ public class CompoundSearch extends SolrSearch {
         for (String f : facetNames) facets.add(new Facet(f));
 
         // before doing some manual faceting, we extract the
-        // facets that we set irectly in the query
+        // facets (query and field) that we set directly in the query
         Map<String, Integer> solrf = response.getFacetQuery();
         if (solrf != null) {
             for (Facet f : facets) {
@@ -87,13 +91,23 @@ public class CompoundSearch extends SolrSearch {
             }
         }
 
+        for (Facet aFacet : facets) {
+            FacetField targetFacet = response.getFacetField(aFacet.getFacetName());
+            if (targetFacet == null) continue;
+            List<FacetField.Count> fcounts = targetFacet.getValues();
+            if (fcounts != null) {
+                for (FacetField.Count fcount : fcounts) {
+                    aFacet.counts.put(fcount.getName(), (int) fcount.getCount());
+                }
+            }
+        }
+
         // we manually update facet counts COLLECTION
         List<Long> cids = new ArrayList<Long>();
         for (SolrDocument doc : docs) {
 
             Collection<Object> collection = doc.getFieldValues("COLLECTION");
             if (collection == null) {
-                log.warn("COLLECTION field was null for Compound document: " + doc.getFieldValue("cid"));
                 continue;
             }
 
@@ -129,7 +143,7 @@ public class CompoundSearch extends SolrSearch {
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
-        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "cid", "iso_smiles", "iupac_name", "preferred_term", "highlight");
+        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "cid", "iso_smiles", "iupac_name", "preferred_term", "compound_class", "highlight");
         SearchMeta meta = new SearchMeta();
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
