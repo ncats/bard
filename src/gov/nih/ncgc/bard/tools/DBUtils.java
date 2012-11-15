@@ -2022,7 +2022,11 @@ public class DBUtils {
         a.setUpdated(rs.getDate("updated"));
         a.setComments(rs.getString("comment"));
         a.setProtocol(rs.getString("protocol"));
-        a.setPublications(getAssayPublications(bardAssayId));
+
+        List<Long> pmids = new ArrayList<Long>();
+        for (Publication pub : getAssayPublications(bardAssayId)) pmids.add(pub.getPubmedId());
+        a.setPublications(pmids);
+
         a.setTargets(getAssayTargets(bardAssayId));
 
         List<Experiment> expts = getExperimentByAssayId(bardAssayId);

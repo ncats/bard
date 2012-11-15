@@ -14,13 +14,16 @@ import java.util.List;
 public class Assay implements BardEntity {
     Long aid, bardAssayId, capAssayId;
     int category, type, summary, assays, classification;
-    String name, description, source, grantNo, protocol, comments;
+    String name, source, grantNo;
     Date deposited, updated;
 
-    List<Publication> publications;
+    List<Long> publications;
     List<ProteinTarget> targets;
-
     List<Long> experiments, projects; // experiments and projects
+
+    @JsonIgnore
+    String description, protocol, comments;
+
 
     @JsonIgnore
     List<String> gobp_id, gobp_term, gomf_term, gomf_id, gocc_id, gocc_term, av_dict_label, ak_dict_label;
@@ -195,11 +198,11 @@ public class Assay implements BardEntity {
         this.source = source;
     }
 
-    public List<Publication> getPublications() {
+    public List<Long> getPublications() {
         return publications;
     }
 
-    public void setPublications(List<Publication> publications) {
+    public void setPublications(List<Long> publications) {
         this.publications = publications;
     }
 

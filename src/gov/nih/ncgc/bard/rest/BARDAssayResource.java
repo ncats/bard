@@ -185,6 +185,10 @@ public class BARDAssayResource extends BARDResource<Assay> {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode t = mapper.valueToTree(a);
 
+        ((ObjectNode) t).put("description", a.getDescription());
+        ((ObjectNode) t).put("protocol", a.getProtocol());
+        ((ObjectNode) t).put("comments", a.getComments());
+
         List<Experiment> expts = db.getExperimentByAssayId(aid);
         ArrayNode an = mapper.createArrayNode();
         for (Experiment e : expts) {
@@ -201,9 +205,18 @@ public class BARDAssayResource extends BARDResource<Assay> {
         }
         ((ObjectNode) t).put("projects", an);
 
+        List<Publication> pubs = db.getAssayPublications(aid);
+        an = mapper.createArrayNode();
+        for (Publication pub : pubs) {
+            ObjectNode on = mapper.valueToTree(pub);
+            an.add(on);
+        }
+        ((ObjectNode) t).put("publications", an);
+
+
         return t;
     }
-    
+
     @GET
     @Path("/{aid}")
     public Response getResources(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
