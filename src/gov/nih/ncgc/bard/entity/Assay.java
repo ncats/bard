@@ -18,7 +18,7 @@ public class Assay implements BardEntity {
     Date deposited, updated;
 
     List<Long> publications;
-    List<ProteinTarget> targets;
+    List<String> targets; // Uniprot accession
     List<Long> experiments, projects; // experiments and projects
 
     @JsonIgnore
@@ -206,11 +206,11 @@ public class Assay implements BardEntity {
         this.publications = publications;
     }
 
-    public List<ProteinTarget> getTargets() {
+    public List<String> getTargets() {
         return targets;
     }
 
-    public void setTargets(List<ProteinTarget> targets) {
+    public void setTargets(List<String> targets) {
         this.targets = targets;
     }
 
