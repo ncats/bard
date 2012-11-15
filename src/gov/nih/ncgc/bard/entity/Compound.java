@@ -38,6 +38,7 @@ public class Compound implements BardEntity {
     Integer rotatable;
     Integer hbondAcceptor;
     Integer hbondDonor;
+    String compoundClass;
 
 
     // number of assays compound is tested in
@@ -57,6 +58,14 @@ public class Compound implements BardEntity {
     }
 
     public Compound() {
+    }
+
+    public String getCompoundClass() {
+        return compoundClass;
+    }
+
+    public void setCompoundClass(String compoundClass) {
+        this.compoundClass = compoundClass;
     }
 
     public Integer getNumAssay() {
