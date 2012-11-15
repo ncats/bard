@@ -8,7 +8,16 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.entity.*;
+import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardEntity;
+import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.ETag;
+import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.entity.ProteinTarget;
+import gov.nih.ncgc.bard.entity.Publication;
+import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
@@ -28,8 +37,25 @@ import java.io.Reader;
 import java.math.BigInteger;
 import java.security.Principal;
 import java.security.SecureRandom;
-import java.sql.*;
-import java.util.*;
+import java.sql.Blob;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 
 
@@ -88,7 +114,7 @@ public class DBUtils {
 
 
     Logger log;
-    Connection conn;
+    Connection conn = null;
     Map<Class, Query> fieldMap;
     SecureRandom rand = new SecureRandom();
 
@@ -156,17 +182,7 @@ public class DBUtils {
                 put(ETag.class, new Query(etagFields, "etag_id", null, "etag", "status=1"));
             }};
 
-        conn = getConnection();
-
-        try {
-            dict = getCAPDictionary();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
+//        conn = getConnection();
     }
 
     /**
@@ -179,7 +195,7 @@ public class DBUtils {
     }
 
     public void closeConnection() throws SQLException {
-        if (!conn.isClosed())
+        if (conn != null && !conn.isClosed())
             conn.close();
     }
 
@@ -245,6 +261,7 @@ public class DBUtils {
             //
         }
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select * from publication where pmid = ?");
         try {
             pst.setLong(1, pmid);
@@ -277,6 +294,7 @@ public class DBUtils {
         catch (ClassCastException ex) {
         }
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select * from publication where doi = ?");
         try {
             pst.setString(1, doi);
@@ -310,6 +328,7 @@ public class DBUtils {
         catch (ClassCastException ex) {
         }
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst2 = conn.prepareStatement("select a.* from publication a, target_pub b where b.accession = ? and b.pmid = a.pmid");
         try {
             pst2.setString(1, accession);
@@ -342,6 +361,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select * from protein_target where accession  = ?");
         try {
             pst.setString(1, accession);
@@ -375,6 +395,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         if (p == null) {
+            if (conn == null) conn = getConnection();
             PreparedStatement pst = conn.prepareStatement
                 ("select * from protein_target where gene_id = ?");
             try {
@@ -410,6 +431,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select cid from cid_sid where sid = ?");
         try {
             pst.setLong(1, sid);
@@ -436,6 +458,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         List<Long> sids = new ArrayList<Long>();
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select sid from cid_sid where cid = ?");
         try {
             pst.setLong(1, cid);
@@ -483,6 +506,7 @@ public class DBUtils {
         }
 
         if (!notcached.isEmpty()) {
+            if (conn == null) conn = getConnection();
             cids = notcached.toArray(new Long[0]);
             List<List<Long>> chunks = Util.chunk(cids, CHUNK_SIZE);
 
@@ -550,6 +574,7 @@ public class DBUtils {
             }
         }
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct id from synonyms where type = 1 and match(syn) against (? in boolean mode)");
         try {
             ResultSet rs;
@@ -587,6 +612,7 @@ public class DBUtils {
             else notcached.add(sid);
         }
 
+        if (conn == null) conn = getConnection();
         List<List<Long>> chunks = Util.chunk(notcached, CHUNK_SIZE);
         for (List<Long> chunk : chunks) {
             String sidClause = Util.join(chunk, ",");
@@ -622,6 +648,7 @@ public class DBUtils {
             throw new IllegalArgumentException("Please specify the class!");
         }
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("insert into etag(etag_id,name,type,created,modified) "
              + "values (?,?,?,?,?)");
@@ -671,6 +698,7 @@ public class DBUtils {
 
     public int createETagLinks(String etag, String... parents)
         throws SQLException {
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("insert into etag_link(etag_id, parent_id) values (?,?)");
         int links = 0;
@@ -694,6 +722,7 @@ public class DBUtils {
 
     public int putETag (String etag, Long... ids) throws SQLException {
         int cnt = 0;
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select a.*,count(*) as size from etag a, etag_data b "
              + "where a.etag_id = ? and a.etag_id = b.etag_id");
@@ -749,6 +778,7 @@ public class DBUtils {
     public void touchETag(String etag) throws SQLException {
         PreparedStatement pst = null;
         try {
+            if (conn == null) conn = getConnection();
             pst = conn.prepareStatement
                 ("update etag set accessed = ? where etag_id = ?");
             pst.setTimestamp(1, new java.sql.Timestamp
@@ -765,7 +795,7 @@ public class DBUtils {
 
     public List<Compound> getCompoundsByProbeId(String... probeids)
         throws SQLException {
-
+        if (conn == null) conn = getConnection();
         if (probeids == null || probeids.length == 0) return null;
         List<List<String>> chunks = Util.chunk(probeids, CHUNK_SIZE);
         List<Compound> compounds = new ArrayList<Compound>();
@@ -799,6 +829,7 @@ public class DBUtils {
     }
 
     public ETag getEtagByEtagId(String id) throws SQLException {
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.*, count(*) as cnt from etag a, etag_data b where a.etag_id = ? and a.etag_id = b.etag_id");
         ETag etag = new ETag();
         try {
@@ -834,6 +865,7 @@ public class DBUtils {
     }
 
     public Map getETagInfo (String etag) throws SQLException {
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select a.*,count(*) as count from etag a, etag_data b "
              + "where a.etag_id = ? and a.etag_id = b.etag_id");
@@ -876,6 +908,7 @@ public class DBUtils {
             }
         }
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select val,count(*) as cnt from "
              + "compound_annot a, etag_data b "
@@ -939,6 +972,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select syn from synonyms where id = ? and type=1");
         List<String> syns = new ArrayList<String>();
@@ -991,6 +1025,7 @@ public class DBUtils {
     public Facet getCompoundPropertyFacet
         (String etag, String name, String column, int precision)
         throws SQLException {
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select round(" + column + "," + precision + ")  as bucket,\n"
              + "count(*) as count\n"
@@ -1058,6 +1093,7 @@ public class DBUtils {
         if (!etag.getType().equals("gov.nih.ncgc.bard.entity.Project"))
             throw new IllegalArgumentException("ETag " + etag + " is of type " + etag.getType());
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select data_id from etag_data where etag_id = ?");
         try {
             pst.setString(1, etagId);
@@ -1124,6 +1160,7 @@ public class DBUtils {
         if (!etag.getType().equals("gov.nih.ncgc.bard.entity.Assay"))
             throw new IllegalArgumentException("ETag " + etag + " is of type " + etag.getType());
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select data_id from etag_data where etag_id = ?");
         try {
             pst.setString(1, etagId);
@@ -1234,6 +1271,7 @@ public class DBUtils {
             sql.append(" limit " + Math.max(6, top));
         }
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst1 = conn.prepareStatement(sql.toString());
         try {
             pst1.setString(2, Compound.class.getName());
@@ -1287,6 +1325,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select * from compound_annot where cid = ?");
         try {
@@ -1412,6 +1451,7 @@ public class DBUtils {
         Long bardExptId = Long.parseLong(toks[0]);
         Long sid = Long.parseLong(toks[1]);
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.bard_expt_id = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id");
         ExperimentData ed = null;
         try {
@@ -1470,6 +1510,8 @@ public class DBUtils {
         }
 
         if (!notcached.isEmpty()) {
+            if (conn == null) conn = getConnection();
+
             Long bardExptId = -1L;
             StringBuilder sb = new StringBuilder();
             sb.append("(");
@@ -1577,6 +1619,7 @@ public class DBUtils {
             sql.append(" limit ").append(top);
         }
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql.toString());
         try {
             pst.setLong(1, bardExptId);
@@ -1789,6 +1832,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select expt_result_def from bard_experiment where bard_expt_id = ?");
         pst.setLong(1, bardExptId);
@@ -1828,6 +1872,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select * from bard_experiment where bard_expt_id = ?");
         try {
@@ -1892,6 +1937,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select bard_expt_id from bard_experiment where bard_assay_id = ?");
         try {
@@ -1929,6 +1975,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select * from bard_assay where bard_assay_id = ?");
         Assay a = null;
@@ -2051,6 +2098,13 @@ public class DBUtils {
         a.setKegg_disease_names(l1);
         a.setKegg_disease_cat(l2);
 
+        if (dict == null) try {
+            dict = getCAPDictionary();
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
         List<CAPAssayAnnotation> capannots = getAssayAnnotations(bardAssayId);
         l1 = new ArrayList<String>();
         l2 = new ArrayList<String>();
@@ -2107,6 +2161,7 @@ public class DBUtils {
         }
 
         List<Assay> assays = new ArrayList<Assay>();
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql.toString());
         try {
             pst.setString(1, etag);
@@ -2158,6 +2213,7 @@ public class DBUtils {
         }
 
         ArrayList<Substance> substances = new ArrayList<Substance>();
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql.toString());
         try {
             pst.setString(1, etag);
@@ -2217,6 +2273,7 @@ public class DBUtils {
         }
 
         ArrayList<Experiment> expts = new ArrayList<Experiment>();
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql.toString());
         try {
             pst.setString(1, etag);
@@ -2244,6 +2301,7 @@ public class DBUtils {
     public int getAssayCidCount(Long bardAssayId, boolean actives) throws SQLException {
         if (bardAssayId == null || bardAssayId < 0) return -1;
         PreparedStatement pst;
+        if (conn == null) conn = getConnection();
         if (!actives)
             pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
                     "where b.bard_assay_id = ? " +
@@ -2265,6 +2323,7 @@ public class DBUtils {
     public int getAssaySidCount(Long bardAssayId, boolean actives) throws SQLException {
         if (bardAssayId == null || bardAssayId < 0) return -1;
         PreparedStatement pst;
+        if (conn == null) conn = getConnection();
         if (!actives)
             pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
                     "where b.bard_assay_id = ? " +
@@ -2286,6 +2345,7 @@ public class DBUtils {
     public int getExperimentCidCount(Long bardExptId, boolean actives) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return -1;
         PreparedStatement pst;
+        if (conn == null) conn = getConnection();
         if (!actives)
             pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data where bard_expt_id = ?");
         else
@@ -2301,6 +2361,7 @@ public class DBUtils {
     public int getExperimentSidCount(Long bardExptId, boolean actives) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return -1;
         PreparedStatement pst;
+        if (conn == null) conn = getConnection();
         if (!actives)
             pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data where bard_expt_id = ?");
         else
@@ -2334,7 +2395,7 @@ public class DBUtils {
            }
 
            PreparedStatement pst;
-
+        if (conn == null) conn = getConnection();
            if (!actives)
                pst = conn.prepareStatement("select distinct sid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by sid " + limitClause);
            else
@@ -2376,7 +2437,7 @@ public class DBUtils {
         }
 
         PreparedStatement pst;
-
+        if (conn == null) conn = getConnection();
         if (!actives)
             pst = conn.prepareStatement("select distinct cid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by cid " + limitClause);
         else
@@ -2417,7 +2478,7 @@ public class DBUtils {
          }
 
          PreparedStatement pst;
-
+        if (conn == null) conn = getConnection();
          if (!actives)
              pst = conn.prepareStatement("select distinct cid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by cid " + limitClause);
          else
@@ -2460,7 +2521,7 @@ public class DBUtils {
         }
 
         PreparedStatement pst;
-
+        if (conn == null) conn = getConnection();
         if (!actives)
             pst = conn.prepareStatement("select distinct sid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by cid " + limitClause);
         else
@@ -2513,7 +2574,7 @@ public class DBUtils {
         }
 
         PreparedStatement pst;
-
+        if (conn == null) conn = getConnection();
         if (!actives)
             pst = conn.prepareStatement("select distinct cid from bard_experiment_data where bard_expt_id = ? order by cid " + limitClause);
         else
@@ -2565,7 +2626,7 @@ public class DBUtils {
             if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
             limitClause = "  limit " + skip + "," + top;
         }
-
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? order by id " + limitClause);
         try {
             pst.setLong(1, bardExptId);
@@ -2631,7 +2692,7 @@ public class DBUtils {
             if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
             limitClause = "  limit " + skip + "," + top;
         }
-
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? order by score desc, bard_expt_id, sid " + limitClause);
         try {
             pst.setLong(1, bardExptId);
@@ -2671,7 +2732,7 @@ public class DBUtils {
             if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
             limitClause = "  limit " + skip + "," + top;
         }
-
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? and outcome = 2 order by score desc, bard_expt_id, sid " + limitClause);
         try {
             pst.setLong(1, bardExptId);
@@ -2717,7 +2778,7 @@ public class DBUtils {
         else if (skip >= 0) {
             limitClause = " limit "+skip+","+CHUNK_SIZE;
         }
-
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
         try {
             pst.setLong(1, sid);
@@ -2754,6 +2815,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.*, b.cid, c.iso_smiles from substance a, cid_sid b, compound c where a.sid = ? and a.sid = b.sid and b.rel_type = 1 and c.cid = b.cid");
         //        PreparedStatement pst = conn.prepareStatement("select a.* from substance a where a.sid = ? ");
         try {
@@ -2816,7 +2878,7 @@ public class DBUtils {
         else if (skip >= 0) {
             limitClause = " limit "+skip+","+CHUNK_SIZE;
         }
-
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
         try {
             pst.setLong(1, sid);
@@ -2868,6 +2930,7 @@ public class DBUtils {
             limitClause = " limit "+skip+","+CHUNK_SIZE;
         }
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where cid = ? order by classification desc, score desc " + limitClause);
         try {
             pst.setLong(1, cid);
@@ -2960,6 +3023,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
         try {
             pst.setLong(1, sid);
@@ -3057,6 +3121,7 @@ public class DBUtils {
             limitClause = " limit "+skip+","+CHUNK_SIZE;
         }
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
         try {
             pst.setLong(1, sid);
@@ -3101,6 +3166,7 @@ public class DBUtils {
             limitClause = "  limit " + skip + "," + top;
         }
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct b.bard_assay_id from bard_experiment_data a, bard_experiment b where a.sid = ? and a.bard_expt_id = b.bard_expt_id  " + limitClause);
         try {
             pst.setLong(1, sid);
@@ -3146,6 +3212,7 @@ public class DBUtils {
         }
 
         PreparedStatement pst;
+        if (conn == null) conn = getConnection();
         if (!actives) pst = conn.prepareStatement("select distinct sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
         else pst = conn.prepareStatement("select distinct sid from bard_experiment_data where bard_expt_id = ? and outcome = 2 order by sid " + limitClause);
 
@@ -3193,6 +3260,7 @@ public class DBUtils {
         }
 
         PreparedStatement pst;
+        if (conn == null) conn = getConnection();
         if (!actives)
             pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
         else
@@ -3245,6 +3313,7 @@ public class DBUtils {
         }
 
         PreparedStatement pst;
+        if (conn == null) conn = getConnection();
         if (!actives) pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
         else pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? and outcome = 2 order by sid " + limitClause);
 
@@ -3288,6 +3357,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst2 = conn.prepareStatement("select a.* from publication a, assay_pub b where b.bard_assay_id = ? and b.pmid = a.pmid");
         try {
             pst2.setLong(1, bardAssayId);
@@ -3329,6 +3399,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst2 = conn.prepareStatement("select a.* from protein_target a, assay_target b where b.bard_assay_id = ? and a.gene_id = b.gene_id");
         try {
             pst2.setLong(1, bardAssayId);
@@ -3375,6 +3446,7 @@ public class DBUtils {
         PreparedStatement pst2 = null;
         ResultSet rs2 = null;
         List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
+        if (conn == null) conn = getConnection();
         try {
             pst2 = conn.prepareStatement("select a.* from protein_target a, project_target b where b.bard_proj_id = ? and a.gene_id = b.gene_id");
             pst2.setLong(1, bardProjectid);
@@ -3431,6 +3503,7 @@ public class DBUtils {
 
         if (!query.contains("[")) freeTextQuery = true;
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = null;
         if (freeTextQuery) {
             String q = "%" + query + "%";
@@ -3475,6 +3548,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct bard_assay_id from bard_experiment where bard_expt_id = ?");
         try {
             pst.setLong(1, eid);
@@ -3507,6 +3581,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct b.bard_assay_id from protein_target a, assay_target b where a.accession = ? and a.accession = b.accession");
         try {
             pst.setString(1, acc);
@@ -3539,6 +3614,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct b.bard_assay_id from protein_target a, assay_target b where a.gene_id = ? and a.accession = b.accession");
         try {
             pst.setLong(1, geneid);
@@ -3565,6 +3641,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select bard_proj_id from bard_project");
         try {
             ResultSet rs = pst.executeQuery();
@@ -3597,6 +3674,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select bard_assay_id from bard_assay order by bard_assay_id");
         try {
             ResultSet rs = pst.executeQuery();
@@ -3655,6 +3733,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         Project p = null;
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.*, b.name as source_name from bard_project a left join source b on a.depositor_id = b.source_id where a.bard_proj_id = ?");
         try {
             pst.setLong(1, bardProjId);
@@ -3736,6 +3815,13 @@ public class DBUtils {
         p.setKegg_disease_cat(l2);
 
         // pull in CAP annotations
+        if (dict == null) try {
+            dict = getCAPDictionary();
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
         List<CAPAssayAnnotation> capannots = getProjectAnnotations(bardProjId);
         l1 = new ArrayList<String>();
         l2 = new ArrayList<String>();
@@ -3784,6 +3870,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select bard_proj_id from bard_project_experiment where bard_expt_id = ?");
         try {
             pst.setLong(1, bardExptId);
@@ -3820,6 +3907,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct b.bard_proj_id from bard_experiment a, bard_project_experiment b where a.bard_assay_id = ? and a.bard_expt_id = b.bard_expt_id");
         try {
             pst.setLong(1, bardAssayId);
@@ -3850,6 +3938,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         //        PreparedStatement pst = conn.prepareStatement("select a.cid from bard_experiment_data a, compound b where b.probe_id is not null and a.bard_expt_id = ? and a.cid = b.cid");
         PreparedStatement pst = conn.prepareStatement("select * from project_probe where bard_proj_id = ?");
         try {
@@ -3885,6 +3974,7 @@ public class DBUtils {
 
         if (!query.contains("[")) freeTextQuery = true;
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = null;
         if (freeTextQuery) {
             return new ArrayList<ExperimentData>();
@@ -3925,6 +4015,7 @@ public class DBUtils {
         if (queryParams.getJoin() != null) {
             sql += " where "+queryParams.getJoin();
         }
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql);
         ResultSet rs = pst.executeQuery();
         int n = 0;
@@ -3935,6 +4026,7 @@ public class DBUtils {
     }
 
     public int getCompoundTestCount() throws SQLException {
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data");
         ResultSet rs = pst.executeQuery();
         rs.next();
@@ -3944,6 +4036,7 @@ public class DBUtils {
     }
 
     public int getCompoundActiveCount() throws SQLException {
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data where outcome = 2");
         ResultSet rs = pst.executeQuery();
         rs.next();
@@ -3975,6 +4068,7 @@ public class DBUtils {
 
         log.info("## SQL: " + sql);
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql);
         ResultSet rs = pst.executeQuery();
         while (rs.next()) ret.addAll(getCompoundsByCid(rs.getLong(1)));
@@ -4069,6 +4163,7 @@ public class DBUtils {
 
         log.info("## SQL: "+sql);
 
+        if (conn == null) conn = getConnection();
         pst = conn.prepareStatement(sql);
         ResultSet rs = pst.executeQuery();
         List<T> entities = new ArrayList<T>();
@@ -4132,6 +4227,7 @@ public class DBUtils {
          */
         String sql = "select etag_id from etag where status = 1";
         PreparedStatement pst;
+        if (conn == null) conn = getConnection();
         if (clazz != null) {
             pst = conn.prepareStatement(sql+" and type = ?" + limits);
             pst.setString(1, clazz.getName());
@@ -4191,6 +4287,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a, bard_assay b where b.bard_assay_id = ? and a.assay_id = b.cap_assay_id and a.source in ('cap', 'bao')");
         try {
             pst.setLong(1, bardAssayId);
@@ -4235,6 +4332,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id and a.source in ('cap', 'bao')");
         try {
             pst.setLong(1, bardProjectId);
@@ -4281,6 +4379,7 @@ public class DBUtils {
         }
 
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select dict, ins_date from cap_dict_obj order by ins_date desc");
         try {
             ResultSet rs = pst.executeQuery();
@@ -4313,6 +4412,7 @@ public class DBUtils {
      * @throws SQLException
      */
     public int getEstimatedRowCount(String query) throws SQLException {
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(query);
         ResultSet rs = pst.executeQuery();
         int nrow = -1;
@@ -4387,6 +4487,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         pst = conn.prepareStatement(sql);
         try {
             pst.setLong(1, cid);
@@ -4471,6 +4572,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
+        if (conn == null) conn = getConnection();
         pst = conn.prepareStatement(sql);
         try {
             pst.setLong(1, cid);
@@ -4532,6 +4634,7 @@ public class DBUtils {
         } catch (ClassCastException ignored) {
         }
 
+        if (conn == null) conn = getConnection();
         pst = conn.prepareStatement(sql);
         try {
             pst.setLong(1, cid);
@@ -4571,6 +4674,7 @@ public class DBUtils {
         } catch (ClassCastException ignored) {
         }
 
+        if (conn == null) conn = getConnection();
         pst = conn.prepareStatement(sql);
         try {
             pst.setLong(1, cid);
@@ -4602,6 +4706,7 @@ public class DBUtils {
 
         int pcount = 0, syncount = 0, nassay = 0;
 
+        if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select sum(a.purchased_count) as pcount, sum(a.synthesized_count) as scount from bard_experiment a join bard_project_experiment b on a.bard_expt_id=b.bard_expt_id where  b.bard_proj_id = ?");
         pst.setLong(1, projectId);
         ResultSet rs = pst.executeQuery();
