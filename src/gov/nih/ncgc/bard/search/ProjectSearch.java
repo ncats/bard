@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.search;
 
 import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.tools.DBUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -12,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -130,7 +132,22 @@ public class ProjectSearch extends SolrSearch {
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
-        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "proj_id", "name", "highlight");
+        List ret;
+         if (!detailed) {
+             ret = copyRange(docs, skip, top, detailed, "proj_id", "name", "highlight");
+         } else {
+             DBUtils db = new DBUtils();
+             ret = new ArrayList();
+             try {
+                 for (SolrDocument doc : docs) {
+                     ret.add(db.getProject(Long.parseLong((String) doc.getFieldValue("proj_id"))));
+                 }
+                 db.closeConnection();
+             } catch (SQLException e) {
+                 e.printStackTrace();
+             }
+         }
+
         results.setDocs(ret);
         results.setMetaData(meta);
     }

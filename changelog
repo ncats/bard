@@ -3,3 +3,5 @@
 11/14/12 Updated to include compound_class in the /compound response and compound search responses
 11/14/12 Can now search based on compound class, full-text or via query field. E.g. fq(compound_class:Patent Compound). 
 	 Faceting on compound_class is also supported
+11/15/12 Compound search results return concise form if expand=false, but if expand=true returns the usual compound JSON
+	 representation. Same for assays and projects

@@ -1,7 +1,5 @@
 package gov.nih.ncgc.bard.search;
 
-import org.apache.solr.common.SolrDocument;
-
 import java.util.List;
 
 /**
@@ -10,7 +8,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class SearchResult {
-    List<SolrDocument> docs;
+    List docs;
     SearchMeta metaData;
     String etag;
     String link = null;
@@ -18,7 +16,7 @@ public class SearchResult {
     public SearchResult() {
     }
 
-    public List<SolrDocument> getDocs() {
+    public List getDocs() {
         return docs;
     }
 
@@ -26,7 +24,7 @@ public class SearchResult {
         return metaData;
     }
 
-    public void setDocs(List<SolrDocument> docs) {
+    public void setDocs(List docs) {
         this.docs = docs;
     }
 

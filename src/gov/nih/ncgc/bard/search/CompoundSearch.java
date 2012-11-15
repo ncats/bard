@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.search;
 
 import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.tools.DBUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -12,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -143,7 +145,22 @@ public class CompoundSearch extends SolrSearch {
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
-        List<SolrDocument> ret = copyRange(docs, skip, top, detailed, "cid", "iso_smiles", "iupac_name", "preferred_term", "compound_class", "highlight");
+        List ret;
+        if (!detailed) {
+            ret = copyRange(docs, skip, top, detailed, "cid", "iso_smiles", "iupac_name", "preferred_term", "compound_class", "highlight");
+        } else {
+            DBUtils db = new DBUtils();
+            ret = new ArrayList();
+            try {
+                for (SolrDocument doc : docs) {
+                    ret.addAll(db.getCompoundsByCid(Long.parseLong((String) doc.getFieldValue("cid"))));
+                }
+                db.closeConnection();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
         SearchMeta meta = new SearchMeta();
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
