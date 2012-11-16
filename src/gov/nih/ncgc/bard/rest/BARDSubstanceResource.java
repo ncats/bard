@@ -2,11 +2,7 @@ package gov.nih.ncgc.bard.rest;
 
 import chemaxon.struc.Molecule;
 import com.sun.jersey.api.NotFoundException;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.search.MoleculeService;
@@ -15,15 +11,10 @@ import gov.nih.ncgc.util.functional.Functional;
 import gov.nih.ncgc.util.functional.IApplyFunction;
 
 import javax.imageio.ImageIO;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.awt.Color;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -63,11 +54,57 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
         return msg.toString();
     }
 
+
+    @GET
+    @Path("/")
     public Response getResources(@QueryParam("filter") String filter,
                                  @QueryParam("expand") String expand,
                                  @QueryParam("skip") Integer skip,
                                  @QueryParam("top") Integer top) {
-        return getResources(null, filter, expand);
+        DBUtils db = new DBUtils();
+        Response response = null;
+
+        if (skip == null) skip = -1;
+        if (top == null) top = -1;
+
+        boolean expandEntries = false;
+        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
+            expandEntries = true;
+
+        try {
+            if (countRequested)
+                response = Response.ok(String.valueOf(db.getEntityCount(Substance.class))).build();
+            else {
+                if ((top == -1)) { // top was not specified, so we start from the beginning
+                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                }
+                if (skip == -1) skip = 0;
+                String expandClause = "expand=false";
+                if (expandEntries) expandClause = "expand=true";
+
+                String linkString = null;
+                if (skip + top <= db.getEntityCount(Substance.class))
+                    linkString = BARDConstants.API_BASE + "/substances?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+
+                List<Substance> substances = db.searchForEntity(filter, skip, top, Substance.class);
+                if (expandEntries) {
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(substances, linkString);
+                    response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+                } else {
+                    List<String> links = new ArrayList<String>();
+                    for (Substance a : substances) links.add(a.getResourcePath());
+                    BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                    response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+                }
+            }
+            db.closeConnection();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        return response;
+
     }
 
     @GET
@@ -149,24 +186,6 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
             String json = s.toJson();
             response = Response.ok(json, MediaType.APPLICATION_JSON).build();
         }
-        return response;
-    }
-
-    @GET
-    public Response getAll(@QueryParam("filter") String filter,
-                           @QueryParam("expand") String expand,
-                           @QueryParam("skip") Integer skip,
-                           @QueryParam("top") Integer top) throws SQLException {
-        DBUtils db = new DBUtils();
-        Response response = null;
-        if (filter == null) {
-            if (countRequested)
-                response = Response.ok(String.valueOf(db.getEntityCount(Substance.class))).build();
-            else {
-                // make a paged response of all substances
-            }
-        }
-        db.closeConnection();
         return response;
     }
 
