@@ -6,3 +6,5 @@
 11/15/12 Compound search results return concise form if expand=false, but if expand=true returns the usual compound JSON
 	 representation. Same for assays and projects
 11/15/12 Trimmed default (expand=false) assay JSON 
+11/15/12 Implemented /substances to allow paging through the entire substances collection. Also supported filtering
+	 usig source_name, dep_regid or substance_url

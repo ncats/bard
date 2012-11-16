@@ -139,7 +139,7 @@ public class DBUtils {
         final List<String> targetFields = Arrays.asList("accession", "name", "description", "uniprot_status");
         final List<String> experimentFields = Arrays.asList("name", "description", "source", "grant_no");
         final List<String> compoundFields = new ArrayList<String>();//Arrays.asList("url");
-        final List<String> substanceFields = Arrays.asList("url");
+        final List<String> substanceFields = Arrays.asList("substance_url", "source_name", "dep_regid");
         final List<String> assayFields = Arrays.asList("name", "description", "protocol", "comemnt", "source", "grant_no");
         final List<String> edFields = Arrays.asList();
         final List<String> etagFields = Arrays.asList("name", "type");
@@ -2797,7 +2797,6 @@ public class DBUtils {
 
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.*, b.cid, c.iso_smiles from substance a, cid_sid b, compound c where a.sid = ? and a.sid = b.sid and b.rel_type = 1 and c.cid = b.cid");
-        //        PreparedStatement pst = conn.prepareStatement("select a.* from substance a where a.sid = ? ");
         try {
             pst.setLong(1, sid);
             ResultSet rs = pst.executeQuery();
@@ -2816,6 +2815,7 @@ public class DBUtils {
                 s.setSmiles(rs.getString("iso_smiles"));
             }
             rs.close();
+            if (s.getSid() == null) return null;
 
             cache.put(new Element (sid, s));
             return s;
@@ -4155,6 +4155,7 @@ public class DBUtils {
             else if (klass.equals(Project.class)) entity = getProject((Long) id);
             else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
             else if (klass.equals(Compound.class)) entity = getCompoundsByCid((Long) id);
+            else if (klass.equals(Substance.class)) entity = getSubstanceBySid((Long) id);
             else if (klass.equals(Assay.class)) entity = getAssayByAid((Long) id);
             else if (klass.equals(ETag.class)) entity = getEtagByEtagId((String) id);
             if (entity != null) {
