@@ -2,7 +2,11 @@ package gov.nih.ncgc.bard.rest;
 
 import chemaxon.struc.Molecule;
 import com.sun.jersey.api.NotFoundException;
-import gov.nih.ncgc.bard.entity.*;
+import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
+import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.search.MoleculeService;
@@ -11,10 +15,15 @@ import gov.nih.ncgc.util.functional.Functional;
 import gov.nih.ncgc.util.functional.IApplyFunction;
 
 import javax.imageio.ImageIO;
-import javax.ws.rs.*;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.awt.*;
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -81,10 +90,12 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
                 if (expandEntries) expandClause = "expand=true";
+                String filterClause = "";
+                if (filter != null) filterClause = "&filter="+filter;
 
                 String linkString = null;
                 if (skip + top <= db.getEntityCount(Substance.class))
-                    linkString = BARDConstants.API_BASE + "/substances?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+                    linkString = BARDConstants.API_BASE + "/substances?skip=" + (skip + top) + "&top=" + top + "&" + expandClause + filterClause;
 
                 List<Substance> substances = db.searchForEntity(filter, skip, top, Substance.class);
                 if (expandEntries) {
