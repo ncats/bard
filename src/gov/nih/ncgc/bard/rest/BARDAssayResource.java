@@ -9,14 +9,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
-import gov.nih.ncgc.bard.entity.Publication;
-import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
@@ -27,20 +20,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.SQLException;
@@ -156,7 +137,8 @@ public class BARDAssayResource extends BARDResource<Assay> {
             if (expandEntries) {
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(assays, linkString);
                 start = System.currentTimeMillis();
-                String json = Util.toJson(linkedEntity);
+
+                String json = getExpandedJson(linkedEntity, null, db).toString();
                 log.info("## Generating json in "+String.format("%1$.3fs", 1.e-3*(System.currentTimeMillis()-start)));
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
             } else {
@@ -181,7 +163,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
         }
     }
 
-    JsonNode getExpandedJson(Assay a, Long aid, DBUtils db) throws SQLException {
+    JsonNode getSingleExpandedNode(Assay a, Long aid, DBUtils db) throws SQLException {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode t = mapper.valueToTree(a);
 
@@ -220,8 +202,27 @@ public class BARDAssayResource extends BARDResource<Assay> {
             an.add(on);
         }
         ((ObjectNode) t).put("targets", an);
+        return t;
+    }
 
+    JsonNode getExpandedJson(Object o, Long aid, DBUtils db) throws SQLException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode t = null;
 
+        if (o instanceof Assay) {
+            return getSingleExpandedNode((Assay) o, aid, db);
+        } else if (o instanceof BardLinkedEntity) {
+            ArrayNode an = mapper.createArrayNode();
+            BardLinkedEntity e = (BardLinkedEntity) o;
+            List assays = (List) e.getCollection();
+            for (Object assay : assays) {
+                Assay a = (Assay) assay;
+                an.add(getSingleExpandedNode(a, a.getAid(), db));
+            }
+            t = mapper.createObjectNode();
+            ((ObjectNode) t).put("collection", an);
+            ((ObjectNode) t).put("link", e.getLink());
+        }
         return t;
     }
 
