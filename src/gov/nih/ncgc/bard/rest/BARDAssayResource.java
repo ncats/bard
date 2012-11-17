@@ -208,7 +208,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
     JsonNode getExpandedJson(Object o, Long aid, DBUtils db) throws SQLException {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode t = null;
-
         if (o instanceof Assay) {
             return getSingleExpandedNode((Assay) o, aid, db);
         } else if (o instanceof BardLinkedEntity) {
