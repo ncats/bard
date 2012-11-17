@@ -9,7 +9,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
-import gov.nih.ncgc.bard.entity.*;
+import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
+import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.entity.ProteinTarget;
+import gov.nih.ncgc.bard.entity.Publication;
+import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
@@ -20,8 +27,20 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.SQLException;
@@ -192,7 +211,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
             ObjectNode on = mapper.valueToTree(pub);
             an.add(on);
         }
-        ((ObjectNode) t).put("publications", an);
+        ((ObjectNode) t).put("documents", an);
 
         List<ProteinTarget> targets = db.getAssayTargets(aid);
         an = mapper.createArrayNode();
@@ -349,7 +368,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
     @GET
-    @Path("/{aid}/publications")
+    @Path("/{aid}/documents")
     public Response getAssayPublications(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))

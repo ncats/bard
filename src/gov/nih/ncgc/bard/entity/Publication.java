@@ -5,7 +5,7 @@ import gov.nih.ncgc.bard.rest.BARDConstants;
 /**
  * Represents a publication.
  * <p/>
- * Most will be derived from Pubmed, though arbitrary publications can be
+ * Most will be derived from Pubmed, though arbitrary documents can be
  * represented, especially if a DOI is provided.
  *
  * @author Rajarshi Guha

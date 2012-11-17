@@ -17,7 +17,7 @@ public class Assay implements BardEntity {
     String name, source, grantNo;
     Date deposited, updated;
 
-    List<Long> publications;
+    List<Long> documents;
     List<String> targets; // Uniprot accession
     List<Long> experiments, projects; // experiments and projects
 
@@ -198,12 +198,12 @@ public class Assay implements BardEntity {
         this.source = source;
     }
 
-    public List<Long> getPublications() {
-        return publications;
+    public List<Long> getDocuments() {
+        return documents;
     }
 
-    public void setPublications(List<Long> publications) {
-        this.publications = publications;
+    public void setDocuments(List<Long> documents) {
+        this.documents = documents;
     }
 
     public List<String> getTargets() {

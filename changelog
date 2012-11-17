@@ -8,3 +8,5 @@
 11/15/12 Trimmed default (expand=false) assay JSON 
 11/15/12 Implemented /substances to allow paging through the entire substances collection. Also supported filtering
 	 usig source_name, dep_regid or substance_url
+11/16/12 Instead of publications we now use the term documents in the assays resource JSON. In addition /assays/{id}/publications
+	 is now /assays/{id}/documents
