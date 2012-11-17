@@ -156,7 +156,8 @@ public class BARDAssayResource extends BARDResource<Assay> {
             if (expandEntries) {
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(assays, linkString);
                 start = System.currentTimeMillis();
-                String json = Util.toJson(linkedEntity);
+
+                String json = getExpandedJson(linkedEntity, null, db).toString();
                 log.info("## Generating json in "+String.format("%1$.3fs", 1.e-3*(System.currentTimeMillis()-start)));
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
             } else {
@@ -181,7 +182,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
         }
     }
 
-    JsonNode getExpandedJson(Assay a, Long aid, DBUtils db) throws SQLException {
+    JsonNode getSingleExpandedNode(Assay a, Long aid, DBUtils db) throws SQLException {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode t = mapper.valueToTree(a);
 
@@ -220,7 +221,27 @@ public class BARDAssayResource extends BARDResource<Assay> {
             an.add(on);
         }
         ((ObjectNode) t).put("targets", an);
+        return t;
+    }
 
+    JsonNode getExpandedJson(Object o, Long aid, DBUtils db) throws SQLException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode t = null;
+
+        if (o instanceof Assay) {
+            return getSingleExpandedNode((Assay) o, aid, db);
+        } else if (o instanceof List) {
+            ArrayNode an = mapper.createArrayNode();
+            List l = (List) o;
+            for (Object al : l) {
+                Assay a = (Assay)al;
+                an.add(getSingleExpandedNode(a, a.getAid(), db));
+            }
+            t = mapper.createObjectNode();
+            ((ObjectNode) t).put("collection", an);
+            ((ObjectNode) t).put("link", "foo");
+            System.out.println("t.toString() = " + t.toString());
+        }
 
         return t;
     }
