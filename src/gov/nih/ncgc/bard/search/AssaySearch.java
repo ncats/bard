@@ -87,6 +87,7 @@ public class AssaySearch extends SolrSearch {
         sq = setHighlighting(sq, filter == null ? HL_FIELD : HL_FIELD);
         sq = setFilterQueries(sq, filter);
         sq.setRows(10000);
+        sq.setShowDebugInfo(true);
 
         sq.setFacet(true);
         sq.setFacetMinCount(1);
@@ -99,6 +100,7 @@ public class AssaySearch extends SolrSearch {
 
         QueryResponse response = solr.query(sq);
         List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_ASSAY_DOC, HL_FIELD);
+        Map<String, String> xplainMap = response.getExplainMap();
 
         // get facet counts
         long start = System.currentTimeMillis();
