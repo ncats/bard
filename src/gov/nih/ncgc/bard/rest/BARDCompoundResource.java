@@ -98,6 +98,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                            @QueryParam("rankBy") String rankBy) throws SQLException, IOException {
         DBUtils db = new DBUtils();
         Response response = null;
+        Long start, end;
 
         if (skip == null) skip = -1;
         if (top == null) top = -1;
@@ -118,13 +119,26 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 if (expandEntries) expandClause = "expand=true";
 
                 String linkString = null;
+                start = System.currentTimeMillis();
                 if (skip + top <= db.getEntityCount(Compound.class))
                     linkString = BARDConstants.API_BASE + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+                end = System.currentTimeMillis();
+                System.out.println("TIME entity count: "+((end-start)*1e-3));
 
+                start = System.currentTimeMillis();
                 List<Compound> compounds = db.searchForEntity(filter, skip, top, Compound.class);
+                end = System.currentTimeMillis();
+                System.out.println("TIME entity search: "+((end-start)*1e-3));
+
+
                 if (expandEntries) {
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(compounds, linkString);
+
+                    start = System.currentTimeMillis();
                     response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+                    end = System.currentTimeMillis();
+                    System.out.println("TIME json generate: "+((end-start)*1e-3));
+
                 } else {
                     List<String> links = new ArrayList<String>();
                     for (Compound a : compounds) links.add(a.getResourcePath());
