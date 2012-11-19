@@ -4220,6 +4220,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         log.info("## SQL: "+sql);
+        System.out.println("## SQL: "+sql);
 
         if (conn == null) conn = getConnection();
         pst = conn.prepareStatement(sql);
