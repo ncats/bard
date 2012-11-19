@@ -4031,6 +4031,58 @@ public class DBUtils {
         return (n);
     }
 
+    public <T extends BardEntity> int getEntityCount(Class<T> klass, String query) throws SQLException {
+        Query queryParams;
+        if (fieldMap.containsKey(klass)) queryParams = fieldMap.get(klass);
+        else throw new IllegalArgumentException("Invalid entity class was specified");
+
+        String sql;
+        if (query != null && !query.contains("[")) {
+            String q = "'%" + query + "%' ";
+            List<String> tmp = new ArrayList<String>();
+            for (String s : queryParams.getValidFields())
+                tmp.add(s + " like " + q);
+
+            String tmp2 = "";
+            if (!tmp.isEmpty())
+                tmp2 = "(" + Util.join(tmp, " or ") + ")";
+
+            sql = "select count(" + queryParams.getIdField() + ") from "
+                    + queryParams.getTableName() + " where ";
+            if (queryParams.getJoin() != null) {
+                sql += queryParams.getJoin() + " AND ";
+            }
+            sql += tmp2;
+        } else {
+            // TODO we currently only assume a single query field is specified
+            String[] toks = query.split("\\[");
+            String q = toks[0].trim();
+            String field = toks[1].trim().replace("]", "");
+            if (!queryParams.getValidFields().contains(field))
+                throw new SQLException("Invalid field was specified");
+
+            sql = "select count(" + queryParams.getIdField() + ") from "
+                    + queryParams.getTableName() + " where ";
+            if (queryParams.getJoin() != null) {
+                sql += queryParams.getJoin() + " AND ";
+            }
+            sql += field + " like '%" + q + "%'";
+        }
+
+        if (queryParams.getJoin() != null) {
+            sql += " where " + queryParams.getJoin();
+        }
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement(sql);
+        ResultSet rs = pst.executeQuery();
+        int n = 0;
+        while (rs.next()) n = rs.getInt(1);
+        rs.close();
+        pst.close();
+        return (n);
+    }
+
+
     public int getCompoundTestCount() throws SQLException {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data");
