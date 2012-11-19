@@ -55,7 +55,6 @@ public class ExperimentData implements BardEntity {
         readouts = new ArrayList<FitModel>();
         if (dr != null) { // we have one or CRC layers
             for (DoseResponseResultObject dro : dr) {
-                System.out.println("dro = " + dro.getLabel()+" "+dro.getAc50());
 
                 FitModel model = new FitModel("dose response", dro.getZeroAct(), dr[0].getInfAct(), dr[0].getHillCoef(), dr[0].getAc50());
                 Double[][] cr = new Double[dr[0].getDose().length][2];
