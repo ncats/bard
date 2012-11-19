@@ -170,7 +170,9 @@ public class AssaySearch extends SolrSearch {
             DBUtils db = new DBUtils();
             ret = new ArrayList();
             try {
-                for (SolrDocument doc : docs) {
+                for (int i = skip; i < skip+top; i++)  {
+                    if (i > docs.size()) continue;
+                    SolrDocument doc = docs.get(i);
                     ret.add(db.getAssayByAid(Long.parseLong((String) doc.getFieldValue("assay_id"))));
                 }
                 db.closeConnection();

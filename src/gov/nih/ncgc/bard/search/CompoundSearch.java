@@ -152,7 +152,9 @@ public class CompoundSearch extends SolrSearch {
             DBUtils db = new DBUtils();
             ret = new ArrayList();
             try {
-                for (SolrDocument doc : docs) {
+                for (int i = skip; i < skip + top; i++) {
+                    if (i > docs.size()) continue;
+                    SolrDocument doc = docs.get(i);
                     ret.addAll(db.getCompoundsByCid(Long.parseLong((String) doc.getFieldValue("cid"))));
                 }
                 db.closeConnection();
