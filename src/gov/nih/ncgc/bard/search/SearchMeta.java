@@ -13,16 +13,16 @@ public class SearchMeta {
     List<Facet> facets;
     int queryTime;
     long elapsedTime;
-    Map<String, List<String>> matchingFields;
+    Map<String, Map<String, String>> matchingFields;
 
     public SearchMeta() {
     }
 
-    public Map<String, List<String>> getMatchingFields() {
+    public Map<String, Map<String, String>> getMatchingFields() {
         return matchingFields;
     }
 
-    public void setMatchingFields(Map<String, List<String>> matchingFields) {
+    public void setMatchingFields(Map<String, Map<String, String>> matchingFields) {
         this.matchingFields = matchingFields;
     }
 

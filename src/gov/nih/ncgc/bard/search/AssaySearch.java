@@ -17,7 +17,13 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Full text search for assay entities.
@@ -159,13 +165,17 @@ public class AssaySearch extends SolrSearch {
         //
         // Also extract the matching field names for the docs we do return
         Map<String, String> xplainMap = response.getExplainMap();
-        Map<String, List<String>> matchFields = new HashMap<String, List<String>>();
+        Map<String, Map<String,String>> matchFields = new HashMap<String, Map<String, String>>();
         List ret;
         if (!detailed) {
-            ret = copyRange(docs, skip, top, detailed, "assay_id", "name", "highlight");
+            ret = copyRange(docs, skip, top, detailed, "assay_id", "name");
             for (Object doc : ret) {
                 String assayId = (String) ((SolrDocument)doc).getFieldValue("assay_id");
-                matchFields.put(assayId, SearchUtil.getMatchingFieldNames(xplainMap.get(assayId)));
+
+                Map<String, String> value = new HashMap<String, String>();
+                List<String> fns = SearchUtil.getMatchingFieldNames(xplainMap.get(assayId));
+                for (String fn : fns) value.put(fn, (String) ((SolrDocument) doc).getFieldValue(fn));
+                matchFields.put(assayId, value);
             }
         } else {
             DBUtils db = new DBUtils();
@@ -176,7 +186,11 @@ public class AssaySearch extends SolrSearch {
                     SolrDocument doc = docs.get(i);
                     String assayId = (String) doc.getFieldValue("assay_id");
                     ret.add(db.getAssayByAid(Long.parseLong(assayId)));
-                    matchFields.put(assayId, SearchUtil.getMatchingFieldNames(xplainMap.get(assayId)));
+
+                    Map<String, String> value = new HashMap<String, String>();
+                    List<String> fns = SearchUtil.getMatchingFieldNames(xplainMap.get(assayId));
+                    for (String fn : fns) value.put(fn, (String) ((SolrDocument) doc).getFieldValue(fn));
+                    matchFields.put(assayId, value);
                 }
                 db.closeConnection();
             } catch (SQLException e) {
