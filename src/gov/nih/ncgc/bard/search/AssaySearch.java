@@ -17,13 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Full text search for assay entities.
@@ -100,7 +94,6 @@ public class AssaySearch extends SolrSearch {
 
         QueryResponse response = solr.query(sq);
         List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_ASSAY_DOC, HL_FIELD);
-        Map<String, String> xplainMap = response.getExplainMap();
 
         // get facet counts
         long start = System.currentTimeMillis();
@@ -163,9 +156,17 @@ public class AssaySearch extends SolrSearch {
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
+        //
+        // Also extract the matching field names for the docs we do return
+        Map<String, String> xplainMap = response.getExplainMap();
+        Map<String, List<String>> matchFields = new HashMap<String, List<String>>();
         List ret;
         if (!detailed) {
             ret = copyRange(docs, skip, top, detailed, "assay_id", "name", "highlight");
+            for (Object doc : ret) {
+                String assayId = (String) ((SolrDocument)doc).getFieldValue("assay_id");
+                matchFields.put(assayId, SearchUtil.getMatchingFieldNames(xplainMap.get(assayId)));
+            }
         } else {
             DBUtils db = new DBUtils();
             ret = new ArrayList();
@@ -173,13 +174,16 @@ public class AssaySearch extends SolrSearch {
                 for (int i = skip; i < skip+top; i++)  {
                     if (i > docs.size()) continue;
                     SolrDocument doc = docs.get(i);
-                    ret.add(db.getAssayByAid(Long.parseLong((String) doc.getFieldValue("assay_id"))));
+                    String assayId = (String) doc.getFieldValue("assay_id");
+                    ret.add(db.getAssayByAid(Long.parseLong(assayId)));
+                    matchFields.put(assayId, SearchUtil.getMatchingFieldNames(xplainMap.get(assayId)));
                 }
                 db.closeConnection();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         }
+        meta.setMatchingFields(matchFields);
 
         results.setDocs(ret);
         results.setMetaData(meta);

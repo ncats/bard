@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.search;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * A one line summary.
@@ -12,8 +13,17 @@ public class SearchMeta {
     List<Facet> facets;
     int queryTime;
     long elapsedTime;
+    Map<String, List<String>> matchingFields;
 
     public SearchMeta() {
+    }
+
+    public Map<String, List<String>> getMatchingFields() {
+        return matchingFields;
+    }
+
+    public void setMatchingFields(Map<String, List<String>> matchingFields) {
+        this.matchingFields = matchingFields;
     }
 
     public Long getNhit() {

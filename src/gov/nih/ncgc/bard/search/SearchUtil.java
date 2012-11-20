@@ -24,6 +24,20 @@ import java.util.regex.Pattern;
  */
 public class SearchUtil {
 
+    static final String explainRegex = "\\(MATCH\\) .*weight\\((.+?):";
+    static final Pattern pattern = Pattern.compile(explainRegex);
+
+    public static List<String> getMatchingFieldNames(String explain) {
+        List<String> r = new ArrayList<String>();
+        Matcher matcher = pattern.matcher(explain);
+        while (matcher.find()) {
+            for (int i = 0; i < matcher.groupCount(); i++) {
+                r.add(matcher.group(i+1));
+            }
+        }
+        return r;
+    }
+
     /**
      * Extract query field and values from a general BARD filter query parameter.
      * <p/>
@@ -104,6 +118,28 @@ public class SearchUtil {
     }
 
     public static void main(String[] args) throws Exception {
+
+        String s = "0.33150536 = (MATCH) max of:\n" +
+                "  0.2429601 = (MATCH) weight(av_dict_label:lopac in 2985), product of:\n" +
+                "    0.51730007 = queryWeight(av_dict_label:lopac), product of:\n" +
+                "      7.514713 = idf(docFreq=6, maxDocs=4725)\n" +
+                "      0.0688383 = queryNorm\n" +
+                "    0.46966955 = (MATCH) fieldWeight(av_dict_label:lopac in 2985), product of:\n" +
+                "      1.0 = tf(termFreq(av_dict_label:lopac)=1)\n" +
+                "      7.514713 = idf(docFreq=6, maxDocs=4725)\n" +
+                "      0.0625 = fieldNorm(field=av_dict_label, doc=2985)\n" +
+                "  0.33150536 = (MATCH) weight(description:lopac in 2985), product of:\n" +
+                "    0.5404622 = queryWeight(description:lopac), product of:\n" +
+                "      7.851185 = idf(docFreq=4, maxDocs=4725)\n" +
+                "      0.0688383 = queryNorm\n" +
+                "    0.6133738 = (MATCH) fieldWeight(description:lopac in 2985), product of:\n" +
+                "      1.0 = tf(termFreq(description:lopac)=1)\n" +
+                "      7.851185 = idf(docFreq=4, maxDocs=4725)\n" +
+                "      0.078125 = fieldNorm(field=description, doc=2985)\n";
+        List<String> fn = getMatchingFieldNames(s);
+        for (String afn:fn) System.out.println(afn);
+        System.exit(-1);
+
         SolrServer solr = new CommonsHttpSolrServer("http://protease.nhgri.nih.gov/servlet/solr/core-assay/");
 
         SolrQuery query = new SolrQuery();
