@@ -1029,6 +1029,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         if (top == null) top = -1;
 
         List<ExperimentData> data = db.getEntitiesByCid(cid, ExperimentData.class, skip, top);
+        List<ExperimentData> hitData = new ArrayList<ExperimentData>();
         int nhit = 0;
         List<String> hitExpts = new ArrayList<String>();
         List<String> hitAssays = new ArrayList<String>();
@@ -1052,15 +1053,19 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 nhit++;
                 hitExpts.add(expt.getResourcePath());
                 hitAssays.add(db.getAssayByAid(expt.getAssayId()).getResourcePath());
+                hitData.add(ed);
             }
         }
-        s.put("ntest", String.valueOf(data.size()));
-        s.put("nhit", String.valueOf(nhit));
-        s.put("hitExperiments", hitExpts);
+        s.put("ntest", data.size());
+        s.put("nhit", nhit);
+//        s.put("hitExperiments", hitExpts);
         s.put("hitAssays", hitAssays);
 
+        s.put("testedExptdata", data);
+        s.put("hitExptdata", hitData);
+
         if (expand != null && expand.trim().toLowerCase().equals("true")) {
-            s.put("testedExperiments", testedExperiments);
+//            s.put("testedExperiments", testedExperiments);
             s.put("testedAssays", testedAssays);
         } else {
             List<String> l = new ArrayList<String>();
@@ -1068,7 +1073,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 if (e.getExptId() != null)
                     l.add(e.getResourcePath());
             }
-            s.put("testedExperiments", l);
+//            s.put("testedExperiments", l);
             l = new ArrayList<String>();
             for (Assay a : testedAssays) {
                 if (a != null) l.add(a.getResourcePath());
