@@ -161,16 +161,21 @@ public class AssaySearch extends SolrSearch {
         Map<String, String> xplainMap = response.getExplainMap();
         Map<String, Map<String,String>> matchFields = new HashMap<String, Map<String, String>>();
         List ret;
+
+        // first set up field match details
+        for (int i = skip; i < skip + top; i++) {
+            if (i >= docs.size()) continue;
+            SolrDocument doc = docs.get(i);
+            String assayId = (String) doc.getFieldValue("assay_id");
+            Map<String, String> value = new HashMap<String, String>();
+            List<String> fns = SearchUtil.getMatchingFieldNames(xplainMap.get(assayId));
+            for (String fn : fns) value.put(fn, (String) doc.getFieldValue(fn));
+            matchFields.put(assayId, value);
+        }
+        meta.setMatchingFields(matchFields);
+
         if (!detailed) {
             ret = copyRange(docs, skip, top, detailed, "assay_id", "name");
-            for (Object doc : ret) {
-                String assayId = (String) ((SolrDocument)doc).getFieldValue("assay_id");
-
-                Map<String, String> value = new HashMap<String, String>();
-                List<String> fns = SearchUtil.getMatchingFieldNames(xplainMap.get(assayId));
-                for (String fn : fns) value.put(fn, (String) ((SolrDocument) doc).getFieldValue(fn));
-                matchFields.put(assayId, value);
-            }
         } else {
             DBUtils db = new DBUtils();
             ret = new ArrayList();
@@ -180,18 +185,13 @@ public class AssaySearch extends SolrSearch {
                     SolrDocument doc = docs.get(i);
                     String assayId = (String) doc.getFieldValue("assay_id");
                     ret.add(db.getAssayByAid(Long.parseLong(assayId)));
-
-                    Map<String, String> value = new HashMap<String, String>();
-                    List<String> fns = SearchUtil.getMatchingFieldNames(xplainMap.get(assayId));
-                    for (String fn : fns) value.put(fn, (String) ((SolrDocument) doc).getFieldValue(fn));
-                    matchFields.put(assayId, value);
                 }
                 db.closeConnection();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         }
-        meta.setMatchingFields(matchFields);
+
 
         results.setDocs(ret);
         results.setMetaData(meta);
