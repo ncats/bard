@@ -14,8 +14,17 @@ public class SearchMeta {
     int queryTime;
     long elapsedTime;
     Map<String, Map<String, String>> matchingFields;
+    Map<String, Float> scores;
 
     public SearchMeta() {
+    }
+
+    public Map<String, Float> getScores() {
+        return scores;
+    }
+
+    public void setScores(Map<String, Float> scores) {
+        this.scores = scores;
     }
 
     public Map<String, Map<String, String>> getMatchingFields() {

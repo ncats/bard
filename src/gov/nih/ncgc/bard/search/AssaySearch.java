@@ -160,9 +160,9 @@ public class AssaySearch extends SolrSearch {
         // Also extract the matching field names for the docs we do return
         Map<String, String> xplainMap = response.getExplainMap();
         Map<String, Map<String,String>> matchFields = new HashMap<String, Map<String, String>>();
-        List ret;
+        Map<String, Float> scores = new LinkedHashMap<String, Float>(); // to maintain doc id ordering
 
-        // first set up field match details
+        // first set up field match details & document scores
         for (int i = skip; i < skip + top; i++) {
             if (i >= docs.size()) continue;
             SolrDocument doc = docs.get(i);
@@ -171,9 +171,12 @@ public class AssaySearch extends SolrSearch {
             List<String> fns = SearchUtil.getMatchingFieldNames(xplainMap.get(assayId));
             for (String fn : fns) value.put(fn, (String) doc.getFieldValue(fn));
             matchFields.put(assayId, value);
+            scores.put(assayId, (Float) doc.getFieldValue("score"));
         }
         meta.setMatchingFields(matchFields);
+        meta.setScores(scores);
 
+        List ret;
         if (!detailed) {
             ret = copyRange(docs, skip, top, detailed, "assay_id", "name");
         } else {
@@ -191,7 +194,6 @@ public class AssaySearch extends SolrSearch {
                 e.printStackTrace();
             }
         }
-
 
         results.setDocs(ret);
         results.setMetaData(meta);
