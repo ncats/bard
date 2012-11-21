@@ -17,13 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Full text search for assay entities.
@@ -182,7 +176,7 @@ public class AssaySearch extends SolrSearch {
             ret = new ArrayList();
             try {
                 for (int i = skip; i < skip+top; i++)  {
-                    if (i > docs.size()) continue;
+                    if (i >= docs.size()) continue;
                     SolrDocument doc = docs.get(i);
                     String assayId = (String) doc.getFieldValue("assay_id");
                     ret.add(db.getAssayByAid(Long.parseLong(assayId)));
