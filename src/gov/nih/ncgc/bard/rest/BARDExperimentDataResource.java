@@ -149,7 +149,7 @@ public class BARDExperimentDataResource implements IBARDResource {
                                      @FormParam("eids") String eids,
                                      @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws IOException, SQLException {
         if (ids == null || ids.trim().equals("")) throw new BadRequestException("Must specify the ids form field");
-        System.out.println("@@@@ foo");
+        //System.out.println("@@@@ foo");
         List<ExperimentData> edlist = new ArrayList<ExperimentData>();
         DBUtils db = new DBUtils();
 

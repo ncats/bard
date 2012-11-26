@@ -34,6 +34,11 @@ public class CAPAssayAnnotation {
         this.source = source;
     }
 
+    public CAPAssayAnnotation cloneObject () {
+        return new CAPAssayAnnotation (id, refId, display, contextRef, 
+                                       key, value, extValueId, source);
+    }
+
     CAPAssayAnnotation() {
     }
 

@@ -327,17 +327,24 @@ public class BARDProjectResource extends BARDResource<Project> {
             a = db.getProjectAnnotations(resourceId);
             if (a == null) throw new WebApplicationException(404);
             CAPDictionaryElement node;
+
+            List<CAPAssayAnnotation> copy = 
+                new ArrayList<CAPAssayAnnotation>();
             for (CAPAssayAnnotation as : a) {
-                if (as.key != null) {
-                    node = dict.getNode(new BigInteger(as.key));
-                    as.key = node != null ? node.getLabel() : as.key;
+                //System.err.println("** "+as);
+                CAPAssayAnnotation aa = as.cloneObject();
+                if (aa.key != null) {
+                    node = dict.getNode(new BigInteger(aa.key));
+                    aa.key = node != null ? node.getLabel() : aa.key;
                 }
-                if (as.value != null) {
-                    node = dict.getNode(new BigInteger(as.value));
-                    as.value = node != null ? node.getLabel() : as.value;
+                if (aa.value != null) {
+                    node = dict.getNode(new BigInteger(aa.value));
+                    aa.value = node != null ? node.getLabel() : aa.value;
                 }
+                copy.add(aa);
             }
-            String json = Util.toJson(a);
+            String json = Util.toJson(copy);
+
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
