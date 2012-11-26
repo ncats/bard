@@ -216,7 +216,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
             List assays = (List) e.getCollection();
             for (Object assay : assays) {
                 Assay a = (Assay) assay;
-                an.add(getSingleExpandedNode(a, a.getAid(), db));
+                an.add(getSingleExpandedNode(a, a.getBardAssayId(), db));
             }
             t = mapper.createObjectNode();
             ((ObjectNode) t).put("collection", an);
