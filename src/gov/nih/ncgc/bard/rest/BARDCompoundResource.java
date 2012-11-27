@@ -343,7 +343,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                     json = Util.toJson(c);
                 } else {
                     if (expand) {
-                        json = toJson(db, c, true);
+                        json = toJson(db, c, false);
                     } else {
                         List<String> links = new ArrayList<String>();
                         for (Compound ac : c) links.add(ac.getResourcePath());
