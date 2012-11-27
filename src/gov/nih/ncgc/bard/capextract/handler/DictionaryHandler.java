@@ -14,6 +14,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Vector;
 
 /**
  * A one line summary.
@@ -39,37 +40,8 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
         Dictionary d = getResponse(url, resource);
         log.info("\tUnmarshalled dictionary");
 
-        CAPDictionary dict = new CAPDictionary();
-
-        List<Element> elems = d.getElements().getElement();
-        for (Element elem : elems) {
-            dict.addNode(new CAPDictionaryElement(elem));
-        }
-        log.info("\tAdded " + dict.size() + " <element> entries");
-
-        int nrel = 0;
-        int nnoparent = 0;
-        List<Dictionary.ElementHierarchies.ElementHierarchy> hierarchies = d.getElementHierarchies().getElementHierarchy();
-        for (Dictionary.ElementHierarchies.ElementHierarchy h : hierarchies) {
-            String relType = h.getRelationshipType();
-            BigInteger childId = getElementId(h.getChildElement().getLink().getHref());
-            CAPDictionaryElement childElem = dict.getNode(childId);
-
-            // there may be an element with no parent
-            if (h.getParentElement() != null) {
-                BigInteger parentId = getElementId(h.getParentElement().getLink().getHref());
-                CAPDictionaryElement parentElem = dict.getNode(parentId);
-                dict.addOutgoingEdge(parentElem, childElem, null);
-                dict.addIncomingEdge(childElem, parentElem, relType);
-            } else nnoparent++;
-
-            nrel++;
-        }
-        log.info("\tAdded " + nrel + " parent/child relationships with " + nnoparent + " elements having no parent");
-
-        // ok'we got everything we need. Lets make it available globally
-        CAPConstants.setDictionary(dict);
-
+        CAPDictionary dict = process(d);
+        
         // serialize this to the db
         Connection conn = null;
         PreparedStatement pst;
@@ -110,6 +82,48 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
         // TODO should handle resultType, units and descriptors
     }
 
+    private CAPDictionary process(Dictionary d) throws IOException {
+        CAPDictionary dict = new CAPDictionary();
+        List<Element> elems = d.getElements().getElement();
+        for (Element elem : elems) {
+            dict.addNode(new CAPDictionaryElement(elem));
+        }
+        log.info("\tAdded " + dict.size() + " <element> entries");
+
+        int nrel = 0;
+        int nnoparent = 0;
+        List<Dictionary.ElementHierarchies.ElementHierarchy> hierarchies = d.getElementHierarchies().getElementHierarchy();
+        for (Dictionary.ElementHierarchies.ElementHierarchy h : hierarchies) {
+            String relType = h.getRelationshipType();
+            BigInteger childId = getElementId(h.getChildElement().getLink().getHref());
+            CAPDictionaryElement childElem = dict.getNode(childId);
+
+            // there may be an element with no parent
+            if (h.getParentElement() != null) {
+                BigInteger parentId = getElementId(h.getParentElement().getLink().getHref());
+                CAPDictionaryElement parentElem = dict.getNode(parentId);
+                dict.addOutgoingEdge(parentElem, childElem, null);
+                dict.addIncomingEdge(childElem, parentElem, relType);
+            } else nnoparent++;
+
+            nrel++;
+        }
+        log.info("\tAdded " + nrel + " parent/child relationships with " + nnoparent + " elements having no parent");
+
+        // ok'we got everything we need. Lets make it available globally
+        CAPConstants.setDictionary(dict);
+        
+        return dict;
+    }
+    	
+    public Vector<Object> poll(String url, CAPConstants.CapResource resource, boolean skipPartial) throws IOException {
+	Vector<Object> vec = new Vector<Object>();
+	Dictionary d = getResponse(url, resource);
+	process(d);
+	vec.add(d);
+	return vec;
+    }
+    
     private BigInteger getElementId(String url) {
         String[] comps = url.split("/");
         return new BigInteger(comps[comps.length - 1]);

@@ -38,7 +38,8 @@ public class CAPConstants {
         EXPERIMENTS("application/vnd.bard.cap+xml;type=experiments"),
         EXPERIMENT("application/vnd.bard.cap+xml;type=experiment"),
         RESULTS("application/vnd.bard.cap+xml;type=results"),
-        RESULT("application/vnd.bard.cap+xml;type=result");
+        RESULT("application/vnd.bard.cap+xml;type=result"),
+        ASSAYDOC("application/vnd.bard.cap+xml;type=assayDoc");
 
         private String mimeType;
 
