@@ -6,8 +6,15 @@ import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Assay;
+import gov.nih.ncgc.bard.capextract.jaxb.Assay.Measures.Measure;
+import gov.nih.ncgc.bard.capextract.jaxb.Assay.Measures.Measure.EntryUnit;
+import gov.nih.ncgc.bard.capextract.jaxb.Assay.Measures.Measure.ResultTypeRef;
 import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItems;
+import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItems.AssayContextItem;
+import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItems.AssayContextItem.AttributeId;
+import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItems.AssayContextItem.ValueId;
 import gov.nih.ncgc.bard.capextract.jaxb.AssayDocument;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.tools.Util;
 
 import java.io.IOException;
@@ -62,145 +69,132 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         Assay assay = getResponse(url, resource);
         if (!assay.getReadyForExtraction().equals("Ready")) return;
 
-        String status = assay.getStatus();
         BigInteger aid = assay.getAssayId();
-        String name = assay.getAssayName();
-        String type = assay.getAssayType();
         String version = assay.getAssayVersion();
-        List<AssayDocument> docs = assay.getAssayDocuments() != null ? assay.getAssayDocuments().getAssayDocument() : null;
-
-        log.info("status for " + name + " = " + status + ", and has " + (docs != null ? docs.size() : 0) + " docs");
-
-        /* Not sure what this is */
-        if (assay.getAssayContexts() != null) {
-            List<Assay.AssayContexts.AssayContext> mcs = assay.getAssayContexts().getAssayContext();
-            for (Assay.AssayContexts.AssayContext mc : mcs) {
-                String contextName = mc.getContextName();
-//                System.out.println("contextName = " + contextName);
+        String type = assay.getAssayType();
+        String status = assay.getStatus();
+        String name = assay.getAssayName();
+        String title = assay.getAssayTitle();
+        String designedBy = assay.getDesignedBy();
+        
+        /* save documents related to assay */
+        List<AssayDocument> docs = assay.getAssayDocuments() != null ? assay.getAssayDocuments().getAssayDocument() : new ArrayList<AssayDocument>();
+        for (AssayDocument doc: docs) {
+            String docType = doc.getDocumentType(); // Description, Protocol, Comments, Paper, External URL, Other
+            String docName = doc.getDocumentName();
+            Link docLink = doc.getLink();
+            String docContent;
+            if (docLink != null) {
+        	AssayDocument assayDoc = getResponse(docLink.getHref(), CAPConstants.getResource(docLink.getType()));
+        	docContent = assayDoc.getDocumentContent(); // is pubmed link for those with a pubmed ID
             }
         }
+        log.info("status for " + name + " = " + status + ", and has " + docs.size() + " docs");
 
+        /* save measures for an assay */
+        List<Measure> measures = assay.getMeasures() != null ? assay.getMeasures().getMeasure() : new ArrayList<Measure>();
+        for (Measure m: measures) {
+            String contextRef = m.getAssayContextRef();
+            BigInteger parent = m.getParentMeasure();
+            EntryUnit unit = m.getEntryUnit();
+            if (unit != null) {
+        	String unitName = unit.getUnit();
+        	Link unitLink = unit.getLink();
+            }
+            ResultTypeRef rtr = m.getResultTypeRef();
+            if (rtr != null) {
+        	String resultTypeName = rtr.getLabel();
+        	Link resultTypeLink = rtr.getLink();
+            }
+        }
+        
         CAPDictionary dict = CAPConstants.getDictionary();
 
-        /* This block extracts the annotations for the assay */
-        List<AssayContextItems.AssayContextItem> mcis = null;
-        Map<String, CAPAssayAnnotation> annos = new HashMap<String, CAPAssayAnnotation>();
+        /* save assay contexts and annotations */
+        List<Assay.AssayContexts.AssayContext> contexts = assay.getAssayContexts() != null ? assay.getAssayContexts().getAssayContext() : new ArrayList<Assay.AssayContexts.AssayContext>();
+        ArrayList<BigInteger> itemIds = new ArrayList<BigInteger>();
+        for (Assay.AssayContexts.AssayContext context: contexts) {
+            String contextName = context.getContextName();
+            List<AssayContextItem> items = context.getAssayContextItems() != null ? context.getAssayContextItems().getAssayContextItem() : new ArrayList<AssayContextItem>();
+            for (AssayContextItem aci: items) {
+        	BigInteger aciId = aci.getAssayContextItemId();
+        	itemIds.add(aciId);
+        	String aciRef = aci.getAssayContextRef();
+        	if (!aciRef.equals(contextName))
+        	    log.error("AssayContextRef is different than the contextName: "+aciRef+" : "+contextName);
+        	AttributeId attr = aci.getAttributeId();
+        	String attrType = attr.getAttributeType(); // List, Range, Number, Fixed
+        	String attrLabel = attr.getLabel();
+        	Link attrLink = attr.getLink();
+        	String display = aci.getValueDisplay();
+        	Double valueMax = aci.getValueMax();
+        	Double valueMin = aci.getValueMin();
+               	String qualifier = aci.getQualifier();
+               	Double valueNum = aci.getValueNum();
+        	String valueExtValue = aci.getExtValueId();
+        	ValueId value = aci.getValueId();
+        	if (value != null) {
+        	    String valueLabel = value.getLabel();
+        	    Link valueLink = value.getLink();
+        	}
+            }
+        }
+        log.info("Got " + contexts.size() + " annotation groups");
+
+        /* verify no items were missed */
         if (assay.getAssayContextItems() != null) {
-            mcis = assay.getAssayContextItems().getAssayContextItem();
-            for (AssayContextItems.AssayContextItem mci : mcis) {
-
-                String valueid = null, attrid = null, attrtype = null;
-                String displayValue = mci.getValueDisplay();
-                BigInteger id = mci.getAssayContextItemId();
-
-                String refid = mci.getAssayContextRef(); // may be null                
-                String contextref = mci.getAssayContextRef(); //  may be null
-
-                AssayContextItems.AssayContextItem.ValueId mcivid = mci.getValueId();
-                if (mcivid != null) valueid = mcivid.getLink().getHref();
-                AssayContextItems.AssayContextItem.AttributeId mciaid = mci.getAttributeId();
-                if (mciaid != null) attrid = mciaid.getLink().getHref();
-                String extid = mci.getExtValueId();
-
-                CAPAssayAnnotation anno = new CAPAssayAnnotation(id.toString(), refid != null ? refid.toString() : null, displayValue, contextref, attrid, valueid, extid, "cap");
-                annos.put(id.toString(), anno);
+            for (AssayContextItem aci: assay.getAssayContextItems().getAssayContextItem()) {
+        	if (!itemIds.contains(aci.getAssayContextItemId()))
+        	    log.error("AssayContextItem not imported from AssayContexts above:"+aci.getAssayContextItemId());
             }
         }
-        log.info("\tGot " + annos.size() + " annotations");
-        for (CAPAssayAnnotation anno : annos.values()) log.debug("\t"+anno);
+        log.info("Got " + itemIds.size() + " annotations");
 
-        // ok, we have a list of annotations, now we reconstruct the groups
-        Map<String, List<String>> annogrps = new HashMap<String, List<String>>();
-        for (CAPAssayAnnotation anno : annos.values()) {
-            String id = anno.id;
-            String refid = anno.refId;
-
-            if (refid != null && refid.equals(id)) refid = null;
-
-            if (refid != null) {
-                if (annogrps.containsKey(refid)) {
-                    List<String> tmp = annogrps.get(refid);
-                    tmp.add(id);
-                    annogrps.put(refid, tmp);
-                } else { //  if we have a null refid, just add the id itself to the list of related ids
-                    List<String> tmp = new ArrayList<String>();
-                    tmp.add(id);
-                    annogrps.put(refid, tmp);
-                }
-            } else {
-                if (!annogrps.containsKey(id)) annogrps.put(id, new ArrayList<String>());
-            }
-        }
-        log.info("\tReconstructed annotation groups and got " + annogrps.size() + " groups");
-
-        // at this stage we have a list of annotations and we have groups of annotations
-        // as we write each annotation to the db, we want to list the other annotations in
-        // its group (if any). This is obviously repetitive but lets us access related 
-        // annots given any annot
-        List<List<String>> flatgrps = new ArrayList<List<String>>();
-        for (String key : annogrps.keySet()) {
-            List<String> tmp = new ArrayList<String>();
-            tmp.add(key);
-            tmp.addAll(annogrps.get(key));
-            flatgrps.add(tmp);
-        }
-
-        log.info("\tFlattened annotations into " + flatgrps.size() + " groups");
-
-        // at this point we can dump annos to the db. Importantly, we store annotations
-        // such that instead of the MeasureContextItemId identifiers, we resolve the
-        // annotations to sets of dictionary identifiers. This means when recording related
-        // annotations, we actually record related dictionary identifiers
-        try {
-            Connection conn = CAPUtil.connectToBARD();
-            PreparedStatement pst = conn.prepareStatement("insert into cap_annotation (entity, source,  assay_id, anno_id, anno_key, anno_value, anno_display, related) values('assay', 'cap', ?,?,?, ?,?,?)");
-            for (CAPAssayAnnotation anno : annos.values()) {
-//                if (anno.contextRef != null) continue;
-
-                pst.setInt(1, aid.intValue());
-                pst.setString(2, anno.id);
-
-                String[] toks = anno.key.split("/");
-                pst.setString(3, toks[toks.length - 1]);
-
-                String value = null;
-                if (anno.value != null) {
-                    toks = anno.value.split("/");
-                    value = toks[toks.length - 1];
-                }
-                pst.setString(4, value);
-
-                pst.setString(5, anno.display);
-
-                String related = null;
-                for (List<String> ls : flatgrps) {
-                    if (ls.contains(anno.id)) {
-                        related = Util.join(ls, ",");
-                        break;
-                    }
-                }
-                if (anno.extValueId != null) related = related + "|" + anno.extValueId;
-                pst.setString(6, related);
-
-                pst.addBatch();
-            }
-            int[] updateCounts = pst.executeBatch();
-            conn.commit();
-            pst.close();
-            conn.close();
-            log.info("\tInserted " + updateCounts.length + " annotations (non context-ref) for aid " + aid);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            log.error("Error inserting annotations for aid " + aid + "\n" + e.getMessage());
-        }
-
-
-        /* looking at measures */
-        Assay.Measures measures = assay.getMeasures();
-        if (measures != null) {
-            for (Assay.Measures.Measure measure : measures.getMeasure()) {
-                System.out.println("measure.getAssayContextRef() = " + measure.getAssayContextRef());
-            }
-        }
+//        // at this point we can dump annos to the db. Importantly, we store annotations
+//        // such that instead of the MeasureContextItemId identifiers, we resolve the
+//        // annotations to sets of dictionary identifiers. This means when recording related
+//        // annotations, we actually record related dictionary identifiers
+//        try {
+//            Connection conn = CAPUtil.connectToBARD();
+//            PreparedStatement pst = conn.prepareStatement("insert into cap_annotation (entity, source,  assay_id, anno_id, anno_key, anno_value, anno_display, related) values('assay', 'cap', ?,?,?, ?,?,?)");
+//            for (CAPAssayAnnotation anno : annos.values()) {
+////                if (anno.contextRef != null) continue;
+//
+//                pst.setInt(1, aid.intValue());
+//                pst.setString(2, anno.id);
+//
+//                String[] toks = anno.key.split("/");
+//                pst.setString(3, toks[toks.length - 1]);
+//
+//                String value = null;
+//                if (anno.value != null) {
+//                    toks = anno.value.split("/");
+//                    value = toks[toks.length - 1];
+//                }
+//                pst.setString(4, value);
+//
+//                pst.setString(5, anno.display);
+//
+//                String related = null;
+//                for (List<String> ls : flatgrps) {
+//                    if (ls.contains(anno.id)) {
+//                        related = Util.join(ls, ",");
+//                        break;
+//                    }
+//                }
+//                if (anno.extValueId != null) related = related + "|" + anno.extValueId;
+//                pst.setString(6, related);
+//
+//                pst.addBatch();
+//            }
+//            int[] updateCounts = pst.executeBatch();
+//            conn.commit();
+//            pst.close();
+//            conn.close();
+//            log.info("\tInserted " + updateCounts.length + " annotations (non context-ref) for aid " + aid);
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//            log.error("Error inserting annotations for aid " + aid + "\n" + e.getMessage());
+//        }
     }
 }

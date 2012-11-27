@@ -5,8 +5,8 @@ import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Project;
 import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem;
-import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem.Attribute;
-import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem.ValueControlled;
+import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem.AttributeId;
+import gov.nih.ncgc.bard.capextract.jaxb.Project.ProjectContextItems.ProjectContextItem.ValueId;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -88,9 +88,9 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 		// get annotation groupings
 	        Map<String, String> parentGroups = new HashMap<String, String>();
 		if (project.getProjectContextItems() != null)
-		for (ProjectContextItem pci: project.getProjectContextItems().getProjectContextItem()) {
-		    BigInteger parentGroup = pci.getParentGroup();
-		    BigInteger id = pci.getProjectContextItemId();
+		for (ProjectContextItem pct: project.getProjectContextItems().getProjectContextItem()) {
+		    BigInteger parentGroup = pct.getParentGroup();
+		    BigInteger id = pct.getProjectContextItemId();
 		    if (parentGroup != null)
 			if (parentGroups.containsKey(parentGroup.toString())) {
 			    parentGroups.put(parentGroup.toString(), parentGroups.get(parentGroup.toString())+","+id);
@@ -111,7 +111,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 		    pst.setString(5, pci.getProjectContextItemId().toString());
 		    
 		    String key = null;
-		    Attribute attr = pci.getAttribute();
+		    AttributeId attr = pci.getAttributeId();
 		    if (attr != null) {
 			attr.getLabel();
 			String[] toks = attr.getLink().getHref().split("/");
@@ -120,7 +120,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 		    pst.setString(6, key);
 
 		    String value = null;
-		    ValueControlled vc = pci.getValueControlled();
+		    ValueId vc = pci.getValueId();
 		    if (vc != null) {
 			vc.getLabel();
 			String[] toks = vc.getLink().getHref().split("/");

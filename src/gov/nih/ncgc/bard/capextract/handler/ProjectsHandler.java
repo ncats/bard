@@ -3,6 +3,7 @@ package gov.nih.ncgc.bard.capextract.handler;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Project;
 import gov.nih.ncgc.bard.capextract.jaxb.Projects;
 
@@ -38,16 +39,20 @@ public class ProjectsHandler extends CapResourceHandler implements ICapResourceH
         
         // load project annotations
         ProjectHandler ph = (ProjectHandler)CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.PROJECT);
-        for (Project project : projects.getProject()) {
-            //ph.process(CAPConstants.CAP_ROOT+"/projects/"+project.getProjectId(), CAPConstants.CapResource.PROJECT);
-            String readyToXtract = project.getReadyForExtraction();
-            String title = project.getProjectName();
-            BigInteger pid = project.getProjectId();
+        for (Project proj: projects.getProject()) {
+            for (Link projLink: proj.getLink()) {
+        	if (projLink.getType().equals(CAPConstants.CapResource.ASSAY.getMimeType())) {
+        	    Project project = (Project)ph.poll(projLink.getHref(), CAPConstants.CapResource.PROJECT).get(0);
+        	    String readyToXtract = project.getReadyForExtraction();
+        	    String title = project.getProjectName();
+        	    BigInteger pid = project.getProjectId();
 
-            log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
-            if (readyToXtract.equals("Ready")) {
-                log.info("\tExtracting " + title);
-                ph.process(project);
+        	    log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
+        	    if (readyToXtract.equals("Ready")) {
+        		log.info("\tExtracting " + title);
+        		ph.process(project);
+        	    }
+        	}
             }
         }
     }

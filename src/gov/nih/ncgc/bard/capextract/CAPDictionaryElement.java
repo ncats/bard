@@ -24,7 +24,7 @@ public class CAPDictionaryElement implements Serializable {
     private String elementStatus;
     transient private String readyForExtraction;
     private String synonyms;
-    private String unit;
+//    private String unit;
 
 
     public String getAbbreviation() {
@@ -99,13 +99,13 @@ public class CAPDictionaryElement implements Serializable {
         this.synonyms = synonyms;
     }
 
-    public String getUnit() {
-        return unit;
-    }
-
-    public void setUnit(String unit) {
-        this.unit = unit;
-    }
+//    public String getUnit() {
+//        return unit;
+//    }
+//
+//    public void setUnit(String unit) {
+//        this.unit = unit;
+//    }
 
     public CAPDictionaryElement(Element e) {
         abbreviation = e.getAbbreviation();
@@ -118,7 +118,7 @@ public class CAPDictionaryElement implements Serializable {
         readyForExtraction = e.getReadyForExtraction();
         abbreviation = e.getAbbreviation();
         synonyms = e.getSynonyms();
-        unit = e.getUnit();
+//        unit = e.getUnit();
     }
 
     @Override

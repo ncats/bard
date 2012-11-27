@@ -73,21 +73,28 @@ public class CAPExtractor {
         Vector<Projects> projects = registry.getHandler(CAPConstants.CapResource.PROJECTS).
         	poll(CAPConstants.CAP_ROOT+"/projects", CAPConstants.CapResource.PROJECTS);
         log.info("Project count: "+projects.get(0).getCount().toString());
-        for (Project proj: projects.get(0).getProject()) {
-            int expCount = 0;
-            int resultCount = 0;
-            if (proj.getProjectSteps() != null) {
-        	for (Project.ProjectSteps.ProjectStep projStep: proj.getProjectSteps().getProjectStep()) {
-        	    Link link = projStep.getLink().get(0);
-        	    if (link.getType().equals(CAPConstants.CapResource.EXPERIMENT.getMimeType())) {
-        		expCount++;
-        		Vector<Results> res = registry.getHandler(CAPConstants.CapResource.RESULTS).
-        			poll(link.getHref()+"/results", CAPConstants.CapResource.RESULTS);
-        		resultCount += getRelatedCount(res);
+        for (Project projYo: projects.get(0).getProject()) {
+            for (Link projLink: projYo.getLink()) {
+        	if (projLink.getType().equals(CAPConstants.CapResource.ASSAY.getMimeType())) {
+        	    Project proj = (Project)registry.getHandler(CAPConstants.CapResource.PROJECT).
+        		    poll(projLink.getHref(), CAPConstants.CapResource.PROJECT).get(0);
+        	int expCount = 0;
+        	int resultCount = 0;
+        	if (proj.getProjectSteps() != null) {
+        	    for (Project.ProjectSteps.ProjectStep projStep: proj.getProjectSteps().getProjectStep()) {
+        		for (Link link: projStep.getLink()) {
+        		if (link.getType().equals(CAPConstants.CapResource.EXPERIMENT.getMimeType())) {
+        		    expCount++;
+        		    Vector<Results> res = registry.getHandler(CAPConstants.CapResource.RESULTS).
+        			    poll(link.getHref()+"/results", CAPConstants.CapResource.RESULTS);
+        		    resultCount += getRelatedCount(res);
+        		}
+        		}
         	    }
         	}
+                log.info("Project "+proj.getProjectName()+": "+expCount+" expts, "+resultCount+" results");
             }
-            log.info("Project "+proj.getProjectName()+": "+expCount+" expts, "+resultCount+" results");
+        }
         }
         
         Vector<Assays> assays = registry.getHandler(CAPConstants.CapResource.ASSAYS).
@@ -130,11 +137,16 @@ public class CAPExtractor {
     }
 
     public void test() throws IOException {
-	registry.getHandler(CAPConstants.CapResource.EXPERIMENTS).process(CAPConstants.CAP_ROOT+"/experiments", CAPConstants.CapResource.EXPERIMENTS);
+//	registry.getHandler(CAPConstants.CapResource.EXPERIMENTS).process(CAPConstants.CAP_ROOT+"/experiments", CAPConstants.CapResource.EXPERIMENTS);
 //	registry.getHandler(CAPConstants.CapResource.EXPERIMENT).process(CAPConstants.CAP_ROOT+"/experiments/3134", CAPConstants.CapResource.EXPERIMENT);
 //	registry.getHandler(CAPConstants.CapResource.PROJECTS).process(CAPConstants.CAP_ROOT+"/projects", CAPConstants.CapResource.PROJECTS);
   
-	((ExperimentHandler)registry.getHandler(CAPConstants.CapResource.EXPERIMENT)).printLookup();
+//	((ExperimentHandler)registry.getHandler(CAPConstants.CapResource.EXPERIMENT)).printLookup();
+
+//        registry.getHandler(CAPConstants.CapResource.DICTIONARY).
+//        	poll(CAPConstants.CAP_ROOT+"/dictionary", CAPConstants.CapResource.DICTIONARY);
+//        registry.getHandler(CAPConstants.CapResource.ASSAY).process(CAPConstants.CAP_ROOT+"/assays/4175", CAPConstants.CapResource.ASSAY);
+        registry.getHandler(CAPConstants.CapResource.ASSAYS).process(CAPConstants.CAP_ROOT+"/assays", CAPConstants.CapResource.ASSAYS);
     }
 	
     public static void main(String[] args) throws Exception {

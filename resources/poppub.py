@@ -7,7 +7,7 @@ def quote(s):
     else: 
         return "'"+m.escape_string(s.encode('ascii', 'ignore'))+"'"
 
-con = m.connect("protein.nhgri.nih.gov","guhar","beeb1e","bard2")
+con = m.connect("dirac.nhgri.nih.gov","guhar","beeb1e","bard2")
 cur = con.cursor()
 
 cur.execute("select distinct pmid from assay_pub")
