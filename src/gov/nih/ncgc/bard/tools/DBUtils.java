@@ -1680,7 +1680,6 @@ public class DBUtils {
         blob = rs.getBlob("expt_result_def");
         s = new String(blob.getBytes(1, (int) blob.length()));
         AssayDefinitionObject[] ado = mapper.readValue(s, AssayDefinitionObject[].class);
-
         DoseResponseResultObject[] dro = null;
         blob = rs.getBlob("json_dose_response");
         if (blob != null) {
