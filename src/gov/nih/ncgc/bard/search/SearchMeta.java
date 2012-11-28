@@ -13,7 +13,7 @@ public class SearchMeta {
     List<Facet> facets;
     int queryTime;
     long elapsedTime;
-    Map<String, Map<String, String>> matchingFields;
+    Map<String, Map<String, Object>> matchingFields;
     Map<String, Float> scores;
 
     public SearchMeta() {
@@ -27,11 +27,11 @@ public class SearchMeta {
         this.scores = scores;
     }
 
-    public Map<String, Map<String, String>> getMatchingFields() {
+    public Map<String, Map<String, Object>> getMatchingFields() {
         return matchingFields;
     }
 
-    public void setMatchingFields(Map<String, Map<String, String>> matchingFields) {
+    public void setMatchingFields(Map<String, Map<String, Object>> matchingFields) {
         this.matchingFields = matchingFields;
     }
 

@@ -159,17 +159,20 @@ public class AssaySearch extends SolrSearch {
         //
         // Also extract the matching field names for the docs we do return
         Map<String, String> xplainMap = response.getExplainMap();
-        Map<String, Map<String,String>> matchFields = new HashMap<String, Map<String, String>>();
+        Map<String, Map<String, Object>> matchFields = new HashMap<String, Map<String, Object>>();
         Map<String, Float> scores = new LinkedHashMap<String, Float>(); // to maintain doc id ordering
 
         // first set up field match details & document scores
-        for (int i = skip; i < skip + top; i++) {
-            if (i >= docs.size()) continue;
+        int size = Math.min(skip+top, docs.size());
+        for (int i = skip; i < size; i++) {
             SolrDocument doc = docs.get(i);
             String assayId = (String) doc.getFieldValue("assay_id");
-            Map<String, String> value = new HashMap<String, String>();
+            Map<String, Object> value = new HashMap<String, Object>();
             List<String> fns = SearchUtil.getMatchingFieldNames(xplainMap.get(assayId));
-            for (String fn : fns) value.put(fn, (String) doc.getFieldValue(fn));
+            for (String fn : fns) {
+                Object obj = doc.getFieldValue(fn);
+                value.put(fn, obj);
+            }
             matchFields.put(assayId, value);
             scores.put(assayId, (Float) doc.getFieldValue("score"));
         }
@@ -183,7 +186,6 @@ public class AssaySearch extends SolrSearch {
             DBUtils db = new DBUtils();
             ret = new ArrayList();
             try {
-                int size = Math.min(skip+top, docs.size());
                 for (int i = skip; i < size; i++)  {
                     SolrDocument doc = docs.get(i);
                     String assayId = (String) doc.getFieldValue("assay_id");
