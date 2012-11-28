@@ -56,16 +56,18 @@ public class ExperimentData implements BardEntity {
         if (dr != null) { // we have one or CRC layers
             for (DoseResponseResultObject dro : dr) {
 
-                FitModel model = new FitModel("dose response", dro.getZeroAct(), dr[0].getInfAct(), dr[0].getHillCoef(), dr[0].getAc50());
-                Double[][] cr = new Double[dr[0].getDose().length][2];
-                for (int i = 0; i < dr[0].getDose().length; i++) {
-                    cr[i][0] = dr[0].getDose()[i];
-                    cr[i][1] = dr[0].getResponse()[i];
+                FitModel model = new FitModel("dose response", dro.getZeroAct(), dro.getInfAct(), dro.getHillCoef(), dro.getAc50());
+                Double[][] cr = new Double[dro.getDose().length][2];
+                for (int i = 0; i < dro.getDose().length; i++) {
+                    cr[i][0] = dro.getDose()[i];
+                    cr[i][1] = dro.getResponse()[i];
                 }
+
                 model.setCr(cr);
                 model.setName(dro.getLabel());
                 model.setDescription(dro.getDescription());
-                model.setConcUnit(dro.getConcUnit());
+                //model.setConcUnit(dro.getConcUnit());
+                model.setConcUnit("M"); // force Molar
 
                 if (model.unfitted()) {
                     model.setS0(null);

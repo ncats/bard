@@ -1680,7 +1680,6 @@ public class DBUtils {
         blob = rs.getBlob("expt_result_def");
         s = new String(blob.getBytes(1, (int) blob.length()));
         AssayDefinitionObject[] ado = mapper.readValue(s, AssayDefinitionObject[].class);
-
         DoseResponseResultObject[] dro = null;
         blob = rs.getBlob("json_dose_response");
         if (blob != null) {
@@ -4615,15 +4614,12 @@ public class DBUtils {
         } else if (entity.isAssignableFrom(Experiment.class)) {
             sql = "select distinct bard_expt_id from bard_experiment_data where cid = ? order by classification desc, score desc "+limitClause;
         }
+        else {
+            throw new IllegalArgumentException 
+                ("Unsupported entity class: "+entity);
+        }
 
-        String cacheName = "Class";
-        if (entity.isAssignableFrom(Assay.class)) cacheName = "Assay" ;
-        else if (entity.isAssignableFrom(Project.class)) cacheName = "Project";
-        else if (entity.isAssignableFrom(Substance.class)) cacheName = "Substance";
-        else if (entity.isAssignableFrom(Experiment.class)) cacheName = "Experiment";
-        else if (entity.isAssignableFrom(ExperimentData.class)) cacheName = "ExperimentData";
-        Cache cache = getCache ("EntitiesByCidCache::"+cacheName);
-
+        Cache cache = getCache ("EntitiesByCidCache::"+entity.getName());
         try {
             List<T> value = (List<T>) getCacheValue (cache, cid);
             if (value != null) {
