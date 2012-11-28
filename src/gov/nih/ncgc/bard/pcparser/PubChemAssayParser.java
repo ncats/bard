@@ -1,7 +1,11 @@
 package gov.nih.ncgc.bard.pcparser;
 // $Id: PubChemAssaySource.java 3488 2009-10-29 15:49:42Z nguyenda $
 
+import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPExtractor;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
+import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
+import gov.nih.ncgc.bard.capextract.jaxb.Dictionary;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -1055,7 +1059,7 @@ public class PubChemAssayParser implements Constants {
 
 	return rts;
     }
-	
+
     public static void main (String argv[]) throws Exception {
 //	if (argv.length < 2) {
 //	    System.err.println("usage: PubChemAssayParser AID.xml AID.csv");
@@ -1076,9 +1080,126 @@ public class PubChemAssayParser implements Constants {
 //
 //        System.exit(0);
         
-	BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream("ExptTIDs_merged.txt")));
+//	CAPExtractor c = new CAPExtractor();
+//	c.setHandlers();
+//	Dictionary d = (Dictionary)CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.DICTIONARY).
+//		poll(CAPConstants.CAP_ROOT+"/dictionary", CAPConstants.CapResource.DICTIONARY).get(0);
+//
+	Connection conn;
+
+	HashMap<Integer,Integer> exptIDLookup = new HashMap<Integer,Integer>();
+	HashMap<String,Integer> capDict = new HashMap<String,Integer>();
+	HashMap<Integer,String> capDictReverse = new HashMap<Integer,String>();
+	HashMap<String,String> exptTIDName = new HashMap<String,String>();
+	HashMap<String,String> exptTIDType = new HashMap<String,String>();
+	HashMap<String,Integer> exptTIDElem = new HashMap<String,Integer>();
+	HashMap<String,Integer> exptTIDGroup = new HashMap<String,Integer>();
+	try {
+	    conn = CAPUtil.connectToBARD();
+	    conn.setAutoCommit(false);
+	    Statement st = conn.createStatement();
+	    st.execute("select bard_expt_id, pubchem_aid from bard_experiment"); // where pubchem_aid=2551");
+	    ResultSet result = st.getResultSet();	    
+	    while (result.next()) {
+		int BardExptId = result.getInt(1);
+		int PubChemAID = result.getInt(2);
+		exptIDLookup.put(PubChemAID, BardExptId);
+	    }
+	    result.close();
+
+	    st = conn.createStatement();
+	    st.execute("select label, dictid from cap_dict_elem order by ins_date");
+	    result = st.getResultSet();	    
+	    while (result.next()) {
+		int capDictID = result.getInt(2);
+		String capDictLabel = result.getString(1);
+		capDict.put(capDictLabel, capDictID);
+		capDictReverse.put(capDictID, capDictLabel);
+	    }
+	    capDict.put("unknown", -1);
+	    result.close();
+
+	    st = conn.createStatement();
+	    st.execute("select pubchem_aid, tid, data_type, data_type_elem, context_group, name from bard_experiment_tid");
+	    result = st.getResultSet();	    
+	    while (result.next()) {
+		int PubChemAID = result.getInt(1);
+		int tid = result.getInt(2);
+		String key = PubChemAID+":"+tid;
+		String name = result.getString(6);
+		exptTIDName.put(key, name);
+		String type = result.getString(3);
+		exptTIDType.put(key, type);
+		int typeElem = result.getInt(4);
+		exptTIDElem.put(key, typeElem);
+		if (!capDict.containsKey(type) || capDict.get(type) != typeElem) {
+		    System.err.println("Stated type does not map to dict elem: " + type +" " + typeElem + ":" + capDict.get(type)+":"+capDictReverse.get(typeElem));
+		}
+		int group = result.getInt(5);
+		exptTIDGroup.put(key, group);
+	    }
+	    result.close();
+
+	    conn.close();
+	} catch (Exception e) {e.printStackTrace();}	
+	
+	BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream("latest_result_mappings.txt")));
 	String[] header = br.readLine().split("\t");
 	String line;
+	while ((line = br.readLine()) != null) {
+	    String[] fline = line.split("\t");
+	    String[] sline = new String[22];
+	    for (int i=0; i<sline.length; i++) {
+		if (fline.length > i)
+		    sline[i] = fline[i];
+		else sline[i] = "";
+	    }
+	    int PubChemAID = Integer.valueOf(sline[0]);
+	    int PubChemTID = Integer.valueOf(sline[1]);
+	    String PubChemTIDName = sline[2];
+	    Integer series = sline[3].length() == 0 ? null : Integer.valueOf(sline[3]);
+	    if (sline[4].equals("Derives")) {sline[5] = sline[4]; sline[4] = "";} /* sigh ... minor problem with mappings file */
+	    if (sline[4].indexOf(',') > -1) {sline[4] = sline[4].substring(1, sline[4].indexOf(','));} /* sigh ... minor problems in mappings file */
+	    Integer parentTID = sline[4].length() == 0 ? null : Integer.valueOf(sline[4]);
+	    String relationship = sline[5];
+	    Integer qualifierTID = sline[6].length() == 0 ? null : Integer.valueOf(sline[6]);
+	    String resultType = sline[7];
+	    String statsModifier = sline[8];
+	    Integer contextTID = sline[9].length() == 0 ? null : Integer.valueOf(sline[9]);
+	    String contextItem = sline[10];
+	    Double concentration = sline[11].length() == 0 ? null : Double.valueOf(sline[11]);
+	    String concUnits = sline[12];
+	    Integer panelNumber = sline[16].length() == 0 ? null : Integer.valueOf(sline[16]);
+	    String attr1 = sline[17];
+	    String value1 = sline[18];
+	    Integer excludedSeries = sline[19].length() == 0 ? null : Integer.valueOf(sline[19]);
+	    String attr2 = sline[20];
+	    String value2 = sline[21];
+	    if (!exptIDLookup.containsKey(PubChemAID))
+		System.err.println("Missing BARD Expt ID for PubChem AID: "+PubChemAID);
+	    else if (!resultType.equals("") && !capDict.containsKey(resultType)) {
+		System.err.println("Unknown result type:"+resultType+" "+line);
+	    }
+	    else {
+		String key = PubChemAID+":"+PubChemTID;
+		String dataType = "unknown";
+		int dataTypeElem = -1;
+		if (!resultType.equals("")) {
+		    dataType = resultType;
+		    dataTypeElem = capDict.get(resultType);
+		    
+		    if (!exptTIDType.containsKey(key) || (!exptTIDType.get(key).equals(dataType) && !exptTIDType.get(key).equals("unknown")))
+			System.err.println("Update to exptTIDType: "+key+":"+dataType+":"+dataTypeElem+":"+exptTIDType.get(key));
+		    if (!exptTIDElem.containsKey(key) || (!exptTIDElem.get(key).equals(dataTypeElem) && !exptTIDElem.get(key).equals(-1)))
+			System.err.println("Update to exptTIDElem: "+key+":"+dataType+":"+dataTypeElem+":"+exptTIDElem.get(key));
+		}
+		int contextGroup = -1;
+	    }
+	}	
+	
+	System.exit(0);
+	br = new BufferedReader(new InputStreamReader(new FileInputStream("ExptTIDs_merged.txt")));
+	header = br.readLine().split("\t");
 	Map<String, Map<String, String>> exptTIDs = new HashMap<String, Map<String,String>>();
 	while ((line = br.readLine()) != null) {
 	    String[] sline = line.split("\t");
@@ -1093,7 +1214,8 @@ public class PubChemAssayParser implements Constants {
 	    exptTIDs.put(key, entry);
 	}
 		
-	Connection conn;
+	System.exit(0);
+	//Connection conn;
 	try {
 	    conn = CAPUtil.connectToBARD();
 	    conn.setAutoCommit(false);

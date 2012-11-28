@@ -137,16 +137,20 @@ public class CAPExtractor {
     }
 
     public void test() throws IOException {
-//	registry.getHandler(CAPConstants.CapResource.EXPERIMENTS).process(CAPConstants.CAP_ROOT+"/experiments", CAPConstants.CapResource.EXPERIMENTS);
+//	registry.getHandler(CAPConstants.CapResource.DICTIONARY).
+//	poll(CAPConstants.CAP_ROOT+"/dictionary", CAPConstants.CapResource.DICTIONARY);
+
 //	registry.getHandler(CAPConstants.CapResource.EXPERIMENT).process(CAPConstants.CAP_ROOT+"/experiments/3134", CAPConstants.CapResource.EXPERIMENT);
-//	registry.getHandler(CAPConstants.CapResource.PROJECTS).process(CAPConstants.CAP_ROOT+"/projects", CAPConstants.CapResource.PROJECTS);
-  
+
+//	registry.getHandler(CAPConstants.CapResource.EXPERIMENTS).process(CAPConstants.CAP_ROOT+"/experiments", CAPConstants.CapResource.EXPERIMENTS);
 //	((ExperimentHandler)registry.getHandler(CAPConstants.CapResource.EXPERIMENT)).printLookup();
 
-//        registry.getHandler(CAPConstants.CapResource.DICTIONARY).
-//        	poll(CAPConstants.CAP_ROOT+"/dictionary", CAPConstants.CapResource.DICTIONARY);
+	
+//	registry.getHandler(CAPConstants.CapResource.PROJECTS).process(CAPConstants.CAP_ROOT+"/projects", CAPConstants.CapResource.PROJECTS);
+  
+
 //        registry.getHandler(CAPConstants.CapResource.ASSAY).process(CAPConstants.CAP_ROOT+"/assays/4175", CAPConstants.CapResource.ASSAY);
-        registry.getHandler(CAPConstants.CapResource.ASSAYS).process(CAPConstants.CAP_ROOT+"/assays", CAPConstants.CapResource.ASSAYS);
+//        registry.getHandler(CAPConstants.CapResource.ASSAYS).process(CAPConstants.CAP_ROOT+"/assays", CAPConstants.CapResource.ASSAYS);
     }
 	
     public static void main(String[] args) throws Exception {
