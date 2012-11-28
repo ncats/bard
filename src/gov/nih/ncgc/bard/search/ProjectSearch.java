@@ -139,8 +139,8 @@ public class ProjectSearch extends SolrSearch {
              DBUtils db = new DBUtils();
              ret = new ArrayList();
              try {
-                 for (int i = skip; i < skip + top; i++) {
-                     if (i > docs.size()) continue;
+                int size = Math.min(skip+top, docs.size());
+                 for (int i = skip; i < size; i++) {
                      SolrDocument doc = docs.get(i);
                      ret.add(db.getProject(Long.parseLong((String) doc.getFieldValue("proj_id"))));
                  }

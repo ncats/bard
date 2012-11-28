@@ -1042,18 +1042,30 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 logger.warning("Should not have a null ExperimentData object for compound " + cid + ". Skipping");
                 continue;
             }
-            Long eid = ed.getEid();
+
+            Long eid = ed.getBardExptId();
             Experiment expt = db.getExperimentByExptId(eid);
+            Long aid = expt.getAssayId();
 
             testedExperiments.add(expt);
-            testedAssays.add(db.getAssayByAid(expt.getAssayId()));
+            if (aid != null) {
+                Assay assay = db.getAssayByAid(aid);
+                testedAssays.add(assay);
 
-            // if cid was active in experiment_data (outcome = 2) and experiment was a confirmatory screen, we call it a hit
-            if (ed.getOutcome() == 2) {
-                nhit++;
-                hitExpts.add(expt.getResourcePath());
-                hitAssays.add(db.getAssayByAid(expt.getAssayId()).getResourcePath());
-                hitData.add(ed);
+                // if cid was active in experiment_data (outcome = 2) and experiment was a confirmatory screen, we call it a hit
+                if (ed.getOutcome() == 2) {
+                    nhit++;
+                    hitExpts.add(expt.getResourcePath());
+
+                    hitAssays.add(assay.getResourcePath());
+                    hitData.add(ed);
+                }
+            }
+            else {
+                logger.warning("Something is rotten in the state of Denmark! "
+                               +"No assay found for eid="+eid+" exptid="
+                               +ed.getExptDataId()+" bardexptid="
+                               +ed.getBardExptId()+"!");
             }
         }
         s.put("ntest", data.size());
