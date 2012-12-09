@@ -172,7 +172,15 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
                 return Response.ok(Util.toJson(paths), MediaType.APPLICATION_JSON).build();
             } else { // TODO should be able to get multiple SIDs at one go
                 List<Substance> slist = new ArrayList<Substance>();
-                for (Long sid : sids) slist.add(db.getSubstanceBySid(sid));
+                for (Long sid : sids) {
+                    Substance sub = db.getSubstanceBySid(sid);
+                    if (sub != null) {
+                        slist.add(sub);
+                    }
+                    else {
+                        log ("No substance found for sid "+sid);
+                    }
+                }
                 return Response.ok(Util.toJson(slist), MediaType.APPLICATION_JSON).build();
             }
         } else if (type.equals("sid"))
