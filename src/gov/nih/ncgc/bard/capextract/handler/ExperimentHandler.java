@@ -2,7 +2,6 @@ package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
-import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
@@ -58,6 +57,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         //XMLGregorianCalendar holdUntil = expt.getHoldUntilDate();
         //XMLGregorianCalendar runDateFrom = expt.getRunDateFrom();
         //XMLGregorianCalendar runDateTo = expt.getRunDateTo();
+
         String assayID = "";
         for (Link link: expt.getLink()) {
             //   <link rel='related' title='Link to Assay' type='application/vnd.bard.cap+xml;type=assay' href='https://bard.broadinstitute.org/dataExport/api/assays/441' />
@@ -111,16 +111,6 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         	log.error("Result context item not being captured for exptID "+exptID+": "+context.getExtValueId()+":"+context.getValueDisplay()+":"+context.getAttribute());
             }
 
-// We no longer get results from the CAP Extract API        
-//        // get experiment results
-//        for (Link link: expt.getLink()) {
-//            //<link rel='related' title='List Related Results' type='application/vnd.bard.cap+xml;type=results' href='https://bard.broadinstitute.org/dataExport/api/experiments/439/results?offset=0' /> 
-//            if (link.getType().equals(CAPConstants.CapResource.RESULTS.getMimeType())) {
-//            	ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.RESULTS);
-//            	handler.process(link.getHref(), CAPConstants.CapResource.RESULTS);
-//            }
-//        }
-        
     }
     
     public void printLookup() {
