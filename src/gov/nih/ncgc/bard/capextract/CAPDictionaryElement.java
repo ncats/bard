@@ -132,6 +132,6 @@ public class CAPDictionaryElement implements Serializable {
 
     @Override
     public String toString() {
-        return label + "[" + elementId + "]";
+        return label + "[" + elementId + "]: "+description+" | "+abbreviation+" "+synonyms;
     }
 }

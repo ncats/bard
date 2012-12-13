@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Vector;
@@ -149,7 +150,7 @@ public class CAPExtractor {
 //	registry.getHandler(CAPConstants.CapResource.PROJECTS).process(CAPConstants.CAP_ROOT+"/projects", CAPConstants.CapResource.PROJECTS);
   
 
-//        registry.getHandler(CAPConstants.CapResource.ASSAY).process(CAPConstants.CAP_ROOT+"/assays/4175", CAPConstants.CapResource.ASSAY);
+//	registry.getHandler(CAPConstants.CapResource.ASSAY).process(CAPConstants.CAP_ROOT+"/assays/88", CAPConstants.CapResource.ASSAY); // also 88 or 1705
 //        registry.getHandler(CAPConstants.CapResource.ASSAYS).process(CAPConstants.CAP_ROOT+"/assays", CAPConstants.CapResource.ASSAYS);
     }
 	

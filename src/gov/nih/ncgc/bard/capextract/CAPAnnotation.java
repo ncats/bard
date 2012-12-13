@@ -11,9 +11,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  *
  * @author Rajarshi Guha
  */
-public class CAPAssayAnnotation {
+public class CAPAnnotation {
     @JsonIgnore
-    public String refId = null;
+    public String refId = null; // not sure what this is
+    @JsonIgnore
+    public String entity;
 
     public String source;
     public String id;
@@ -21,8 +23,13 @@ public class CAPAssayAnnotation {
     public String contextRef = null;
     public String key, value; // refers to a dict element
     public String extValueId = null; // when dict element points to ext resource (e.g. Entrez Gene) this is the identifier within that resource
+    public String url = null; // when an annotation points to external object, given by a URL
 
-    public CAPAssayAnnotation(String id, String refId, String display, String contextRef, String attrId, String valueId, String extValueId, String source) {
+    public CAPAnnotation(String id, String refId, String display, String contextRef, String attrId, String valueId, String extValueId, String source) {
+	this(id, refId, display, contextRef, attrId, valueId, extValueId, source, null);
+    }
+
+    public CAPAnnotation(String id, String refId, String display, String contextRef, String attrId, String valueId, String extValueId, String source, String url) {
         this.id = id;
         this.refId = refId;
 
@@ -32,14 +39,15 @@ public class CAPAssayAnnotation {
         this.value = valueId;
         this.extValueId = extValueId;
         this.source = source;
+        this.url = url;
     }
 
-    public CAPAssayAnnotation cloneObject () {
-        return new CAPAssayAnnotation (id, refId, display, contextRef, 
-                                       key, value, extValueId, source);
+    public CAPAnnotation cloneObject () {
+        return new CAPAnnotation (id, refId, display, contextRef, 
+                                       key, value, extValueId, source, url);
     }
 
-    CAPAssayAnnotation() {
+    CAPAnnotation() {
     }
 
     @Override

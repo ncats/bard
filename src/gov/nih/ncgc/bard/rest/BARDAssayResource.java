@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.entity.*;
@@ -296,16 +296,16 @@ public class BARDAssayResource extends BARDResource<Assay> {
     @Path("/{aid}/annotations")
     public Response getAnnotations(@PathParam("aid") Long resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
         DBUtils db = new DBUtils();
-        List<CAPAssayAnnotation> a;
+        List<CAPAnnotation> a;
         CAPDictionary dict = db.getCAPDictionary();
         try {
             a = db.getAssayAnnotations(resourceId);
             if (a == null) throw new WebApplicationException(404);
             CAPDictionaryElement node;
-            List<CAPAssayAnnotation> copy = 
-                new ArrayList<CAPAssayAnnotation>();
-            for (CAPAssayAnnotation as : a) {
-                CAPAssayAnnotation aa = as.cloneObject();
+            List<CAPAnnotation> copy = 
+                new ArrayList<CAPAnnotation>();
+            for (CAPAnnotation as : a) {
+                CAPAnnotation aa = as.cloneObject();
                 if (aa.key != null) {
                     node = dict.getNode(new BigInteger(aa.key));
                     aa.key = node != null ? node.getLabel() : aa.key;
@@ -652,11 +652,11 @@ public class BARDAssayResource extends BARDResource<Assay> {
             long aid = n.get("aid").asLong();
 
             try {
-                List<CAPAssayAnnotation> a = db.getAssayAnnotations(aid);
+                List<CAPAnnotation> a = db.getAssayAnnotations(aid);
                 if (a == null) throw new WebApplicationException(404);
 
                 CAPDictionaryElement node;
-                for (CAPAssayAnnotation as : a) {
+                for (CAPAnnotation as : a) {
                     if (as.key != null) {
                         node = dict.getNode(new BigInteger(as.key));
                         as.key = node != null ? node.getLabel() : as.key;
