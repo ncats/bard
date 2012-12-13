@@ -1286,8 +1286,11 @@ public class DBUtils {
 
                     Compound c = new Compound();
                     compounds.add(c);
-
                     c.setCid(cid);
+                    c.setNumAssay(getEntityCountByCid(cid, Assay.class));
+                    c.setNumActiveAssay
+                        (getEntityCountByActiveCid(cid, Assay.class));
+
                     fillCompound(rs, c);
                 }
             }

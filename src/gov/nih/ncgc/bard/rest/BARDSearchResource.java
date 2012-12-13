@@ -99,6 +99,7 @@ public class BARDSearchResource implements IBARDResource {
         ProjectSearch search = new ProjectSearch(null);
         List<SolrField> fields;
         try {
+            search.setSolrURL(getSolrService ());
             fields = search.getFieldNames();
         } catch (Exception e) {
             throw new WebApplicationException(e, 500);
@@ -113,6 +114,7 @@ public class BARDSearchResource implements IBARDResource {
         CompoundSearch search = new CompoundSearch(null);
         List<SolrField> fields;
         try {
+            search.setSolrURL(getSolrService ());
             fields = search.getFieldNames();
         } catch (Exception e) {
             throw new WebApplicationException(e, 500);
@@ -127,6 +129,7 @@ public class BARDSearchResource implements IBARDResource {
         AssaySearch search = new AssaySearch(null);
         List<SolrField> fields;
         try {
+            search.setSolrURL(getSolrService ());
             fields = search.getFieldNames();
         } catch (Exception e) {
             throw new WebApplicationException(e, 500);
@@ -165,6 +168,7 @@ public class BARDSearchResource implements IBARDResource {
         else if (entity.toLowerCase().equals("projects")) search = new ProjectSearch(q);
         else if (entity.toLowerCase().equals("compounds")) search = new CompoundSearch(q);
 
+        search.setSolrURL(getSolrService ());
         // get field names associated with this entity search
         List<SolrField> fieldNames = search.getFieldNames();
 
