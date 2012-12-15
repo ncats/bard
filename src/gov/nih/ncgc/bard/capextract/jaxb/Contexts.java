@@ -27,7 +27,7 @@ import java.util.List;
  *   &lt;complexContent>
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;sequence>
- *         &lt;element ref="{}link" maxOccurs="unbounded"/>
+ *         &lt;element ref="{}context" maxOccurs="unbounded"/>
  *       &lt;/sequence>
  *     &lt;/restriction>
  *   &lt;/complexContent>
@@ -38,41 +38,41 @@ import java.util.List;
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = {
-    "link"
+    "context"
 })
-@XmlRootElement(name = "bardexport")
-public class Bardexport {
+@XmlRootElement(name = "contexts")
+public class Contexts {
 
     @XmlElement(required = true)
-    protected List<Link> link;
+    protected List<ContextType> context;
 
     /**
-     * Gets the value of the link property.
+     * Gets the value of the context property.
      * 
      * <p>
      * This accessor method returns a reference to the live list,
      * not a snapshot. Therefore any modification you make to the
      * returned list will be present inside the JAXB object.
-     * This is why there is not a <CODE>set</CODE> method for the link property.
+     * This is why there is not a <CODE>set</CODE> method for the context property.
      * 
      * <p>
      * For example, to add a new item, do as follows:
      * <pre>
-     *    getLink().add(newItem);
+     *    getContext().add(newItem);
      * </pre>
      * 
      * 
      * <p>
      * Objects of the following type(s) are allowed in the list
-     * {@link Link }
+     * {@link ContextType }
      * 
      * 
      */
-    public List<Link> getLink() {
-        if (link == null) {
-            link = new ArrayList<Link>();
+    public List<ContextType> getContext() {
+        if (context == null) {
+            context = new ArrayList<ContextType>();
         }
-        return this.link;
+        return this.context;
     }
 
 }
