@@ -13,8 +13,6 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import java.util.ArrayList;
-import java.util.List;
 
 
 /**
@@ -27,7 +25,7 @@ import java.util.List;
  *   &lt;complexContent>
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;sequence>
- *         &lt;element ref="{}link" maxOccurs="unbounded"/>
+ *         &lt;element name="experimentContextItem" type="{}experimentContextItemType"/>
  *       &lt;/sequence>
  *     &lt;/restriction>
  *   &lt;/complexContent>
@@ -38,41 +36,36 @@ import java.util.List;
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = {
-    "link"
+    "experimentContextItem"
 })
-@XmlRootElement(name = "bardexport")
-public class Bardexport {
+@XmlRootElement(name = "experimentContextItems")
+public class ExperimentContextItems {
 
     @XmlElement(required = true)
-    protected List<Link> link;
+    protected ExperimentContextItemType experimentContextItem;
 
     /**
-     * Gets the value of the link property.
+     * Gets the value of the experimentContextItem property.
      * 
-     * <p>
-     * This accessor method returns a reference to the live list,
-     * not a snapshot. Therefore any modification you make to the
-     * returned list will be present inside the JAXB object.
-     * This is why there is not a <CODE>set</CODE> method for the link property.
-     * 
-     * <p>
-     * For example, to add a new item, do as follows:
-     * <pre>
-     *    getLink().add(newItem);
-     * </pre>
-     * 
-     * 
-     * <p>
-     * Objects of the following type(s) are allowed in the list
-     * {@link Link }
-     * 
-     * 
+     * @return
+     *     possible object is
+     *     {@link ExperimentContextItemType }
+     *     
      */
-    public List<Link> getLink() {
-        if (link == null) {
-            link = new ArrayList<Link>();
-        }
-        return this.link;
+    public ExperimentContextItemType getExperimentContextItem() {
+        return experimentContextItem;
+    }
+
+    /**
+     * Sets the value of the experimentContextItem property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link ExperimentContextItemType }
+     *     
+     */
+    public void setExperimentContextItem(ExperimentContextItemType value) {
+        this.experimentContextItem = value;
     }
 
 }
