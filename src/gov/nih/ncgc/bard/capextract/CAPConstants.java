@@ -1,5 +1,7 @@
 package gov.nih.ncgc.bard.capextract;
 
+import java.io.IOException;
+
 /**
  * Useful constants for interacting with the CAP
  *
@@ -70,6 +72,12 @@ public class CAPConstants {
     }
 
     public static CAPDictionary getDictionary() {
+	if (dictionary == null) {
+	    try {
+		CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.DICTIONARY).
+		poll(CAPConstants.CAP_ROOT+"/dictionary", CAPConstants.CapResource.DICTIONARY);
+	    } catch (IOException e) {}
+	}
         return dictionary;
     }
 }

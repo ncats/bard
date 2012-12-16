@@ -1,6 +1,6 @@
 package gov.nih.ncgc.bard.rest;
 
-import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.entity.Assay;
@@ -321,18 +321,18 @@ public class BARDProjectResource extends BARDResource<Project> {
     @Path("/{pid}/annotations")
     public Response getAnnotations(@PathParam("pid") Long resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
         DBUtils db = new DBUtils();
-        List<CAPAssayAnnotation> a;
+        List<CAPAnnotation> a;
         CAPDictionary dict = db.getCAPDictionary();
         try {
             a = db.getProjectAnnotations(resourceId);
             if (a == null) throw new WebApplicationException(404);
             CAPDictionaryElement node;
 
-            List<CAPAssayAnnotation> copy = 
-                new ArrayList<CAPAssayAnnotation>();
-            for (CAPAssayAnnotation as : a) {
+            List<CAPAnnotation> copy = 
+                new ArrayList<CAPAnnotation>();
+            for (CAPAnnotation as : a) {
                 //System.err.println("** "+as);
-                CAPAssayAnnotation aa = as.cloneObject();
+                CAPAnnotation aa = as.cloneObject();
                 if (aa.key != null) {
                     node = dict.getNode(new BigInteger(aa.key));
                     aa.key = node != null ? node.getLabel() : aa.key;

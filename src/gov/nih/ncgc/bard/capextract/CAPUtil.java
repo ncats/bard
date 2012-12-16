@@ -18,7 +18,7 @@ public class CAPUtil {
         Connection conn = null;
         try {
             Class.forName("com.mysql.jdbc.Driver").newInstance();
-            conn = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov/bard2", "bard_manager", "bard_manager");
+            conn = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov/bard2", "capbard", "bard");
 //            conn = DriverManager.getConnection("jdbc:mysql://protein.nhgri.nih.gov/bard2", "bardcap", "bard");
             conn.setAutoCommit(false);
         } catch (IllegalAccessException e) {

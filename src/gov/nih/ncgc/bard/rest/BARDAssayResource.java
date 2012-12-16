@@ -6,10 +6,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
-import gov.nih.ncgc.bard.entity.*;
+import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
+import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.entity.ProteinTarget;
+import gov.nih.ncgc.bard.entity.Publication;
+import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
@@ -20,8 +27,20 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.SQLException;
@@ -232,15 +251,18 @@ public class BARDAssayResource extends BARDResource<Assay> {
         Assay a = null;
         try {
             a = db.getAssayByAid(Long.valueOf(resourceId));
-            if (a.getAid() == null) throw new WebApplicationException(404);
+            if (a == null || a.getAid() == null) throw new WebApplicationException(404);
+
             String json = Util.toJson(a);
             if (expand != null && expand.toLowerCase().trim().equals("true")) { // expand experiment and project entries 
                 json = getExpandedJson(a, Long.parseLong(resourceId), db).toString();
             }
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
+            e.printStackTrace();
             throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (IOException e) {
+            e.printStackTrace();
             throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } finally {
             try {
@@ -264,7 +286,14 @@ public class BARDAssayResource extends BARDResource<Assay> {
             Long[] ids = new Long[s.length];
             for (int i = 0; i < s.length; i++) ids[i] = Long.parseLong(s[i].trim());
 
-            List<Assay> assays = db.getAssays(ids);
+            List<Assay> tassays = db.getAssays(ids);
+            // remove null assays. If all assays are null return a 404
+            List<Assay> assays = new ArrayList<Assay>();
+            for (Assay a : tassays) {
+                if (a != null) assays.add(a);
+            }
+            if (assays.size() == 0) throw new WebApplicationException(404);
+
             if (countRequested) return Response.ok(String.valueOf(assays.size()), MediaType.TEXT_PLAIN).build();
             db.closeConnection();
 
@@ -296,16 +325,16 @@ public class BARDAssayResource extends BARDResource<Assay> {
     @Path("/{aid}/annotations")
     public Response getAnnotations(@PathParam("aid") Long resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
         DBUtils db = new DBUtils();
-        List<CAPAssayAnnotation> a;
+        List<CAPAnnotation> a;
         CAPDictionary dict = db.getCAPDictionary();
         try {
             a = db.getAssayAnnotations(resourceId);
             if (a == null) throw new WebApplicationException(404);
             CAPDictionaryElement node;
-            List<CAPAssayAnnotation> copy = 
-                new ArrayList<CAPAssayAnnotation>();
-            for (CAPAssayAnnotation as : a) {
-                CAPAssayAnnotation aa = as.cloneObject();
+            List<CAPAnnotation> copy = 
+                new ArrayList<CAPAnnotation>();
+            for (CAPAnnotation as : a) {
+                CAPAnnotation aa = as.cloneObject();
                 if (aa.key != null) {
                     node = dict.getNode(new BigInteger(aa.key));
                     aa.key = node != null ? node.getLabel() : aa.key;
@@ -652,11 +681,11 @@ public class BARDAssayResource extends BARDResource<Assay> {
             long aid = n.get("aid").asLong();
 
             try {
-                List<CAPAssayAnnotation> a = db.getAssayAnnotations(aid);
+                List<CAPAnnotation> a = db.getAssayAnnotations(aid);
                 if (a == null) throw new WebApplicationException(404);
 
                 CAPDictionaryElement node;
-                for (CAPAssayAnnotation as : a) {
+                for (CAPAnnotation as : a) {
                     if (as.key != null) {
                         node = dict.getNode(new BigInteger(as.key));
                         as.key = node != null ? node.getLabel() : as.key;

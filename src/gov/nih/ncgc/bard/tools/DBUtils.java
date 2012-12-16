@@ -6,7 +6,7 @@ import chemaxon.struc.Molecule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardEntity;
@@ -1177,8 +1177,8 @@ public class DBUtils {
 
             while (rs.next()) {
                 Long bardAssayId = rs.getLong(1);
-                List<CAPAssayAnnotation> capannots = getAssayAnnotations(bardAssayId);
-                for (CAPAssayAnnotation annot : capannots) {
+                List<CAPAnnotation> capannots = getAssayAnnotations(bardAssayId);
+                for (CAPAnnotation annot : capannots) {
                     if (annot.key.equals("detection_method_type")) {
                         if (dtcounts.containsKey(annot.value)) {
                             dtcounts.put(annot.value, dtcounts.get(annot.value)+1);
@@ -2115,10 +2115,10 @@ public class DBUtils {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
-        List<CAPAssayAnnotation> capannots = getAssayAnnotations(bardAssayId);
+        List<CAPAnnotation> capannots = getAssayAnnotations(bardAssayId);
         l1 = new ArrayList<String>();
         l2 = new ArrayList<String>();
-        for (CAPAssayAnnotation capannot : capannots) {
+        for (CAPAnnotation capannot : capannots) {
             l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
             if (capannot.value != null) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
             else l2.add(capannot.display);
@@ -3832,10 +3832,10 @@ public class DBUtils {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
-        List<CAPAssayAnnotation> capannots = getProjectAnnotations(bardProjId);
+        List<CAPAnnotation> capannots = getProjectAnnotations(bardProjId);
         l1 = new ArrayList<String>();
         l2 = new ArrayList<String>();
-        for (CAPAssayAnnotation capannot : capannots) {
+        for (CAPAnnotation capannot : capannots) {
             l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
             if (capannot.value != null) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
             else l2.add(capannot.display);
@@ -4339,11 +4339,11 @@ public class DBUtils {
      * @return A list of assay annotations
      * @throws SQLException
      */
-    public List<CAPAssayAnnotation> getAssayAnnotations(Long bardAssayId) throws SQLException {
+    public List<CAPAnnotation> getAssayAnnotations(Long bardAssayId) throws SQLException {
 
         Cache cache = getCache ("AssayAnnotationsCache");
         try {
-            List<CAPAssayAnnotation> value = getCacheValue
+            List<CAPAnnotation> value = getCacheValue
                 (cache, bardAssayId);
             if (value != null) {
                 return value;
@@ -4352,17 +4352,18 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a, bard_assay b where b.bard_assay_id = ? and a.assay_id = b.cap_assay_id and a.source in ('cap', 'bao')");
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a, bard_assay b where b.bard_assay_id = ? and a.entity_id = b.cap_assay_id and a.source in ('cap', 'bao')");
         try {
             pst.setLong(1, bardAssayId);
             ResultSet rs = pst.executeQuery();
-            List<CAPAssayAnnotation> annos = new ArrayList<CAPAssayAnnotation>();
+            List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
             while (rs.next()) {
                 String anno_id = rs.getString("anno_id");
                 String anno_key = rs.getString("anno_key");
                 String anno_value = rs.getString("anno_value");
                 String anno_display = rs.getString("anno_display");
                 String source = rs.getString("source");
+                String url = rs.getString("url");
 
                 String related = rs.getString("related");
                 String extValueId = null;
@@ -4371,7 +4372,7 @@ public class DBUtils {
                     if (toks.length == 2) extValueId = toks[1];
                 }
                 // TODO Updated the related annotations field to support grouping
-                CAPAssayAnnotation anno = new CAPAssayAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source);
+                CAPAnnotation anno = new CAPAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source, url);
                 annos.add(anno);
             }
             rs.close();
@@ -4384,11 +4385,11 @@ public class DBUtils {
         }
     }
 
-    public List<CAPAssayAnnotation> getProjectAnnotations(Long bardProjectId)
+    public List<CAPAnnotation> getProjectAnnotations(Long bardProjectId)
         throws SQLException {
         Cache cache = getCache ("ProjectAnnotationsCache");
         try {
-            List<CAPAssayAnnotation> value =
+            List<CAPAnnotation> value =
                 getCacheValue (cache, bardProjectId);
             if (value != null) {
                 return value;
@@ -4401,7 +4402,7 @@ public class DBUtils {
         try {
             pst.setLong(1, bardProjectId);
             ResultSet rs = pst.executeQuery();
-            List<CAPAssayAnnotation> annos = new ArrayList<CAPAssayAnnotation>();
+            List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
             while (rs.next()) {
                 String anno_id = rs.getString("anno_id");
                 String anno_key = rs.getString("anno_key");
@@ -4415,7 +4416,7 @@ public class DBUtils {
                     String[] toks = related.split("\\|");
                     if (toks.length == 2) extValueId = toks[1];
                 }
-                CAPAssayAnnotation anno = new CAPAssayAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source);
+                CAPAnnotation anno = new CAPAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source);
                 annos.add(anno);
             }
             rs.close();

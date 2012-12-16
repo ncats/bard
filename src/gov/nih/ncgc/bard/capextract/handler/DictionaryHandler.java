@@ -65,6 +65,8 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
                 pst.setInt(2, elem.getElementId().intValue());
                 pst.setString(3, elem.getLabel());
                 pst.setString(4, elem.getDescription());
+                String abbr = elem.getAbbreviation();
+                String extUrl = elem.getExternalUrl();
                 pst.addBatch();
             }
             pst.executeBatch();
