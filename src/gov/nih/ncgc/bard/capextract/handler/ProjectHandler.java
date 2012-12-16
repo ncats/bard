@@ -3,22 +3,12 @@ package gov.nih.ncgc.bard.capextract.handler;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
-import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
-import gov.nih.ncgc.bard.capextract.jaxb.Project;
+import gov.nih.ncgc.bard.capextract.jaxb.*;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.HashMap;
+import java.sql.*;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A one line summary.
@@ -87,14 +77,15 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 //	            log.debug("Updated project name for bard project "+bardProjId+": "+project.getProjectName());
 //		}
 
-                // get annotation groupings
-                Map<String, String> parentGroups = new HashMap<String, String>();
-
-                PreparedStatement pst = conn.prepareStatement("insert into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related) values (?,?,?,?,?,?,?,?,?)");
-
+                // deal with project annotations
+                PreparedStatement pst = conn.prepareStatement("insert into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related, context_name, display_order) values (?,?,?,?,?,?,?,?,?,?,?)");
                 Contexts contexts = project.getContexts();
                 List<ContextType> contextTypes = contexts.getContext();
                 for (ContextType contextType : contextTypes) {
+                    int contextId = contextType.getId().intValue();
+                    String contextName = contextType.getContextName();
+                    log.info("Loading annotation " + contextId + " for " + project.getProjectId());
+
                     ContextType.ContextItems contextItems = contextType.getContextItems();
                     for (ContextItemType contextItemType : contextItems.getContextItem()) {
 
@@ -102,9 +93,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                         pst.setInt(2, project.getProjectId().intValue());
                         pst.setString(3, "cap");
                         pst.setString(4, "project");
-
-                        // TODO can we get an ID for this annotation?
-//                        pst.setString(5, anno_id);
+                        pst.setInt(5, contextId);
 
                         // dict id for the annotation key
                         String key = null;
@@ -127,28 +116,20 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                         String valueDisplay = contextItemType.getValueDisplay();
                         pst.setString(8, valueDisplay);
 
-//                        BigInteger parentGroup = pci.getParentGroup();
-//                        String related = parentGroup == null ? pci.getProjectContextItemId().toString() : parentGroups.get(parentGroup.toString());
-//                        String extValueId = pci.getExtValueId();
-//                        if (extValueId != null) related += "|" + extValueId;
-//                        pst.setString(9, related);
+                        String related = null;
+                        if (contextItemType.getExtValueId() != null) related = contextItemType.getExtValueId();
+                        pst.setString(9, related);
+                        pst.setString(10, contextName);
+                        pst.setInt(11, contextItemType.getDisplayOrder());
 
                         pst.addBatch();
                     }
                     pst.executeBatch();
                 }
 
-//                if (project.getProjectContextItems() != null)
-//                    for (ProjectContextItem pct : project.getProjectContextItems().getProjectContextItem()) {
-//                        BigInteger parentGroup = pct.getParentGroup();
-//                        BigInteger id = pct.getProjectContextItemId();
-//                        if (parentGroup != null)
-//                            if (parentGroups.containsKey(parentGroup.toString())) {
-//                                parentGroups.put(parentGroup.toString(), parentGroups.get(parentGroup.toString()) + "," + id);
-//                            } else {
-//                                parentGroups.put(parentGroup.toString(), id.toString());
-//                            }
-//                    }
+                // handle project steps
+                // handle the experiments associated with this project
+
             } else {
                 log.error("Database has no project with cap_proj_id=" + project.getProjectId());
             }
