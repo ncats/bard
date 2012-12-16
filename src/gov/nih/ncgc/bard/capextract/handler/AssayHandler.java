@@ -10,6 +10,7 @@ import gov.nih.ncgc.bard.capextract.jaxb.Assay;
 import gov.nih.ncgc.bard.capextract.jaxb.AssayContexType;
 import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.AssayDocument;
+import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -92,62 +93,53 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         ArrayList<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
 
         /* save documents related to assay */
-        List<Link> links = assay.getLink();
-        for (Link link : links) {
-            String linkType = link.getType();
-        }
-
         String description = null, protocol = null, comments = null;
-        List<AssayDocument> docs = null; //assay.getAssayDocuments() != null ? assay.getAssayDocuments().getAssayDocument() : new ArrayList<AssayDocument>();
-        docs = new ArrayList<AssayDocument>();
+        List<Link> docLinks = assay.getLink();
         try {
             Connection conn = CAPUtil.connectToBARD();
             PreparedStatement pstDoc = conn.prepareStatement("insert into cap_document (cap_doc_id, type, name, url) values (?, ?, ?, ?)");
             boolean runPst = false;
 
-            for (AssayDocument doc : docs) {
+            for (Link link : docLinks) {
+                CAPConstants.CapResource res = CAPConstants.getResource(link.getType());
+                if (res != CAPConstants.CapResource.ASSAYDOC) continue;
+
+                DocumentType doc = getResponse(link.getHref(), CAPConstants.getResource(link.getType()));
+                String docContent = doc.getDocumentContent();
                 String docType = doc.getDocumentType(); // Description, Protocol, Comments, Paper, External URL, Other
                 String docName = doc.getDocumentName();
-                Link docLink = doc.getLink();
-                String docContent = null;
-                if (docLink != null) {
-                    AssayDocument assayDoc = getResponse(docLink.getHref(), CAPConstants.getResource(docLink.getType()));
-                    docContent = assayDoc.getDocumentContent(); // is pubmed link for those with a pubmed ID
-                }
+
                 if ("Description".equals(docType)) description = docContent;
                 else if ("Protocol".equals(docType)) protocol = docContent;
                 else if ("Comments".equals(docType)) comments = docContent;
                 else {
                     // hack to add cap assay documents as annotations on an assay
-                    if (docLink.getType().equals(CAPConstants.CapResource.ASSAYDOC.getMimeType())) {
-                        int docId = Integer.valueOf(docLink.getHref().substring(docLink.getHref().lastIndexOf("assayDocument/") + 14));
-                        // check to see if document in cap_document
-                        // query the table by cap_doc_id
-                        boolean hasDoc = false;
-                        Statement query = conn.createStatement();
-                        query.execute("select cap_doc_id from cap_document where cap_doc_id=" + docId);
-                        ResultSet rs = query.getResultSet();
-                        while (rs.next()) {
-                            hasDoc = true;
-                        }
-                        rs.close();
-                        query.close();
+                    String[] toks = link.getHref().split("/");
+                    int docId = Integer.parseInt(toks[toks.length - 1]);
 
-                        if (!hasDoc) {
-                            pstDoc.setInt(1, docId);
-                            pstDoc.setString(2, docType);
-                            pstDoc.setString(3, docName);
-                            pstDoc.setString(4, docContent);
-                            pstDoc.addBatch();
-                            runPst = true;
-                        }
-
-                        // add annotation for document back to assay
-                        annos.add(new CAPAnnotation(null, null, docName, null, "doc", null, docContent, "cap-doc", docLink.getHref(), 0, "assay", null));
-
-                    } else {
-                        log.warn("Assay Document link type not supported: " + docLink.getType());
+                    // check to see if document in cap_document
+                    // query the table by cap_doc_id
+                    boolean hasDoc = false;
+                    Statement query = conn.createStatement();
+                    query.execute("select cap_doc_id from cap_document where cap_doc_id=" + docId);
+                    ResultSet rs = query.getResultSet();
+                    while (rs.next()) {
+                        hasDoc = true;
                     }
+                    rs.close();
+                    query.close();
+
+                    if (!hasDoc) {
+                        pstDoc.setInt(1, docId);
+                        pstDoc.setString(2, docType);
+                        pstDoc.setString(3, docName);
+                        pstDoc.setString(4, docContent);
+                        pstDoc.addBatch();
+                        runPst = true;
+                    }
+
+                    // add annotation for document back to assay
+                    annos.add(new CAPAnnotation(docId, assay.getAssayId().intValue(), docName, null, "doc", null, docContent, "cap-doc", link.getHref(), 0, "assay", null));
                 }
             }
             if (runPst)
@@ -158,7 +150,6 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        log.info("status for " + name + " = " + status + ", and has " + docs.size() + " docs");
 
         /* save measures for an assay */
         List<Assay.Measures.Measure> measures = assay.getMeasures() != null ? assay.getMeasures().getMeasure() : new ArrayList<Assay.Measures.Measure>();
