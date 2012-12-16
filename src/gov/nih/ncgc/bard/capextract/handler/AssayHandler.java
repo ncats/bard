@@ -1,19 +1,11 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import gov.nih.ncgc.bard.capextract.CAPAnnotation;
-import gov.nih.ncgc.bard.capextract.CAPConstants;
-import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.capextract.CAPUtil;
-import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.Assay;
-import gov.nih.ncgc.bard.capextract.jaxb.AssayContexType;
-import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.AssayDocument;
-import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
-import gov.nih.ncgc.bard.capextract.jaxb.Link;
+
+import gov.nih.ncgc.bard.capextract.*;
+import gov.nih.ncgc.bard.capextract.jaxb.*;
 import gov.nih.ncgc.bard.tools.Util;
 
+import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.Connection;
@@ -104,7 +96,10 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 CAPConstants.CapResource res = CAPConstants.getResource(link.getType());
                 if (res != CAPConstants.CapResource.ASSAYDOC) continue;
 
-                DocumentType doc = getResponse(link.getHref(), CAPConstants.getResource(link.getType()));
+                // for some reason unmarshalling doesn't work properly on assayDocument docs
+                JAXBElement jaxbe = getResponse(link.getHref(), CAPConstants.getResource(link.getType()));
+                DocumentType doc = (DocumentType) jaxbe.getValue();
+
                 String docContent = doc.getDocumentContent();
                 String docType = doc.getDocumentType(); // Description, Protocol, Comments, Paper, External URL, Other
                 String docName = doc.getDocumentName();
