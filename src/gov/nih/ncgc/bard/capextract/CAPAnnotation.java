@@ -24,12 +24,13 @@ public class CAPAnnotation {
     public String key, value; // refers to a dict element
     public String extValueId = null; // when dict element points to ext resource (e.g. Entrez Gene) this is the identifier within that resource
     public String url = null; // when an annotation points to external object, given by a URL
+    public int displayOrder;
 
     public CAPAnnotation(String id, String refId, String display, String contextRef, String attrId, String valueId, String extValueId, String source) {
-	this(id, refId, display, contextRef, attrId, valueId, extValueId, source, null);
+	this(id, refId, display, contextRef, attrId, valueId, extValueId, source, null, 0);
     }
 
-    public CAPAnnotation(String id, String refId, String display, String contextRef, String attrId, String valueId, String extValueId, String source, String url) {
+    public CAPAnnotation(String id, String refId, String display, String contextRef, String attrId, String valueId, String extValueId, String source, String url, int displayOrder) {
         this.id = id;
         this.refId = refId;
 
@@ -40,11 +41,12 @@ public class CAPAnnotation {
         this.extValueId = extValueId;
         this.source = source;
         this.url = url;
+        this.displayOrder = displayOrder;
     }
 
     public CAPAnnotation cloneObject () {
         return new CAPAnnotation (id, refId, display, contextRef, 
-                                       key, value, extValueId, source, url);
+                                       key, value, extValueId, source, url, displayOrder);
     }
 
     CAPAnnotation() {
