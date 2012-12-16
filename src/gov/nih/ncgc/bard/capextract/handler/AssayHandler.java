@@ -1,11 +1,10 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.*;
-import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.Assay;
-import gov.nih.ncgc.bard.capextract.jaxb.AssayDocument;
-import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.capextract.jaxb.*;
+import gov.nih.ncgc.bard.tools.Util;
 
+import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.*;
@@ -20,15 +19,22 @@ import java.util.List;
  * <p/>
  * Since annotations from CAP contain more information that just key/value pairs, we dump the extra stuff
  * into the <code>related</code> field in the <code>cap_annotation</code> table. Specifically, the field is
- * a '|' separated string. The first element will be a comma separated list of related annotation id's (for
- * the given assay id) and the second element, if present, is an external identifier that is relevant for
- * dictionary elements that point to external resources. An example would be an external identifier of
- * <code>9606</code> that is associated with the dictionary element for taxon, which uses the Entrez T
- * Taxonomy database to resolve these identifiers.
+ * a '|' separated string and the contents depends on the source of the annotation.
  * <p/>
- * In general it appears that these external identifiers are associated with the key dictionary element.
+ * For annotations with a source of <code>cap-context</code>, the field will be of the form <code>measureRefs:A,B,C</code>
+ * where A, B and C represent measureRefs that the context (ie assay annotation) refers to. If the annotation does
+ * not refer to any measureRef's, then this field is empty.
  * <p/>
- * Thus annotation key/value identifiers should be resolved
+ * For annotations with a source of <code>cap-measure</code>, the field can have two components. If <code>parentMeasure:A</code>
+ * is present, A represents the measureRef that is the parent of the current measure. If this component is not present, then
+ * the current measure represents the (a) root of the measure graph. If <code>assayContextRefs:A,B,C</code> is present
+ * A, B, C, etc. refer to the context elements (ie annotations) that refer to the current measure.
+ * <p/>
+ * The url field wil represent the external URL for those annotations that refer to external databases. An example would
+ * an annotation referring to the Entrez Taxonomy database, in which case the url field will resolve to the specified
+ * taxon in this database.
+ * <p/>
+ * Annotation key/value identifiers should be resolved
  * using the {@link gov.nih.ncgc.bard.capextract.CAPDictionary}.
  *
  * @author Rajarshi Guha
@@ -50,7 +56,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         if (resource != CAPConstants.CapResource.ASSAY) return;
         log.info("Processing " + resource);
 
-        // get the Assays object here
+        // get the Assay object here
         Assay assay = getResponse(url, resource);
         if (!assay.getReadyForExtraction().equals("Ready")) return;
 
@@ -74,61 +80,56 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         ArrayList<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
 
         /* save documents related to assay */
-        List<Link> links = assay.getLink();
-        for (Link link : links) {
-            String linkType = link.getType();
-        }
-
         String description = null, protocol = null, comments = null;
-        List<AssayDocument> docs = null; //assay.getAssayDocuments() != null ? assay.getAssayDocuments().getAssayDocument() : new ArrayList<AssayDocument>();
+        List<Link> docLinks = assay.getLink();
         try {
             Connection conn = CAPUtil.connectToBARD();
             PreparedStatement pstDoc = conn.prepareStatement("insert into cap_document (cap_doc_id, type, name, url) values (?, ?, ?, ?)");
             boolean runPst = false;
 
-            for (AssayDocument doc : docs) {
+            for (Link link : docLinks) {
+                CAPConstants.CapResource res = CAPConstants.getResource(link.getType());
+                if (res != CAPConstants.CapResource.ASSAYDOC) continue;
+
+                // for some reason unmarshalling doesn't work properly on assayDocument docs
+                JAXBElement jaxbe = getResponse(link.getHref(), CAPConstants.getResource(link.getType()));
+                DocumentType doc = (DocumentType) jaxbe.getValue();
+
+                String docContent = doc.getDocumentContent();
                 String docType = doc.getDocumentType(); // Description, Protocol, Comments, Paper, External URL, Other
                 String docName = doc.getDocumentName();
-                Link docLink = doc.getLink();
-                String docContent = null;
-                if (docLink != null) {
-                    AssayDocument assayDoc = getResponse(docLink.getHref(), CAPConstants.getResource(docLink.getType()));
-                    docContent = assayDoc.getDocumentContent(); // is pubmed link for those with a pubmed ID
-                }
+
                 if ("Description".equals(docType)) description = docContent;
                 else if ("Protocol".equals(docType)) protocol = docContent;
                 else if ("Comments".equals(docType)) comments = docContent;
                 else {
                     // hack to add cap assay documents as annotations on an assay
-                    if (docLink.getType().equals(CAPConstants.CapResource.ASSAYDOC.getMimeType())) {
-                        int docId = Integer.valueOf(docLink.getHref().substring(docLink.getHref().lastIndexOf("assayDocument/") + 14));
-                        // check to see if document in cap_document
-                        // query the table by cap_doc_id
-                        boolean hasDoc = false;
-                        Statement query = conn.createStatement();
-                        query.execute("select cap_doc_id from cap_document where cap_doc_id=" + docId);
-                        ResultSet rs = query.getResultSet();
-                        while (rs.next()) {
-                            hasDoc = true;
-                        }
-                        rs.close();
-                        query.close();
+                    String[] toks = link.getHref().split("/");
+                    int docId = Integer.parseInt(toks[toks.length - 1]);
 
-                        if (!hasDoc) {
-                            pstDoc.setInt(1, docId);
-                            pstDoc.setString(2, docType);
-                            pstDoc.setString(3, docName);
-                            pstDoc.setString(4, docContent);
-                            pstDoc.addBatch();
-                            runPst = true;
-                        }
-
-                        // add annotation for document back to assay
-                        annos.add(new CAPAnnotation(null, null, docName, null, "doc", null, docContent, "cap-doc", docLink.getHref()));
-
-                    } else {
-                        log.warn("Assay Document link type not supported: " + docLink.getType());
+                    // check to see if document in cap_document
+                    // query the table by cap_doc_id
+                    boolean hasDoc = false;
+                    Statement query = conn.createStatement();
+                    query.execute("select cap_doc_id from cap_document where cap_doc_id=" + docId);
+                    ResultSet rs = query.getResultSet();
+                    while (rs.next()) {
+                        hasDoc = true;
                     }
+                    rs.close();
+                    query.close();
+
+                    if (!hasDoc) {
+                        pstDoc.setInt(1, docId);
+                        pstDoc.setString(2, docType);
+                        pstDoc.setString(3, docName);
+                        pstDoc.setString(4, docContent);
+                        pstDoc.addBatch();
+                        runPst = true;
+                    }
+
+                    // add annotation for document back to assay
+                    annos.add(new CAPAnnotation(docId, assay.getAssayId().intValue(), docName, null, "doc", null, docContent, "cap-doc", link.getHref(), 0, "assay", null));
                 }
             }
             if (runPst)
@@ -139,106 +140,92 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        log.info("status for " + name + " = " + status + ", and has " + docs.size() + " docs");
 
         /* save measures for an assay */
         List<Assay.Measures.Measure> measures = assay.getMeasures() != null ? assay.getMeasures().getMeasure() : new ArrayList<Assay.Measures.Measure>();
-        int measureCount = 0;
         for (Assay.Measures.Measure m : measures) {
-            measureCount++;
-            String contextRef = m.getAssayContextRef();
-            if (contextRef == null) contextRef = "Measure " + measureCount;
-            BigInteger parent = m.getParentMeasure();
-            if (parent != null) {
-                System.err.println(url);
-                System.err.println("Parent measure not null: " + parent + ": " + capAssayId);
-                log.warn("Parent measure not null: " + parent + ": " + capAssayId);
-                //Trying to get to the bottom of what this should mean ...
-                //System.exit(1);
+            // which assay contexts (aka annotations) refer to this measure
+            String assayContextRefs = null;
+            if (m.getAssayContextRefs() != null) {
+                assayContextRefs = Util.join(m.getAssayContextRefs().getAssayContextRef(), ",");
             }
 
-            // hack to add measures as annotations on an assay
-            Assay.Measures.Measure.ResultTypeRef rtr = m.getResultTypeRef();
-            if (rtr != null) {
-                String resultTypeName = rtr.getLabel();
-                Link resultTypeLink = rtr.getLink();
-                String valueId = resultTypeLink.getHref().substring(resultTypeLink.getHref().lastIndexOf("/") + 1);
-                annos.add(new CAPAnnotation(null, null, resultTypeName, contextRef, "5", valueId, null, "cap-measure", null));
+            // parent mesaure can be null - if so, this measure is the "root"
+            // of the measure network
+            BigInteger parent = m.getParentMeasureRef();
+
+            // Kludge to store measures as annotations. In this approach
+            // the resultTypeRef is the anno value and the entryUnitRef
+            // is the anno key. Both are stored in terms of the CAP dict
+            // element id. The 'display name' for the 'annotation' is the
+            // label on the resultTypeRef
+            Assay.Measures.Measure.ResultTypeRef resultTypeRef = m.getResultTypeRef();
+            Assay.Measures.Measure.EntryUnitRef entryUnitRef = m.getEntryUnitRef();
+            String displayName = null, valueId = null, keyId = null;
+            if (resultTypeRef != null) {
+                displayName = resultTypeRef.getLabel();
+                String[] toks = resultTypeRef.getLink().getHref().split("/");
+                valueId = toks[toks.length - 1];
             }
-            EntryUnit unit = m.getEntryUnit();
-            if (unit != null) {
-                String unitName = unit.getUnit();
-                Link unitLink = unit.getLink();
-                String valueId = null;
-                if (unitLink != null)
-                    valueId = unitLink.getHref().substring(unitLink.getHref().lastIndexOf("/") + 1);
-                annos.add(new CAPAnnotation(null, null, unitName, contextRef, "5", valueId, null, "cap-measure", null));
+            if (entryUnitRef != null) {
+                String[] toks = entryUnitRef.getLink().getHref().split("/");
+                keyId = toks[toks.length - 1];
             }
+
+            String related = "";
+            if (assayContextRefs != null) related = "assayContextRefs:" + assayContextRefs;
+            if (parent != null) related += "|parentMeasure:" + parent;
+
+            annos.add(new CAPAnnotation(m.getMeasureId().intValue(), assay.getAssayId().intValue(),
+                    displayName, null, keyId, valueId, null, "cap-measure", null, 0, "assay", related));
         }
 
         CAPDictionary dict = CAPConstants.getDictionary();
 
-        /* save assay contexts and annotations */
-        List<Assay.AssayContexts.AssayContext> contexts = assay.getAssayContexts() != null ? assay.getAssayContexts().getAssayContext() : new ArrayList<Assay.AssayContexts.AssayContext>();
-        ArrayList<BigInteger> itemIds = new ArrayList<BigInteger>();
-        for (Assay.AssayContexts.AssayContext context : contexts) {
+        /* save assay contexts (aka annotations) */
+        List<AssayContexType> contexts = assay.getAssayContexts() != null ? assay.getAssayContexts().getAssayContext() : new ArrayList<AssayContexType>();
+        for (AssayContexType context : contexts) {
             String contextName = context.getContextName();
-            List<AssayContextItem> items = context.getAssayContextItems() != null ? context.getAssayContextItems().getAssayContextItem() : new ArrayList<AssayContextItem>();
-            for (AssayContextItem aci : items) {
-                BigInteger aciId = aci.getAssayContextItemId();
-                itemIds.add(aciId);
-                String aciRef = aci.getAssayContextRef();
-                if (!aciRef.equals(contextName))
-                    log.error("AssayContextRef is different than the contextName: " + aciRef + " : " + contextName);
-                AbstractContextItemType.AttributeId attr = aci.getAttributeId();
-//        	String[] types = {"Fixed", "Free", "Range"};
-//        	String attrType = attr.getAttributeType(); // List, Range, Number, Fixed, Free
-//        	if (Arrays.binarySearch(types, attrType) < 0) {
-//        	    System.err.println(url);
-//        	    System.err.println(attrType);
-//        	    System.exit(1);
-//        	}
-                String attrLabel = attr.getLabel();
-                Link attrLink = attr.getLink();
-                String attrId = attrLink.getHref().substring(attrLink.getHref().lastIndexOf("/") + 1);
-                String valueExtValue = null;
+            int contextId = context.getAssayContextId().intValue();
+
+            // a context (ie annotation group) can refer to one or more measures (via measureRef tags)
+            // we collect them and store them in the related column for each of the annotations
+            // associated with this context. (Ideally we should run a sanity check to ensure that
+            // measures referenced here actually exist for this assay)
+            String related = null;
+            if (context.getMeasureRefs() != null) {
+                List<BigInteger> measureRefs = context.getMeasureRefs().getMeasureRef();
+                if (measureRefs != null && measureRefs.size() > 0)
+                    related = "measureRefs:" + Util.join(measureRefs, ",");
+            }
+
+            for (AssayContextItemType contextItem : context.getAssayContextItems().getAssayContextItem()) {
+                int displayOrder = contextItem.getDisplayOrder();
+                String valueDisplay = contextItem.getValueDisplay();
+                String extValueId = contextItem.getExtValueId();
+
+                // dict id for the annotation key
+                String key = null;
+                AbstractContextItemType.AttributeId attr = contextItem.getAttributeId();
+                if (attr != null) {
+                    String[] toks = attr.getLink().getHref().split("/");
+                    key = toks[toks.length - 1];
+                }
+
+                // dict id for the annotation value
+                String value = null;
                 String valueUrl = null;
-                if (dict.getNode(attrLabel).getExternalUrl() != null) {
-                    valueExtValue = aci.getExtValueId();
-                    valueUrl = dict.getNode(attrLabel).getExternalUrl() + valueExtValue;
+                AbstractContextItemType.ValueId vc = contextItem.getValueId();
+                if (vc != null) {
+                    String[] toks = vc.getLink().getHref().split("/");
+                    value = toks[toks.length - 1];
+                    valueUrl = dict.getNode(vc.getLabel()).getExternalUrl() + extValueId;
                 }
 
-                String display = aci.getValueDisplay();
-
-//        	// these are all redundant with display ... I guess the question is whether display is appropriately interpreted without these
-//        	Double valueMax = aci.getValueMax();
-//        	Double valueMin = aci.getValueMin();
-//        	String qualifier = aci.getQualifier();
-//        	Double valueNum = aci.getValueNum();
-//        	if (valueNum != null && display.indexOf(valueNum.toString()) == -1) {
-//        	    System.err.println(url);
-//        	    System.err.println("Unexpected Num value: "+aciId);
-//        	    System.exit(1);
-//        	}
-//        	if (valueMax != null || valueMin != null || qualifier != null) {
-//        	    System.err.println(url);
-//        	    System.err.println("Unexpected value: "+aciId);
-//        	    System.exit(1);
-//        	}
-
-                AbstractContextItemType.ValueId value = aci.getValueId();
-                String valueId = null;
-                if (value != null) {
-                    //String valueLabel = value.getLabel(); // redundant with display
-                    Link valueLink = value.getLink();
-                    valueId = valueLink.getHref().substring(valueLink.getHref().lastIndexOf("/") + 1);
-                }
-
-                annos.add(new CAPAnnotation(aciId.toString(), null, display, contextName, attrId, valueId, valueExtValue, "cap-anno", valueUrl));
+                annos.add(new CAPAnnotation(contextId, assay.getAssayId().intValue(), valueDisplay, contextName, key, value, extValueId, "cap-context", valueUrl, displayOrder, "assay", related));
 
             }
         }
-        log.info("Got " + contexts.size() + " annotation groups");
 
 //        /* get experiment links */
 //        ArrayList<Integer> expts = new ArrayList<Integer>();
@@ -247,14 +234,6 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 //        	expts.add(Integer.valueOf(link.getHref().substring(link.getHref().lastIndexOf("experiments/")+12)));
 //        }
 
-        /* verify no items were missed */
-        if (assay.getAssayContextItems() != null) {
-            for (AssayContextItem aci : assay.getAssayContextItems().getAssayContextItem()) {
-                if (!itemIds.contains(aci.getAssayContextItemId()))
-                    log.error("AssayContextItem not imported from AssayContexts above:" + aci.getAssayContextItemId());
-            }
-        }
-        log.info("Got " + itemIds.size() + " annotations");
 
         // at this point we can dump assays and annos to the db.
         try {
@@ -288,18 +267,19 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 pstAssay.addBatch();
             }
 
-            PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url) values(?,'assay',?,?,?,?,?,?,?,?,?)");
+            PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'assay',?,?,?,?,?,?,?,?,?,?)");
             for (CAPAnnotation anno : annos) {
                 pstAssayAnnot.setString(1, anno.source);
-                pstAssayAnnot.setInt(2, capAssayId.intValue());
-                pstAssayAnnot.setString(3, anno.id);
+                pstAssayAnnot.setInt(2, bardAssayId);  // TODO or should we use CAP assay id?
+                pstAssayAnnot.setInt(3, anno.id);
                 pstAssayAnnot.setString(4, anno.key);
                 pstAssayAnnot.setString(5, anno.value);
                 pstAssayAnnot.setString(6, anno.extValueId); // anno_value_text
                 pstAssayAnnot.setString(7, anno.display);
                 pstAssayAnnot.setString(8, anno.contextRef); // context_name
-                pstAssayAnnot.setString(9, null); // put into related field
+                pstAssayAnnot.setString(9, anno.related); // put into related field
                 pstAssayAnnot.setString(10, anno.url);
+                pstAssayAnnot.setInt(11, anno.displayOrder);
 
                 pstAssayAnnot.addBatch();
             }
@@ -309,10 +289,10 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             pstAssay.close();
             pstAssayAnnot.close();
             conn.close();
-            log.info("\tInserted " + updateCounts.length + " annotations (non context-ref) for aid " + capAssayId);
+            log.info("\tInserted " + updateCounts.length + " annotations for cap aid " + capAssayId);
         } catch (SQLException e) {
             e.printStackTrace();
-            log.error("Error inserting annotations for aid " + capAssayId + "\n" + e.getMessage());
+            log.error("Error inserting annotations for cap aid " + capAssayId + "\n" + e.getMessage());
         }
     }
 }
