@@ -3,7 +3,6 @@ package gov.nih.ncgc.bard.capextract.handler;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.SslHttpClient;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
-
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -14,14 +13,15 @@ import org.slf4j.LoggerFactory;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-//import java.io.BufferedReader;
 import java.io.IOException;
-//import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Vector;
+
+//import java.io.BufferedReader;
+//import java.io.InputStream;
 
 /**
  * A one line summary.
@@ -85,7 +85,17 @@ public abstract class CapResourceHandler {
 
         if (response.getStatusLine().getStatusCode() == 206)
             log.info("Got a 206 (partial content) ... make sure this is handled appropriately for " + resource + ": " + url);
-            
+
+        // For debugging
+//        if (url.endsWith("assays/1640")) {
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+//            BufferedWriter writer = new BufferedWriter(new FileWriter("assay-1640.xml"));
+//            String line;
+//            while ((line = reader.readLine()) != null) writer.write(line+"\n");
+//            writer.close();
+//            System.exit(-1);
+//        }
+
         Unmarshaller unmarshaller;
         try {
             unmarshaller = jc.createUnmarshaller();
@@ -98,18 +108,4 @@ public abstract class CapResourceHandler {
             throw new IOException("Error unmarshalling document from " + url, e);
         }
     }
-
-//    // for debug purposes
-//    private String read(InputStream in) throws IOException {
-//        StringBuilder sb = new StringBuilder();
-//        BufferedReader r = new BufferedReader(new InputStreamReader(in), 1000);
-//        int n = 0;
-//        for (String line = r.readLine(); line != null; line = r.readLine()) {
-//            n++;
-//            sb.append(line);
-//        }
-//        in.close();
-//        return sb.toString();
-//    }
-
 }
