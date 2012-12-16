@@ -137,7 +137,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                     CAPConstants.CapResource res = CAPConstants.getResource(exptLink.getType());
                     if (res != CAPConstants.CapResource.EXPERIMENT) continue;
                     ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(res);
-                    handler.process(exptLink.getHref(), res);
+                    if (handler != null) handler.process(exptLink.getHref(), res);
                 }
             } else {
                 log.error("Database has no project with cap_proj_id=" + project.getProjectId());

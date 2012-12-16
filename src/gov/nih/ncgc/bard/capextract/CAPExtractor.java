@@ -3,10 +3,7 @@ package gov.nih.ncgc.bard.capextract;
 //import gov.nih.ncgc.bard.capextract.handler.AssayHandler;
 //import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
 
-import gov.nih.ncgc.bard.capextract.handler.BardexportHandler;
-import gov.nih.ncgc.bard.capextract.handler.DictionaryHandler;
-import gov.nih.ncgc.bard.capextract.handler.ProjectHandler;
-import gov.nih.ncgc.bard.capextract.handler.ProjectsHandler;
+import gov.nih.ncgc.bard.capextract.handler.*;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Projects;
 import org.slf4j.Logger;
@@ -132,7 +129,7 @@ public class CAPExtractor {
         registry = CapResourceHandlerRegistry.getInstance();
         registry.setHandler(CAPConstants.CapResource.PROJECTS, new ProjectsHandler());
         registry.setHandler(CAPConstants.CapResource.PROJECT, new ProjectHandler());
-//        registry.setHandler(CAPConstants.CapResource.ASSAYS, new AssaysHandler());
+        registry.setHandler(CAPConstants.CapResource.ASSAYS, new AssaysHandler());
 //        registry.setHandler(CAPConstants.CapResource.ASSAY, new AssayHandler());
 //        registry.setHandler(CAPConstants.CapResource.EXPERIMENTS, new ExperimentsHandler());
 //        registry.setHandler(CAPConstants.CapResource.EXPERIMENT, new ExperimentHandler());
