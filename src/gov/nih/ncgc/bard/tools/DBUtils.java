@@ -740,6 +740,7 @@ public class DBUtils {
                 }
             }
             rs.close();
+            pst.close();
 
             cnt = size;
             pst = conn.prepareStatement
@@ -757,6 +758,7 @@ public class DBUtils {
                     }
                 }
             }
+            pst.close();
             cnt -= size;
 
             if (cnt > 0) {
