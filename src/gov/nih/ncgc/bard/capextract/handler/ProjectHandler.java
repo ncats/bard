@@ -130,6 +130,14 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
                 // handle project steps
 
+                // handle project documents
+                for (Link link : project.getLink()) {
+                    CAPConstants.CapResource res = CAPConstants.getResource(link.getType());
+                    if (res != CAPConstants.CapResource.PROJECTDOC) continue;
+                    ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(res);
+                    if (handler != null) handler.process(link.getHref(), res);
+                }
+
                 // handle the experiments associated with this project
                 List<ProjectExperiment> experiments = project.getProjectExperiments().getProjectExperiment();
                 for (ProjectExperiment experiment : experiments) {
