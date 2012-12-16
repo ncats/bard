@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
+import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.*;
 
@@ -128,8 +129,16 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 }
 
                 // handle project steps
-                // handle the experiments associated with this project
 
+                // handle the experiments associated with this project
+                List<ProjectExperiment> experiments = project.getProjectExperiments().getProjectExperiment();
+                for (ProjectExperiment experiment : experiments) {
+                    Link exptLink = experiment.getExperimentRef().getLink();
+                    CAPConstants.CapResource res = CAPConstants.getResource(exptLink.getType());
+                    if (res != CAPConstants.CapResource.EXPERIMENT) continue;
+                    ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(res);
+                    handler.process(exptLink.getHref(), res);
+                }
             } else {
                 log.error("Database has no project with cap_proj_id=" + project.getProjectId());
             }
@@ -139,6 +148,8 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         } catch (SQLException ex) {
             log.error("Failed to update database with cap_proj_id=" + project.getProjectId());
             ex.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
     }
 
