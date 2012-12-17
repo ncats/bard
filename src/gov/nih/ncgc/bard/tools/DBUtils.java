@@ -2058,6 +2058,7 @@ public class DBUtils {
         }
         a.setGobp_id(l1);
         a.setGobp_term(l2);
+        resultSet.close();
         pst.close();
 
         pst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and go_type = 'F'");
@@ -2071,6 +2072,7 @@ public class DBUtils {
         }
         a.setGomf_id(l1);
         a.setGomf_term(l2);
+        resultSet.close();
         pst.close();
 
         pst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and go_type = 'C'");
@@ -2084,6 +2086,7 @@ public class DBUtils {
         }
         a.setGocc_id(l1);
         a.setGocc_term(l2);
+        resultSet.close();
         pst.close();
 
         // pull in KEGG disease annotations
@@ -2107,6 +2110,8 @@ public class DBUtils {
         }
         a.setKegg_disease_names(l1);
         a.setKegg_disease_cat(l2);
+        resultSet.close();
+        pst.close();
 
         if (dict == null) try {
             dict = getCAPDictionary();
@@ -3823,6 +3828,8 @@ public class DBUtils {
         }
         p.setKegg_disease_names(l1);
         p.setKegg_disease_cat(l2);
+        resultSet.close();
+        pst.close();
 
         // pull in CAP annotations
         if (dict == null) try {
@@ -4027,12 +4034,16 @@ public class DBUtils {
         }
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql);
-        ResultSet rs = pst.executeQuery();
-        int n = 0;
-        while (rs.next()) n = rs.getInt(1);
-        rs.close();
-        pst.close();
-        return (n);
+        try {
+            ResultSet rs = pst.executeQuery();
+            int n = 0;
+            while (rs.next()) n = rs.getInt(1);
+            rs.close();
+            return (n);
+        }
+        finally {
+            pst.close();
+        }
     }
 
     public <T extends BardEntity> int getEntityCount(Class<T> klass, String query) throws SQLException {
