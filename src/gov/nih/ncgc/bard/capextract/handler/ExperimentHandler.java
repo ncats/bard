@@ -1,10 +1,27 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
+import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
+import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.tools.Util;
 
 import java.io.IOException;
+import java.math.BigInteger;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -17,17 +34,19 @@ import java.util.Vector;
 public class ExperimentHandler extends CapResourceHandler implements ICapResourceHandler {
 
     static String PUBCHEM = "PubChem,NIH,http://pubchem.ncbi.nlm.nih.gov/assay/assay.cgi?";
-    private HashMap<String, String> _CAP_ExptID_PubChemAID_lookup = new HashMap<String, String>(); 
-    private HashMap<String, String> _CAP_ExptID_AssayID_lookup = new HashMap<String, String>(); 
-    private HashMap<String, String> _CAP_ExptID_ProjID_lookup = new HashMap<String, String>(); 
-    private Vector<String[]> _CAP_Proj_Expt_link = new Vector<String[]>(); 
-    
+    private HashMap<BigInteger, String> _CAP_ExptID_PubChemAID_lookup = new HashMap<BigInteger, String>();
+    private HashMap<BigInteger, String> _CAP_ExptID_AssayID_lookup = new HashMap<BigInteger, String>();
+    private HashMap<String, String> _CAP_ExptID_ProjID_lookup = new HashMap<String, String>();
+    private Vector<String[]> _CAP_Proj_Expt_link = new Vector<String[]>();
+
     public ExperimentHandler() {
         super();
     }
 
-    public HashMap<String, String> getCAP_Expt_PubChemAID() {return this._CAP_ExptID_PubChemAID_lookup;}
-    
+    public HashMap<BigInteger, String> getCAP_Expt_PubChemAID() {
+        return this._CAP_ExptID_PubChemAID_lookup;
+    }
+
     /**
      * Process a CAP entity that is located at some URL.
      *
@@ -36,75 +55,127 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
      *                 can choose to proceed or not based on this parameter.
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
-//        if (resource != CAPConstants.CapResource.EXPERIMENT) return;
-//        //log.info("Processing " + resource);
-//
-//        // get the Assays object here
-//        Experiment expt = getResponse(url, resource);
-//
-//        BigInteger exptID = expt.getExperimentId();
-//        //String status = expt.getStatus();
-//        //String extraction = expt.getReadyForExtraction();
-//        //String name = expt.getExperimentName();
-//        //String desc = expt.getDescription();
-//        //XMLGregorianCalendar holdUntil = expt.getHoldUntilDate();
-//        //XMLGregorianCalendar runDateFrom = expt.getRunDateFrom();
-//        //XMLGregorianCalendar runDateTo = expt.getRunDateTo();
-//
-//        String assayID = "";
-//        for (Link link: expt.getLink()) {
-//            //   <link rel='related' title='Link to Assay' type='application/vnd.bard.cap+xml;type=assay' href='https://bard.broadinstitute.org/dataExport/api/assays/441' />
-//            if (link.getType().equals(CAPConstants.CapResource.ASSAY.getMimeType())) {
-//        	assayID = link.getHref().substring(link.getHref().lastIndexOf("assays/")+7);
-//        	_CAP_ExptID_AssayID_lookup.put(exptID.toString(), assayID);
-//            }
-//        }
-//        _CAP_ExptID_PubChemAID_lookup.put(exptID.toString(), null);
-//        for (Experiment.ExternalReferences.ExternalReference ref: expt.getExternalReferences().getExternalReference()) {
-//            String externalRef = ref.getExternalAssayRef();
-//            Experiment.ExternalReferences.ExternalReference.ExternalSystem sourceObj = ref.getExternalSystem();
-//            String source = sourceObj.getName() + "," + sourceObj.getOwner() + "," + sourceObj.getSystemUrl();
-//            if (PUBCHEM.equals(source)) {
-//        	if (!_CAP_ExptID_PubChemAID_lookup.containsValue(externalRef)) {
-//        	    _CAP_ExptID_PubChemAID_lookup.put(exptID.toString(), externalRef);
-//        	}
-//        	else {
-//        	    log.error("The same AID maps to multple experiments: "+externalRef + " eid:" + exptID + " eid:" + _CAP_ExptID_PubChemAID_lookup.get(externalRef));
-//        	}
-//            } else {
-//        	log.error("experiment id: "+exptID+" external source is unknown: "+source);
-//            }
-//        }
-//
-//        // handle project context of experiment
-//        if (expt.getProjectSteps() != null)
-//            for (Experiment.ProjectSteps.ProjectStep projExpt: expt.getProjectSteps().getProjectStep()) {
-//        	projExpt.getDescription();
-//        	projExpt.getPrecedingExperiment();
-//        	for (Link link: projExpt.getLink()) {
-//        	    if (link.getType().equals(CAPConstants.CapResource.PROJECT.getMimeType())) {
-//        		String projID = link.getHref().substring(link.getHref().lastIndexOf("/")+1);
-//        		String[] entry = {projID, exptID.toString()};
-//                	if (_CAP_ExptID_ProjID_lookup.containsKey(exptID.toString())) {
-//                	    // experiment maps to multiple projects
-//                	    _CAP_ExptID_ProjID_lookup.put(exptID.toString(), null);
-//                	} else {
-//                	    _CAP_ExptID_ProjID_lookup.put(exptID.toString(), projID);
-//                	}
-//        		_CAP_Proj_Expt_link.add(entry);
-//        	    }
-//        	    else log.error("Project context not being captured for exptID "+exptID+": "+link.getHref()+" "+projExpt.getDescription()+projExpt.getPrecedingExperiment());
-//
-//        	}
-//            }
-//
-//        // TODO handle result context of experiment
-//        if (expt.getExperimentContextItems() != null)
-//            for (Experiment.ExperimentContextItems.ExperimentContextItem context: expt.getExperimentContextItems().getExperimentContextItem()) {
-//        	log.error("Result context item not being captured for exptID "+exptID+": "+context.getExtValueId()+":"+context.getValueDisplay()+":"+context.getAttribute());
-//            }
-//
-//    }
+        if (resource != CAPConstants.CapResource.EXPERIMENT) return;
+
+        Experiment expt = getResponse(url, resource);
+        BigInteger exptID = expt.getExperimentId();
+        log.info("\tProcessing experiment " + exptID + " " + url);
+
+        //String status = expt.getStatus();
+        //String extraction = expt.getReadyForExtraction();
+        //XMLGregorianCalendar holdUntil = expt.getHoldUntilDate();
+        //XMLGregorianCalendar runDateFrom = expt.getRunDateFrom();
+        //XMLGregorianCalendar runDateTo = expt.getRunDateTo();
+
+        String assayID = "";
+
+        for (Link link : expt.getLink()) {
+            //   <link rel='related' title='Link to Assay' type='application/vnd.bard.cap+xml;type=assay' href='https://bard.broadinstitute.org/dataExport/api/assays/441' />
+            if (link.getType().equals(CAPConstants.CapResource.ASSAY.getMimeType())) {
+                assayID = Util.getEntityIdFromUrl(link.getHref());
+                _CAP_ExptID_AssayID_lookup.put(exptID, assayID);
+            } else if (link.getType().equals(CAPConstants.CapResource.EXTREF.getMimeType())) { // get Pubchem AID here
+//                _CAP_ExptID_PubChemAID_lookup.put(exptID.toString(), null);
+//                ExternalReferences.ExternalReference ref = getResponse(link.getHref(), CAPConstants.CapResource.EXTREF);
+//                String externalRef = ref.getExternalAssayRef();
+//                Experiment.ExternalReferences.ExternalReference.ExternalSystem sourceObj = ref.getExternalSystem();
+//                String source = sourceObj.getName() + "," + sourceObj.getOwner() + "," + sourceObj.getSystemUrl();
+//                if (PUBCHEM.equals(source)) {
+//                    if (!_CAP_ExptID_PubChemAID_lookup.containsValue(externalRef)) {
+//                        _CAP_ExptID_PubChemAID_lookup.put(exptID.toString(), externalRef);
+//                    } else {
+//                        log.error("The same AID maps to multple experiments: " + externalRef + " eid:" + exptID + " eid:" + _CAP_ExptID_PubChemAID_lookup.get(externalRef));
+//                    }
+//                } else {
+//                    log.error("experiment id: " + exptID + " external source is unknown: " + source);
+//                }
+            }
+        }
+
+        List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+        Contexts contexts = expt.getContexts();
+        if (contexts != null) {
+            for (ContextType context : contexts.getContext()) {
+                BigInteger contextId = context.getId();
+                String contextName = context.getContextName();
+                for (ContextItemType contextItem : context.getContextItems().getContextItem()) {
+                    String valueDisplay = contextItem.getValueDisplay();
+                    int displayOrder = contextItem.getDisplayOrder();
+
+                    // dict id for the annotation key
+                    String key = null;
+                    AbstractContextItemType.AttributeId attr = contextItem.getAttributeId();
+                    if (attr != null) key = Util.getEntityIdFromUrl(attr.getLink().getHref());
+
+                    // dict id for the annotation value
+                    String value = null;
+                    AbstractContextItemType.ValueId vc = contextItem.getValueId();
+                    if (vc != null) value = Util.getEntityIdFromUrl(vc.getLink().getHref());
+
+                    annos.add(new CAPAnnotation(contextId.intValue(), expt.getExperimentId().intValue(), valueDisplay, contextName, key, value, null, "cap-context", null, displayOrder, "experiment", null));
+                }
+            }
+        }
+
+        // ready to load in the data
+        try {
+            int bardExptId = -1;
+            Connection conn = CAPUtil.connectToBARD();
+
+            Statement query = conn.createStatement();
+            query.execute("select bard_expt_id, cap_expt_id from bard_experiment where cap_expt_id=" + expt.getExperimentId());
+            ResultSet rs = query.getResultSet();
+            while (rs.next()) {
+                bardExptId = rs.getInt(1);
+            }
+            rs.close();
+            query.close();
+
+            // this is a new experiment
+            PreparedStatement pstExpt = conn.prepareStatement("insert into bard_experiment (bard_expt_id, bard_assay_id, cap_expt_id, category, classification, description, pubchem_aid, type, name) values(?,?,?,?,?,?,?,?,?)");
+            if (bardExptId == -1) {
+                pstExpt.setInt(1, bardExptId);
+                pstExpt.setInt(2, Integer.parseInt(_CAP_ExptID_AssayID_lookup.get(exptID)));
+                pstExpt.setInt(3, exptID.intValue());
+                pstExpt.setInt(4, -1);
+                pstExpt.setInt(5, -1);
+                pstExpt.setString(6, expt.getDescription());
+                pstExpt.setInt(7, Integer.parseInt(_CAP_ExptID_PubChemAID_lookup.get(exptID)));
+                pstExpt.setInt(8, -1);
+                pstExpt.setString(9, expt.getExperimentName());
+
+                pstExpt.addBatch();
+            }
+
+            PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'experiment',?,?,?,?,?,?,?,?,?,?)");
+            for (CAPAnnotation anno : annos) {
+                pstAssayAnnot.setString(1, anno.source);
+                pstAssayAnnot.setInt(2, bardExptId);  // TODO or should we use CAP expt id?
+                pstAssayAnnot.setInt(3, anno.id);
+                pstAssayAnnot.setString(4, anno.key);
+                pstAssayAnnot.setString(5, anno.value);
+                pstAssayAnnot.setString(6, anno.extValueId); // anno_value_text
+                pstAssayAnnot.setString(7, anno.display);
+                pstAssayAnnot.setString(8, anno.contextRef); // context_name
+                pstAssayAnnot.setString(9, anno.related); // put into related field
+                pstAssayAnnot.setString(10, anno.url);
+                pstAssayAnnot.setInt(11, anno.displayOrder);
+
+                pstAssayAnnot.addBatch();
+            }
+            pstExpt.executeBatch();
+            int[] updateCounts = pstAssayAnnot.executeBatch();
+            conn.commit();
+            pstExpt.close();
+            pstAssayAnnot.close();
+            conn.close();
+            log.info("\tInserted " + updateCounts.length + " annotations for cap aid " + expt.getExperimentId());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            log.error("Error inserting annotations for cap expt id " + expt.getExperimentId() + "\n" + e.getMessage());
+        }
+    }
+
 //
 //    public void printLookup() {
 //	try {
@@ -169,6 +240,6 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 ////	System.out.println("CAP Project -> Expt Links");
 ////	for (String[] entry: _CAP_Proj_Expt_link) {
 ////	    System.out.println(entry[0]+","+entry[1]+","+_CAP_ExptID_AssayID_lookup.get(entry[1])+","+_CAP_ExptID_PubChemAID_lookup.get(entry[1]));
-//
-    }
+
+//    }
 }
