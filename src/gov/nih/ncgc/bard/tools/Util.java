@@ -39,6 +39,11 @@ public class Util {
                 ? etags.iterator().next() : null;
     }
 
+    public static String getEntityIdFromUrl(String url) {
+        String[] toks = url.split("/");
+        return toks[toks.length-1];
+    }
+
     public static <T> List<List<T>> chunk(T[] array, int chunkSize) {
         List<List<T>> chunkList = new ArrayList<List<T>>();
         int n = 0, i = 0;
