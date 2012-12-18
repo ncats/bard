@@ -4363,7 +4363,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a, bard_assay b where b.bard_assay_id = ? and a.entity_id = b.cap_assay_id and a.source in ('cap', 'bao')");
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a, bard_assay b where b.bard_assay_id = ? and a.assay_id = b.cap_assay_id and a.source in ('cap', 'bao')");
         try {
             pst.setLong(1, bardAssayId);
             ResultSet rs = pst.executeQuery();
@@ -4374,7 +4374,7 @@ public class DBUtils {
                 String anno_value = rs.getString("anno_value");
                 String anno_display = rs.getString("anno_display");
                 String source = rs.getString("source");
-                String url = rs.getString("url");
+                String url = null;//rs.getString("url");
 
                 String related = rs.getString("related");
                 String extValueId = null;

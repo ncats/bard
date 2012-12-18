@@ -79,7 +79,7 @@ public class OrderedSearchResultHandler implements SearchCallback<SearchService2
 
     public boolean consumeMol(SearchService2.MolEntry entry) {
         int[][] hits = entry.getAtomMappings();
-        Molecule mol = entry.getMol();
+        Molecule mol = entry.getMol().cloneMolecule();
 
         switch (params.getType()) {
             case Substructure: {

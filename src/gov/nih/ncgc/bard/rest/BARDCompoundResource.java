@@ -220,6 +220,8 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         }
 
         if (rankBy != null) params.setRankBy(rankBy);
+        System.out.println("## structure search: query:"
+                           +query+" type:"+type+" rank:"+rankBy);
 
         StringWriter writer = new StringWriter();
         PrintWriter pw = new PrintWriter(writer);
