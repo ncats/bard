@@ -15,6 +15,7 @@ import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Project;
 import gov.nih.ncgc.bard.capextract.jaxb.ProjectExperiment;
 import gov.nih.ncgc.bard.tools.Util;
+import nu.xom.ParsingException;
 
 import javax.xml.bind.JAXBElement;
 import java.io.IOException;
@@ -57,7 +58,6 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
         log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
         if (readyToXtract.equals("Ready")) {
-            log.info("\tExtracting " + title);
             process(project);
         }
     }
@@ -102,7 +102,6 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 for (ContextType contextType : contextTypes) {
                     int contextId = contextType.getId().intValue();
                     String contextName = contextType.getContextName();
-                    log.info("Loading annotation " + contextId + " for " + project.getProjectId());
 
                     ContextType.ContextItems contextItems = contextType.getContextItems();
                     for (ContextItemType contextItemType : contextItems.getContextItem()) {
@@ -130,6 +129,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 }
 
                 // handle project steps
+
 
                 // handle project documents
                 PreparedStatement pstDoc = conn.prepareStatement("insert into cap_document (cap_doc_id, type, name, url) values (?, ?, ?, ?)");
@@ -176,6 +176,29 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
                         // add annotation for document back to project
                         annos.add(new CAPAnnotation(docId, bardProjId, docName, docType, "doc", docContent, docContent, "cap-doc", link.getHref(), 0, "project", null));
+
+                        // see if we can insert a PubMed paper
+                        if (docType.equals("Paper") && docContent.startsWith("http://www.ncbi.nlm.nih.gov/pubmed")) {
+                            String pmid = Util.getEntityIdFromUrl(docContent);
+                            boolean status = CAPUtil.insertPublication(conn, pmid);
+                            if (status) log.info("Inserted Pubmed publication " + pmid);
+                            else log.info("Found existing Pubmed publication " + pmid);
+
+                            // see if we should make a link in project_pub
+                            PreparedStatement pstPub = conn.prepareStatement("select * from project_pub where bard_proj_id = ?");
+                            pstPub.setInt(1, bardProjId);
+                            ResultSet prs = pstPub.executeQuery();
+                            boolean linkExists = false;
+                            while (prs.next()) linkExists = true;
+                            pstPub.close();
+                            if (!linkExists) {
+                                pstPub = conn.prepareStatement("insert into project_pub (bard_proj_id, pmid) values (?,?)");
+                                pstPub.setInt(1, bardProjId);
+                                pstPub.setInt(2, Integer.parseInt(pmid));
+                                pstPub.execute();
+                                pstPub.close();
+                            }
+                        }
                     }
                 }
                 if (runPst)
@@ -187,24 +210,23 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 if (annos.size() > 0) {
                     PreparedStatement pstAnnot = conn.prepareStatement("insert into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related, context_name, display_order) values (?,?,?,?,?,?,?,?,?,?,?)");
                     for (CAPAnnotation anno : annos) {
-                        pstAnnot.setString(1, anno.source);
-                        pstAnnot.setInt(2, bardProjId);  // TODO or should we use CAP project id?
-                        pstAnnot.setInt(3, anno.id);
-                        pstAnnot.setString(4, anno.key);
-                        pstAnnot.setString(5, anno.value);
-                        pstAnnot.setString(6, anno.extValueId); // anno_value_text
-                        pstAnnot.setString(7, anno.display);
-                        pstAnnot.setString(8, anno.contextRef); // context_name
+                        pstAnnot.setInt(1, bardProjId);
+                        pstAnnot.setInt(2, project.getProjectId().intValue());
+                        pstAnnot.setString(3, anno.source);
+                        pstAnnot.setString(4, "project");
+                        pstAnnot.setInt(5, anno.id);
+                        pstAnnot.setString(6, anno.key); // anno_value_text
+                        pstAnnot.setString(7, anno.value);
+                        pstAnnot.setString(8, anno.display); // context_name
                         pstAnnot.setString(9, anno.related); // put into related field
-                        pstAnnot.setString(10, anno.url);
+                        pstAnnot.setString(10, anno.contextRef);
                         pstAnnot.setInt(11, anno.displayOrder);
-
                         pstAnnot.addBatch();
                     }
-                    pstAnnot.executeBatch();
                     int[] updateCounts = pstAnnot.executeBatch();
                     conn.commit();
                     pstAnnot.close();
+                    log.info("\tLoaded " + updateCounts.length + " annotations (from " + annos.size() + " CAP annotations) for cap project id " + project.getProjectId());
                 }
 
                 // handle the experiments associated with this project
@@ -226,6 +248,8 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             log.error("Failed to update database with cap_proj_id=" + project.getProjectId());
             ex.printStackTrace();
         } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ParsingException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
     }

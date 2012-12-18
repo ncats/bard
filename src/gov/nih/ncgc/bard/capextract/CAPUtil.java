@@ -51,7 +51,7 @@ public class CAPUtil {
     }
 
 
-    public boolean insertPublication(Connection conn, String pmid) throws SQLException, IOException, ParsingException {
+    public static boolean insertPublication(Connection conn, String pmid) throws SQLException, IOException, ParsingException {
         // check to see if we already have a pub with this pmid
         PreparedStatement pst = conn.prepareStatement("select * from publication where pmid = " + pmid);
         ResultSet rs = pst.executeQuery();
