@@ -1,5 +1,11 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
@@ -25,6 +31,8 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -119,8 +127,40 @@ public class BARDProjectResource extends BARDResource<Project> {
         try {
             Project p = db.getProject(Long.valueOf(resourceId));
             if (p == null) throw new WebApplicationException(404);
-            String json = Util.toJson(p);
+            String json;
             if (countRequested) json = Util.toJson("1");
+            else {
+                json = Util.toJson(p);
+
+                if (expandEntries(expand)) {
+                    // need to update experiment and assy entries
+                    List<Assay> assays = new ArrayList<Assay>();
+                    for (Long aid : p.getAids()) assays.add(db.getAssayByAid(aid));
+                    List<Experiment> expts = new ArrayList<Experiment>();
+                    for (Long eid : p.getEids()) expts.add(db.getExperimentByExptId(eid));
+
+                    ObjectMapper mapper = new ObjectMapper();
+                    ArrayNode an = mapper.createArrayNode();
+                    for (Assay assay : assays) {
+                        an.add(mapper.valueToTree(assay));
+                    }
+                    ArrayNode en = mapper.createArrayNode();
+                    for (Experiment expt : expts) {
+                        en.add(mapper.valueToTree(expt));
+                    }
+
+                    JsonNode tree = mapper.valueToTree(p);
+                    ((ObjectNode)tree).put("eids", en);
+                    ((ObjectNode)tree).put("aids", an);
+
+                    Writer writer = new StringWriter();
+                    JsonFactory fac = new JsonFactory();
+                    JsonGenerator jsg = fac.createJsonGenerator(writer);
+                    mapper.writeTree(jsg, tree);
+                    json = writer.toString();
+                }
+            }
+
             db.closeConnection();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
