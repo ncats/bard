@@ -11,6 +11,7 @@ import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.tools.Util;
+import nu.xom.ParsingException;
 
 import javax.xml.bind.JAXBElement;
 import java.io.IOException;
@@ -141,6 +142,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                     }
                     // add annotation for document back to assay
                     annos.add(new CAPAnnotation(docId, assay.getAssayId().intValue(), docName, docType, "doc", docContent, docContent, "cap-doc", link.getHref(), 0, "assay", null));
+
                 }
             }
             if (runPst)
@@ -299,11 +301,48 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             conn.commit();
             pstAssay.close();
             pstAssayAnnot.close();
+
+            // insert documents if need be
+            PreparedStatement pstPub = conn.prepareStatement("select * from assay_pub where bard_assay_id = ?");
+            PreparedStatement pstPubLink = conn.prepareStatement("insert into assay_pub (bard_assay_id, pmid) values (?,?)");
+            for (CAPAnnotation anno : annos) {
+                if (anno.source.equals("cap-doc")) {
+                    String docType = anno.contextRef;
+                    String docContent = anno.value;
+                    if (docType.equals("Paper") && docContent.startsWith("http://www.ncbi.nlm.nih.gov/pubmed")) {
+                        String pmid = Util.getEntityIdFromUrl(docContent);
+                        boolean insstatus = CAPUtil.insertPublication(conn, pmid);
+                        if (insstatus) log.info("Inserted Pubmed publication " + pmid);
+                        else log.info("Found existing Pubmed publication " + pmid);
+
+                        // see if we should make a link in assay_pub
+                        pstPub.setInt(1, bardAssayId);
+                        ResultSet prs = pstPub.executeQuery();
+                        boolean linkExists = false;
+                        while (prs.next()) linkExists = true;
+                        pstPub.clearParameters();
+
+                        if (!linkExists) {
+                            pstPubLink.setInt(1, bardAssayId);
+                            pstPubLink.setInt(2, Integer.parseInt(pmid));
+                            pstPubLink.execute();
+                            pstPubLink.addBatch();
+                        }
+                    }
+                }
+            }
+            pstPubLink.executeBatch();
+            conn.commit();
+            pstPubLink.close();
+            pstPub.close();
+
             conn.close();
             log.info("\tInserted " + updateCounts.length + " annotations for cap aid " + capAssayId);
         } catch (SQLException e) {
             e.printStackTrace();
             log.error("Error inserting annotations for cap aid " + capAssayId + "\n" + e.getMessage());
+        } catch (ParsingException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
     }
 }
