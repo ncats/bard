@@ -1,14 +1,30 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.*;
+import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
+import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
+import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.capextract.jaxb.Project;
+import gov.nih.ncgc.bard.capextract.jaxb.ProjectExperiment;
+import gov.nih.ncgc.bard.tools.Util;
 
+import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -79,7 +95,8 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 //		}
 
                 // deal with project annotations
-                PreparedStatement pst = conn.prepareStatement("insert into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related, context_name, display_order) values (?,?,?,?,?,?,?,?,?,?,?)");
+                List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+                CAPDictionary dict = CAPConstants.getDictionary();
                 Contexts contexts = project.getContexts();
                 List<ContextType> contextTypes = contexts.getContext();
                 for (ContextType contextType : contextTypes) {
@@ -90,52 +107,104 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                     ContextType.ContextItems contextItems = contextType.getContextItems();
                     for (ContextItemType contextItemType : contextItems.getContextItem()) {
 
-                        pst.setInt(1, bardProjId);
-                        pst.setInt(2, project.getProjectId().intValue());
-                        pst.setString(3, "cap");
-                        pst.setString(4, "project");
-                        pst.setInt(5, contextId);
-
                         // dict id for the annotation key
                         String key = null;
                         AbstractContextItemType.AttributeId attr = contextItemType.getAttributeId();
                         if (attr != null) {
-                            String[] toks = attr.getLink().getHref().split("/");
-                            key = toks[toks.length - 1];
+                            key = Util.getEntityIdFromUrl(attr.getLink().getHref());
                         }
-                        pst.setString(6, key);
 
                         // dict id for the annotation value
+                        String valueUrl = null;
                         String value = null;
                         AbstractContextItemType.ValueId vc = contextItemType.getValueId();
                         if (vc != null) {
-                            String[] toks = vc.getLink().getHref().split("/");
-                            value = toks[toks.length - 1];
+                            value = Util.getEntityIdFromUrl(vc.getLink().getHref());
+                            valueUrl = dict.getNode(vc.getLabel()).getExternalUrl() + contextItemType.getExtValueId();
                         }
-                        pst.setString(7, value);
-
                         String valueDisplay = contextItemType.getValueDisplay();
-                        pst.setString(8, valueDisplay);
-
                         String related = null;
-                        if (contextItemType.getExtValueId() != null) related = contextItemType.getExtValueId();
-                        pst.setString(9, related);
-                        pst.setString(10, contextName);
-                        pst.setInt(11, contextItemType.getDisplayOrder());
 
-                        pst.addBatch();
+                        annos.add(new CAPAnnotation(contextId, bardProjId, valueDisplay, contextName, key, value, contextItemType.getExtValueId(), "cap-context", valueUrl, contextItemType.getDisplayOrder(), "project", related));
                     }
-                    pst.executeBatch();
                 }
 
                 // handle project steps
 
                 // handle project documents
+                PreparedStatement pstDoc = conn.prepareStatement("insert into cap_document (cap_doc_id, type, name, url) values (?, ?, ?, ?)");
+                boolean runPst = false;
                 for (Link link : project.getLink()) {
                     CAPConstants.CapResource res = CAPConstants.getResource(link.getType());
                     if (res != CAPConstants.CapResource.PROJECTDOC) continue;
-                    ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(res);
-                    if (handler != null) handler.process(link.getHref(), res);
+
+                    // for some reason unmarshalling doesn't work properly on assayDocument docs
+                    JAXBElement jaxbe = getResponse(link.getHref(), CAPConstants.getResource(link.getType()));
+                    DocumentType doc = (DocumentType) jaxbe.getValue();
+
+                    String docContent = doc.getDocumentContent();
+                    String docType = doc.getDocumentType(); // Description, Protocol, Comments, Paper, External URL, Other
+                    String docName = doc.getDocumentName();
+
+                    if ("Description".equals(docType)) {
+                    } else if ("Protocol".equals(docType)) {
+                    } else if ("Comments".equals(docType)) {
+                    } else {
+                        // hack to add cap project documents as annotations on a project
+                        int docId = Integer.parseInt(Util.getEntityIdFromUrl(link.getHref()));
+
+                        // check to see if document in cap_document
+                        // query the table by cap_doc_id
+                        boolean hasDoc = false;
+                        Statement query = conn.createStatement();
+                        query.execute("select cap_doc_id from cap_document where cap_doc_id=" + docId);
+                        ResultSet rs = query.getResultSet();
+                        while (rs.next()) {
+                            hasDoc = true;
+                        }
+                        rs.close();
+                        query.close();
+
+                        if (!hasDoc) {
+                            pstDoc.setInt(1, docId);
+                            pstDoc.setString(2, docType);
+                            pstDoc.setString(3, docName);
+                            pstDoc.setString(4, docContent);
+                            pstDoc.addBatch();
+                            runPst = true;
+                        }
+
+                        // add annotation for document back to project
+                        annos.add(new CAPAnnotation(docId, bardProjId, docName, docType, "doc", docContent, docContent, "cap-doc", link.getHref(), 0, "project", null));
+                    }
+                }
+                if (runPst)
+                    pstDoc.execute();
+                conn.commit();
+                pstDoc.close();
+
+                // store the annotations we've collected
+                if (annos.size() > 0) {
+                    PreparedStatement pstAnnot = conn.prepareStatement("insert into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related, context_name, display_order) values (?,?,?,?,?,?,?,?,?,?,?)");
+                    for (CAPAnnotation anno : annos) {
+                        pstAnnot.setString(1, anno.source);
+                        pstAnnot.setInt(2, bardProjId);  // TODO or should we use CAP project id?
+                        pstAnnot.setInt(3, anno.id);
+                        pstAnnot.setString(4, anno.key);
+                        pstAnnot.setString(5, anno.value);
+                        pstAnnot.setString(6, anno.extValueId); // anno_value_text
+                        pstAnnot.setString(7, anno.display);
+                        pstAnnot.setString(8, anno.contextRef); // context_name
+                        pstAnnot.setString(9, anno.related); // put into related field
+                        pstAnnot.setString(10, anno.url);
+                        pstAnnot.setInt(11, anno.displayOrder);
+
+                        pstAnnot.addBatch();
+                    }
+                    pstAnnot.executeBatch();
+                    int[] updateCounts = pstAnnot.executeBatch();
+                    conn.commit();
+                    pstAnnot.close();
                 }
 
                 // handle the experiments associated with this project
