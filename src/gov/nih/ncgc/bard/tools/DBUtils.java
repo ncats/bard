@@ -26,6 +26,15 @@ import gov.nih.ncgc.bard.search.Facet;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
+import nu.xom.Builder;
+import nu.xom.Document;
+import nu.xom.Nodes;
+import nu.xom.ParsingException;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.HttpHostConnectException;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -238,6 +247,58 @@ public class DBUtils {
             sb.append(buffer);
         }
         return sb.toString();
+    }
+
+    public boolean insertPublication(String pmid) throws SQLException, IOException, ParsingException {
+        // check to see if we already have a pub with this pmid
+        PreparedStatement pst = conn.prepareStatement("select * from publication where pmid = " + pmid);
+        ResultSet rs = pst.executeQuery();
+        boolean exists = false;
+        while (rs.next()) exists = true;
+        pst.close();
+        if (exists) return false;
+
+        String url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=" + pmid + "&rettype=xml";
+        HttpClient httpClient = new DefaultHttpClient();
+        HttpGet get = new HttpGet(url);
+        HttpResponse response;
+        try {
+            response = httpClient.execute(get);
+        } catch (HttpHostConnectException ex) {
+            ex.printStackTrace();
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException ie) {
+                ie.printStackTrace();
+            }
+            httpClient = new DefaultHttpClient();
+            response = httpClient.execute(get);
+        }
+        if (response.getStatusLine().getStatusCode() != 200 && response.getStatusLine().getStatusCode() != 206)
+            throw new IOException("Got a HTTP " + response.getStatusLine().getStatusCode() + " for " + url);
+
+        Builder builder = new Builder();
+        Document doc = builder.build(response.getEntity().getContent());
+
+        String stitle = null, sabs = null, sdoi = null;
+
+        Nodes title = doc.query("/PubmedArticleSet/PubmedArticle/MedlineCitation/Article/ArticleTitle");
+        if (title.size() > 0) stitle = title.get(0).getValue();
+
+        Nodes abs = doc.query("/PubmedArticleSet/PubmedArticle/MedlineCitation/Article/Abstract/AbstractText");
+        if (abs.size() > 0) sabs = abs.get(0).getValue();
+
+        Nodes doi = doc.query("/PubmedArticleSet/PubmedArticle/PubmedData/ArticleIdList/ArticleId[idType='doi']");
+        if (doi.size() > 0) sdoi = doi.get(0).getValue();
+
+        pst = conn.prepareStatement("insert into publication (pmid, doi, title, abstract) values (?,?,?,?)");
+        pst.setInt(1, Integer.parseInt(pmid));
+        pst.setString(2, sdoi);
+        pst.setString(3, stitle);
+        pst.setString(4, sabs);
+        pst.execute();
+        pst.close();
+        return true;
     }
 
     public Map<String, String> getCacheStatistics() {
@@ -4373,8 +4434,10 @@ public class DBUtils {
                 String anno_key = rs.getString("anno_key");
                 String anno_value = rs.getString("anno_value");
                 String anno_display = rs.getString("anno_display");
+                int displayOrder = rs.getInt("display_order");
                 String source = rs.getString("source");
-                String url = null;//rs.getString("url");
+                String entity = rs.getString("entity");
+                String url = rs.getString("url");
 
                 String related = rs.getString("related");
                 String extValueId = null;
@@ -4383,7 +4446,7 @@ public class DBUtils {
                     if (toks.length == 2) extValueId = toks[1];
                 }
                 // TODO Updated the related annotations field to support grouping
-                CAPAnnotation anno = new CAPAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source, url);
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, null, anno_key, anno_value, extValueId, source, url, displayOrder, entity, related);
                 annos.add(anno);
             }
             rs.close();
@@ -4420,6 +4483,8 @@ public class DBUtils {
                 String anno_value = rs.getString("anno_value");
                 String anno_display = rs.getString("anno_display");
                 String source = rs.getString("source");
+                int displayOrder = rs.getInt("display_order");
+                String entity = rs.getString("entity");
 
                 String related = rs.getString("related");
                 String extValueId = null;
@@ -4427,7 +4492,7 @@ public class DBUtils {
                     String[] toks = related.split("\\|");
                     if (toks.length == 2) extValueId = toks[1];
                 }
-                CAPAnnotation anno = new CAPAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source);
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, null, anno_key, anno_value, extValueId, source, null, displayOrder, entity, related);
                 annos.add(anno);
             }
             rs.close();
@@ -4847,9 +4912,12 @@ public class DBUtils {
         con.setAutoCommit(false);
         db.setConnection(con);
 
-        String etag = db.newETag("test", Compound.class.getName());
-        int cnt = db.putETag(etag, 1l, 2l, 3l, 4l, 5l);
-        System.out.println(etag + ": " + cnt);
+        boolean status = db.insertPublication("20838965");
+        System.out.println("status = " + status);
+
+//        String etag = db.newETag("test", Compound.class.getName());
+//        int cnt = db.putETag(etag, 1l, 2l, 3l, 4l, 5l);
+//        System.out.println(etag + ": " + cnt);
         db.closeConnection();
     }
 }
