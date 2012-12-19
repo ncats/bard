@@ -1,8 +1,15 @@
 package gov.nih.ncgc.bard.capextract.handler;
-
-
-import gov.nih.ncgc.bard.capextract.*;
-import gov.nih.ncgc.bard.capextract.jaxb.*;
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
+import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.Assay;
+import gov.nih.ncgc.bard.capextract.jaxb.AssayContexType;
+import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.tools.Util;
 import nu.xom.ParsingException;
 
