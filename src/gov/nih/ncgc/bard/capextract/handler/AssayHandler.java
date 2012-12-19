@@ -206,6 +206,8 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                     related = "measureRefs:" + Util.join(measureRefs, ",");
             }
 
+            if (context.getAssayContextItems() == null) continue;
+
             for (AssayContextItemType contextItem : context.getAssayContextItems().getAssayContextItem()) {
                 int displayOrder = contextItem.getDisplayOrder();
                 String valueDisplay = contextItem.getValueDisplay();
