@@ -1,6 +1,8 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,10 +44,16 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Prototype of MLBD REST resources.
@@ -73,9 +81,12 @@ public class BARDAssayResource extends BARDResource<Assay> {
         log = LoggerFactory.getLogger(this.getClass());
     }
 
-    public Class<Assay> getEntityClass () { return Assay.class; }
-    public String getResourceBase () { 
-        return BARDConstants.API_BASE+"/assays";
+    public Class<Assay> getEntityClass() {
+        return Assay.class;
+    }
+
+    public String getResourceBase() {
+        return BARDConstants.API_BASE + "/assays";
     }
 
     @GET
@@ -149,8 +160,8 @@ public class BARDAssayResource extends BARDResource<Assay> {
 
             long start = System.currentTimeMillis();
             List<Assay> assays = db.searchForEntity(filter, skip, top, Assay.class);
-            log.info(getRequestURI()+"..."+assays.size()+" in "
-                     +String.format("%1$.3fs", 1.e-3*(System.currentTimeMillis()-start)));
+            log.info(getRequestURI() + "..." + assays.size() + " in "
+                    + String.format("%1$.3fs", 1.e-3 * (System.currentTimeMillis() - start)));
 
             if (countRequested) return Response.ok(String.valueOf(assays.size()), MediaType.TEXT_PLAIN).build();
             if (expandEntries) {
@@ -158,7 +169,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
                 start = System.currentTimeMillis();
 
                 String json = getExpandedJson(linkedEntity, null, db).toString();
-                log.info("## Generating json in "+String.format("%1$.3fs", 1.e-3*(System.currentTimeMillis()-start)));
+                log.info("## Generating json in " + String.format("%1$.3fs", 1.e-3 * (System.currentTimeMillis() - start)));
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
             } else {
                 List<String> links = new ArrayList<String>();
@@ -321,6 +332,14 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
 
+    private boolean isinteger(String i) {
+        try {
+            new BigInteger(i);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        return true;
+    }
     @GET
     @Path("/{aid}/annotations")
     public Response getAnnotations(@PathParam("aid") Long resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
@@ -330,22 +349,58 @@ public class BARDAssayResource extends BARDResource<Assay> {
         try {
             a = db.getAssayAnnotations(resourceId);
             if (a == null) throw new WebApplicationException(404);
+
+            // lets group these annotations and construct our JSON response
             CAPDictionaryElement node;
-            List<CAPAnnotation> copy = 
-                new ArrayList<CAPAnnotation>();
-            for (CAPAnnotation as : a) {
-                CAPAnnotation aa = as.cloneObject();
-                if (aa.key != null) {
-                    node = dict.getNode(new BigInteger(aa.key));
-                    aa.key = node != null ? node.getLabel() : aa.key;
+
+            Map<Integer, List<CAPAnnotation>> contexts = new HashMap<Integer, List<CAPAnnotation>>();
+            for (CAPAnnotation anno : a) {
+                Integer id = anno.id;
+
+                // go from dict key to label
+                if (anno.key != null && isinteger(anno.key)) {
+                    node = dict.getNode(new BigInteger(anno.key));
+                    anno.key = node != null ? node.getLabel() : anno.key;
                 }
-                if (aa.value != null) {
-                    node = dict.getNode(new BigInteger(aa.value));
-                    aa.value = node != null ? node.getLabel() : aa.value;
+                if (anno.value != null && isinteger(anno.value)) {
+                    node = dict.getNode(new BigInteger(anno.value));
+                    anno.value = node != null ? node.getLabel() : anno.value;
                 }
-                copy.add(aa);
+                
+                if (contexts.containsKey(id)) {
+                    List<CAPAnnotation> la = contexts.get(id);
+                    la.add(anno);
+                    contexts.put(id, la);
+                } else {
+                    List<CAPAnnotation> la = new ArrayList<CAPAnnotation>();
+                    la.add(anno);
+                    contexts.put(id, la);
+                }
             }
-            String json = Util.toJson(copy);
+
+            ObjectMapper mapper = new ObjectMapper();
+            ArrayNode toplevel = mapper.createArrayNode();
+            for (Integer contextId : contexts.keySet()) {
+                List<CAPAnnotation> comps = contexts.get(contextId);
+                Collections.sort(comps, new Comparator<CAPAnnotation>() {
+                    @Override
+                    public int compare(CAPAnnotation o1, CAPAnnotation o2) {
+                        if (o1.displayOrder == o2.displayOrder) return 0;
+                        return o1.displayOrder < o2.displayOrder ? -1 : 1;
+                    }
+                });
+                JsonNode arrayNode = mapper.valueToTree(comps);
+                ObjectNode n = mapper.createObjectNode();
+                n.put("id", comps.get(0).id);
+                n.put("name", comps.get(0).contextRef);
+                n.put("comps", arrayNode);
+                toplevel.add(n);
+            }
+            Writer writer = new StringWriter();
+            JsonFactory fac = new JsonFactory();
+            JsonGenerator jsg = fac.createJsonGenerator(writer);
+            mapper.writeTree(jsg, toplevel);
+            String json = writer.toString();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
@@ -507,10 +562,10 @@ public class BARDAssayResource extends BARDResource<Assay> {
     @GET
     @Path("/{aid}/compounds")
     public Response getAssayCompounds(@PathParam("aid") String resourceId,
-                                           @QueryParam("filter") String filter,
-                                           @QueryParam("expand") String expand,
-                                           @QueryParam("skip") Integer skip,
-                                           @QueryParam("top") Integer top) {
+                                      @QueryParam("filter") String filter,
+                                      @QueryParam("expand") String expand,
+                                      @QueryParam("skip") Integer skip,
+                                      @QueryParam("top") Integer top) {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
@@ -581,10 +636,10 @@ public class BARDAssayResource extends BARDResource<Assay> {
     @GET
     @Path("/{aid}/substances")
     public Response getAssaySubstances(@PathParam("aid") String resourceId,
-                                      @QueryParam("filter") String filter,
-                                      @QueryParam("expand") String expand,
-                                      @QueryParam("skip") Integer skip,
-                                      @QueryParam("top") Integer top) {
+                                       @QueryParam("filter") String filter,
+                                       @QueryParam("expand") String expand,
+                                       @QueryParam("skip") Integer skip,
+                                       @QueryParam("top") Integer top) {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
@@ -666,8 +721,8 @@ public class BARDAssayResource extends BARDResource<Assay> {
         return Response.temporaryRedirect(ub.build()).build();
     }
 
-    String toJson (DBUtils db, List<Assay> assays,
-                   boolean annotation) throws Exception {
+    String toJson(DBUtils db, List<Assay> assays,
+                  boolean annotation) throws Exception {
         if (!annotation) {
             return Util.toJson(assays);
         }
@@ -696,13 +751,12 @@ public class BARDAssayResource extends BARDResource<Assay> {
                     }
                 }
                 n.putPOJO("annotations", a);
-            }
-            catch (Exception ex) {
-                log.warn("Can't get annotation for assay "+aid);
+            } catch (Exception ex) {
+                log.warn("Can't get annotation for assay " + aid);
             }
         }
 
-        return mapper.writeValueAsString(array);        
+        return mapper.writeValueAsString(array);
     }
 
     @Override
@@ -716,11 +770,11 @@ public class BARDAssayResource extends BARDResource<Assay> {
         DBUtils db = new DBUtils();
         try {
             List<Assay> assays = db.getAssaysByETag
-                (skip != null ? skip : -1, top != null ? top : -1, resourceId);
+                    (skip != null ? skip : -1, top != null ? top : -1, resourceId);
 
             String json = toJson
-                (db, assays, expand != null
-                 && expand.toLowerCase().equals("true"));
+                    (db, assays, expand != null
+                            && expand.toLowerCase().equals("true"));
 
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (Exception e) {

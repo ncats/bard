@@ -4350,7 +4350,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a, bard_assay b where b.bard_assay_id = ? and a.entity_id = b.cap_assay_id and a.source in ('cap', 'bao')");
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity_id = ? and source != 'cap-old'");
         try {
             pst.setLong(1, bardAssayId);
             ResultSet rs = pst.executeQuery();
@@ -4364,6 +4364,7 @@ public class DBUtils {
                 String source = rs.getString("source");
                 String entity = rs.getString("entity");
                 String url = rs.getString("url");
+                String contextName = rs.getString("context_name");
 
                 String related = rs.getString("related");
                 String extValueId = null;
@@ -4372,7 +4373,7 @@ public class DBUtils {
                     if (toks.length == 2) extValueId = toks[1];
                 }
                 // TODO Updated the related annotations field to support grouping
-                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, null, anno_key, anno_value, extValueId, source, url, displayOrder, entity, related);
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, contextName, anno_key, anno_value, extValueId, source, url, displayOrder, entity, related);
                 annos.add(anno);
             }
             rs.close();
