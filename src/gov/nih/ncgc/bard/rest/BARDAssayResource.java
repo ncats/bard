@@ -11,14 +11,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
-import gov.nih.ncgc.bard.entity.Publication;
-import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
@@ -29,31 +22,14 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.math.BigInteger;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Prototype of MLBD REST resources.
@@ -379,7 +355,9 @@ public class BARDAssayResource extends BARDResource<Assay> {
             }
 
             ObjectMapper mapper = new ObjectMapper();
-            ArrayNode toplevel = mapper.createArrayNode();
+            ArrayNode docNode = mapper.createArrayNode();
+            ArrayNode contextNode = mapper.createArrayNode();
+            ArrayNode measureNode = mapper.createArrayNode();
             for (Integer contextId : contexts.keySet()) {
                 List<CAPAnnotation> comps = contexts.get(contextId);
                 Collections.sort(comps, new Comparator<CAPAnnotation>() {
@@ -394,12 +372,20 @@ public class BARDAssayResource extends BARDResource<Assay> {
                 n.put("id", comps.get(0).id);
                 n.put("name", comps.get(0).contextRef);
                 n.put("comps", arrayNode);
-                toplevel.add(n);
+
+                if (comps.get(0).source.equals("cap-doc")) docNode.add(n);
+                else if (comps.get(0).source.equals("cap-context")) contextNode.add(n);
+                else if (comps.get(0).source.equals("cap-measure")) measureNode.add(n);
             }
+            ObjectNode topLevel = mapper.createObjectNode();
+            topLevel.put("contexts", contextNode);
+            topLevel.put("measures", measureNode);
+            topLevel.put("docs", docNode);
+
             Writer writer = new StringWriter();
             JsonFactory fac = new JsonFactory();
             JsonGenerator jsg = fac.createJsonGenerator(writer);
-            mapper.writeTree(jsg, toplevel);
+            mapper.writeTree(jsg, topLevel);
             String json = writer.toString();
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
