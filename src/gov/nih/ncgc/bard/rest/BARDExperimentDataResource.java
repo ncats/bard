@@ -3,8 +3,10 @@ package gov.nih.ncgc.bard.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.FitModel;
+import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
@@ -30,7 +32,10 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -128,15 +133,15 @@ public class BARDExperimentDataResource implements IBARDResource {
 
     /**
      * Get multiple experiment data objects via POST'ing a list of ids.
-     * 
+     * <p/>
      * Currently this method ignores the TID specification of an experiment data identifier. That
      * is it only considers identifiers of the form <code>eid.sid</code>.
-     *
+     * <p/>
      * The return value only contains experiment data for the identifiers that actually had
      * experiment data. That is, the number of experiment data entries in the response may be
      * less than the number of identifiers specified.
      *
-     * @param ids A comma separated list of experiment data identifiers
+     * @param ids    A comma separated list of experiment data identifiers
      * @param filter A filter string. Currently ignored
      * @param expand If <code>true</code> show detailed respose, else a compact response. Currently ignored
      * @return
@@ -147,33 +152,138 @@ public class BARDExperimentDataResource implements IBARDResource {
     @Consumes("application/x-www-form-urlencoded")
     public Response getExptDataByIds(@FormParam("ids") String ids,
                                      @FormParam("eids") String eids,
-                                     @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws IOException, SQLException {
-        if (ids == null || ids.trim().equals("")) throw new BadRequestException("Must specify the ids form field");
-        //System.out.println("@@@@ foo");
+                                     @FormParam("aids") String aids,
+                                     @FormParam("pids") String pids,
+                                     @QueryParam("filter") String filter,
+                                     @QueryParam("top") Integer top,
+                                     @QueryParam("skip") Integer skip,
+                                     @QueryParam("expand") String expand) throws IOException, SQLException {
         List<ExperimentData> edlist = new ArrayList<ExperimentData>();
+        List<String> edids = null;
         DBUtils db = new DBUtils();
 
-        if (eids != null) { // we assume ids == SID list and eids == EID list
-            String[] sida = ids.split(",");
-            String[] eida = eids.split(",");
-            for (String eid : eida) {
-                List<String> idl = new ArrayList<String>();
-                for (String sid : sida) idl.add(eid + "." + sid);
-                List<ExperimentData> tmp = db.getExperimentDataByDataId(idl);
-                edlist.addAll(tmp);
-            }
+        if (skip == null) skip = -1;
+        if (top == null) top = -1;
+
+        if (ids != null && eids == null && aids == null && pids == null) {
+            // in this case, ids is of the form eid.sid
+            edids = new ArrayList<String>();
+            Collections.addAll(edids, ids.split(","));
+        } else if (ids != null && (eids != null || aids != null || pids != null)) {
+            // SID's specified and also specific experiment, assay or project
+            // is specified in this case, I don't think we need to do any
+            // filtering because we've already got a list of SIDs
+            if (eids != null) edids = getEdidFromExperiments(ids, eids.split(","));
+            else if (aids != null) edids = getEdidFromAssays(ids, aids.split(","));
+            else if (pids != null) edids = getEdidFromProjects(ids, pids.split(","));
+        } else if (eids != null || aids != null || pids != null) {
+            // no SID's specified. We have to pull relevant SID's from experiment, assays or projects
+            if (eids != null) edids = getAllEdidFromExperiments(eids.split(","), skip, top, filter);
+            else if (aids != null) edids = getAllEdidFromAssays(aids.split(","), skip, top, filter);
+//            else if (pids != null) edids = getAllEdidFromProjects(pids, filter);
         } else {
-            String[] toks = ids.split(",");
-            try {
-                edlist = getExperimentData(toks, filter);
-            } catch (SQLException e) {
-                return Response.status(500).entity("Error while retrieving experiment data for: " + ids).type(MediaType.TEXT_PLAIN).build();
+            db.closeConnection();
+            throw new BadRequestException("If no SID's are specified, must provide one or experiment, assay or project identifiers");
+        }
+
+        // pull in the actual data - at this point we should have the filtered (but
+        // not sorted) list of experiment data ids
+        if (edids != null && edids.size() > 0) {
+
+            // we have *all* edids from the expts or assays specified. If skip and top are
+            // given we extract the relevant subset. This is currently broken as we should
+            // extract the subset after the sort and filter stage applied to expt data
+            // entities
+            if (skip == -1) skip = 0;
+            if (top > 0) {
+                List<String> tmp = new ArrayList<String>();
+                for (int i = skip; i < skip+top; i++) tmp.add(edids.get(i));
+                edids = tmp;
             }
+
+            // group the edids by experiment since the db method
+            // assumes all SIDs are from a given experiment
+            Map<String, List<String>> map = new HashMap<String, List<String>>();
+            for (String edid : edids) {
+                String eid = edid.split("\\.")[0];
+                if (map.containsKey(eid)) {
+                    List<String> l = map.get(eid);
+                    l.add(edid);
+                    map.put(eid, l);
+                } else {
+                    List<String> l = new ArrayList<String>();
+                    l.add(edid);
+                    map.put(eid, l);
+                }
+            }
+
+            edlist = new ArrayList<ExperimentData>();
+            for (String eid : map.keySet()) {
+                edlist.addAll(db.getExperimentDataByDataId(map.get(eid)));
+            }
+
+            // we should do filter/sort on edlist at this point
+
         }
         db.closeConnection();
         if (edlist.size() == 0)
             return Response.status(404).entity("No data available for ids: " + ids).type(MediaType.TEXT_PLAIN).build();
         else return Response.ok(Util.toJson(edlist)).type(MediaType.APPLICATION_JSON).build();
+    }
+
+    private List<String> getAllEdidFromAssays(String[] aids, int skip, int top, String filter) throws SQLException {
+        List<String> edids = new ArrayList<String>();
+        DBUtils db = new DBUtils();
+        for (String aid : aids) {
+            List<Long> eids = db.getAssayByAid(Long.parseLong(aid)).getExperiments();
+            String[] s = new String[eids.size()];
+            for (int i = 0; i < eids.size(); i++) s[i] = eids.get(i).toString();
+            edids.addAll(getAllEdidFromExperiments(s, skip, top, filter));
+        }
+        db.closeConnection();
+        return edids;
+    }
+
+    private List<String> getAllEdidFromExperiments(String[] eids, int skip, int top, String filter) throws SQLException {
+        List<String> edids = new ArrayList<String>();
+        DBUtils db = new DBUtils();
+        for (String eid : eids) {
+            List<Long> sids = db.getExperimentSids(Long.parseLong(eid), -1, -1, false);
+            for (Long sid : sids) edids.add(eid + "." + sid);
+        }
+        db.closeConnection();
+        return edids;
+    }
+
+    private List<String> getEdidFromProjects(String ids, String[] pids) throws SQLException {
+        DBUtils db = new DBUtils();
+        List<Long> eids = new ArrayList<Long>();
+        for (String pid : pids) {
+            Project project = db.getProject(Long.parseLong(pid));
+            eids.addAll(project.getEids());
+        }
+        db.closeConnection();
+        return getEdidFromExperiments(ids, eids.toArray(new String[0]));
+    }
+
+    private List<String> getEdidFromAssays(String ids, String[] aids) throws SQLException {
+        DBUtils db = new DBUtils();
+        List<Long> eids = new ArrayList<Long>();
+        for (String aid : aids) {
+            Assay assay = db.getAssayByAid(Long.parseLong(aid));
+            eids.addAll(assay.getExperiments());
+        }
+        db.closeConnection();
+        return getEdidFromExperiments(ids, eids.toArray(new String[0]));
+    }
+
+    private List<String> getEdidFromExperiments(String ids, String[] eida) {
+        String[] sida = ids.split(",");
+        List<String> edids = new ArrayList<String>();
+        for (String sid : sida) {
+            for (String eid : eida) edids.add(eid + "." + sid);
+        }
+        return edids;
     }
 
     private List<ExperimentData> getExperimentData(String[] edids, String filter) throws SQLException {
@@ -199,8 +309,8 @@ public class BARDExperimentDataResource implements IBARDResource {
         db.closeConnection();
         return edlist;
     }
-    
-    
+
+
     @GET
     @Path("/{edid}")
     public Response getResources(@PathParam("edid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
@@ -211,20 +321,18 @@ public class BARDExperimentDataResource implements IBARDResource {
             String[] tokens = resourceId.split("\\.");
             if (tokens.length < 2) {
 
-                throw new BadRequestException("Bogus experiment data id: "+resourceId);
-            }
-            else if (tokens.length == 2) {
+                throw new BadRequestException("Bogus experiment data id: " + resourceId);
+            } else if (tokens.length == 2) {
                 exptId = resourceId;
-            }
-            else {
-                exptId = tokens[0]+"."+tokens[1];
+            } else {
+                exptId = tokens[0] + "." + tokens[1];
             }
             //System.err.println("** "+httpServletRequest.getPathInfo()+": resourceId="+resourceId+" exptId="+exptId);
 
             experimentData = db.getExperimentDataByDataId(exptId);
 
             if (experimentData == null || experimentData.getExptDataId() == null)
-                return Response.status(404).entity("No data for "+resourceId).type("text/plain").build();
+                return Response.status(404).entity("No data for " + resourceId).type("text/plain").build();
 
             if (tokens.length == 2) {
                 String json = Util.toJson(experimentData);
@@ -233,10 +341,10 @@ public class BARDExperimentDataResource implements IBARDResource {
 
             int tid = Integer.parseInt(tokens[2]);
             if (tid != 0) { // only keep the specific entry from readout[]
-                FitModel m = experimentData.getReadouts().get(tid-1);
+                FitModel m = experimentData.getReadouts().get(tid - 1);
                 experimentData.setReadouts(Arrays.asList(m));
             }
-            ObjectMapper mapper = new ObjectMapper ();
+            ObjectMapper mapper = new ObjectMapper();
             ObjectNode root = mapper.createObjectNode();
             root.putPOJO("exptdata", experimentData);
 
@@ -263,7 +371,7 @@ public class BARDExperimentDataResource implements IBARDResource {
                     }
 
                     if (res == null) {
-                        logger.info("no matching result object for tid="+tid);
+                        logger.info("no matching result object for tid=" + tid);
                         continue;
                     }
 
@@ -271,15 +379,14 @@ public class BARDExperimentDataResource implements IBARDResource {
                     node.putPOJO("result", d);
                     Object value = res.getValue();
                     if (value instanceof String) {
-                        value = ((String)value).replaceAll("\"", "");
+                        value = ((String) value).replaceAll("\"", "");
                         if ("".equals(value)) {
                             value = null;
                         }
                     }
                     node.putPOJO("value", value);
                 }
-            }
-            else {
+            } else {
                 AssayDefinitionObject def = null;
                 for (AssayDefinitionObject d : ado) {
                     if (tid == Integer.parseInt(d.getTid())) {
@@ -300,9 +407,9 @@ public class BARDExperimentDataResource implements IBARDResource {
                 node.putPOJO("result", def);
 
                 if ("DoseResponse".equals(def.getType())) {
-                    DoseResponseResultObject drObj= null;
-                    for (DoseResponseResultObject dr : 
-                             experimentData.getDr()) {
+                    DoseResponseResultObject drObj = null;
+                    for (DoseResponseResultObject dr :
+                            experimentData.getDr()) {
                         if (tid == Integer.parseInt(dr.getTid())) {
                             drObj = dr;
                             break;
@@ -310,11 +417,10 @@ public class BARDExperimentDataResource implements IBARDResource {
                     }
 
                     node.putPOJO("value", drObj);
-                }
-                else {
+                } else {
                     Object value = res.getValue();
                     if (value instanceof String) {
-                        value = ((String)value).replaceAll("\"", "");
+                        value = ((String) value).replaceAll("\"", "");
                         if ("".equals(value)) {
                             value = null;
                         }
@@ -325,10 +431,9 @@ public class BARDExperimentDataResource implements IBARDResource {
 
             String json = mapper.writeValueAsString(root);
             //System.err.println("** JSON: "+json);
-            
+
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
-        } 
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             throw new WebApplicationException(e, 500);
         } finally {
