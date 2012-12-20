@@ -180,7 +180,6 @@ public class BARDExperimentDataResource implements IBARDResource {
             // no SID's specified. We have to pull relevant SID's from experiment, assays or projects
             if (eids != null) edids = getAllEdidFromExperiments(eids.split(","), skip, top, filter);
             else if (aids != null) edids = getAllEdidFromAssays(aids.split(","), skip, top, filter);
-//            else if (pids != null) edids = getAllEdidFromProjects(pids, filter);
         } else {
             db.closeConnection();
             throw new BadRequestException("If no SID's are specified, must provide one or experiment, assay or project identifiers");
@@ -222,7 +221,7 @@ public class BARDExperimentDataResource implements IBARDResource {
                 edlist.addAll(db.getExperimentDataByDataId(map.get(eid)));
             }
 
-            // we should do filter/sort on edlist at this point
+            // we should do sort on edlist at this point
 
         }
         db.closeConnection();
@@ -250,6 +249,8 @@ public class BARDExperimentDataResource implements IBARDResource {
         for (String eid : eids) {
             List<Long> sids = db.getExperimentSids(Long.parseLong(eid), -1, -1, false);
             for (Long sid : sids) edids.add(eid + "." + sid);
+
+            // we should be filtering SID's here
         }
         db.closeConnection();
         return edids;
