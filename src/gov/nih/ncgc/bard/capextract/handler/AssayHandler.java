@@ -142,7 +142,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                     }
 
                     // add annotation for document back to assay
-                    annos.add(new CAPAnnotation(docId, assay.getAssayId().intValue(), docName, docType, "doc", docContent, docContent, "cap-doc", link.getHref(), 0, "assay", null));
+                    annos.add(new CAPAnnotation(docId, assay.getAssayId().intValue(), docName, docType, "doc", docContent, docContent, "cap-doc", null, 0, "assay", null));
 
                 }
             }
