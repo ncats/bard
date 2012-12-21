@@ -161,6 +161,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
     @Path("/")
     @Consumes("application/x-www-form-urlencoded")
     public Response getExptDataByIds(@FormParam("ids") String ids,
+                                     @FormParam("cids") String cids,
                                      @FormParam("eids") String eids,
                                      @FormParam("aids") String aids,
                                      @FormParam("pids") String pids,
@@ -175,18 +176,44 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
         if (skip == null) skip = -1;
         if (top == null) top = -1;
 
+        if (cids != null) {
+            // if CIDs specified we get back corresponding SIDs and
+            // then set them in the ids variable. Implies that that
+            // if CIDs are supplied, ids is ignored
+            List<Long> sids = new ArrayList<Long>();
+            String[] toks = cids.split(",");
+            for (String cid : toks) sids.addAll(db.getSidsByCid(Long.parseLong(cid)));
+            ids = Util.join(sids, ",");
+            logger.info("CIDs were specified. Converted " + toks.length + " CIDs to " + sids.size() + " SIDs");
+        }
+
         if (ids != null && eids == null && aids == null && pids == null) {
-            // in this case, ids is of the form eid.sid
+            // in this case, id's can be simple SID's in which case we have
+            // to find out which experiments they are tested in. Or else, they
+            // are of the form eid.sid and we don't need to do anything more
             edids = new ArrayList<String>();
-            Collections.addAll(edids, ids.split(","));
+            if (ids.indexOf(".") > 0) {
+                Collections.addAll(edids, ids.split(","));
+                logger.info("EID.SID specified.");
+            } else {
+                int nexpt = 0;
+                for (String id : ids.split(",")) {
+                    List<Long> sEids = db.getSubstanceExperimentIds(Long.parseLong(id), -1, -1);
+                    for (Long asEid : sEids) edids.add(asEid + "." + id);
+                    nexpt += sEids.size();
+                }
+                logger.info("SIDs specified. Converted to " + edids.size() + " EID.SIDs across " + nexpt + " experiments");
+            }
         } else if (ids != null && (eids != null || aids != null || pids != null)) {
             // SID's specified and also specific experiment, assay or project
             // is specified in this case, I don't think we need to do any
             // filtering because we've already got a list of SIDs
-            if (eids != null) edids = getEdidFromExperiments(ids, eids.split(","));
-            else if (aids != null) edids = getEdidFromAssays(ids, aids.split(","));
-            else if (pids != null) edids = getEdidFromProjects(ids, pids.split(","));
+            logger.info("SIDs specified along with experiments, assays or projects");
+            if (eids != null) edids = getEdidFromExperiments(ids.split(","), eids.split(","));
+            else if (aids != null) edids = getEdidFromAssays(ids.split(","), aids.split(","));
+            else if (pids != null) edids = getEdidFromProjects(ids.split(","), pids.split(","));
         } else if (eids != null || aids != null || pids != null) {
+            logger.info("No SIDs specified. Will retrieve all from experiments, assays or projects");
             // no SID's specified. We have to pull relevant SID's from experiment, assays or projects
             if (eids != null) edids = getAllEdidFromExperiments(eids.split(","), skip, top, filter);
             else if (aids != null) edids = getAllEdidFromAssays(aids.split(","), skip, top, filter);
@@ -206,7 +233,9 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
             if (skip == -1) skip = 0;
             if (top > 0) {
                 List<String> tmp = new ArrayList<String>();
-                for (int i = skip; i < skip+top; i++) tmp.add(edids.get(i));
+                int ttop = top;
+                if (ttop > edids.size()) ttop = edids.size();
+                for (int i = skip; i < ttop; i++) tmp.add(edids.get(i));
                 edids = tmp;
             }
 
@@ -270,7 +299,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
         return edids;
     }
 
-    private List<String> getEdidFromProjects(String ids, String[] pids) throws SQLException {
+    private List<String> getEdidFromProjects(String[] ids, String[] pids) throws SQLException {
         DBUtils db = new DBUtils();
         List<Long> eids = new ArrayList<Long>();
         for (String pid : pids) {
@@ -281,7 +310,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
         return getEdidFromExperiments(ids, eids.toArray(new String[0]));
     }
 
-    private List<String> getEdidFromAssays(String ids, String[] aids) throws SQLException {
+    private List<String> getEdidFromAssays(String[] ids, String[] aids) throws SQLException {
         DBUtils db = new DBUtils();
         List<Long> eids = new ArrayList<Long>();
         for (String aid : aids) {
@@ -292,10 +321,9 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
         return getEdidFromExperiments(ids, eids.toArray(new String[0]));
     }
 
-    private List<String> getEdidFromExperiments(String ids, String[] eida) {
-        String[] sida = ids.split(",");
+    private List<String> getEdidFromExperiments(String[] ids, String[] eida) {
         List<String> edids = new ArrayList<String>();
-        for (String sid : sida) {
+        for (String sid : ids) {
             for (String eid : eida) edids.add(eid + "." + sid);
         }
         return edids;
