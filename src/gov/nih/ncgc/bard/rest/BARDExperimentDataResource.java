@@ -160,7 +160,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
     @POST
     @Path("/")
     @Consumes("application/x-www-form-urlencoded")
-    public Response getExptDataByIds(@FormParam("ids") String ids,
+    public Response getExptDataByIds(@FormParam("sids") String ids,
                                      @FormParam("cids") String cids,
                                      @FormParam("eids") String eids,
                                      @FormParam("aids") String aids,
