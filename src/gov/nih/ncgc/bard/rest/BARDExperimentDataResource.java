@@ -47,7 +47,7 @@ import java.util.logging.Logger;
  * @author Rajarshi Guha
  */
 @Path("/exptdata")
-public class BARDExperimentDataResource implements IBARDResource {
+public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
     static final Logger logger =
             Logger.getLogger(BARDExperimentDataResource.class.getName());
 
@@ -60,6 +60,16 @@ public class BARDExperimentDataResource implements IBARDResource {
     HttpServletRequest httpServletRequest;
     @Context
     HttpHeaders headers;
+
+    @Override
+    public Class<ExperimentData> getEntityClass() {
+        return ExperimentData.class;
+    }
+
+    @Override
+    public String getResourceBase() {
+        return BARDConstants.API_BASE + "/exptdata";
+    }
 
 
     @GET
@@ -198,6 +208,10 @@ public class BARDExperimentDataResource implements IBARDResource {
                 List<String> tmp = new ArrayList<String>();
                 for (int i = skip; i < skip+top; i++) tmp.add(edids.get(i));
                 edids = tmp;
+            }
+
+            if (countRequested) {
+                return Response.ok(String.valueOf(edids.size()), MediaType.TEXT_PLAIN).build();
             }
 
             // group the edids by experiment since the db method
@@ -446,4 +460,5 @@ public class BARDExperimentDataResource implements IBARDResource {
         }
 
     }
+
 }
