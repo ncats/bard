@@ -1882,44 +1882,47 @@ public class DBUtils {
         try {
             pst.setLong(1, bardExptId);
             ResultSet rs = pst.executeQuery();
-            Experiment e = new Experiment();
+            Experiment e = null;
             if (rs.next()) {
-                e.setExptId(bardExptId);
-                e.setAssayId(rs.getLong("bard_assay_id"));
-
-                e.setName(rs.getString("name"));
-                e.setDescription(rs.getString("description"));
-
-                e.setCategory(rs.getInt("category"));
-                e.setClassification(rs.getInt("classification"));
-                e.setType(rs.getInt("type"));
-
-                e.setDeposited(rs.getDate("deposited"));
-                e.setUpdated(rs.getDate("updated"));
-
-                e.setSubstances(rs.getInt("sample_count"));
-                e.setCompounds(rs.getInt("cid_count"));
-
-                e.setHasProbe(rs.getBoolean("have_probe"));
-
-                e.setPubchemAid(rs.getLong("pubchem_aid"));
+                e = getExperiment (rs);
             }
             rs.close();
 
             //JCB: capture all projects behind the experiment
-            List<Project> projects = getProjectByExperimentId (bardExptId);
-            for (Project project : projects) {
-                Long projectId = project.getProjectId();
-                if (projectId != null)
-                    e.addProjectID(project.getProjectId());
+            if (e != null) {
+                List<Project> projects = getProjectByExperimentId (bardExptId);
+                for (Project project : projects) {
+                    Long projectId = project.getProjectId();
+                    if (projectId != null)
+                        e.addProjectID(project.getProjectId());
+                }
+
+                cache.put(new Element (bardExptId, e));
             }
 
-            cache.put(new Element (bardExptId, e));
             return e;
         }
         finally {
             pst.close();
         }
+    }
+
+    protected Experiment getExperiment (ResultSet rs) throws SQLException {
+        Experiment e= new Experiment();        
+        e.setExptId(rs.getLong("bard_expt_id"));
+        e.setAssayId(rs.getLong("bard_assay_id"));
+        e.setName(rs.getString("name"));
+        e.setDescription(rs.getString("description"));
+        e.setCategory(rs.getInt("category"));
+        e.setClassification(rs.getInt("classification"));
+        e.setType(rs.getInt("type"));
+        e.setDeposited(rs.getDate("deposited"));
+        e.setUpdated(rs.getDate("updated"));
+        e.setSubstances(rs.getInt("sample_count"));
+        e.setCompounds(rs.getInt("cid_count"));
+        e.setHasProbe(rs.getBoolean("have_probe"));
+        e.setPubchemAid(rs.getLong("pubchem_aid"));
+        return e;
     }
 
     /**
@@ -2145,10 +2148,6 @@ public class DBUtils {
     public List<Assay> getAssaysByETag(int skip, int top, String etag)
         throws SQLException {
         Map info = getETagInfo(etag);
-        if (!Assay.class.getName().equals(info.get("type"))) {
-            throw new IllegalArgumentException
-                ("ETag " + etag + " not of type " + Assay.class.getName());
-        }
 
         Cache cache = getCache ("AssaysByETagCache");
         Object key = etag+"::"+skip+"::"+top;
@@ -2165,9 +2164,34 @@ public class DBUtils {
             }
         }
 
-        StringBuilder sql = new StringBuilder
-            ("select a.* from bard_assay a, etag_data e where etag_id = ? "
-             + "and a.bard_assay_id = e.data_id order by e.index");
+        StringBuilder sql = null;
+        Object type = info.get("type");
+        if (Compound.class.getName().equals(type)) {
+            sql = new StringBuilder 
+                ("select * from bard_assay where bard_assay_id in "
+                 +"(select distinct bard_assay_id from bard_experiment a, "
+                 +"bard_experiment_data b, etag_data c where etag_id = ? "
+                 +"and a.bard_expt_id = b.bard_expt_id "
+                 +"and b.cid = c.data_id)");
+        }
+        else if (Substance.class.getName().equals(type)) {
+            sql = new StringBuilder 
+                ("select * from bard_assay where bard_assay_id in "
+                 +"(select distinct bard_assay_id from bard_experiment a, "
+                 +"bard_experiment_data b, etag_data c where etag_id = ? "
+                 +"and a.bard_expt_id = b.bard_expt_id "
+                 +"and b.sid = c.data_id)");
+        }
+        else if (Assay.class.getName().equals(type)) {
+            sql = new StringBuilder
+                ("select a.* from bard_assay a, etag_data e where etag_id = ? "
+                 + "and a.bard_assay_id = e.data_id order by e.index");
+        }
+        else {
+            throw new IllegalArgumentException
+                ("Don't know how to get Assay's for etag " 
+                 +etag + " of type "+type+"!");
+        }
 
         if (skip >= 0 && top > 0) {
             sql.append(" limit " + skip + "," + top);
@@ -2256,12 +2280,8 @@ public class DBUtils {
      */
     public List<Experiment> getExperimentsByETag
         (int skip, int top, String etag) throws SQLException {
-        Map info = getETagInfo (etag);
-        if (!Experiment.class.getName().equals(info.get("type"))) {
-            throw new IllegalArgumentException
-                ("ETag " + etag + " not of type " + Experiment.class.getName());
-        }
 
+        Map info = getETagInfo (etag);
         Cache cache = getCache ("ExperimentsByETagCache");
         Object key = etag+"::"+skip+"::"+top;
         Element el = cache.get(key);
@@ -2277,9 +2297,35 @@ public class DBUtils {
             }
         }
 
-        StringBuilder sql = new StringBuilder
-            ("select a.* from  bard_experiment a, etag_data e where etag_id = ? "
-             + "and a.bard_expt_id = e.data_id order by e.index");
+        StringBuilder sql = null;
+        Object type = info.get("type");
+        if (Compound.class.getName().equals(type)) {
+            sql = new StringBuilder 
+                ("select * from bard_experiment "
+                 +"where bard_expt_id in (select distinct bard_expt_id "
+                 +"from etag_data a, bard_experiment_data b "
+                 +"where etag_id = ? "
+                 +"and a.data_id = b.cid)");
+        }
+        else if (Substance.class.getName().equals(type)) {
+            sql = new StringBuilder 
+                ("select * from bard_experiment "
+                 +"where bard_expt_id in (select distinct bard_expt_id "
+                 +"from etag_data a, bard_experiment_data b "
+                 +"where etag_id = ? "
+                 +"and a.data_id = b.sid)");
+        }
+        else if (Experiment.class.getName().equals(type)) {
+            sql = new StringBuilder
+                ("select a.* from  bard_experiment a, etag_data e "
+                 +"where etag_id = ? and a.bard_expt_id = e.data_id "
+                 +"order by e.index");
+        }
+        else {
+            throw new IllegalArgumentException
+                ("Don't know how to get Experiment's for etag " 
+                 +etag + " of type "+type+"!");
+        }
 
         if (skip >= 0 && top > 0) {
             sql.append(" limit " + skip + "," + top);
@@ -2294,7 +2340,10 @@ public class DBUtils {
             pst.setString(1, etag);
             ResultSet rs = pst.executeQuery();
             while (rs.next()) {
-                expts.add(getExperimentByExptId(rs.getLong("bard_expt_id")));
+                Experiment e = getExperiment (rs);
+                if (e != null) {
+                    expts.add(e);
+                }
             }
             rs.close();
 

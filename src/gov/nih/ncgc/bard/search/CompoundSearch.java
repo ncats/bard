@@ -31,7 +31,7 @@ public class CompoundSearch extends SolrSearch {
     private final String PKEY_COMPOUND_DOC = "cid";
 
     Logger log;
-    String[] facetNames = {"compoundClass", "COLLECTION", "mw", "tpsa", "xlogp"};
+    String[] facetNames = {"compound_class", "COLLECTION", "mw", "tpsa", "xlogp"};
 
     public CompoundSearch(String query) {
         super(query);
@@ -70,7 +70,7 @@ public class CompoundSearch extends SolrSearch {
         sq.addFacetQuery("xlogp:[5 TO *]");
 
         sq.setFacetMinCount(1);
-        sq.addFacetField("compoundClass");
+        sq.addFacetField("compound_class");
 
         response = solr.query(sq);
         List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_COMPOUND_DOC, HL_FIELD);
@@ -147,7 +147,7 @@ public class CompoundSearch extends SolrSearch {
         // and generate reduced representation if required
         List ret;
         if (!detailed) {
-            ret = copyRange(docs, skip, top, detailed, "cid", "smiles", "iupacName", "preferredTerm", "compoundClass", "highlight");
+            ret = copyRange(docs, skip, top, detailed, "cid", "iso_smiles", "iupacName", "preferredTerm", "compound_class", "highlight");
         } else {
             DBUtils db = new DBUtils();
             ret = new ArrayList();

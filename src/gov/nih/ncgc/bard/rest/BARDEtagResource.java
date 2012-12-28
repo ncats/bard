@@ -139,4 +139,25 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
             }
         }
     }
+
+    @GET
+    @Path("/{etag}/meta")
+    public Response getEtag(@PathParam("etag") String etagId) {
+        DBUtils db = new DBUtils();
+        try {
+            ETag etag = db.getEtagByEtagId(etagId);
+            return Response.ok
+                (Util.toJson(etag), MediaType.APPLICATION_JSON).build();
+        }
+        catch (Exception ex) {
+            throw new WebApplicationException(ex, 500);
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (Exception ex) {
+            }
+        }
+    }
 }

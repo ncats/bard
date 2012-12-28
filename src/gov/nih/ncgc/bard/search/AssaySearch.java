@@ -33,7 +33,7 @@ import java.util.Set;
  */
 public class AssaySearch extends SolrSearch {
     private final String HL_FIELD = "text";
-    private final String PKEY_ASSAY_DOC = "bardAssayId";
+    private final String PKEY_ASSAY_DOC = "assay_id";
 
     Logger log;
 
@@ -135,7 +135,7 @@ public class AssaySearch extends SolrSearch {
                 }
             }
 
-            Object id = doc.getFieldValue("bardAssayId");
+            Object id = doc.getFieldValue("assay_id");
             try {
                 long aid = Long.parseLong(id.toString());
                 if (aid > 0l) {
@@ -173,7 +173,7 @@ public class AssaySearch extends SolrSearch {
         int size = Math.min(skip+top, docs.size());
         for (int i = skip; i < size; i++) {
             SolrDocument doc = docs.get(i);
-            String assayId = (String) doc.getFieldValue("bardAsasyid");
+            String assayId = (String) doc.getFieldValue("assay_id");
             Map<String, Object> value = new HashMap<String, Object>();
             List<String> fns = SearchUtil.getMatchingFieldNames(xplainMap.get(assayId));
             for (String fn : fns) {
@@ -188,14 +188,14 @@ public class AssaySearch extends SolrSearch {
 
         List ret;
         if (!detailed) {
-            ret = copyRange(docs, skip, top, detailed, "bardAssayId", "name");
+            ret = copyRange(docs, skip, top, detailed, "assay_id", "name");
         } else {
             DBUtils db = new DBUtils();
             ret = new ArrayList();
             try {
                 for (int i = skip; i < size; i++)  {
                     SolrDocument doc = docs.get(i);
-                    String assayId = (String) doc.getFieldValue("bardAssayId");
+                    String assayId = (String) doc.getFieldValue("assay_id");
                     ret.add(db.getAssayByAid(Long.parseLong(assayId)));
                 }
                 db.closeConnection();
