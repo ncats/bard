@@ -132,12 +132,18 @@ public class BARDProjectResource extends BARDResource<Project> {
             else {
                 json = Util.toJson(p);
 
-                if (expandEntries(expand)) {
+                /*
+                 * hold these changes off for now
+                 */
+                if (false && expandEntries(expand)) {
                     // need to update experiment and assy entries
                     List<Assay> assays = new ArrayList<Assay>();
-                    for (Long aid : p.getAids()) assays.add(db.getAssayByAid(aid));
+                    for (Long aid : p.getAids()) 
+                        assays.add(db.getAssayByAid(aid));
+
                     List<Experiment> expts = new ArrayList<Experiment>();
-                    for (Long eid : p.getEids()) expts.add(db.getExperimentByExptId(eid));
+                    for (Long eid : p.getEids()) 
+                        expts.add(db.getExperimentByExptId(eid));
 
                     ObjectMapper mapper = new ObjectMapper();
                     ArrayNode an = mapper.createArrayNode();
@@ -148,7 +154,7 @@ public class BARDProjectResource extends BARDResource<Project> {
                     for (Experiment expt : expts) {
                         en.add(mapper.valueToTree(expt));
                     }
-
+                    
                     JsonNode tree = mapper.valueToTree(p);
                     ((ObjectNode)tree).put("eids", en);
                     ((ObjectNode)tree).put("aids", an);
