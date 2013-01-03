@@ -145,22 +145,41 @@ public class CompoundSearch extends SolrSearch {
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
-        List ret;
-        if (!detailed) {
-            ret = copyRange(docs, skip, top, detailed, "cid", "iso_smiles", "iupacName", "preferredTerm", "compound_class", "highlight");
-        } else {
-            DBUtils db = new DBUtils();
-            ret = new ArrayList();
-            try {
-                int size = Math.min(skip+top, docs.size());
-                for (int i = skip; i < size; i++) {
-                    SolrDocument doc = docs.get(i);
-                    ret.addAll(db.getCompoundsByCid(Long.parseLong((String) doc.getFieldValue("cid"))));
+
+        //ret = copyRange(docs, skip, top, detailed, "cid", "name", "iso_smiles", "iupacName", "preferredTerm", "compound_class", "highlight");
+        DBUtils db = new DBUtils();
+        List ret = new ArrayList();
+        try {
+            int size = Math.min(skip+top, docs.size());
+            for (int i = skip; i < size; i++) {
+                SolrDocument doc = docs.get(i);
+                List<Compound> comp = db.getCompoundsByCid
+                    (Long.parseLong((String) doc.getFieldValue("cid")));
+                if (!comp.isEmpty()) {
+                    Compound c = comp.iterator().next();
+                    if (detailed) ret.add(c); 
+                    else {
+                        doc.clear();
+                        doc.put("cid", c.getCid());
+                        doc.put("name", c.getName());
+                        doc.put("iso_smiles", c.getSmiles());
+                        doc.put("iupacName", c.getIupacName());
+                        doc.put("preferredTerm", c.getName());
+                        doc.put("compound_class", c.getCompoundClass());
+                        doc.put("highlight", null);
+                        ret.add(doc);
+                    }
                 }
-                db.closeConnection();
-            } catch (SQLException e) {
-                e.printStackTrace();
             }
+        } 
+        catch (SQLException e) {
+            e.printStackTrace();
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (SQLException ex) {}
         }
 
         SearchMeta meta = new SearchMeta();

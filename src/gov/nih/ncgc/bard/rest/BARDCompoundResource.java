@@ -968,19 +968,14 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         if (top == null) top = -1;
 
         try {
-            Experiment experiemnt = db.getExperimentByExptId(Long.valueOf(resourceId));
-
             // set up skip and top params
-            if (experiemnt.getSubstances() > BARDConstants.MAX_DATA_COUNT) {
-                if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_DATA_COUNT;
-                }
-                if (skip == -1) skip = 0;
-                String expandClause = "expand=false";
-                if (expandEntries(expand)) expandClause = "expand=true";
-                if (skip + top <= experiemnt.getSubstances())
-                    linkString = BARDConstants.API_BASE + "/compounds/" + resourceId + "/experiments?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+            if ((top == -1)) { // top was not specified, so we start from the beginning
+                top = BARDConstants.MAX_DATA_COUNT;
             }
+            if (skip == -1) skip = 0;
+            String expandClause = "expand=false";
+            if (expandEntries(expand)) expandClause = "expand=true";
+            linkString = BARDConstants.API_BASE + "/compounds/" + resourceId + "/experiments?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
 
             String json;
             List<Experiment> data;

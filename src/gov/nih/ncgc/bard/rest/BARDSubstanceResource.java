@@ -312,19 +312,13 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
         if (top == null) top = -1;
 
         try {
-            Experiment experiemnt = db.getExperimentByExptId(Long.valueOf(resourceId));
-
-            // set up skip and top params
-            if (experiemnt.getSubstances() > BARDConstants.MAX_DATA_COUNT) {
-                if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_DATA_COUNT;
-                }
-                if (skip == -1) skip = 0;
-                String expandClause = "expand=false";
-                if (expandEntries) expandClause = "expand=true";
-                if (skip + top <= experiemnt.getSubstances())
-                    linkString = BARDConstants.API_BASE + "/substances/" + resourceId + "/exptdata?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+            if ((top == -1)) { // top was not specified, so we start from the beginning
+                top = BARDConstants.MAX_DATA_COUNT;
             }
+            if (skip == -1) skip = 0;
+            String expandClause = "expand=false";
+            if (expandEntries) expandClause = "expand=true";
+            linkString = BARDConstants.API_BASE + "/substances/" + resourceId + "/exptdata?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
 
             String json;
             if (!expandEntries) {
@@ -376,19 +370,14 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
         if (top == null) top = -1;
 
         try {
-            Experiment experiemnt = db.getExperimentByExptId(Long.valueOf(resourceId));
-
-            // set up skip and top params
-            if (experiemnt.getSubstances() > BARDConstants.MAX_DATA_COUNT) {
-                if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_DATA_COUNT;
-                }
-                if (skip == -1) skip = 0;
-                String expandClause = "expand=false";
-                if (expandEntries) expandClause = "expand=true";
-                if (skip + top <= experiemnt.getSubstances())
-                    linkString = BARDConstants.API_BASE + "/substances/" + resourceId + "/experiments?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+            if ((top == -1)) { // top was not specified, so we start from the beginning
+                top = BARDConstants.MAX_DATA_COUNT;
             }
+            if (skip == -1) skip = 0;
+            String expandClause = "expand=false";
+            if (expandEntries) expandClause = "expand=true";
+            linkString = BARDConstants.API_BASE + "/substances/" + resourceId + "/experiments?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+
             if (!expandEntries) {
                 List<Long> eids = db.getSubstanceExperimentIds(Long.valueOf(resourceId), skip, top);
                 if (countRequested) json = String.valueOf(eids.size());
