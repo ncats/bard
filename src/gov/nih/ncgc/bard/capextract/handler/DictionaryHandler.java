@@ -59,14 +59,14 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
 
             // now we dump in the dict elements (a partial representation) that will be useful
             // for SQL queries
-            pst = conn.prepareStatement("insert into cap_dict_elem (ins_date, dictid, label, description) values (?,?,?,?)");
+            pst = conn.prepareStatement("insert into cap_dict_elem (ins_date, dictid, label, description, abbreviation, ext_url) values (?,?,?,?,?,?)");
             for (CAPDictionaryElement elem : dict.getNodes()) {
                 pst.setDate(1, new java.sql.Date(today.getTime()));
                 pst.setInt(2, elem.getElementId().intValue());
                 pst.setString(3, elem.getLabel());
                 pst.setString(4, elem.getDescription());
-                String abbr = elem.getAbbreviation();
-                String extUrl = elem.getExternalUrl();
+                pst.setString(5, elem.getAbbreviation());
+                pst.setString(6, elem.getExternalUrl());
                 pst.addBatch();
             }
             pst.executeBatch();
