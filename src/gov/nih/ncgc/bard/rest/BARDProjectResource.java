@@ -135,7 +135,7 @@ public class BARDProjectResource extends BARDResource<Project> {
                 /*
                  * hold these changes off for now
                  */
-                if (false && expandEntries(expand)) {
+                if (expandEntries(expand)) {
                     // need to update experiment and assy entries
                     List<Assay> assays = new ArrayList<Assay>();
                     for (Long aid : p.getAids()) 
