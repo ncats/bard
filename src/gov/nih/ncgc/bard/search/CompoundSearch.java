@@ -14,7 +14,14 @@ import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Full text search for compound entities.
@@ -49,10 +56,10 @@ public class CompoundSearch extends SolrSearch {
 
         // add in some default faceting stuff
         sq.setFacet(true);
-        sq.addFacetQuery("mw:[* TO 100]");
-        sq.addFacetQuery("mw:[100 TO 200]");
-        sq.addFacetQuery("mw:[200 TO 300]");
-        sq.addFacetQuery("mw:[300 TO *]");
+        sq.addFacetQuery("mwt:[* TO 100]");
+        sq.addFacetQuery("mwt:[100 TO 200]");
+        sq.addFacetQuery("mwt:[200 TO 300]");
+        sq.addFacetQuery("mwt:[300 TO *]");
 
         sq.addFacetQuery("tpsa:[* TO 40]");
         sq.addFacetQuery("tpsa:[40 TO 120]");
@@ -178,7 +185,7 @@ public class CompoundSearch extends SolrSearch {
 
         List ret;
         if (!detailed) {
-            ret = copyRange(docs, skip, top, detailed, PKEY_COMPOUND_DOC, "smiles", "iupacName", "preferredTerm", "compoundClass", "highlight");
+            ret = copyRange(docs, skip, top, detailed, PKEY_COMPOUND_DOC, "smiles", "iupacName", "preferredTerm", "compoundClass");
         } else {
             DBUtils db = new DBUtils();
             ret = new ArrayList();

@@ -15,7 +15,7 @@
 
     <context-param>
         <param-name>solr-server</param-name>
-        <param-value>http://protease.nhgri.nih.gov:8094/solr/</param-value>
+        <param-value>http://protease.nhgri.nih.gov:8094/solr</param-value>
     </context-param>
 
     <servlet>

@@ -167,7 +167,7 @@ public class ProjectSearch extends SolrSearch {
                 for (int i = skip; i < size; i++) {
                     SolrDocument doc = docs.get(i);
                     String projectId = (String) doc.getFieldValue(PKEY_PROJECT_DOC);
-                    ret.add(db.getAssayByAid(Long.parseLong(projectId)));
+                    ret.add(db.getProject(Long.parseLong(projectId)));
                 }
                 db.closeConnection();
             } catch (SQLException e) {
