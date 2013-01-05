@@ -17,14 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Full text search for assay entities.
@@ -33,7 +26,7 @@ import java.util.Set;
  */
 public class AssaySearch extends SolrSearch {
     private final String HL_FIELD = "text";
-    private final String PKEY_ASSAY_DOC = "aid";
+    private final String PKEY_ASSAY_DOC = "bardAssayId";
 
     Logger log;
 
