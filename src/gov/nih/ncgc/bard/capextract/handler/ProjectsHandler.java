@@ -34,25 +34,24 @@ public class ProjectsHandler extends CapResourceHandler implements ICapResourceH
 
         // get the Projects object here
         Projects projects = getResponse(url, resource);
-        
-        // map CAP project IDs to BARD project IDs !!! done by hand in excel !!!
-        
-        // load project annotations
-        ProjectHandler ph = (ProjectHandler)CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.PROJECT);
-        for (Project proj: projects.getProject()) {
-            for (Link projLink: proj.getLink()) {
-        	if (projLink.getType().equals(CAPConstants.CapResource.ASSAY.getMimeType())) {
-        	    Project project = (Project)ph.poll(projLink.getHref(), CAPConstants.CapResource.PROJECT).get(0);
-        	    String readyToXtract = project.getReadyForExtraction();
-        	    String title = project.getProjectName();
-        	    BigInteger pid = project.getProjectId();
 
-        	    log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
-        	    if (readyToXtract.equals("Ready")) {
-        		log.info("\tExtracting " + title);
-        		ph.process(project);
-        	    }
-        	}
+        // map CAP project IDs to BARD project IDs !!! done by hand in excel !!!
+
+        // load project annotations
+        ProjectHandler ph = (ProjectHandler) CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.PROJECT);
+        for (Link projLink : projects.getLink()) {
+            CAPConstants.CapResource res = CAPConstants.getResource(projLink.getType());
+            if (res == CAPConstants.CapResource.PROJECT && ph != null) {
+                Project project = (Project) ph.poll(projLink.getHref(), res).get(0);
+
+                String readyToXtract = project.getReadyForExtraction();
+                String title = project.getProjectName();
+                BigInteger pid = project.getProjectId();
+                log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
+                if (readyToXtract.equals("Ready")) {
+                    log.info("\tExtracting " + title);
+                    ph.process(project);
+                }
             }
         }
     }

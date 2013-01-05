@@ -17,14 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Full text search for assay entities.
@@ -85,7 +78,7 @@ public class AssaySearch extends SolrSearch {
                 (getSolrURL() + CORE_NAME);
 
         SolrQuery sq = new SolrQuery(query);
-        sq = setHighlighting(sq, filter == null ? HL_FIELD : HL_FIELD);
+//        sq = setHighlighting(sq, filter == null ? HL_FIELD : HL_FIELD);
         sq = setFilterQueries(sq, filter);
         sq.setRows(10000);
         sq.setShowDebugInfo(true);
@@ -135,7 +128,7 @@ public class AssaySearch extends SolrSearch {
                 }
             }
 
-            Object id = doc.getFieldValue("assay_id");
+            Object id = doc.getFieldValue(PKEY_ASSAY_DOC);
             try {
                 long aid = Long.parseLong(id.toString());
                 if (aid > 0l) {
@@ -173,7 +166,7 @@ public class AssaySearch extends SolrSearch {
         int size = Math.min(skip+top, docs.size());
         for (int i = skip; i < size; i++) {
             SolrDocument doc = docs.get(i);
-            String assayId = (String) doc.getFieldValue("assay_id");
+            String assayId = (String) doc.getFieldValue(PKEY_ASSAY_DOC);
             Map<String, Object> value = new HashMap<String, Object>();
             List<String> fns = SearchUtil.getMatchingFieldNames(xplainMap.get(assayId));
             for (String fn : fns) {
@@ -188,14 +181,14 @@ public class AssaySearch extends SolrSearch {
 
         List ret;
         if (!detailed) {
-            ret = copyRange(docs, skip, top, detailed, "assay_id", "name");
+            ret = copyRange(docs, skip, top, detailed, PKEY_ASSAY_DOC, "name");
         } else {
             DBUtils db = new DBUtils();
             ret = new ArrayList();
             try {
                 for (int i = skip; i < size; i++)  {
                     SolrDocument doc = docs.get(i);
-                    String assayId = (String) doc.getFieldValue("assay_id");
+                    String assayId = (String) doc.getFieldValue(PKEY_ASSAY_DOC);
                     ret.add(db.getAssayByAid(Long.parseLong(assayId)));
                 }
                 db.closeConnection();

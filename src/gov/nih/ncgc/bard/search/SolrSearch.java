@@ -186,9 +186,11 @@ public abstract class SolrSearch implements ISolrSearch {
         SolrDocumentList sdl = response.getResults();
         for (SolrDocument doc : sdl) {
             String pkey = (String) doc.getFieldValue(primaryKey);
-            List<String> hls = response.getHighlighting().get(pkey).get(highlightField);
-            if (hls != null) {
-                doc.addField("highlight", hls.get(0));
+            if (response.getHighlighting() != null) {
+                List<String> hls = response.getHighlighting().get(pkey).get(highlightField);
+                if (hls != null) {
+                    doc.addField("highlight", hls.get(0));
+                }
             }
             doc.removeFields("anno_val");
             doc.removeFields("anno_key");

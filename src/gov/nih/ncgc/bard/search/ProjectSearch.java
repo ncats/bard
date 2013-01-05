@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 import java.net.MalformedURLException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +27,7 @@ import java.util.Map;
  */
 public class ProjectSearch extends SolrSearch {
     private final String HL_FIELD = "text";
-    private final String PKEY_PROJECT_DOC = "proj_id";
+    private final String PKEY_PROJECT_DOC = "projectId";
 
     Logger log;
 
@@ -46,9 +48,9 @@ public class ProjectSearch extends SolrSearch {
         QueryResponse response = null;
 
         SolrQuery sq = new SolrQuery(query);
-        sq = setHighlighting(sq, filter == null ? HL_FIELD : HL_FIELD);
+//        sq = setHighlighting(sq, filter == null ? HL_FIELD : HL_FIELD);
         sq = setFilterQueries(sq, filter);
-
+        sq.setShowDebugInfo(true);
         sq.setRows(10000);
         sq.setFacet(true);
 
@@ -95,7 +97,7 @@ public class ProjectSearch extends SolrSearch {
         // TODO in the future facet on project annotations
         List<Long> projIds = new ArrayList<Long>();
         for (SolrDocument doc : docs) {
-            projIds.add(Long.parseLong((String) doc.getFieldValue("proj_id")));
+            projIds.add(Long.parseLong((String) doc.getFieldValue(PKEY_PROJECT_DOC)));
 //            Collection<Object> keys = doc.getFieldValues("ak_dict_label");
 //            Collection<Object> values = doc.getFieldValues("av_dict_label");
 //            if (keys == null || values == null) continue;
@@ -132,23 +134,46 @@ public class ProjectSearch extends SolrSearch {
 
         // only return the requested number of docs, from the requested starting point
         // and generate reduced representation if required
+        //
+        // Also extract the matching field names for the docs we do return
+        Map<String, String> xplainMap = response.getExplainMap();
+        Map<String, Map<String, Object>> matchFields = new HashMap<String, Map<String, Object>>();
+        Map<String, Float> scores = new LinkedHashMap<String, Float>(); // to maintain doc id ordering
+
+        // first set up field match details & document scores
+        int size = Math.min(skip + top, docs.size());
+        for (int i = skip; i < size; i++) {
+            SolrDocument doc = docs.get(i);
+            String projectId = (String) doc.getFieldValue(PKEY_PROJECT_DOC);
+            Map<String, Object> value = new HashMap<String, Object>();
+            List<String> fns = SearchUtil.getMatchingFieldNames(xplainMap.get(projectId));
+            for (String fn : fns) {
+                Object obj = doc.getFieldValue(fn);
+                value.put(fn, obj);
+            }
+            matchFields.put(projectId, value);
+            scores.put(projectId, (Float) doc.getFieldValue("score"));
+        }
+        meta.setMatchingFields(matchFields);
+        meta.setScores(scores);
+
         List ret;
-         if (!detailed) {
-             ret = copyRange(docs, skip, top, detailed, "proj_id", "name", "highlight");
-         } else {
-             DBUtils db = new DBUtils();
-             ret = new ArrayList();
-             try {
-                int size = Math.min(skip+top, docs.size());
-                 for (int i = skip; i < size; i++) {
-                     SolrDocument doc = docs.get(i);
-                     ret.add(db.getProject(Long.parseLong((String) doc.getFieldValue("proj_id"))));
-                 }
-                 db.closeConnection();
-             } catch (SQLException e) {
-                 e.printStackTrace();
-             }
-         }
+        if (!detailed) {
+            ret = copyRange(docs, skip, top, detailed, PKEY_PROJECT_DOC, "name");
+        } else {
+            DBUtils db = new DBUtils();
+            ret = new ArrayList();
+            try {
+                for (int i = skip; i < size; i++) {
+                    SolrDocument doc = docs.get(i);
+                    String projectId = (String) doc.getFieldValue(PKEY_PROJECT_DOC);
+                    ret.add(db.getProject(Long.parseLong(projectId)));
+                }
+                db.closeConnection();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
 
         results.setDocs(ret);
         results.setMetaData(meta);

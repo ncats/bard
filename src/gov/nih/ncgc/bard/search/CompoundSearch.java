@@ -16,7 +16,9 @@ import java.net.MalformedURLException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,7 +33,7 @@ public class CompoundSearch extends SolrSearch {
     private final String PKEY_COMPOUND_DOC = "cid";
 
     Logger log;
-    String[] facetNames = {"compound_class", "COLLECTION", "mw", "tpsa", "xlogp"};
+    String[] facetNames = {"compoundClass", "COLLECTION", "mwt", "tpsa", "xlogp"};
 
     public CompoundSearch(String query) {
         super(query);
@@ -48,16 +50,16 @@ public class CompoundSearch extends SolrSearch {
         QueryResponse response = null;
 
         SolrQuery sq = new SolrQuery(query);
-        sq = setHighlighting(sq, filter == null ? HL_FIELD : HL_FIELD);
         sq = setFilterQueries(sq, filter);
         sq.setRows(10000);
+        sq.setShowDebugInfo(true);
 
         // add in some default faceting stuff
         sq.setFacet(true);
-        sq.addFacetQuery("mw:[* TO 100]");
-        sq.addFacetQuery("mw:[100 TO 200]");
-        sq.addFacetQuery("mw:[200 TO 300]");
-        sq.addFacetQuery("mw:[300 TO *]");
+        sq.addFacetQuery("mwt:[* TO 100]");
+        sq.addFacetQuery("mwt:[100 TO 200]");
+        sq.addFacetQuery("mwt:[200 TO 300]");
+        sq.addFacetQuery("mwt:[300 TO *]");
 
         sq.addFacetQuery("tpsa:[* TO 40]");
         sq.addFacetQuery("tpsa:[40 TO 120]");
@@ -70,7 +72,7 @@ public class CompoundSearch extends SolrSearch {
         sq.addFacetQuery("xlogp:[5 TO *]");
 
         sq.setFacetMinCount(1);
-        sq.addFacetField("compound_class");
+        sq.addFacetField("compoundClass");
 
         response = solr.query(sq);
         List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_COMPOUND_DOC, HL_FIELD);
@@ -130,7 +132,7 @@ public class CompoundSearch extends SolrSearch {
                 for (String v : vset) facet.addFacetValue(v);
             }
 
-            Object id = doc.getFieldValue("cid");
+            Object id = doc.getFieldValue(PKEY_COMPOUND_DOC);
             try {
                 if (id != null) {
                     long cid = Long.parseLong(id.toString());
@@ -143,45 +145,6 @@ public class CompoundSearch extends SolrSearch {
         long end = System.currentTimeMillis();
         log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
 
-        // only return the requested number of docs, from the requested starting point
-        // and generate reduced representation if required
-
-        //ret = copyRange(docs, skip, top, detailed, "cid", "name", "iso_smiles", "iupacName", "preferredTerm", "compound_class", "highlight");
-        DBUtils db = new DBUtils();
-        List ret = new ArrayList();
-        try {
-            int size = Math.min(skip+top, docs.size());
-            for (int i = skip; i < size; i++) {
-                SolrDocument doc = docs.get(i);
-                List<Compound> comp = db.getCompoundsByCid
-                    (Long.parseLong((String) doc.getFieldValue("cid")));
-                if (!comp.isEmpty()) {
-                    Compound c = comp.iterator().next();
-                    if (detailed) ret.add(c); 
-                    else {
-                        doc.clear();
-                        doc.put("cid", c.getCid());
-                        doc.put("name", c.getName());
-                        doc.put("iso_smiles", c.getSmiles());
-                        doc.put("iupacName", c.getIupacName());
-                        doc.put("preferredTerm", c.getName());
-                        doc.put("compound_class", c.getCompoundClass());
-                        doc.put("highlight", null);
-                        ret.add(doc);
-                    }
-                }
-            }
-        } 
-        catch (SQLException e) {
-            e.printStackTrace();
-        }
-        finally {
-            try {
-                db.closeConnection();
-            }
-            catch (SQLException ex) {}
-        }
-
         SearchMeta meta = new SearchMeta();
         meta.setNhit(response.getResults().getNumFound());
         meta.setFacets(facets);
@@ -193,6 +156,49 @@ public class CompoundSearch extends SolrSearch {
             results.setETag(etag);
         } catch (Exception e) {
             log.error("Can't process ETag", e);
+        }
+
+        // only return the requested number of docs, from the requested starting point
+        // and generate reduced representation if required
+        //
+        // Also extract the matching field names for the docs we do return
+        Map<String, String> xplainMap = response.getExplainMap();
+        Map<String, Map<String, Object>> matchFields = new HashMap<String, Map<String, Object>>();
+        Map<String, Float> scores = new LinkedHashMap<String, Float>(); // to maintain doc id ordering
+
+        // first set up field match details & document scores
+        int size = Math.min(skip + top, docs.size());
+        for (int i = skip; i < size; i++) {
+            SolrDocument doc = docs.get(i);
+            String compoundId = (String) doc.getFieldValue(PKEY_COMPOUND_DOC);
+            Map<String, Object> value = new HashMap<String, Object>();
+            List<String> fns = SearchUtil.getMatchingFieldNames(xplainMap.get(compoundId));
+            for (String fn : fns) {
+                Object obj = doc.getFieldValue(fn);
+                value.put(fn, obj);
+            }
+            matchFields.put(compoundId, value);
+            scores.put(compoundId, (Float) doc.getFieldValue("score"));
+        }
+        meta.setMatchingFields(matchFields);
+        meta.setScores(scores);
+
+        List ret;
+        if (!detailed) {
+            ret = copyRange(docs, skip, top, detailed, PKEY_COMPOUND_DOC, "smiles", "iupacName", "preferredTerm", "compoundClass");
+        } else {
+            DBUtils db = new DBUtils();
+            ret = new ArrayList();
+            try {
+                for (int i = skip; i < size; i++) {
+                    SolrDocument doc = docs.get(i);
+                    String compoundId = (String) doc.getFieldValue(PKEY_COMPOUND_DOC);
+                    ret.add(db.getAssayByAid(Long.parseLong(compoundId)));
+                }
+                db.closeConnection();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
 
         results.setDocs(ret);

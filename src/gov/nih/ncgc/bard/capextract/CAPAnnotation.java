@@ -1,7 +1,5 @@
 package gov.nih.ncgc.bard.capextract;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 /**
  * A representation of an annotation.
  * <p/>
@@ -12,26 +10,28 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  * @author Rajarshi Guha
  */
 public class CAPAnnotation {
-    @JsonIgnore
-    public String refId = null; // not sure what this is
-    @JsonIgnore
+
+    public Integer entityId = null; // not sure what this is
     public String entity;
 
     public String source;
-    public String id;
+    public Integer id;
     public String display;
     public String contextRef = null;
     public String key, value; // refers to a dict element
     public String extValueId = null; // when dict element points to ext resource (e.g. Entrez Gene) this is the identifier within that resource
     public String url = null; // when an annotation points to external object, given by a URL
+    public int displayOrder;
+    public String related;
 
-    public CAPAnnotation(String id, String refId, String display, String contextRef, String attrId, String valueId, String extValueId, String source) {
-	this(id, refId, display, contextRef, attrId, valueId, extValueId, source, null);
+    public CAPAnnotation(Integer id, Integer entityId, String display, String contextRef, String attrId, String valueId, String extValueId, String source) {
+	this(id, entityId, display, contextRef, attrId, valueId, extValueId, source, null, 0, null, null);
     }
 
-    public CAPAnnotation(String id, String refId, String display, String contextRef, String attrId, String valueId, String extValueId, String source, String url) {
+    public CAPAnnotation(Integer id, Integer entityId, String display, String contextRef, String attrId, String valueId, String extValueId, String source, String url, int displayOrder, String entity, String related) {
         this.id = id;
-        this.refId = refId;
+        this.entityId = entityId;
+        this.entity = entity;
 
         this.display = display;
         this.contextRef = contextRef;
@@ -40,11 +40,13 @@ public class CAPAnnotation {
         this.extValueId = extValueId;
         this.source = source;
         this.url = url;
+        this.displayOrder = displayOrder;
+        this.related = related;
     }
 
     public CAPAnnotation cloneObject () {
-        return new CAPAnnotation (id, refId, display, contextRef, 
-                                       key, value, extValueId, source, url);
+        return new CAPAnnotation (id, entityId, display, contextRef,
+                                       key, value, extValueId, source, url, displayOrder, entity, related);
     }
 
     CAPAnnotation() {
@@ -54,11 +56,12 @@ public class CAPAnnotation {
     public String toString() {
         return "CAPAssayAnnotation{" +
                 "id='" + id + '\'' +
-                ", refId='" + refId + '\'' +
+                ", entityId='" + entityId + '\'' +
                 ", display='" + display + '\'' +
                 ", contextRef='" + contextRef + '\'' +
                 ", key='" + key + '\'' +
                 ", value='" + value + '\'' +
+                ", related='" + related + '\'' +
                 '}';
     }
 }

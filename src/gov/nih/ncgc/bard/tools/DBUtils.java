@@ -2127,8 +2127,8 @@ public class DBUtils {
         l1 = new ArrayList<String>();
         l2 = new ArrayList<String>();
         for (CAPAnnotation capannot : capannots) {
-            l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
-            if (capannot.value != null) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
+            if (capannot.key != null && isInteger(capannot.key)) l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
+            if (capannot.value != null && isInteger(capannot.value)) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
             else l2.add(capannot.display);
         }
         a.setAk_dict_label(l1);
@@ -2137,6 +2137,14 @@ public class DBUtils {
         return a;
     }
 
+    private boolean isInteger(String s) {
+        try {
+            new BigInteger(s);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        return true;
+    }
     /**
      * Retruns a list of assay based on an etag.
      * @param skip
@@ -2452,12 +2460,7 @@ public class DBUtils {
            }
            catch (ClassCastException ex) {}
 
-           String limitClause = "";
-           if (skip != -1) {
-               if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-               limitClause = "  limit " + skip + "," + top;
-           }
-
+        String limitClause = generateLimitClause(skip, top);
            PreparedStatement pst;
         if (conn == null) conn = getConnection();
            if (!actives)
@@ -2494,12 +2497,7 @@ public class DBUtils {
         }
         catch (ClassCastException ignored) {}
 
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
-
+        String limitClause = generateLimitClause(skip, top);
         PreparedStatement pst;
         if (conn == null) conn = getConnection();
         if (!actives)
@@ -2535,18 +2533,13 @@ public class DBUtils {
          }
          catch (ClassCastException ignored) {}
 
-         String limitClause = "";
-         if (skip != -1) {
-             if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-             limitClause = "  limit " + skip + "," + top;
-         }
-
-         PreparedStatement pst;
+        String limitClause = generateLimitClause(skip, top);
+        PreparedStatement pst;
         if (conn == null) conn = getConnection();
-         if (!actives)
-             pst = conn.prepareStatement("select distinct cid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by cid " + limitClause);
-         else
-             pst = conn.prepareStatement("select distinct cid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id and a.outcome = 2 order by cid " + limitClause);
+        if (!actives)
+            pst = conn.prepareStatement("select distinct cid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by cid " + limitClause);
+        else
+            pst = conn.prepareStatement("select distinct cid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id and a.outcome = 2 order by cid " + limitClause);
 
         try {
             pst.setLong(1, bardAssayId);
@@ -2578,12 +2571,7 @@ public class DBUtils {
         } catch (ClassCastException ignored) {
         }
 
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
-
+        String limitClause = generateLimitClause(skip, top);
         PreparedStatement pst;
         if (conn == null) conn = getConnection();
         if (!actives)
@@ -2631,12 +2619,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
-
+        String limitClause = generateLimitClause(skip, top);
         PreparedStatement pst;
         if (conn == null) conn = getConnection();
         if (!actives)
@@ -2685,11 +2668,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
+        String limitClause = generateLimitClause(skip, top);
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? order by id " + limitClause);
         try {
@@ -2751,11 +2730,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
+        String limitClause = generateLimitClause(skip, top);
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? order by score desc, bard_expt_id, sid " + limitClause);
         try {
@@ -2791,11 +2766,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
+        String limitClause = generateLimitClause(skip, top);
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? and outcome = 2 order by score desc, bard_expt_id, sid " + limitClause);
         try {
@@ -2832,16 +2803,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        String limitClause = "";
-        if (skip >= 0 && top > 0) {
-            limitClause = "  limit " + skip + "," + top;
-        }
-        else if (top > 0) {
-            limitClause = "  limit " + top;
-        }
-        else if (skip >= 0) {
-            limitClause = " limit "+skip+","+CHUNK_SIZE;
-        }
+        String limitClause = generateLimitClause(skip, top);
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
         try {
@@ -2932,16 +2894,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        String limitClause = "";
-        if (skip >= 0 && top > 0) {
-            limitClause = "  limit " + skip + "," + top;
-        }
-        else if (top > 0) {
-            limitClause = "  limit " + top;
-        }
-        else if (skip >= 0) {
-            limitClause = " limit "+skip+","+CHUNK_SIZE;
-        }
+        String limitClause = generateLimitClause(skip, top);
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
         try {
@@ -2983,17 +2936,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        String limitClause = "";
-        if (skip >= 0 && top > 0) {
-            limitClause = "  limit " + skip + "," + top;
-        }
-        else if (top > 0) {
-            limitClause = "  limit " + top;
-        }
-        else if (skip >= 0) {
-            limitClause = " limit "+skip+","+CHUNK_SIZE;
-        }
-
+        String limitClause = generateLimitClause(skip, top);
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where cid = ? order by classification desc, score desc " + limitClause);
         try {
@@ -3081,12 +3024,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
-
+        String limitClause = generateLimitClause(skip, top);
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
         try {
@@ -3174,17 +3112,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        String limitClause = "";
-        if (skip >= 0  && top > 0) {
-            limitClause = "  limit " + skip + "," + top;
-        }
-        else if (top > 0) {
-            limitClause = "  limit " + top;
-        }
-        else if (skip >= 0) {
-            limitClause = " limit "+skip+","+CHUNK_SIZE;
-        }
-
+        String limitClause = generateLimitClause(skip, top);
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
         try {
@@ -3224,12 +3152,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
-
+        String limitClause = generateLimitClause(skip, top);
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct b.bard_assay_id from bard_experiment_data a, bard_experiment b where a.sid = ? and a.bard_expt_id = b.bard_expt_id  " + limitClause);
         try {
@@ -3269,12 +3192,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
-
+        String limitClause = generateLimitClause(skip, top);
         PreparedStatement pst;
         if (conn == null) conn = getConnection();
         if (!actives) pst = conn.prepareStatement("select distinct sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
@@ -3292,6 +3210,18 @@ public class DBUtils {
         finally {
             pst.close();
         }
+    }
+
+    private String generateLimitClause(int skip, int top) {
+        String limitClause = "";
+        if (skip >= 0 && top > 0) {
+            limitClause = "  limit " + skip + "," + top;
+        } else if (top > 0) {
+            limitClause = "  limit " + top;
+        } else if (skip >= 0) {
+            limitClause = " limit " + skip + "," + CHUNK_SIZE;
+        }
+        return limitClause;
     }
 
     /**
@@ -3317,11 +3247,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
+        String limitClause = generateLimitClause(skip, top);
 
         PreparedStatement pst;
         if (conn == null) conn = getConnection();
@@ -3370,12 +3296,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
-
+        String limitClause = generateLimitClause(skip, top);
         PreparedStatement pst;
         if (conn == null) conn = getConnection();
         if (!actives) pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
@@ -4169,12 +4090,7 @@ public class DBUtils {
 
     public List<Compound> searchForCompounds(String filter, int skip, int top) throws SQLException {
         List<Compound> ret = new ArrayList<Compound>();
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
-
+        String limitClause = generateLimitClause(skip, top);
         String sql = "select distinct cid from bard_experiment_data order by cid " + limitClause;
         if (filter.contains("active"))
             sql = "select distinct cid from bard_experiment_data where outcome = 2 order by cid " + limitClause;
@@ -4224,11 +4140,7 @@ public class DBUtils {
         if (fieldMap.containsKey(klass)) queryParams = fieldMap.get(klass);
         else return new ArrayList<T>();
 
-        String limitClause = "";
-        if (skip != -1) {
-            if (top <= 0) throw new SQLException("If skip != -1, top must be greater than 0");
-            limitClause = "  limit " + skip + "," + top;
-        }
+        String limitClause = generateLimitClause(skip, top);
 
         PreparedStatement pst;
         String sql;
@@ -4412,7 +4324,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a, bard_assay b where b.bard_assay_id = ? and a.assay_id = b.cap_assay_id and a.source in ('cap', 'bao')");
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity_id = ? and source != 'cap-old'");
         try {
             pst.setLong(1, bardAssayId);
             ResultSet rs = pst.executeQuery();
@@ -4422,8 +4334,11 @@ public class DBUtils {
                 String anno_key = rs.getString("anno_key");
                 String anno_value = rs.getString("anno_value");
                 String anno_display = rs.getString("anno_display");
+                int displayOrder = rs.getInt("display_order");
                 String source = rs.getString("source");
-                String url = null;//rs.getString("url");
+                String entity = rs.getString("entity");
+                String url = rs.getString("url");
+                String contextName = rs.getString("context_name");
 
                 String related = rs.getString("related");
                 String extValueId = null;
@@ -4432,7 +4347,7 @@ public class DBUtils {
                     if (toks.length == 2) extValueId = toks[1];
                 }
                 // TODO Updated the related annotations field to support grouping
-                CAPAnnotation anno = new CAPAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source, url);
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, contextName, anno_key, anno_value, extValueId, source, url, displayOrder, entity, related);
                 annos.add(anno);
             }
             rs.close();
@@ -4469,6 +4384,8 @@ public class DBUtils {
                 String anno_value = rs.getString("anno_value");
                 String anno_display = rs.getString("anno_display");
                 String source = rs.getString("source");
+                int displayOrder = rs.getInt("display_order");
+                String entity = rs.getString("entity");
 
                 String related = rs.getString("related");
                 String extValueId = null;
@@ -4476,7 +4393,7 @@ public class DBUtils {
                     String[] toks = related.split("\\|");
                     if (toks.length == 2) extValueId = toks[1];
                 }
-                CAPAnnotation anno = new CAPAnnotation(anno_id, null, anno_display, null, anno_key, anno_value, extValueId, source);
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, null, anno_key, anno_value, extValueId, source, null, displayOrder, entity, related);
                 annos.add(anno);
             }
             rs.close();
@@ -4569,17 +4486,7 @@ public class DBUtils {
         PreparedStatement pst;
 
         if (cid == null || cid < 0) return null;
-        String limitClause = "";
-        if (skip != null && top != null && skip >= 0 && top > 0) {
-            limitClause = " limit "+skip+","+top;
-        }
-        else if (top != null && top > 0) {
-            limitClause = " limit "+top;
-        }
-        else if (skip != null && skip >= 0) {
-            limitClause = " limit "+skip+","+CHUNK_SIZE;
-        }
-
+        String limitClause = generateLimitClause(skip, top);
 
         if (entity.isAssignableFrom(Assay.class)) {
             sql = "select distinct b.bard_assay_id from bard_experiment_data a, bard_experiment b where a.cid = ? and a.bard_expt_id = b.bard_expt_id  and a.outcome = 2 order by a.classification desc, score desc " + limitClause;
@@ -4639,17 +4546,7 @@ public class DBUtils {
         PreparedStatement pst;
 
         if (cid == null || cid < 0) return null;
-
-        String limitClause = "";
-        if (skip != null && top != null && skip >= 0 && top > 0) {
-            limitClause = " limit "+skip+","+top;
-        }
-        else if (top != null && top > 0) {
-            limitClause = " limit "+top;
-        }
-        else if (skip != null && skip >= 0) {
-            limitClause = " limit "+skip+","+CHUNK_SIZE;
-        }
+        String limitClause = generateLimitClause(skip, top);
 
         if (entity.isAssignableFrom(Assay.class)) {
             sql = "select distinct b.bard_assay_id "
@@ -4896,9 +4793,9 @@ public class DBUtils {
         con.setAutoCommit(false);
         db.setConnection(con);
 
-        String etag = db.newETag("test", Compound.class.getName());
-        int cnt = db.putETag(etag, 1l, 2l, 3l, 4l, 5l);
-        System.out.println(etag + ": " + cnt);
+//        String etag = db.newETag("test", Compound.class.getName());
+//        int cnt = db.putETag(etag, 1l, 2l, 3l, 4l, 5l);
+//        System.out.println(etag + ": " + cnt);
         db.closeConnection();
     }
 }

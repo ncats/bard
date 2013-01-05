@@ -1,10 +1,23 @@
 package gov.nih.ncgc.bard.capextract;
 
+import nu.xom.Builder;
+import nu.xom.Document;
+import nu.xom.Nodes;
+import nu.xom.ParsingException;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.HttpHostConnectException;
+import org.apache.http.impl.client.DefaultHttpClient;
+
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,6 +48,59 @@ public class CAPUtil {
             System.exit(-1);
         }
         return conn;
+    }
+
+
+    public static boolean insertPublication(Connection conn, String pmid) throws SQLException, IOException, ParsingException {
+        // check to see if we already have a pub with this pmid
+        PreparedStatement pst = conn.prepareStatement("select * from publication where pmid = " + pmid);
+        ResultSet rs = pst.executeQuery();
+        boolean exists = false;
+        while (rs.next()) exists = true;
+        pst.close();
+        if (exists) return false;
+
+        String url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=" + pmid + "&rettype=xml";
+        HttpClient httpClient = new DefaultHttpClient();
+        HttpGet get = new HttpGet(url);
+        HttpResponse response;
+        try {
+            response = httpClient.execute(get);
+        } catch (HttpHostConnectException ex) {
+            ex.printStackTrace();
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException ie) {
+                ie.printStackTrace();
+            }
+            httpClient = new DefaultHttpClient();
+            response = httpClient.execute(get);
+        }
+        if (response.getStatusLine().getStatusCode() != 200 && response.getStatusLine().getStatusCode() != 206)
+            throw new IOException("Got a HTTP " + response.getStatusLine().getStatusCode() + " for " + url);
+
+        Builder builder = new Builder();
+        Document doc = builder.build(response.getEntity().getContent());
+
+        String stitle = null, sabs = null, sdoi = null;
+
+        Nodes title = doc.query("/PubmedArticleSet/PubmedArticle/MedlineCitation/Article/ArticleTitle");
+        if (title.size() > 0) stitle = title.get(0).getValue();
+
+        Nodes abs = doc.query("/PubmedArticleSet/PubmedArticle/MedlineCitation/Article/Abstract/AbstractText");
+        if (abs.size() > 0) sabs = abs.get(0).getValue();
+
+        Nodes doi = doc.query("/PubmedArticleSet/PubmedArticle/PubmedData/ArticleIdList/ArticleId[idType='doi']");
+        if (doi.size() > 0) sdoi = doi.get(0).getValue();
+
+        pst = conn.prepareStatement("insert into publication (pmid, doi, title, abstract) values (?,?,?,?)");
+        pst.setInt(1, Integer.parseInt(pmid));
+        pst.setString(2, sdoi);
+        pst.setString(3, stitle);
+        pst.setString(4, sabs);
+        pst.execute();
+        pst.close();
+        return true;
     }
 
     static public void jaxbString(Object obj, Vector<String> levels) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
