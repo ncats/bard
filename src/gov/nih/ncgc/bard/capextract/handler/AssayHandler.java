@@ -1,7 +1,9 @@
 package gov.nih.ncgc.bard.capextract.handler;
+
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
@@ -224,8 +226,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 String key = null;
                 AbstractContextItemType.AttributeId attr = contextItem.getAttributeId();
                 if (attr != null) {
-                    String[] toks = attr.getLink().getHref().split("/");
-                    key = toks[toks.length - 1];
+                    key = Util.getEntityIdFromUrl(attr.getLink().getHref());
                 }
 
                 // dict id for the annotation value
@@ -235,7 +236,14 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 if (vc != null) {
                     String[] toks = vc.getLink().getHref().split("/");
                     value = toks[toks.length - 1];
-                    valueUrl = dict.getNode(vc.getLabel()).getExternalUrl() + extValueId;
+                    if (extValueId != null) valueUrl = dict.getNode(vc.getLabel()).getExternalUrl() + extValueId;
+                } else {
+                    // if there is no valueId field and there is an extValueId field, we
+                    // construct the valueUrl from the key + extValueId
+                    if (extValueId != null) {
+                        CAPDictionaryElement dictNode = dict.getNode(new BigInteger(key));
+                        valueUrl = dictNode.getExternalUrl()+extValueId;
+                    }
                 }
 
                 annos.add(new CAPAnnotation(contextId, assay.getAssayId().intValue(), valueDisplay, contextName, key, value, extValueId, "cap-context", valueUrl, displayOrder, "assay", related));
