@@ -32,7 +32,8 @@ public class ProteinTarget implements BardEntity {
     }
 
     public String getUrl() {
-        return url;
+        if (url == null && acc != null) return "http://www.uniprot.org/uniprot/" + acc;
+        else return url;
     }
 
     public void setUrl(String url) {
