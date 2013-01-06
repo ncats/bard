@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 public class ExperimentData implements BardEntity {
     String exptDataId;
     Long eid, cid, sid, bardExptId;
+    String resultJson;
 
     @JsonIgnore
     Date updated;
@@ -46,6 +47,14 @@ public class ExperimentData implements BardEntity {
     AssayDefinitionObject[] ado;
 
     public ExperimentData() {
+    }
+
+    public String getResultJson() {
+        return resultJson;
+    }
+
+    public void setResultJson(String resultJson) {
+        this.resultJson = resultJson;
     }
 
     /**

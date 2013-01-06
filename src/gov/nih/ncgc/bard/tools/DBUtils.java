@@ -1705,10 +1705,15 @@ public class DBUtils {
             }
         }
 
+        blob = rs.getBlob("json_response");
+        if (blob != null) {
+            ed.setResultJson(new String(blob.getBytes(1, (int) blob.length())));
+        }
+
         ed.setDr(dro);
         ed.setResults(o);
         ed.setDefs(ado);
-        ed.transform();
+//        ed.transform();
 
         return ed;
     }
