@@ -4334,6 +4334,7 @@ public class DBUtils {
                 String anno_key = rs.getString("anno_key");
                 String anno_value = rs.getString("anno_value");
                 String anno_display = rs.getString("anno_display");
+                String anno_value_text = rs.getString("anno_value_text");
                 int displayOrder = rs.getInt("display_order");
                 String source = rs.getString("source");
                 String entity = rs.getString("entity");
@@ -4346,6 +4347,8 @@ public class DBUtils {
                     String[] toks = related.split("\\|");
                     if (toks.length == 2) extValueId = toks[1];
                 }
+                if (extValueId == null && anno_value_text != null) extValueId = anno_value_text;
+
                 // TODO Updated the related annotations field to support grouping
                 CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, contextName, anno_key, anno_value, extValueId, source, url, displayOrder, entity, related);
                 annos.add(anno);
