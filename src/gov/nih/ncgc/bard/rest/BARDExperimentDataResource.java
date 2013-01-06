@@ -15,14 +15,27 @@ import gov.nih.ncgc.bard.tools.Util;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -367,8 +380,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
                 return Response.status(404).entity("No data for " + resourceId).type("text/plain").build();
 
             if (tokens.length == 2) {
-                String json = Util.toJson(experimentData);
-                return Response.ok(json, MediaType.APPLICATION_JSON).build();
+                return Response.ok(experimentData.getResultJson(), MediaType.APPLICATION_JSON).build();
             }
 
             int tid = Integer.parseInt(tokens[2]);
