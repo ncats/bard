@@ -272,7 +272,17 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
         db.closeConnection();
         if (edlist.size() == 0)
             return Response.status(404).entity("No data available for ids: " + ids).type(MediaType.TEXT_PLAIN).build();
-        else return Response.ok(Util.toJson(edlist)).type(MediaType.APPLICATION_JSON).build();
+        else {
+            // we need to convert the JSON strings to a JSON array
+            StringBuilder sb = new StringBuilder("[");
+            String delim = "";
+            for (ExperimentData ed : edlist) {
+                sb.append(delim).append(ed.getResultJson());
+                delim = ",";
+            }
+            sb.append("]");
+            return Response.ok(sb.toString()).type(MediaType.APPLICATION_JSON).build();
+        }
     }
 
     private List<String> getAllEdidFromAssays(String[] aids, int skip, int top, String filter) throws SQLException {
