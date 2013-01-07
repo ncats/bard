@@ -37,8 +37,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import javax.servlet.ServletContext;
+import javax.annotation.PostConstruct;
 
 import gov.nih.ncgc.bard.tools.Util;
+import gov.nih.ncgc.bard.tools.DBUtils;
 
 /**
  * A resource to expose full-text and faceted search as well as autocomplete suggestions.
@@ -71,6 +73,19 @@ public class BARDSearchResource implements IBARDResource {
             log.info("** Solr service: " + solrService);
         }
         return solrService;
+    }
+
+    protected static boolean init = false;
+    @PostConstruct
+    protected void postConstruct() {
+        if (!init) {
+            String ctx = servletContext.getInitParameter("datasource-context");
+            if (ctx != null) {
+                log.info("## datasource context: "+ctx);
+                DBUtils.setDataSourceContext(ctx);
+            }
+            init = true;
+        }
     }
 
     @GET
