@@ -104,6 +104,16 @@ public class DBUtils {
         return cache;
     }
 
+    static private String datasourceContext = "jdbc/bardman";
+    static public void setDataSourceContext (String context) {
+        if (context == null) {
+            throw new IllegalArgumentException ("Can't set null context!");
+        }
+        datasourceContext = context;
+    }
+    static public String getDataSourceContext () { return datasourceContext; }
+    
+
     <T> T getCacheValue (Cache cache, Object key) {
         Element el = cache.get(key);
         if (el != null) {
@@ -205,15 +215,16 @@ public class DBUtils {
         try {
             initContext = new javax.naming.InitialContext();
             DataSource ds = (javax.sql.DataSource)
-                initContext.lookup("java:comp/env/jdbc/bardman");
+                initContext.lookup("java:comp/env/"+getDataSourceContext ());
             con = ds.getConnection();
             con.setAutoCommit(false);
-        } catch (Exception ex) {
+        } 
+        catch (Exception ex) {
             // try 
             try {
                 initContext = new javax.naming.InitialContext();
                 DataSource ds = (javax.sql.DataSource)
-                    initContext.lookup("jdbc/bardman");
+                    initContext.lookup(getDataSourceContext ());
                 con = ds.getConnection();
                 con.setAutoCommit(false);
             } catch (Exception e) {

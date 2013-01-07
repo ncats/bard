@@ -59,8 +59,26 @@ public abstract class BARDResource<T extends BardEntity>
     protected boolean countRequested;
     protected List<EntityTag> etagsRequested = new ArrayList<EntityTag>();
 
+    protected static boolean init = false;
+
+    protected BARDResource () {
+    }
+
+    synchronized void init () {
+        if (!init) {
+            String ctx = servletContext.getInitParameter("datasource-context");
+            if (ctx != null) {
+                logger.info("## datasource context: "+ctx);
+                DBUtils.setDataSourceContext(ctx);
+            }
+            init = true;
+        }
+    }
+
     @PostConstruct
     protected void postConstruct() {
+        init ();
+
         countRequested = Util.countRequested(headers);
         List<String> etags = headers.getRequestHeader(HttpHeaders.IF_MATCH);
         if (etags != null) {
