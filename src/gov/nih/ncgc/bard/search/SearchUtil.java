@@ -64,6 +64,9 @@ public class SearchUtil {
             for (int i = 1; i < matcher.groupCount(); i += 2) {
                 String fname = matcher.group(i);
                 String fvalue = matcher.group(i + 1).trim();
+
+                if (!fvalue.contains("\"")) fvalue = "\"" + fvalue + "\"";
+
                 if (ret.containsKey(fname)) {
                     List<String> tmp = ret.get(fname);
                     tmp.add(fvalue);

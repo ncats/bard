@@ -170,6 +170,7 @@ public abstract class SolrSearch implements ISolrSearch {
                         sb.append(" OR ").append(fvalues.get(i)); // name + ":" + fvalue
                     else {
                         sb.append(" OR ").append("\"").append(fvalues.get(i).replace("\"", "")).append("\"");
+                        sb.append(" OR ").append(fvalues.get(i));
                     }
                 }
                 System.out.println(fname+":("+sb.toString()+")");
