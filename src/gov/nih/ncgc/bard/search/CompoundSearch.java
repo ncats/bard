@@ -193,7 +193,8 @@ public class CompoundSearch extends SolrSearch {
                 for (int i = skip; i < size; i++) {
                     SolrDocument doc = docs.get(i);
                     String compoundId = (String) doc.getFieldValue(PKEY_COMPOUND_DOC);
-                    ret.add(db.getCompoundsByCid(Long.parseLong(compoundId)).get(0));
+                    List<Compound> cmpds = db.getCompoundsByCid(Long.parseLong(compoundId));
+                    if (cmpds != null && cmpds.size() >0) ret.add(cmpds.get(0));
                 }
                 db.closeConnection();
             } catch (SQLException e) {
