@@ -13,7 +13,7 @@ import java.io.Writer;
  * @author Rajarshi Guha
  */
 public class ProteinTarget implements BardEntity {
-    String acc, name, description, status;
+    String acc, name, description, status, url;
     Long geneId, taxId;
 
     public ProteinTarget(String acc, String name, String description, String status, Long geneId, Long taxId) {
@@ -23,10 +23,21 @@ public class ProteinTarget implements BardEntity {
         this.status = status;
         this.geneId = geneId;
         this.taxId = taxId;
+        if (acc != null) this.url = "http://www.uniprot.org/uniprot/"+acc;
+        else this.url = null;
     }
 
     public boolean equals(Object o) {
         return o instanceof ProteinTarget && ((ProteinTarget) o).getAcc().equals(acc);
+    }
+
+    public String getUrl() {
+        if (url == null && acc != null) return "http://www.uniprot.org/uniprot/" + acc;
+        else return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public int hashCode() {
