@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 
 import java.sql.Date;
@@ -29,7 +30,11 @@ public class Project implements BardEntity {
     String name, description, source;
 
     // annotations
-    List<String> gobp_id, gobp_term, gomf_term, gomf_id, gocc_id, gocc_term, av_dict_label, ak_dict_label;
+    @JsonIgnore
+    List<String> gobp_id, gobp_term, gomf_term, gomf_id, gocc_id, gocc_term;
+
+    @JsonIgnore
+    List<String> av_dict_label, ak_dict_label;
     List<String> kegg_disease_names, kegg_disease_cat;
 
     /**
