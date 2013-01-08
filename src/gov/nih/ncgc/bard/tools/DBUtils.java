@@ -3817,25 +3817,6 @@ public class DBUtils {
         resultSet.close();
         pst.close();
 
-        // pull in CAP annotations
-        if (dict == null) try {
-            dict = getCAPDictionary();
-        } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
-        List<CAPAnnotation> capannots = getProjectAnnotations(bardProjId);
-        l1 = new ArrayList<String>();
-        l2 = new ArrayList<String>();
-        for (CAPAnnotation capannot : capannots) {
-            l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
-            if (capannot.value != null) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
-            else l2.add(capannot.display);
-        }
-        p.setAk_dict_label(l1);
-        p.setAv_dict_label(l2);
-
         return p;
     }
 
@@ -4313,6 +4294,18 @@ public class DBUtils {
      * ************************************************************************
      */
 
+    private List<CAPAnnotation> convertGoToAnno(ResultSet rs, String entity, Integer entityId) throws SQLException {
+        List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+        while (rs.next()) {
+            String term = rs.getString("go_term");
+            String goid = rs.getString("go_id");
+            String gotype = rs.getString("go_type");
+            CAPAnnotation anno = new CAPAnnotation(null, entityId.intValue(), term, null, "gotype", gotype, goid, "GO", "http://amigo.geneontology.org/cgi-bin/amigo/term_details?term=" + goid, -1, entity, null);
+            annos.add(anno);
+        }
+        return annos;
+    }
+
     /**
      * Get annotations for an assay.
      * <p/>
@@ -4341,6 +4334,7 @@ public class DBUtils {
 
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity_id = ? and source != 'cap-old'");
+        PreparedStatement gopst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? order by go_type");
         try {
             pst.setLong(1, bardAssayId);
             ResultSet rs = pst.executeQuery();
@@ -4371,11 +4365,17 @@ public class DBUtils {
             }
             rs.close();
 
+            // now pull in GO annotations and create CAPAnnotation objects from them
+            gopst.setLong(1, bardAssayId);
+            rs = gopst.executeQuery();
+            annos.addAll(convertGoToAnno(rs, "assay", bardAssayId.intValue()));
+
             cache.put(new Element (bardAssayId, annos));
             return annos;
         }
         finally {
             pst.close();
+            gopst.close();
         }
     }
 
@@ -4393,6 +4393,7 @@ public class DBUtils {
 
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id and a.source in ('cap', 'bao')");
+        PreparedStatement gopst = conn.prepareStatement("select * from go_project where bard_proj_id = ? order by go_type");
         try {
             pst.setLong(1, bardProjectId);
             ResultSet rs = pst.executeQuery();
@@ -4417,11 +4418,17 @@ public class DBUtils {
             }
             rs.close();
 
+            // now pull in GO annotations and create CAPAnnotation objects from them
+            gopst.setLong(1, bardProjectId);
+            rs = gopst.executeQuery();
+            annos.addAll(convertGoToAnno(rs, "project", bardProjectId.intValue()));
+
             cache.put(new Element (bardProjectId, annos));
             return annos;
         }
         finally {
             pst.close();
+            gopst.close();
         }
     }
 

@@ -11,7 +11,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
-import gov.nih.ncgc.bard.entity.*;
+import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
+import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.entity.ProteinTarget;
+import gov.nih.ncgc.bard.entity.Publication;
+import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
@@ -22,14 +29,31 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.math.BigInteger;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Prototype of MLBD REST resources.
@@ -308,14 +332,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
 
-    private boolean isinteger(String i) {
-        try {
-            new BigInteger(i);
-        } catch (NumberFormatException e) {
-            return false;
-        }
-        return true;
-    }
     @GET
     @Path("/{aid}/annotations")
     public Response getAnnotations(@PathParam("aid") Long resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
@@ -332,13 +348,14 @@ public class BARDAssayResource extends BARDResource<Assay> {
             Map<Integer, List<CAPAnnotation>> contexts = new HashMap<Integer, List<CAPAnnotation>>();
             for (CAPAnnotation anno : a) {
                 Integer id = anno.id;
+                if (id == null) id = -1; // corresponds to dynamically generated annotations (from non-CAP sources)
 
                 // go from dict key to label
-                if (anno.key != null && isinteger(anno.key)) {
+                if (anno.key != null && Util.isNumber(anno.key)) {
                     node = dict.getNode(new BigInteger(anno.key));
                     anno.key = node != null ? node.getLabel() : anno.key;
                 }
-                if (anno.value != null && isinteger(anno.value)) {
+                if (anno.value != null && Util.isNumber(anno.value)) {
                     node = dict.getNode(new BigInteger(anno.value));
                     anno.value = node != null ? node.getLabel() : anno.value;
                 }
@@ -358,6 +375,8 @@ public class BARDAssayResource extends BARDResource<Assay> {
             ArrayNode docNode = mapper.createArrayNode();
             ArrayNode contextNode = mapper.createArrayNode();
             ArrayNode measureNode = mapper.createArrayNode();
+            ArrayNode miscNode = mapper.createArrayNode();
+
             for (Integer contextId : contexts.keySet()) {
                 List<CAPAnnotation> comps = contexts.get(contextId);
                 Collections.sort(comps, new Comparator<CAPAnnotation>() {
@@ -376,11 +395,15 @@ public class BARDAssayResource extends BARDResource<Assay> {
                 if (comps.get(0).source.equals("cap-doc")) docNode.add(n);
                 else if (comps.get(0).source.equals("cap-context")) contextNode.add(n);
                 else if (comps.get(0).source.equals("cap-measure")) measureNode.add(n);
+                else {
+                    for (CAPAnnotation misca : comps) miscNode.add(mapper.valueToTree(misca));
+                }
             }
             ObjectNode topLevel = mapper.createObjectNode();
             topLevel.put("contexts", contextNode);
             topLevel.put("measures", measureNode);
             topLevel.put("docs", docNode);
+            topLevel.put("misc", miscNode);
 
             Writer writer = new StringWriter();
             JsonFactory fac = new JsonFactory();
