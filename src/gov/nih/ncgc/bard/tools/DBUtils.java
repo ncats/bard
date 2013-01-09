@@ -3228,7 +3228,10 @@ public class DBUtils {
         }
     }
 
-    private String generateLimitClause(int skip, int top) {
+    private String generateLimitClause(Integer skip, Integer top) {
+        if (skip == null) skip = -1;
+        if (top == null) top = -1;
+
         String limitClause = "";
         if (skip >= 0 && top > 0) {
             limitClause = "  limit " + skip + "," + top;
