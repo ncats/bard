@@ -182,7 +182,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
             // if CIDs are supplied, ids is ignored
             List<Long> sids = new ArrayList<Long>();
             String[] toks = cids.split(",");
-            for (String cid : toks) sids.addAll(db.getSidsByCid(Long.parseLong(cid)));
+            for (String cid : toks) sids.addAll(db.getSidsByCid(Long.parseLong(cid.trim())));
             ids = Util.join(sids, ",");
             logger.info("CIDs were specified. Converted " + toks.length + " CIDs to " + sids.size() + " SIDs");
         }
@@ -198,7 +198,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
             } else {
                 int nexpt = 0;
                 for (String id : ids.split(",")) {
-                    List<Long> sEids = db.getSubstanceExperimentIds(Long.parseLong(id), -1, -1);
+                    List<Long> sEids = db.getSubstanceExperimentIds(Long.parseLong(id.trim()), -1, -1);
                     for (Long asEid : sEids) edids.add(asEid + "." + id);
                     nexpt += sEids.size();
                 }
@@ -336,7 +336,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
     private List<String> getEdidFromExperiments(String[] ids, String[] eida) {
         List<String> edids = new ArrayList<String>();
         for (String sid : ids) {
-            for (String eid : eida) edids.add(eid + "." + sid);
+            for (String eid : eida) edids.add(eid + "." + sid.trim());
         }
         return edids;
     }
