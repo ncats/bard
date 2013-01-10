@@ -86,7 +86,7 @@ public class DBUtils {
         datasourceContext = context;
     }
     static public String getDataSourceContext () { return datasourceContext; }
-    
+
 
     <T> T getCacheValue (Cache cache, Object key) {
         Element el = cache.get(key);
@@ -192,7 +192,7 @@ public class DBUtils {
                 initContext.lookup("java:comp/env/"+getDataSourceContext ());
             con = ds.getConnection();
             con.setAutoCommit(false);
-        } 
+        }
         catch (Exception ex) {
             // try 
             try {
@@ -1898,7 +1898,7 @@ public class DBUtils {
     }
 
     protected Experiment getExperiment (ResultSet rs) throws SQLException {
-        Experiment e= new Experiment();        
+        Experiment e= new Experiment();
         e.setExptId(rs.getLong("bard_expt_id"));
         e.setAssayId(rs.getLong("bard_assay_id"));
         e.setName(rs.getString("name"));
@@ -2165,7 +2165,7 @@ public class DBUtils {
         StringBuilder sql = null;
         Object type = info.get("type");
         if (Compound.class.getName().equals(type)) {
-            sql = new StringBuilder 
+            sql = new StringBuilder
                 ("select * from bard_assay where bard_assay_id in "
                  +"(select distinct bard_assay_id from bard_experiment a, "
                  +"bard_experiment_data b, etag_data c where etag_id = ? "
@@ -2173,7 +2173,7 @@ public class DBUtils {
                  +"and b.cid = c.data_id)");
         }
         else if (Substance.class.getName().equals(type)) {
-            sql = new StringBuilder 
+            sql = new StringBuilder
                 ("select * from bard_assay where bard_assay_id in "
                  +"(select distinct bard_assay_id from bard_experiment a, "
                  +"bard_experiment_data b, etag_data c where etag_id = ? "
@@ -2187,7 +2187,7 @@ public class DBUtils {
         }
         else {
             throw new IllegalArgumentException
-                ("Don't know how to get Assay's for etag " 
+                ("Don't know how to get Assay's for etag "
                  +etag + " of type "+type+"!");
         }
 
@@ -2298,7 +2298,7 @@ public class DBUtils {
         StringBuilder sql = null;
         Object type = info.get("type");
         if (Compound.class.getName().equals(type)) {
-            sql = new StringBuilder 
+            sql = new StringBuilder
                 ("select * from bard_experiment "
                  +"where bard_expt_id in (select distinct bard_expt_id "
                  +"from etag_data a, bard_experiment_data b "
@@ -2306,7 +2306,7 @@ public class DBUtils {
                  +"and a.data_id = b.cid)");
         }
         else if (Substance.class.getName().equals(type)) {
-            sql = new StringBuilder 
+            sql = new StringBuilder
                 ("select * from bard_experiment "
                  +"where bard_expt_id in (select distinct bard_expt_id "
                  +"from etag_data a, bard_experiment_data b "
@@ -2321,7 +2321,7 @@ public class DBUtils {
         }
         else {
             throw new IllegalArgumentException
-                ("Don't know how to get Experiment's for etag " 
+                ("Don't know how to get Experiment's for etag "
                  +etag + " of type "+type+"!");
         }
 
@@ -4279,10 +4279,26 @@ public class DBUtils {
             String gotype = rs.getString("go_type");
             String targetAcc = rs.getString("target_acc");
             String assoc = rs.getString("go_assoc_db_ref");
+            String evCode = rs.getString("ev_code");
 
             assoc = assoc == null ? "" : assoc;
+            String related = "target="+targetAcc+",gotype="+gotype+",evcode="+evCode+",ev="+assoc;
 
-            String related = "target="+targetAcc+",gotype="+gotype+",ev="+assoc;
+            // work out the direct parent of an annotation
+            // In go_term2term, term1_id is id of the parent term and term2_id is id of the child term.
+            // Since we want the parent of the current term, it is the child
+            StringBuilder parentId = new StringBuilder();
+            String delim = "";
+            PreparedStatement pst = conn.prepareStatement("select acc from go_term where id in (select term1_id from go_term2term a, go_term b where b.acc = ? and a.term2_id = b.id)");
+            pst.setString(1, goid);
+            ResultSet trs = pst.executeQuery();
+            while (trs.next()) {
+                parentId.append(delim).append(trs.getString("acc"));
+                delim = ",";
+            }
+            pst.close();
+            related += ",parentid="+parentId;
+
             CAPAnnotation anno = new CAPAnnotation(null,
                     entityId.intValue(),
                     term, null,
@@ -4593,7 +4609,7 @@ public class DBUtils {
             sql = "select distinct bard_expt_id from bard_experiment_data where cid = ? order by classification desc, score desc "+limitClause;
         }
         else {
-            throw new IllegalArgumentException 
+            throw new IllegalArgumentException
                 ("Unsupported entity class: "+entity);
         }
 
