@@ -8,16 +8,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.ETag;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
-import gov.nih.ncgc.bard.entity.Publication;
-import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
@@ -37,25 +28,8 @@ import java.io.Reader;
 import java.math.BigInteger;
 import java.security.Principal;
 import java.security.SecureRandom;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.sql.*;
+import java.util.*;
 
 
 
@@ -4303,7 +4277,19 @@ public class DBUtils {
             String term = rs.getString("go_term");
             String goid = rs.getString("go_id");
             String gotype = rs.getString("go_type");
-            CAPAnnotation anno = new CAPAnnotation(null, entityId.intValue(), term, null, "gotype", gotype, goid, "GO", "http://amigo.geneontology.org/cgi-bin/amigo/term_details?term=" + goid, -1, entity, null);
+            String targetAcc = rs.getString("target_acc");
+            String assoc = rs.getString("go_assoc_db_ref");
+
+            assoc = assoc == null ? "" : assoc;
+
+            String related = "target="+targetAcc+",gotype="+gotype+",ev="+assoc;
+            CAPAnnotation anno = new CAPAnnotation(null,
+                    entityId.intValue(),
+                    term, null,
+                    "goid", goid,
+                    goid, "GO",
+                    "http://amigo.geneontology.org/cgi-bin/amigo/term_details?term=" + goid, -1, entity,
+                    related);
             annos.add(anno);
         }
         return annos;
