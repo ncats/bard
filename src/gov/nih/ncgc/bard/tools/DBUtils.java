@@ -4288,15 +4288,15 @@ public class DBUtils {
             // In go_term2term, term1_id is id of the parent term and term2_id is id of the child term.
             // Since we want the parent of the current term, it is the child
             StringBuilder parentId = new StringBuilder();
-            String delim = "";
-            PreparedStatement pst = conn.prepareStatement("select acc from go_term where id in (select term1_id from go_term2term a, go_term b where b.acc = ? and a.term2_id = b.id)");
-            pst.setString(1, goid);
-            ResultSet trs = pst.executeQuery();
-            while (trs.next()) {
-                parentId.append(delim).append(trs.getString("acc"));
-                delim = ",";
-            }
-            pst.close();
+//            String delim = "";
+//            PreparedStatement pst = conn.prepareStatement("select acc from go_term where id in (select term1_id from go_term2term a, go_term b where b.acc = ? and a.term2_id = b.id)");
+//            pst.setString(1, goid);
+//            ResultSet trs = pst.executeQuery();
+//            while (trs.next()) {
+//                parentId.append(delim).append(trs.getString("acc"));
+//                delim = ",";
+//            }
+//            pst.close();
             related += ",parentid="+parentId;
 
             CAPAnnotation anno = new CAPAnnotation(null,
