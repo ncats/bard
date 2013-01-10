@@ -1190,13 +1190,15 @@ public class DBUtils {
                 Long bardAssayId = rs.getLong(1);
                 List<CAPAnnotation> capannots = getAssayAnnotations(bardAssayId);
                 for (CAPAnnotation annot : capannots) {
-                    if (annot.key.equals("detection_method_type")) {
+                    if (annot.key == null) {
+                        // source = 'cap-measure' doesn't have anno_key
+                    }
+                    else if (annot.key.equals("detection_method_type")) {
                         if (dtcounts.containsKey(annot.value)) {
                             dtcounts.put(annot.value, dtcounts.get(annot.value)+1);
                         } else dtcounts.put(annot.value, 1);
                     }
-
-                    if (annot.key.equals("assay_component_role")) {
+                    else if (annot.key.equals("assay_component_role")) {
                         if (acrcounts.containsKey(annot.value)) {
                             acrcounts.put(annot.value, acrcounts.get(annot.value)+1);
                         } else acrcounts.put(annot.value, 1);

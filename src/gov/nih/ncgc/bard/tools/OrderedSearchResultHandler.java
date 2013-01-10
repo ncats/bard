@@ -9,6 +9,8 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 public class OrderedSearchResultHandler implements SearchCallback<SearchService2.MolEntry> {
     List<Long> cids;
@@ -34,18 +36,19 @@ public class OrderedSearchResultHandler implements SearchCallback<SearchService2
     boolean finished = false;
 
     //Consumer thread
-    private Thread t;
+    private Future t;
 
-    public OrderedSearchResultHandler(SearchParams params, PrintWriter pw, Integer start, Integer resultCap) {
+    public OrderedSearchResultHandler (ExecutorService threadPool, 
+                                       SearchParams params, PrintWriter pw, 
+                                       Integer start, Integer resultCap) {
         cids = new ArrayList<Long>();
 
         this.params = params;
         this.pw = pw;
         if (start != null) returnStart = start;
         if (resultCap != null) this.returnCap = resultCap;
-        Consumer consumer = new Consumer();
-        t = new Thread(consumer);
-        t.start();
+
+        t = threadPool.submit(new Consumer ());
     }
 
     private void initialize(int l) {
@@ -144,9 +147,9 @@ public class OrderedSearchResultHandler implements SearchCallback<SearchService2
             }
         }
         finished = true;
-        try {
-            t.join();
-        } catch (InterruptedException e) {
+        try { // wait
+            t.get();
+        } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
