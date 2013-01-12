@@ -33,6 +33,15 @@ public class Util {
         return (headers.getRequestHeaders().containsKey(BARDConstants.REQUEST_HEADER_COUNT));
     }
 
+    public static boolean isNumber(String s) {
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
     public static String getETag(HttpHeaders headers) {
         List<String> etags = headers.getRequestHeader(HttpHeaders.ETAG);
         return etags != null && !etags.isEmpty()

@@ -8,16 +8,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.ETag;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
-import gov.nih.ncgc.bard.entity.Publication;
-import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
@@ -37,25 +28,8 @@ import java.io.Reader;
 import java.math.BigInteger;
 import java.security.Principal;
 import java.security.SecureRandom;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.sql.*;
+import java.util.*;
 
 
 
@@ -112,7 +86,7 @@ public class DBUtils {
         datasourceContext = context;
     }
     static public String getDataSourceContext () { return datasourceContext; }
-    
+
 
     <T> T getCacheValue (Cache cache, Object key) {
         Element el = cache.get(key);
@@ -218,7 +192,7 @@ public class DBUtils {
                 initContext.lookup("java:comp/env/"+getDataSourceContext ());
             con = ds.getConnection();
             con.setAutoCommit(false);
-        } 
+        }
         catch (Exception ex) {
             // try 
             try {
@@ -1926,7 +1900,7 @@ public class DBUtils {
     }
 
     protected Experiment getExperiment (ResultSet rs) throws SQLException {
-        Experiment e= new Experiment();        
+        Experiment e= new Experiment();
         e.setExptId(rs.getLong("bard_expt_id"));
         e.setAssayId(rs.getLong("bard_assay_id"));
         e.setName(rs.getString("name"));
@@ -2193,7 +2167,7 @@ public class DBUtils {
         StringBuilder sql = null;
         Object type = info.get("type");
         if (Compound.class.getName().equals(type)) {
-            sql = new StringBuilder 
+            sql = new StringBuilder
                 ("select * from bard_assay where bard_assay_id in "
                  +"(select distinct bard_assay_id from bard_experiment a, "
                  +"bard_experiment_data b, etag_data c where etag_id = ? "
@@ -2201,7 +2175,7 @@ public class DBUtils {
                  +"and b.cid = c.data_id)");
         }
         else if (Substance.class.getName().equals(type)) {
-            sql = new StringBuilder 
+            sql = new StringBuilder
                 ("select * from bard_assay where bard_assay_id in "
                  +"(select distinct bard_assay_id from bard_experiment a, "
                  +"bard_experiment_data b, etag_data c where etag_id = ? "
@@ -2215,7 +2189,7 @@ public class DBUtils {
         }
         else {
             throw new IllegalArgumentException
-                ("Don't know how to get Assay's for etag " 
+                ("Don't know how to get Assay's for etag "
                  +etag + " of type "+type+"!");
         }
 
@@ -2326,7 +2300,7 @@ public class DBUtils {
         StringBuilder sql = null;
         Object type = info.get("type");
         if (Compound.class.getName().equals(type)) {
-            sql = new StringBuilder 
+            sql = new StringBuilder
                 ("select * from bard_experiment "
                  +"where bard_expt_id in (select distinct bard_expt_id "
                  +"from etag_data a, bard_experiment_data b "
@@ -2334,7 +2308,7 @@ public class DBUtils {
                  +"and a.data_id = b.cid)");
         }
         else if (Substance.class.getName().equals(type)) {
-            sql = new StringBuilder 
+            sql = new StringBuilder
                 ("select * from bard_experiment "
                  +"where bard_expt_id in (select distinct bard_expt_id "
                  +"from etag_data a, bard_experiment_data b "
@@ -2349,7 +2323,7 @@ public class DBUtils {
         }
         else {
             throw new IllegalArgumentException
-                ("Don't know how to get Experiment's for etag " 
+                ("Don't know how to get Experiment's for etag "
                  +etag + " of type "+type+"!");
         }
 
@@ -3822,25 +3796,6 @@ public class DBUtils {
         resultSet.close();
         pst.close();
 
-        // pull in CAP annotations
-        if (dict == null) try {
-            dict = getCAPDictionary();
-        } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
-        List<CAPAnnotation> capannots = getProjectAnnotations(bardProjId);
-        l1 = new ArrayList<String>();
-        l2 = new ArrayList<String>();
-        for (CAPAnnotation capannot : capannots) {
-            l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
-            if (capannot.value != null) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
-            else l2.add(capannot.display);
-        }
-        p.setAk_dict_label(l1);
-        p.setAv_dict_label(l2);
-
         return p;
     }
 
@@ -4318,6 +4273,46 @@ public class DBUtils {
      * ************************************************************************
      */
 
+    private List<CAPAnnotation> convertGoToAnno(ResultSet rs, String entity, Integer entityId) throws SQLException {
+        List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+        while (rs.next()) {
+            String term = rs.getString("go_term");
+            String goid = rs.getString("go_id");
+            String gotype = rs.getString("go_type");
+            String targetAcc = rs.getString("target_acc");
+            String assoc = rs.getString("go_assoc_db_ref");
+            String evCode = rs.getString("ev_code");
+
+            assoc = assoc == null ? "" : assoc;
+            String related = "target="+targetAcc+",gotype="+gotype+",evcode="+evCode+",ev="+assoc;
+
+            // work out the direct parent of an annotation
+            // In go_term2term, term1_id is id of the parent term and term2_id is id of the child term.
+            // Since we want the parent of the current term, it is the child
+            StringBuilder parentId = new StringBuilder();
+//            String delim = "";
+//            PreparedStatement pst = conn.prepareStatement("select acc from go_term where id in (select term1_id from go_term2term a, go_term b where b.acc = ? and a.term2_id = b.id)");
+//            pst.setString(1, goid);
+//            ResultSet trs = pst.executeQuery();
+//            while (trs.next()) {
+//                parentId.append(delim).append(trs.getString("acc"));
+//                delim = ",";
+//            }
+//            pst.close();
+            related += ",parentid="+parentId;
+
+            CAPAnnotation anno = new CAPAnnotation(null,
+                    entityId.intValue(),
+                    term, null,
+                    "goid", goid,
+                    goid, "GO",
+                    "http://amigo.geneontology.org/cgi-bin/amigo/term_details?term=" + goid, -1, entity,
+                    related);
+            annos.add(anno);
+        }
+        return annos;
+    }
+
     /**
      * Get annotations for an assay.
      * <p/>
@@ -4346,6 +4341,7 @@ public class DBUtils {
 
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity_id = ? and source != 'cap-old'");
+        PreparedStatement gopst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? order by go_type");
         try {
             pst.setLong(1, bardAssayId);
             ResultSet rs = pst.executeQuery();
@@ -4376,11 +4372,17 @@ public class DBUtils {
             }
             rs.close();
 
+            // now pull in GO annotations and create CAPAnnotation objects from them
+            gopst.setLong(1, bardAssayId);
+            rs = gopst.executeQuery();
+            annos.addAll(convertGoToAnno(rs, "assay", bardAssayId.intValue()));
+
             cache.put(new Element (bardAssayId, annos));
             return annos;
         }
         finally {
             pst.close();
+            gopst.close();
         }
     }
 
@@ -4398,6 +4400,7 @@ public class DBUtils {
 
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id and a.source in ('cap', 'bao')");
+        PreparedStatement gopst = conn.prepareStatement("select * from go_project where bard_proj_id = ? order by go_type");
         try {
             pst.setLong(1, bardProjectId);
             ResultSet rs = pst.executeQuery();
@@ -4422,11 +4425,17 @@ public class DBUtils {
             }
             rs.close();
 
+            // now pull in GO annotations and create CAPAnnotation objects from them
+            gopst.setLong(1, bardProjectId);
+            rs = gopst.executeQuery();
+            annos.addAll(convertGoToAnno(rs, "project", bardProjectId.intValue()));
+
             cache.put(new Element (bardProjectId, annos));
             return annos;
         }
         finally {
             pst.close();
+            gopst.close();
         }
     }
 
@@ -4602,7 +4611,7 @@ public class DBUtils {
             sql = "select distinct bard_expt_id from bard_experiment_data where cid = ? order by classification desc, score desc "+limitClause;
         }
         else {
-            throw new IllegalArgumentException 
+            throw new IllegalArgumentException
                 ("Unsupported entity class: "+entity);
         }
 

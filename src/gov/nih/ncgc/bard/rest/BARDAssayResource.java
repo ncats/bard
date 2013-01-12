@@ -308,80 +308,115 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
 
-    private boolean isinteger(String i) {
-        try {
-            new BigInteger(i);
-        } catch (NumberFormatException e) {
-            return false;
+    JsonNode getAnnotationJson(List<CAPAnnotation> a) throws ClassNotFoundException, IOException, SQLException {
+        DBUtils db = new DBUtils();
+        CAPDictionary dict = db.getCAPDictionary();
+
+        // lets group these annotations and construct our JSON response
+        CAPDictionaryElement node;
+
+        Map<Integer, List<CAPAnnotation>> contexts = new HashMap<Integer, List<CAPAnnotation>>();
+        for (CAPAnnotation anno : a) {
+            Integer id = anno.id;
+            if (id == null) id = -1; // corresponds to dynamically generated annotations (from non-CAP sources)
+
+            // go from dict key to label
+            if (anno.key != null && Util.isNumber(anno.key)) {
+                node = dict.getNode(new BigInteger(anno.key));
+                anno.key = node != null ? node.getLabel() : anno.key;
+            }
+            if (anno.value != null && Util.isNumber(anno.value)) {
+                node = dict.getNode(new BigInteger(anno.value));
+                anno.value = node != null ? node.getLabel() : anno.value;
+            }
+
+            if (contexts.containsKey(id)) {
+                List<CAPAnnotation> la = contexts.get(id);
+                la.add(anno);
+                contexts.put(id, la);
+            } else {
+                List<CAPAnnotation> la = new ArrayList<CAPAnnotation>();
+                la.add(anno);
+                contexts.put(id, la);
+            }
         }
-        return true;
+
+        ObjectMapper mapper = new ObjectMapper();
+        ArrayNode docNode = mapper.createArrayNode();
+        ArrayNode contextNode = mapper.createArrayNode();
+        ArrayNode measureNode = mapper.createArrayNode();
+        ArrayNode miscNode = mapper.createArrayNode();
+
+        for (Integer contextId : contexts.keySet()) {
+            List<CAPAnnotation> comps = contexts.get(contextId);
+            Collections.sort(comps, new Comparator<CAPAnnotation>() {
+                @Override
+                public int compare(CAPAnnotation o1, CAPAnnotation o2) {
+                    if (o1.displayOrder == o2.displayOrder) return 0;
+                    return o1.displayOrder < o2.displayOrder ? -1 : 1;
+                }
+            });
+            JsonNode arrayNode = mapper.valueToTree(comps);
+            ObjectNode n = mapper.createObjectNode();
+            n.put("id", comps.get(0).id);
+            n.put("name", comps.get(0).contextRef);
+            n.put("comps", arrayNode);
+
+            if (comps.get(0).source.equals("cap-doc")) docNode.add(n);
+            else if (comps.get(0).source.equals("cap-context")) contextNode.add(n);
+            else if (comps.get(0).source.equals("cap-measure")) measureNode.add(n);
+            else {
+                for (CAPAnnotation misca : comps) miscNode.add(mapper.valueToTree(misca));
+            }
+        }
+        ObjectNode topLevel = mapper.createObjectNode();
+        topLevel.put("contexts", contextNode);
+        topLevel.put("measures", measureNode);
+        topLevel.put("docs", docNode);
+        topLevel.put("misc", miscNode);
+
+        return topLevel;
     }
+
+    @POST
+    @Path("/annotations")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response getMultipleAnnotations(@FormParam("aids") String aids,
+                                           @QueryParam("filter") String filter, @QueryParam("expand") String expand)
+            throws ClassNotFoundException, IOException, SQLException {
+        DBUtils db = new DBUtils();
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode topLevel = mapper.createObjectNode();
+
+        for (String anAid : aids.split(",")) {
+            Long aid = Long.valueOf(anAid.trim());
+            List<CAPAnnotation> a = db.getAssayAnnotations(aid);
+            if (a == null || a.size() == 0) {
+                log.info("Got 0 annotations for aid " + aid);
+                topLevel.put(aid.toString(), "");
+            } else {
+                log.info("Got " + a.size() + " annotations for aid " + aid);
+                topLevel.put(aid.toString(), getAnnotationJson(a));
+            }
+        }
+        Writer writer = new StringWriter();
+        JsonFactory fac = new JsonFactory();
+        JsonGenerator jsg = fac.createJsonGenerator(writer);
+        mapper.writeTree(jsg, topLevel);
+        String json = writer.toString();
+        return Response.ok(json, MediaType.APPLICATION_JSON).build();
+    }
+
     @GET
     @Path("/{aid}/annotations")
     public Response getAnnotations(@PathParam("aid") Long resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
         DBUtils db = new DBUtils();
         List<CAPAnnotation> a;
-        CAPDictionary dict = db.getCAPDictionary();
         try {
             a = db.getAssayAnnotations(resourceId);
             if (a == null) throw new WebApplicationException(404);
-
-            // lets group these annotations and construct our JSON response
-            CAPDictionaryElement node;
-
-            Map<Integer, List<CAPAnnotation>> contexts = new HashMap<Integer, List<CAPAnnotation>>();
-            for (CAPAnnotation anno : a) {
-                Integer id = anno.id;
-
-                // go from dict key to label
-                if (anno.key != null && isinteger(anno.key)) {
-                    node = dict.getNode(new BigInteger(anno.key));
-                    anno.key = node != null ? node.getLabel() : anno.key;
-                }
-                if (anno.value != null && isinteger(anno.value)) {
-                    node = dict.getNode(new BigInteger(anno.value));
-                    anno.value = node != null ? node.getLabel() : anno.value;
-                }
-                
-                if (contexts.containsKey(id)) {
-                    List<CAPAnnotation> la = contexts.get(id);
-                    la.add(anno);
-                    contexts.put(id, la);
-                } else {
-                    List<CAPAnnotation> la = new ArrayList<CAPAnnotation>();
-                    la.add(anno);
-                    contexts.put(id, la);
-                }
-            }
-
+            JsonNode topLevel = getAnnotationJson(a);
             ObjectMapper mapper = new ObjectMapper();
-            ArrayNode docNode = mapper.createArrayNode();
-            ArrayNode contextNode = mapper.createArrayNode();
-            ArrayNode measureNode = mapper.createArrayNode();
-            for (Integer contextId : contexts.keySet()) {
-                List<CAPAnnotation> comps = contexts.get(contextId);
-                Collections.sort(comps, new Comparator<CAPAnnotation>() {
-                    @Override
-                    public int compare(CAPAnnotation o1, CAPAnnotation o2) {
-                        if (o1.displayOrder == o2.displayOrder) return 0;
-                        return o1.displayOrder < o2.displayOrder ? -1 : 1;
-                    }
-                });
-                JsonNode arrayNode = mapper.valueToTree(comps);
-                ObjectNode n = mapper.createObjectNode();
-                n.put("id", comps.get(0).id);
-                n.put("name", comps.get(0).contextRef);
-                n.put("comps", arrayNode);
-
-                if (comps.get(0).source.equals("cap-doc")) docNode.add(n);
-                else if (comps.get(0).source.equals("cap-context")) contextNode.add(n);
-                else if (comps.get(0).source.equals("cap-measure")) measureNode.add(n);
-            }
-            ObjectNode topLevel = mapper.createObjectNode();
-            topLevel.put("contexts", contextNode);
-            topLevel.put("measures", measureNode);
-            topLevel.put("docs", docNode);
-
             Writer writer = new StringWriter();
             JsonFactory fac = new JsonFactory();
             JsonGenerator jsg = fac.createJsonGenerator(writer);
