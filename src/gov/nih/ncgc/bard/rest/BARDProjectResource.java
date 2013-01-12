@@ -15,6 +15,7 @@ import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
+import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
@@ -135,11 +136,8 @@ public class BARDProjectResource extends BARDResource<Project> {
             else {
                 json = Util.toJson(p);
 
-                /*
-                 * hold these changes off for now
-                 */
                 if (expandEntries(expand)) {
-                    // need to update experiment and assy entries
+                    // need to update publication, experiment and assay entries
                     List<Assay> assays = new ArrayList<Assay>();
                     for (Long aid : p.getAids()) 
                         assays.add(db.getAssayByAid(aid));
@@ -147,6 +145,10 @@ public class BARDProjectResource extends BARDResource<Project> {
                     List<Experiment> expts = new ArrayList<Experiment>();
                     for (Long eid : p.getEids()) 
                         expts.add(db.getExperimentByExptId(eid));
+
+                    List<Publication> pubs = new ArrayList<Publication>();
+                    for (Long pmid : p.getPublications())
+                        pubs.add(db.getPublicationByPmid(pmid));
 
                     ObjectMapper mapper = new ObjectMapper();
                     ArrayNode an = mapper.createArrayNode();
@@ -157,10 +159,15 @@ public class BARDProjectResource extends BARDResource<Project> {
                     for (Experiment expt : expts) {
                         en.add(mapper.valueToTree(expt));
                     }
-                    
+                    ArrayNode pn = mapper.createArrayNode();
+                    for (Publication pub : pubs) {
+                        pn.add(mapper.valueToTree(pub));
+                    }
+
                     JsonNode tree = mapper.valueToTree(p);
                     ((ObjectNode)tree).put("eids", en);
                     ((ObjectNode)tree).put("aids", an);
+                    ((ObjectNode)tree).put("publications", pn);
 
                     Writer writer = new StringWriter();
                     JsonFactory fac = new JsonFactory();
