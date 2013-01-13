@@ -127,12 +127,12 @@ public class CAPExtractor {
 
     public void setHandlers() {
         registry = CapResourceHandlerRegistry.getInstance();
-//        registry.setHandler(CAPConstants.CapResource.PROJECTS, new ProjectsHandler());
-//        registry.setHandler(CAPConstants.CapResource.PROJECT, new ProjectHandler());
-//        registry.setHandler(CAPConstants.CapResource.PROJECTDOC, new ProjectDocHandler());
+        registry.setHandler(CAPConstants.CapResource.PROJECTS, new ProjectsHandler());
+        registry.setHandler(CAPConstants.CapResource.PROJECT, new ProjectHandler());
+        registry.setHandler(CAPConstants.CapResource.PROJECTDOC, new ProjectDocHandler());
         registry.setHandler(CAPConstants.CapResource.ASSAYS, new AssaysHandler());
         registry.setHandler(CAPConstants.CapResource.ASSAY, new AssayHandler());
-        registry.setHandler(CAPConstants.CapResource.EXPERIMENTS, new ExperimentsHandler());
+//        registry.setHandler(CAPConstants.CapResource.EXPERIMENTS, new ExperimentsHandler());
 //        registry.setHandler(CAPConstants.CapResource.EXPERIMENT, new ExperimentHandler());
 ////        registry.setHandler(CAPConstants.CapResource.RESULTS, new ResultsHandler());
 //        registry.setHandler(CAPConstants.CapResource.RESULT, new ResultHandler());

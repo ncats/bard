@@ -14,16 +14,8 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Vector;
+import java.sql.*;
+import java.util.*;
 
 public class CAPUtil {
 
@@ -31,8 +23,8 @@ public class CAPUtil {
         Connection conn = null;
         try {
             Class.forName("com.mysql.jdbc.Driver").newInstance();
-            conn = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov/bard2", "capbard", "bard");
-//            conn = DriverManager.getConnection("jdbc:mysql://protein.nhgri.nih.gov/bard2", "bardcap", "bard");
+//            conn = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov/bard2", "capbard", "bard");
+            conn = DriverManager.getConnection("jdbc:mysql://protein.nhgri.nih.gov/bard3", "bard_manager", "bard_manager");
             conn.setAutoCommit(false);
         } catch (IllegalAccessException e) {
             System.out.println("Can't connect to db" + e.toString());

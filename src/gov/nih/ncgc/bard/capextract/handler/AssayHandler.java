@@ -1,28 +1,14 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import gov.nih.ncgc.bard.capextract.CAPAnnotation;
-import gov.nih.ncgc.bard.capextract.CAPConstants;
-import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
-import gov.nih.ncgc.bard.capextract.CAPUtil;
-import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.Assay;
-import gov.nih.ncgc.bard.capextract.jaxb.AssayContexType;
-import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
-import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.capextract.*;
+import gov.nih.ncgc.bard.capextract.jaxb.*;
 import gov.nih.ncgc.bard.tools.Util;
 import nu.xom.ParsingException;
 
 import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -242,7 +228,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                     // construct the valueUrl from the key + extValueId
                     if (extValueId != null) {
                         CAPDictionaryElement dictNode = dict.getNode(new BigInteger(key));
-                        valueUrl = dictNode.getExternalUrl()+extValueId;
+                        valueUrl = dictNode.getExternalUrl() + extValueId;
                     }
                 }
 
@@ -262,39 +248,71 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         // at this point we can dump assays and annos to the db.
         try {
             int bardAssayId = -1;
+            int qcapAssayId = -1;
 
             Connection conn = CAPUtil.connectToBARD();
-
-            // query the table by cap_assay_id
             Statement query = conn.createStatement();
-            query.execute("select bard_assay_id, cap_assay_id from cap_assay where cap_assay_id=" + capAssayId);
+
+            // first see if we need to stage it
+            query.execute("select cap_assay_id from cap_assay where cap_assay_id=" + capAssayId);
             ResultSet rs = query.getResultSet();
+            while (rs.next()) qcapAssayId = rs.getInt(1);
+            if (qcapAssayId == -1) {
+                PreparedStatement pstAssay = conn.prepareStatement(
+                        "insert into cap_assay (cap_assay_id, version, title, name, description, protocol, comment, designed_by) values(?,?,?,?,?,?,?,?)");
+                pstAssay.setInt(1, capAssayId.intValue());
+                pstAssay.setString(2, version);
+                pstAssay.setString(3, title);
+                pstAssay.setString(4, name);
+                pstAssay.setString(5, description);
+                pstAssay.setString(6, protocol);
+                pstAssay.setString(7, comments);
+                pstAssay.setString(8, designedBy);
+                int insertedRows = pstAssay.executeUpdate();
+                pstAssay.close();
+                rs.close();
+                if (insertedRows == 0) {
+                    log.error("Could not insert new CAP assay id = " + capAssayId);
+                    return;
+                } else log.info("Stage CAP assay id = " + capAssayId);
+
+            }
+
+            // query the table by cap_assay_id and see if we need to insert into production
+            query.execute("select bard_assay_id from bard_assay where cap_assay_id=" + capAssayId);
+            rs = query.getResultSet();
             while (rs.next()) {
                 bardAssayId = rs.getInt(1);
             }
             rs.close();
             query.close();
 
-            // this is a new assay
-            PreparedStatement pstAssay = conn.prepareStatement("insert into cap_assay (bard_assay_id, cap_assay_id, version, title, name, description, protocol, comment, designed_by) values(?,?,?,?,?,?,?,?,?)");
+            PreparedStatement pstAssay = conn.prepareStatement(
+                    "insert into cap_assay (cap_assay_id, version, title, name, description, protocol, comment, designed_by) values(?,?,?,?,?,?,?,?)",
+                    Statement.RETURN_GENERATED_KEYS);
             if (bardAssayId == -1) {
-                pstAssay.setInt(1, bardAssayId);
-                pstAssay.setInt(2, capAssayId.intValue());
-                pstAssay.setString(3, version);
-                pstAssay.setString(4, title);
-                pstAssay.setString(5, name);
-                pstAssay.setString(6, description);
-                pstAssay.setString(7, protocol);
-                pstAssay.setString(8, comments);
-                pstAssay.setString(9, designedBy);
-
-                pstAssay.addBatch();
+                pstAssay.setInt(1, capAssayId.intValue());
+                pstAssay.setString(2, version);
+                pstAssay.setString(3, title);
+                pstAssay.setString(4, name);
+                pstAssay.setString(5, description);
+                pstAssay.setString(6, protocol);
+                pstAssay.setString(7, comments);
+                pstAssay.setString(8, designedBy);
+                int insertedRows = pstAssay.executeUpdate();
+                if (insertedRows == 0) {
+                    log.error("Could not insert new CAP assay id = " + capAssayId +" into production");
+                }
+                rs = pstAssay.getGeneratedKeys();
+                while (rs.next()) bardAssayId = rs.getInt(1);
+                rs.close();
+                pstAssay.close();
             }
 
             PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'assay',?,?,?,?,?,?,?,?,?,?)");
             for (CAPAnnotation anno : annos) {
                 pstAssayAnnot.setString(1, anno.source);
-                pstAssayAnnot.setInt(2, bardAssayId);  // TODO or should we use CAP assay id?
+                pstAssayAnnot.setInt(2, bardAssayId);
                 pstAssayAnnot.setInt(3, anno.id);
                 pstAssayAnnot.setString(4, anno.key);
                 pstAssayAnnot.setString(5, anno.value);
@@ -307,10 +325,8 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 
                 pstAssayAnnot.addBatch();
             }
-            pstAssay.executeBatch();
             int[] updateCounts = pstAssayAnnot.executeBatch();
             conn.commit();
-            pstAssay.close();
             pstAssayAnnot.close();
 
             // insert documents if need be
