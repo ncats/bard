@@ -500,6 +500,84 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     }
 
     @GET
+    @Path("/{hash}/h{id}")
+    public Response getCompoundsByHash (@PathParam("hash") String hv,
+                                        @PathParam("id") String id,
+                                        @QueryParam("expand") String expand) {
+
+        DBUtils db = new DBUtils();
+        try {
+            if (id == null || id.length() == 0) {
+                throw new IllegalArgumentException ("No hash id specified!");
+            }
+
+            if ((hv.length() % 6) != 0) {
+                // not multiple of 6
+                throw new IllegalArgumentException
+                    ("Hash value is not multiple of 6");
+            }
+
+            /*
+             * {hash} is the hash value which can be of length 
+             * 6, 12, 18, or 24 depending on {id}.
+             * {id} must can be any combination of {1,2,3,4}; e.g.,
+             * /Gwdyar/h1
+             * /GwdyarAykhoO/h13
+             * /AykhoOGwdyar/h31
+             * /GwdyarvpREqoAykhoO/h123
+             * /GwdyarvpREqoAykhoOoTARYx/h1234
+             */
+            String[] hash = new String[4];
+            for (int i = 0, pos = 0; 
+                 i < id.length() && pos < hv.length(); ++i) {
+                String key = hv.substring(pos, pos+6);
+
+                switch (id.charAt(i)) {
+                case '1': hash[0] = key; break;
+                case '2': hash[1] = key; break;
+                case '3': hash[2] = key; break;
+                case '4': hash[3] = key; break;
+                default:
+                    // ignore bogus character
+                }
+                pos += 6;
+            }
+
+            log ("{hash} = "+hv+"; {id} = "+id+"; h1="+hash[0]+" h2="+hash[1]
+                 +" h3="+hash[2]+" h4="+hash[3]);
+
+            List<Compound> compounds = 
+                db.getCompoundsByHash(hash[0], hash[1], hash[2], hash[3]);
+            Response response;
+            if (expand != null && (expand.equalsIgnoreCase("true") 
+                                   || expand.equalsIgnoreCase("yes"))) {
+                response = Response.ok(Util.toJson(compounds), 
+                                       MediaType.APPLICATION_JSON).build();
+            }
+            else {
+                List<String> links = new ArrayList<String>();
+                for (Compound a : compounds) 
+                    links.add(a.getResourcePath());
+                response = Response.ok(Util.toJson(links), 
+                                       MediaType.APPLICATION_JSON).build();
+            }
+
+            return response;
+        } 
+        catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @GET
     @Path("/{cid}")
     public Response getResources(@PathParam("cid") String resourceId,
                                  @QueryParam("filter") String filter,

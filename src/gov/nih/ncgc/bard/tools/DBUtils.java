@@ -1257,6 +1257,74 @@ public class DBUtils {
         return facets;
     }
 
+    public List<Compound> getCompoundsByHash 
+        (String h1, String h2, String h3, String h4) throws SQLException {
+        StringBuilder sql = new StringBuilder 
+            ("select * from compound a, compound_molfile b, "
+             +"compound_props c where a.cid = b.cid "
+             +"and a.cid = c.pubchem_compound_cid");
+
+        String hash = "";
+
+        List<String> args = new ArrayList<String>();
+        if (h1 != null) {
+            sql.append(" and hash1 = binary(?)");
+            args.add(h1);
+            hash += h1;
+        }
+        if (h2 != null) {
+            sql.append(" and hash2 = binary(?)");
+            args.add(h2);
+            hash += h2;
+        }
+        if (h3 != null) {
+            sql.append(" and hash3 = binary(?)");
+            args.add(h3);
+            hash += h3;
+        }
+        if (h4 != null) {
+            sql.append(" and hash4 = binary(?)");
+            args.add(h4);
+            hash += h4;
+        }
+
+        Cache cache = getCache ("CompoundsByHashCache");
+        List value = getCacheValue (cache, hash);
+        if (value != null) {
+            return value;
+        }
+
+        log.info("HASH: "+hash);
+        log.info("SQL: "+sql);
+
+        if (conn == null) conn = getConnection ();
+        PreparedStatement pstm = conn.prepareStatement(sql.toString());
+        try {
+            for (int i = 0; i < args.size(); ++i) {
+                pstm.setString(i+1, args.get(i));
+            }
+
+            List<Compound> compounds = new ArrayList<Compound>();
+
+            ResultSet rset = pstm.executeQuery();
+            while (rset.next()) {
+                Compound c = new Compound();
+                fillCompound(rset, c);
+                c.setNumAssay(getEntityCountByCid(c.getCid(), Assay.class));
+                c.setNumActiveAssay
+                    (getEntityCountByActiveCid(c.getCid(), Assay.class));
+                compounds.add(c);
+            }
+            rset.close();
+
+            cache.put(new Element (hash, compounds));
+            return compounds;
+        }
+        finally {
+            pstm.close();
+        }
+    }
+
     public List<Compound> getCompoundsByETag
         (int skip, int top, String etag) throws SQLException {
 
