@@ -4,21 +4,12 @@ import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
-import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
-import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
-import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.capextract.jaxb.*;
 import gov.nih.ncgc.bard.tools.Util;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -132,19 +123,30 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             query.close();
 
             // this is a new experiment
-            PreparedStatement pstExpt = conn.prepareStatement("insert into bard_experiment (bard_expt_id, bard_assay_id, cap_expt_id, category, classification, description, pubchem_aid, type, name) values(?,?,?,?,?,?,?,?,?)");
+            PreparedStatement pstExpt = conn.prepareStatement(
+                    "insert into bard_experiment (bard_assay_id, cap_expt_id, category, classification, description, pubchem_aid, type, name) values(?,?,?,?,?,?,?,?)",
+                    Statement.RETURN_GENERATED_KEYS);
             if (bardExptId == -1) {
-                pstExpt.setInt(1, bardExptId);
-                pstExpt.setInt(2, Integer.parseInt(_CAP_ExptID_AssayID_lookup.get(exptID)));
-                pstExpt.setInt(3, exptID.intValue());
+                pstExpt.setInt(1, Integer.parseInt(_CAP_ExptID_AssayID_lookup.get(exptID)));
+                pstExpt.setInt(2, exptID.intValue());
+                pstExpt.setInt(3, -1);
                 pstExpt.setInt(4, -1);
-                pstExpt.setInt(5, -1);
-                pstExpt.setString(6, expt.getDescription());
-                pstExpt.setInt(7, Integer.parseInt(_CAP_ExptID_PubChemAID_lookup.get(exptID)));
-                pstExpt.setInt(8, -1);
-                pstExpt.setString(9, expt.getExperimentName());
+                pstExpt.setString(5, expt.getDescription());
+                pstExpt.setInt(6, Integer.parseInt(_CAP_ExptID_PubChemAID_lookup.get(exptID)));
+                pstExpt.setInt(7, -1);
+                pstExpt.setString(8, expt.getExperimentName());
 
-                pstExpt.addBatch();
+                int insertedRows = pstExpt.executeUpdate();
+                if (insertedRows == 0) {
+
+                }
+                rs = pstExpt.getGeneratedKeys();
+                while (rs.next()) bardExptId = rs.getInt(1);
+                rs.close();
+                pstExpt.close();
+                log.info("Inserted CAP experiment id " + expt + " as BARD experiment id " + bardExptId);
+            } else {
+                log.info("CAP experiment id " + expt + " already exist. Should do an update");
             }
 
             PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'experiment',?,?,?,?,?,?,?,?,?,?)");
@@ -166,7 +168,6 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             pstExpt.executeBatch();
             int[] updateCounts = pstAssayAnnot.executeBatch();
             conn.commit();
-            pstExpt.close();
             pstAssayAnnot.close();
             conn.close();
             log.info("\tInserted " + updateCounts.length + " annotations for cap aid " + expt.getExperimentId());
