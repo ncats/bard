@@ -340,7 +340,6 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                         String pmid = Util.getEntityIdFromUrl(docContent);
                         boolean insstatus = CAPUtil.insertPublication(conn, pmid);
                         if (insstatus) log.info("Inserted Pubmed publication " + pmid);
-                        else log.info("Found existing Pubmed publication " + pmid);
 
                         // see if we should make a link in assay_pub
                         pstPub.setInt(1, bardAssayId);
