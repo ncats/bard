@@ -1105,6 +1105,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             if (map.containsKey(tclass)) map.put(tclass, map.get(tclass)+1);
             else map.put(tclass, 0);
         }
+        db.closeConnection();
         return map;
     }
 
