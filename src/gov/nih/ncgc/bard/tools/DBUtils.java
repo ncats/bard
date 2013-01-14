@@ -4923,6 +4923,37 @@ public class DBUtils {
         return ret;
     }
 
+    public List<String> getChemblTargetClasses(List<String> accs, int level) throws SQLException {
+        if (level < 1 || level > 8) throw new IllegalArgumentException("Level must be between 1 & 8, inclusive");
+        if (accs.size() < 1) throw new IllegalArgumentException("Must provide at least one Uniprot accession");
+
+        if (conn == null) conn = getConnection();
+        StringBuilder sb = new StringBuilder("(");
+        String delim = "";
+        for (String acc : accs) {
+            sb.append(delim).append("'").append(acc).append("'");
+            delim = ",";
+        }
+        sb.append(")");
+        PreparedStatement pst = conn.prepareStatement("select distinct a.accession, d.l1, d.l2, d.l3, d.l4, d.l5, d.l6, d.l7, d.l8 from assay_target a, gene2uniprot b, " +
+                "chembl_13.target_dictionary c,chembl_13.target_class d " +
+                "where a.gene_id = b.gene_id " +
+                "and b.accession = c.protein_accession " +
+                "and a.accession in " + sb.toString() +
+                "and c.tid = d.tid");
+        ResultSet rs = pst.executeQuery();
+        Map<String, String> map = new HashMap<String, String>();
+        while (rs.next()) {
+            String acc = rs.getString(1);
+            String tclass = rs.getString("l"+level);
+            map.put(acc, tclass);
+        }
+        rs.close();
+        pst.close();
+        List<String> ret = new ArrayList<String>();
+        for (String acc : accs) ret.add(map.get(acc));
+        return ret;
+    }
 
     public static void main(String[] argv) throws Exception {
         if (argv.length == 0) {

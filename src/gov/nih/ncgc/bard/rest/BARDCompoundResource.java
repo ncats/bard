@@ -1096,6 +1096,18 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         }
     }
 
+    private Map<String, Integer> getTargetClassCount(List<String> acc, int level) throws SQLException {
+        DBUtils db = new DBUtils();
+        List<String> tclasses = db.getChemblTargetClasses(acc, level);
+        Map<String, Integer> map = new HashMap<String, Integer>();
+        for (String tclass : tclasses) {
+            if (tclass == null) continue;
+            if (map.containsKey(tclass)) map.put(tclass, map.get(tclass)+1);
+            else map.put(tclass, 0);
+        }
+        return map;
+    }
+
     @GET
     @Path("/{cid}/summary")
     public Response getSummary(@PathParam("cid") Long cid,
@@ -1155,6 +1167,19 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
         s.put("testedExptdata", data);
         s.put("hitExptdata", hitData);
+
+        // get target class counts
+//        List<String> accs = new ArrayList<String>();
+//        for (Assay a : testedAssays) accs.addAll(a.getTargets());
+//        if (accs.size() > 0)
+//            s.put("testedTargetClasses", getTargetClassCount(accs, 1));
+//        else s.put("testedTargetClasses", null);
+//
+//        accs = new ArrayList<String>();
+//        for (Assay a : hitAssays) accs.addAll(a.getTargets());
+//        if (accs.size() > 0) s.put("hitTargetClasses", getTargetClassCount(accs, 1));
+//        else s.put("hitTargetClasses", null);
+
 
         if (expand != null && expand.trim().toLowerCase().equals("true")) {
 //            s.put("testedExperiments", testedExperiments);
