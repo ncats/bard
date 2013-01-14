@@ -1207,6 +1207,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             }
             s.put("hitAssays", l);
         }
+        db.closeConnection();
         return Response.ok(Util.toJson(s), MediaType.APPLICATION_JSON).build();
 
     }
