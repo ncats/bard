@@ -1,8 +1,5 @@
 package gov.nih.ncgc.bard.rest;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-
 import chemaxon.struc.Molecule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -50,6 +47,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Prototype of MLBD REST resources.
@@ -1097,6 +1096,19 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         }
     }
 
+    private Map<String, Integer> getTargetClassCount(List<String> acc, int level) throws SQLException {
+        DBUtils db = new DBUtils();
+        List<String> tclasses = db.getChemblTargetClasses(acc, level);
+        Map<String, Integer> map = new HashMap<String, Integer>();
+        for (String tclass : tclasses) {
+            if (tclass == null) continue;
+            if (map.containsKey(tclass)) map.put(tclass, map.get(tclass)+1);
+            else map.put(tclass, 0);
+        }
+        db.closeConnection();
+        return map;
+    }
+
     @GET
     @Path("/{cid}/summary")
     public Response getSummary(@PathParam("cid") Long cid,
@@ -1113,7 +1125,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         List<ExperimentData> hitData = new ArrayList<ExperimentData>();
         int nhit = 0;
         List<String> hitExpts = new ArrayList<String>();
-        List<String> hitAssays = new ArrayList<String>();
+        List<Assay> hitAssays = new ArrayList<Assay>();
 
         List<Assay> testedAssays = new ArrayList<Assay>();
         List<Experiment> testedExperiments = new ArrayList<Experiment>();
@@ -1138,7 +1150,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                     nhit++;
                     hitExpts.add(expt.getResourcePath());
 
-                    hitAssays.add(assay.getResourcePath());
+                    hitAssays.add(assay);
                     hitData.add(ed);
                 }
             }
@@ -1157,9 +1169,23 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         s.put("testedExptdata", data);
         s.put("hitExptdata", hitData);
 
+        // get target class counts
+//        List<String> accs = new ArrayList<String>();
+//        for (Assay a : testedAssays) accs.addAll(a.getTargets());
+//        if (accs.size() > 0)
+//            s.put("testedTargetClasses", getTargetClassCount(accs, 1));
+//        else s.put("testedTargetClasses", null);
+//
+//        accs = new ArrayList<String>();
+//        for (Assay a : hitAssays) accs.addAll(a.getTargets());
+//        if (accs.size() > 0) s.put("hitTargetClasses", getTargetClassCount(accs, 1));
+//        else s.put("hitTargetClasses", null);
+
+
         if (expand != null && expand.trim().toLowerCase().equals("true")) {
 //            s.put("testedExperiments", testedExperiments);
             s.put("testedAssays", testedAssays);
+            s.put("hitAssays", hitAssays);
         } else {
             List<String> l = new ArrayList<String>();
             for (Experiment e : testedExperiments) {
@@ -1173,7 +1199,15 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 else logger.warning("Should not have a null assay for compound " + cid + ". Skipping");
             }
             s.put("testedAssays", l);
+
+            l = new ArrayList<String>();
+            for (Assay a : hitAssays) {
+                if (a != null) l.add(a.getResourcePath());
+                else logger.warning("Should not have a null assay for compound " + cid + ". Skipping");
+            }
+            s.put("hitAssays", l);
         }
+        db.closeConnection();
         return Response.ok(Util.toJson(s), MediaType.APPLICATION_JSON).build();
 
     }
