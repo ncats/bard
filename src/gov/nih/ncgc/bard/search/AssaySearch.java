@@ -119,6 +119,15 @@ public class AssaySearch extends SolrSearch {
         List<Long> aids = new ArrayList<Long>();
         // now process annotations to get remaining facet counts
         for (SolrDocument doc : docs) {
+            Object id = doc.getFieldValue(PKEY_ASSAY_DOC);
+            try {
+                long aid = Long.parseLong(id.toString());
+                if (aid > 0l) {
+                    aids.add(aid);
+                }
+            } catch (Exception ex) {
+                log.warn("Bogus bardAssayid " + id);
+            }
 
             Collection<Object> keys = doc.getFieldValues("ak_dict_label");
             Collection<Object> values = doc.getFieldValues("av_dict_label");
@@ -133,16 +142,6 @@ public class AssaySearch extends SolrSearch {
                         }
                 }
             }
-
-            Object id = doc.getFieldValue(PKEY_ASSAY_DOC);
-            try {
-                long aid = Long.parseLong(id.toString());
-                if (aid > 0l) {
-                    aids.add(aid);
-                }
-            } catch (Exception ex) {
-                log.warn("Bogus bardAssayid " + id);
-            }
         }
         long end = System.currentTimeMillis();
         log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
@@ -154,8 +153,7 @@ public class AssaySearch extends SolrSearch {
         meta.setElapsedTime(response.getElapsedTime());
 
         try {
-            String etag = putEtag(aids, Assay.class);
-            results.setETag(etag);
+            putEtag(aids, Assay.class);
         } catch (Exception e) {
             log.error("Can't process ETag", e);
         }
