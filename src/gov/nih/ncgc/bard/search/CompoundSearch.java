@@ -109,6 +109,15 @@ public class CompoundSearch extends SolrSearch {
         // we manually update facet counts COLLECTION
         List<Long> cids = new ArrayList<Long>();
         for (SolrDocument doc : docs) {
+            Object id = doc.getFieldValue(PKEY_COMPOUND_DOC);
+            try {
+                if (id != null) {
+                    long cid = Long.parseLong(id.toString());
+                    cids.add(cid);
+                }
+            } catch (Exception ex) {
+                log.warn("** Bogus cid " + id);
+            }
 
             Collection<Object> collection = doc.getFieldValues("COLLECTION");
             if (collection == null) {
@@ -131,16 +140,6 @@ public class CompoundSearch extends SolrSearch {
                 // lets update the COLLECTION facet
                 for (String v : vset) facet.addFacetValue(v);
             }
-
-            Object id = doc.getFieldValue(PKEY_COMPOUND_DOC);
-            try {
-                if (id != null) {
-                    long cid = Long.parseLong(id.toString());
-                    cids.add(cid);
-                }
-            } catch (Exception ex) {
-                log.warn("** Bogus cid " + id);
-            }
         }
         long end = System.currentTimeMillis();
         log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
@@ -152,8 +151,7 @@ public class CompoundSearch extends SolrSearch {
         meta.setElapsedTime(response.getElapsedTime());
 
         try {
-            String etag = putEtag(cids, Compound.class);
-            results.setETag(etag);
+            putEtag(cids, Compound.class);
         } catch (Exception e) {
             log.error("Can't process ETag", e);
         }

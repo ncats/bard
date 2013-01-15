@@ -771,6 +771,7 @@ public class DBUtils {
             }
             pst.close();
             cnt -= size;
+            log.info("## "+cnt+" entries added for ETag "+etag);
 
             if (cnt > 0) {
                 conn.commit();
