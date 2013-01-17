@@ -52,6 +52,8 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         BigInteger exptID = expt.getExperimentId();
         log.info("\tProcessing experiment " + exptID + " " + url);
 
+        ExternalReferenceHandler extrefHandler = new ExternalReferenceHandler();
+
         //String status = expt.getStatus();
         //String extraction = expt.getReadyForExtraction();
         //XMLGregorianCalendar holdUntil = expt.getHoldUntilDate();
@@ -66,6 +68,8 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
                 assayID = Util.getEntityIdFromUrl(link.getHref());
                 _CAP_ExptID_AssayID_lookup.put(exptID, assayID);
             } else if (link.getType().equals(CAPConstants.CapResource.EXTREF.getMimeType())) { // get Pubchem AID here
+                   extrefHandler.process(link.getHref(), CAPConstants.CapResource.EXTREF);
+                System.out.println("link = " + link);
 //                _CAP_ExptID_PubChemAID_lookup.put(exptID.toString(), null);
 //                ExternalReferences.ExternalReference ref = getResponse(link.getHref(), CAPConstants.CapResource.EXTREF);
 //                String externalRef = ref.getExternalAssayRef();
