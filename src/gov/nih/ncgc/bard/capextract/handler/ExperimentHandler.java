@@ -4,12 +4,22 @@ import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.*;
+import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
+import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
+import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
+import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.tools.Util;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -73,7 +83,10 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
                 if (bardAssayId == -1) {
                     assayHandler.process(link.getHref(), CAPConstants.CapResource.ASSAY);
                     bardAssayId = assayHandler.getBardAssayId();
-                    if (bardAssayId == -1) throw new SQLException("Invalid bardAssayId even after inserting CAP assay id "+capAssayId);
+                    if (bardAssayId == -1) {
+                        log.error("Invalid bardAssayId even after inserting CAP assay id "+capAssayId+". Skipping this experiment");
+                        return;
+                    }
                 }
                 _CAP_ExptID_AssayID_lookup.put(exptID, bardAssayId);
             } catch (SQLException e) {
