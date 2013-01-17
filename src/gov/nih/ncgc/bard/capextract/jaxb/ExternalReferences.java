@@ -127,6 +127,7 @@ public class ExternalReferences {
         "externalAssayRef",
         "link"
     })
+    @XmlRootElement(name = "externalReference")
     public static class ExternalReference {
 
         @XmlElement(required = true)

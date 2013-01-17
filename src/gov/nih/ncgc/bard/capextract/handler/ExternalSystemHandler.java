@@ -2,22 +2,19 @@ package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.ExternalReferences;
-import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * A one line summary.
  *
  * @author Rajarshi Guha
  */
-public class ExternalReferenceHandler extends CapResourceHandler implements ICapResourceHandler {
-    String externalAssayRef;
-    List<Link> links;
+public class ExternalSystemHandler extends CapResourceHandler implements ICapResourceHandler {
+    ExternalSystems.ExternalSystem extsys;
 
-    public ExternalReferenceHandler() {
+    public ExternalSystemHandler() {
         super();
     }
 
@@ -29,19 +26,13 @@ public class ExternalReferenceHandler extends CapResourceHandler implements ICap
      *                 can choose to proceed or not based on this parameter.
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
-        if (resource != CAPConstants.CapResource.EXTREF) return;
+        if (resource != CAPConstants.CapResource.EXTSYS) return;
 
         // get the Project object here
-        ExternalReferences.ExternalReference tmp = getResponse(url, resource);
-        externalAssayRef = tmp.getExternalAssayRef();
-        links = tmp.getLink();
+        extsys = getResponse(url, resource);
     }
 
-    public String getExternalAssayRef() {
-        return externalAssayRef;
-    }
-
-    public List<Link> getLinks() {
-        return links;
+    public ExternalSystems.ExternalSystem getExtsys() {
+        return extsys;
     }
 }

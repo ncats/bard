@@ -139,6 +139,7 @@ public class CAPExtractor {
         registry.setHandler(CAPConstants.CapResource.BARDEXPORT, new BardexportHandler());
         registry.setHandler(CAPConstants.CapResource.DICTIONARY, new DictionaryHandler());
         registry.setHandler(CAPConstants.CapResource.EXTREF, new ExternalReferenceHandler());
+        registry.setHandler(CAPConstants.CapResource.EXTSYS, new ExternalSystemHandler());
     }
 
     public void test() throws IOException {

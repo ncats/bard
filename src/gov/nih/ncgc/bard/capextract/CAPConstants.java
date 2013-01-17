@@ -43,7 +43,8 @@ public class CAPConstants {
         RESULT("application/vnd.bard.cap+xml;type=result"),
         ASSAYDOC("application/vnd.bard.cap+xml;type=assayDoc"),
         PROJECTDOC("application/vnd.bard.cap+xml;type=projectDoc"),
-        EXTREF("application/vnd.bard.cap+xml;type=externalReference");
+        EXTREF("application/vnd.bard.cap+xml;type=externalReference"),
+        EXTSYS("application/vnd.bard.cap+xml;type=externalSystem");
 
         private String mimeType;
 
