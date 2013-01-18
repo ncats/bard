@@ -79,12 +79,10 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         if (project.getProjectSteps().getProjectStep().size() == 0) return;
 
         int capProjectId = project.getProjectId().intValue();
-
-
+        int pubchemAid = -1;
 
         try {
             // look for a Pubchem AID (ie summary aid)
-            int pubchemAid = -1;
             for (Link link : project.getLink()) {
                 if (!link.getType().equals(CAPConstants.CapResource.EXTREF.getMimeType())) continue;
 
@@ -146,6 +144,8 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
             //  at this point we have a valid bard project id, lets insert all the extra stuff
 
+            List<String> targetAccs = new ArrayList<String>();
+
             // deal with project annotations
             List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
             CAPDictionary dict = CAPConstants.getDictionary();
@@ -177,7 +177,14 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                     String related = null;
 
                     annos.add(new CAPAnnotation(contextId, bardProjId, valueDisplay, contextName, key, value, contextItemType.getExtValueId(), "cap-context", valueUrl, contextItemType.getDisplayOrder(), "project", related));
+
+                    // do some special handling to pull out target
+                    if (contextName.equals("target") && attr.getLabel().equals("gene")) {
+
+                    }
+
                 }
+
             }
 
             // handle project steps
@@ -282,13 +289,29 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
             // handle the experiments associated with this project
             List<ProjectExperiment> experiments = project.getProjectExperiments().getProjectExperiment();
+            PreparedStatement pstProjExpt = conn.prepareStatement("insert into bard_project_experiment (bard_proj_id, bard_expt_id, pubchem_aid, expt_type, pubchem_summary_aid) values (?,?,?,?,?)");
             for (ProjectExperiment experiment : experiments) {
                 Link exptLink = experiment.getExperimentRef().getLink();
+                String exptType = experiment.getStageRef().getLabel();
                 CAPConstants.CapResource res = CAPConstants.getResource(exptLink.getType());
                 if (res != CAPConstants.CapResource.EXPERIMENT) continue;
                 ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(res);
-                if (handler != null) handler.process(exptLink.getHref(), res);
+                if (handler != null) {
+                    handler.process(exptLink.getHref(), res);
+                    int bardExptId = ((ExperimentHandler) handler).getBardExptId();
+                    int exptPubchemAid = ((ExperimentHandler) handler).getPubchemAid();
+                    pstProjExpt.setInt(1, bardProjId);
+                    pstProjExpt.setInt(2, bardExptId);
+                    pstProjExpt.setInt(3, exptPubchemAid);
+                    pstProjExpt.setString(4, exptType);
+                    pstProjExpt.setInt(5, pubchemAid);
+                    pstProjExpt.addBatch();
+                }
             }
+            int[] rowsInserted = pstProjExpt.executeBatch();
+            conn.commit();
+            pstProjExpt.close();
+            log.info("Inserted " + rowsInserted.length + " project-experiment entries");
 
             conn.commit();
             st.close();

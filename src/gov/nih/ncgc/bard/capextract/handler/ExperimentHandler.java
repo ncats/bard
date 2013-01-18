@@ -39,9 +39,19 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
     private HashMap<BigInteger, Integer> _CAP_ExptID_AssayID_lookup = new HashMap<BigInteger, Integer>();
     private HashMap<String, String> _CAP_ExptID_ProjID_lookup = new HashMap<String, String>();
     private Vector<String[]> _CAP_Proj_Expt_link = new Vector<String[]>();
+    private int bardExptId;
+    private int pubchemAid;
 
     public ExperimentHandler() {
         super();
+    }
+
+    public int getBardExptId() {
+        return bardExptId;
+    }
+
+    public int getPubchemAid() {
+        return pubchemAid;
     }
 
     /**
@@ -84,7 +94,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
                     assayHandler.process(link.getHref(), CAPConstants.CapResource.ASSAY);
                     bardAssayId = assayHandler.getBardAssayId();
                     if (bardAssayId == -1) {
-                        log.error("Invalid bardAssayId even after inserting CAP assay id "+capAssayId+". Skipping this experiment");
+                        log.error("Invalid bardAssayId even after inserting CAP assay id "+capAssayId+". Skipping this err");
                         return;
                     }
                 }
@@ -111,10 +121,14 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
                     ExternalSystems.ExternalSystem extsys = extsysHandler.getExtsys();
                     String source = extsys.getName() + "," + extsys.getOwner() + "," + extsys.getSystemUrl();
                     if (PUBCHEM.equals(source)) {
-                        if (_CAP_ExptID_PubChemAID_lookup.containsValue(aid))
+                        if (_CAP_ExptID_PubChemAID_lookup.containsValue(aid)) {
                             log.error("The same AID maps to multple experiments: " +
                                     aid + " eid:" + exptID + " eid:" + _CAP_ExptID_PubChemAID_lookup.get(exptID));
-                        else _CAP_ExptID_PubChemAID_lookup.put(exptID, aid);
+                            pubchemAid = -1;
+                        } else {
+                            _CAP_ExptID_PubChemAID_lookup.put(exptID, aid);
+                            pubchemAid = Integer.parseInt(aid);
+                        }
                     }
                 }
             }
@@ -148,23 +162,24 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 
         // ready to load in the data
         try {
-            int bardExptId = -1;
+            int localBardExptId = -1;
             Connection conn = CAPUtil.connectToBARD();
 
             Statement query = conn.createStatement();
             query.execute("select bard_expt_id, cap_expt_id from bard_experiment where cap_expt_id=" + expt.getExperimentId());
             ResultSet rs = query.getResultSet();
             while (rs.next()) {
-                bardExptId = rs.getInt(1);
+                localBardExptId = rs.getInt(1);
             }
             rs.close();
             query.close();
+            bardExptId = localBardExptId;
 
             // this is a new experiment
             PreparedStatement pstExpt = conn.prepareStatement(
                     "insert into bard_experiment (bard_assay_id, cap_expt_id, category, classification, description, pubchem_aid, type, name) values(?,?,?,?,?,?,?,?)",
                     Statement.RETURN_GENERATED_KEYS);
-            if (bardExptId == -1) {
+            if (localBardExptId == -1) {
                 pstExpt.setInt(1,_CAP_ExptID_AssayID_lookup.get(exptID));
                 pstExpt.setInt(2, exptID.intValue());
                 pstExpt.setInt(3, -1);
@@ -179,10 +194,10 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 
                 }
                 rs = pstExpt.getGeneratedKeys();
-                while (rs.next()) bardExptId = rs.getInt(1);
+                while (rs.next()) localBardExptId = rs.getInt(1);
                 rs.close();
                 pstExpt.close();
-                log.info("Inserted CAP experiment id " + expt.getExperimentId() + " as BARD experiment id " + bardExptId);
+                log.info("Inserted CAP experiment id " + expt.getExperimentId() + " as BARD experiment id " + localBardExptId);
             } else {
                 log.info("CAP experiment id " + expt.getExperimentId() + " already exist. Should do an update");
             }
@@ -190,7 +205,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'experiment',?,?,?,?,?,?,?,?,?,?)");
             for (CAPAnnotation anno : annos) {
                 pstAssayAnnot.setString(1, anno.source);
-                pstAssayAnnot.setInt(2, bardExptId);
+                pstAssayAnnot.setInt(2, localBardExptId);
                 pstAssayAnnot.setInt(3, anno.id);
                 pstAssayAnnot.setString(4, anno.key);
                 pstAssayAnnot.setString(5, anno.value);
