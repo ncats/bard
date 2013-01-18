@@ -41,9 +41,14 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class AssayHandler extends CapResourceHandler implements ICapResourceHandler {
+    int bardAssayId = -1;
 
     public AssayHandler() {
         super();
+    }
+
+    public int getBardAssayId() {
+        return bardAssayId;
     }
 
     /**
@@ -237,17 +242,19 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             }
         }
 
-//        /* get experiment links */
-//        ArrayList<Integer> expts = new ArrayList<Integer>();
-//        for (Link link: assay.getLink() == null ? new ArrayList<Link>(0) : assay.getLink()) {
-//            if (link.getType().equals(CAPConstants.CapResource.EXPERIMENT.getMimeType()))
-//        	expts.add(Integer.valueOf(link.getHref().substring(link.getHref().lastIndexOf("experiments/")+12)));
-//        }
-
+        /*
+           We collect experiment links and load them in after we have loaded the current assay
+           (prevents us from entering an infinite loop, as experiment loading will check to
+           see if the parent assay has been loaded
+         */
+        List<String> exptUrls = new ArrayList<String>();
+        for (Link link : assay.getLink() == null ? new ArrayList<Link>() : assay.getLink()) {
+            if (link.getType().equals(CAPConstants.CapResource.EXPERIMENT.getMimeType()))
+                exptUrls.add(link.getHref());
+        }
 
         // at this point we can dump assays and annos to the db.
         try {
-            int bardAssayId = -1;
             int qcapAssayId = -1;
 
             Connection conn = CAPUtil.connectToBARD();
@@ -257,6 +264,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             query.execute("select cap_assay_id from cap_assay where cap_assay_id=" + capAssayId);
             ResultSet rs = query.getResultSet();
             while (rs.next()) qcapAssayId = rs.getInt(1);
+            query.clearBatch();
             if (qcapAssayId == -1) {
                 PreparedStatement pstAssay = conn.prepareStatement(
                         "insert into cap_assay (cap_assay_id, version, title, name, description, protocol, comment, designed_by) values(?,?,?,?,?,?,?,?)");
@@ -271,42 +279,45 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 int insertedRows = pstAssay.executeUpdate();
                 pstAssay.close();
                 rs.close();
+                conn.commit();
                 if (insertedRows == 0) {
                     log.error("Could not insert new CAP assay id = " + capAssayId);
                     return;
-                } else log.info("Stage CAP assay id = " + capAssayId);
+                } else log.info("Staged CAP assay id = " + capAssayId);
 
             }
 
-            // query the table by cap_assay_id and see if we need to insert into production
+            // query bard_assay by cap_assay_id and see if we need to insert into production
             query.execute("select bard_assay_id from bard_assay where cap_assay_id=" + capAssayId);
             rs = query.getResultSet();
-            while (rs.next()) {
-                bardAssayId = rs.getInt(1);
-            }
+            int localBardAssayId = -1;
+            while (rs.next()) localBardAssayId = rs.getInt(1);
             rs.close();
             query.close();
+            bardAssayId = localBardAssayId;
 
             PreparedStatement pstAssay = conn.prepareStatement(
-                    "insert into cap_assay (cap_assay_id, version, title, name, description, protocol, comment, designed_by) values(?,?,?,?,?,?,?,?)",
+                    "insert into bard_assay (cap_assay_id, title, name, description, protocol, comment, designed_by) values(?,?,?,?,?,?,?)",
                     Statement.RETURN_GENERATED_KEYS);
             if (bardAssayId == -1) {
-                pstAssay.setInt(1, capAssayId.intValue());
-                pstAssay.setString(2, version);
-                pstAssay.setString(3, title);
-                pstAssay.setString(4, name);
-                pstAssay.setString(5, description);
-                pstAssay.setString(6, protocol);
-                pstAssay.setString(7, comments);
-                pstAssay.setString(8, designedBy);
+                 pstAssay.setInt(1, capAssayId.intValue());
+                pstAssay.setString(2, title);
+                pstAssay.setString(3, name);
+                pstAssay.setString(4, description);
+                pstAssay.setString(5, protocol);
+                pstAssay.setString(6, comments);
+                pstAssay.setString(7, designedBy);
                 int insertedRows = pstAssay.executeUpdate();
                 if (insertedRows == 0) {
-                    log.error("Could not insert new CAP assay id = " + capAssayId +" into production");
+                    log.error("Could not insert new CAP assay id = " + capAssayId + " into production");
                 }
                 rs = pstAssay.getGeneratedKeys();
                 while (rs.next()) bardAssayId = rs.getInt(1);
                 rs.close();
                 pstAssay.close();
+                log.info("Loaded CAP assay id = " + capAssayId + " into production as BARD assay id = " + bardAssayId);
+            } else {
+                log.info("CAP assay id = " + capAssayId + " already exists in production as BARD assay id = " + bardAssayId);
             }
 
             PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'assay',?,?,?,?,?,?,?,?,?,?)");
@@ -361,12 +372,19 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             conn.commit();
             pstPubLink.close();
             pstPub.close();
+            log.info("Inserted " + updateCounts.length + " annotations for CAP aid " + capAssayId);
 
-            conn.close();
-            log.info("\tInserted " + updateCounts.length + " annotations for cap aid " + capAssayId);
+            // now insert the experiment
+            ExperimentHandler exptHandler = new ExperimentHandler();
+            for (String exptUrl : exptUrls) {
+                log.info("Loading linked experiment (CAP id = "+Util.getEntityIdFromUrl(exptUrl)+")");
+                exptHandler.process(exptUrl, CAPConstants.CapResource.EXPERIMENT);
+            }
+
+            log.info("Completed processing of ASSAY (CAP id = "+assay.getAssayId()+", bard id = "+bardAssayId+")");
         } catch (SQLException e) {
             e.printStackTrace();
-            log.error("Error inserting annotations for cap aid " + capAssayId + "\n" + e.getMessage());
+            log.error("Error inserting annotations for CAP aid " + capAssayId + "\n" + e.getMessage());
         } catch (ParsingException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }

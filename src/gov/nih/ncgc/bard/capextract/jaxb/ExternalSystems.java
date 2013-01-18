@@ -131,6 +131,7 @@ public class ExternalSystems {
         "systemUrl",
         "link"
     })
+    @XmlRootElement(name = "externalSystem")
     public static class ExternalSystem {
 
         @XmlElement(required = true)

@@ -132,12 +132,14 @@ public class CAPExtractor {
         registry.setHandler(CAPConstants.CapResource.PROJECTDOC, new ProjectDocHandler());
         registry.setHandler(CAPConstants.CapResource.ASSAYS, new AssaysHandler());
         registry.setHandler(CAPConstants.CapResource.ASSAY, new AssayHandler());
-//        registry.setHandler(CAPConstants.CapResource.EXPERIMENTS, new ExperimentsHandler());
-//        registry.setHandler(CAPConstants.CapResource.EXPERIMENT, new ExperimentHandler());
+        registry.setHandler(CAPConstants.CapResource.EXPERIMENTS, new ExperimentsHandler());
+        registry.setHandler(CAPConstants.CapResource.EXPERIMENT, new ExperimentHandler());
 ////        registry.setHandler(CAPConstants.CapResource.RESULTS, new ResultsHandler());
 //        registry.setHandler(CAPConstants.CapResource.RESULT, new ResultHandler());
         registry.setHandler(CAPConstants.CapResource.BARDEXPORT, new BardexportHandler());
         registry.setHandler(CAPConstants.CapResource.DICTIONARY, new DictionaryHandler());
+        registry.setHandler(CAPConstants.CapResource.EXTREF, new ExternalReferenceHandler());
+        registry.setHandler(CAPConstants.CapResource.EXTSYS, new ExternalSystemHandler());
     }
 
     public void test() throws IOException {

@@ -3475,7 +3475,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst2 = conn.prepareStatement("select a.* from protein_target a, assay_target b where b.bard_assay_id = ? and a.gene_id = b.gene_id");
+        PreparedStatement pst2 = conn.prepareStatement("select distinct a.* from protein_target a, assay_target b where b.bard_assay_id = ? and a.gene_id = b.gene_id");
         try {
             pst2.setLong(1, bardAssayId);
             ResultSet rs2 = pst2.executeQuery();
