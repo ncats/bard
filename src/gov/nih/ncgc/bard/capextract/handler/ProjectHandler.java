@@ -1,14 +1,31 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import gov.nih.ncgc.bard.capextract.*;
-import gov.nih.ncgc.bard.capextract.jaxb.*;
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
+import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
+import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
+import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
+import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
+import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.capextract.jaxb.Project;
+import gov.nih.ncgc.bard.capextract.jaxb.ProjectExperiment;
 import gov.nih.ncgc.bard.tools.Util;
 import nu.xom.ParsingException;
 
 import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +35,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class ProjectHandler extends CapResourceHandler implements ICapResourceHandler {
-
+    final static String PUBCHEM = "PubChem,NIH,http://pubchem.ncbi.nlm.nih.gov/assay/assay.cgi?";
     public ProjectHandler() {
         super();
     }
@@ -53,6 +70,9 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         String groupType = project.getGroupType();
         if (!"Project".equals(groupType)) log.error("Group type other than Project: " + groupType);
 
+        ExternalReferenceHandler extrefHandler = new ExternalReferenceHandler();
+        ExternalSystemHandler extsysHandler = new ExternalSystemHandler();
+
         // project steps should have already been loaded by hand !!!
         // do not create project if it has no experiments or steps
         if (project.getProjectSteps() == null) return;
@@ -60,7 +80,33 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
         int capProjectId = project.getProjectId().intValue();
 
+
+
         try {
+            // look for a Pubchem AID (ie summary aid)
+            int pubchemAid = -1;
+            for (Link link : project.getLink()) {
+                if (!link.getType().equals(CAPConstants.CapResource.EXTREF.getMimeType())) continue;
+
+                // get a Pubchem AID
+                extrefHandler.process(link.getHref(), CAPConstants.CapResource.EXTREF);
+                String externalAssayRef = extrefHandler.getExternalAssayRef();
+                String aid = null;
+                if (externalAssayRef != null && externalAssayRef.startsWith("aid=")) {
+                    aid = externalAssayRef.split("=")[1];
+                }
+                for (Link refLink : extrefHandler.getLinks()) {
+                    if (refLink.getType().equals(CAPConstants.CapResource.EXTSYS.getMimeType())) {
+                        extsysHandler.process(refLink.getHref(), CAPConstants.CapResource.EXTSYS);
+                        ExternalSystems.ExternalSystem extsys = extsysHandler.getExtsys();
+                        String source = extsys.getName() + "," + extsys.getOwner() + "," + extsys.getSystemUrl();
+                        if (PUBCHEM.equals(source)) pubchemAid = Integer.parseInt(aid);
+                    }
+                }
+            }
+            log.info("Got Pubchem AID = " + pubchemAid + " for CAP project id = " + capProjectId);
+
+
             Connection conn = CAPUtil.connectToBARD();
             PreparedStatement pst = null;
             Statement st = conn.createStatement();
@@ -72,11 +118,12 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             if (bardProjId == -1) {
                 log.info("Will insert new project for CAP project id = " + capProjectId);
                 pst = conn.prepareStatement(
-                        "insert into bard_project (cap_proj_id, name, description) values (?,?,?)",
+                        "insert into bard_project (cap_proj_id, name, description, pubchem_aid) values (?,?,?,?)",
                         Statement.RETURN_GENERATED_KEYS);
                 pst.setInt(1, capProjectId);
                 pst.setString(2, project.getProjectName());
                 pst.setString(3, project.getDescription());
+                pst.setInt(4, pubchemAid);
                 int insertedRows = pst.executeUpdate();
                 if (insertedRows == 0) {
                     log.error("Could not insert project into bard_project for CAP project id = " + capProjectId);
@@ -89,10 +136,11 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 log.info("Inserted CAP project id " + capProjectId + " as BARD project id " + bardProjId);
             } else {
                 log.info("Will do an update for the CAP project id = " + project.getProjectId());
-                pst = conn.prepareStatement("update bard_project set name=?, description=? where cap_proj_id = ?");
+                pst = conn.prepareStatement("update bard_project set name=?, description=?, pubchem_aid=? where cap_proj_id = ?");
                 pst.setString(1, project.getProjectName());
                 pst.setString(2, project.getDescription());
-                pst.setInt(3, capProjectId);
+                pst.setInt(3, pubchemAid);
+                pst.setInt(4, capProjectId);
                 pst.executeUpdate();
             }
 
