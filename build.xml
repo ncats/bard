@@ -21,6 +21,13 @@
         </fileset>
     </path>
 
+    <path id="run.classpath">
+        <pathelement location="${bard.build}"/>
+        <fileset dir="${bard.lib}">
+            <include name="**/*.jar"/>
+        </fileset>
+    </path>
+
     <target name="clean">
         <delete dir="${bard.build}"/>
         <delete dir="${bard.explode.dir}"/>
@@ -36,6 +43,14 @@
         </javac>
         <jar destfile="${bard.dist}/tools.jar" basedir="${bard.build}">
         </jar>
+    </target>
+
+    <target name="SearchDoS" depends="tools">
+        <java classname="gov.nih.ncgc.bard.tools.SearchDoS" 
+                  maxmemory="512m" classpathref="run.classpath" fork="true">
+          <arg value="http://bard.nih.gov/api/latest"/>
+          <arg value="10"/>
+        </java>
     </target>
 
     <target name='cap-extract-jaxb'>
