@@ -1,31 +1,14 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import gov.nih.ncgc.bard.capextract.CAPAnnotation;
-import gov.nih.ncgc.bard.capextract.CAPConstants;
-import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.capextract.CAPUtil;
-import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
-import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
-import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
-import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
-import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
-import gov.nih.ncgc.bard.capextract.jaxb.Link;
-import gov.nih.ncgc.bard.capextract.jaxb.Project;
-import gov.nih.ncgc.bard.capextract.jaxb.ProjectExperiment;
+import gov.nih.ncgc.bard.capextract.*;
+import gov.nih.ncgc.bard.capextract.jaxb.*;
 import gov.nih.ncgc.bard.tools.Util;
 import nu.xom.ParsingException;
 
 import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -291,8 +274,12 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             List<ProjectExperiment> experiments = project.getProjectExperiments().getProjectExperiment();
             PreparedStatement pstProjExpt = conn.prepareStatement("insert into bard_project_experiment (bard_proj_id, bard_expt_id, pubchem_aid, expt_type, pubchem_summary_aid) values (?,?,?,?,?)");
             for (ProjectExperiment experiment : experiments) {
+
+                String exptType;
+                ProjectExperiment.StageRef stageRef = experiment.getStageRef();
+                exptType = stageRef == null ? null : stageRef.getLabel();
+
                 Link exptLink = experiment.getExperimentRef().getLink();
-                String exptType = experiment.getStageRef().getLabel();
                 CAPConstants.CapResource res = CAPConstants.getResource(exptLink.getType());
                 if (res != CAPConstants.CapResource.EXPERIMENT) continue;
                 ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(res);

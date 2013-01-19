@@ -4,22 +4,12 @@ import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
-import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
-import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
-import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
-import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.capextract.jaxb.*;
 import gov.nih.ncgc.bard.tools.Util;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -176,6 +166,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             bardExptId = localBardExptId;
 
             // this is a new experiment
+            boolean experimentExists = false;
             PreparedStatement pstExpt = conn.prepareStatement(
                     "insert into bard_experiment (bard_assay_id, cap_expt_id, category, classification, description, pubchem_aid, type, name) values(?,?,?,?,?,?,?,?)",
                     Statement.RETURN_GENERATED_KEYS);
@@ -200,29 +191,34 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
                 log.info("Inserted CAP experiment id " + expt.getExperimentId() + " as BARD experiment id " + localBardExptId);
             } else {
                 log.info("CAP experiment id " + expt.getExperimentId() + " already exist. Should do an update");
+                experimentExists = true;
             }
 
-            PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'experiment',?,?,?,?,?,?,?,?,?,?)");
-            for (CAPAnnotation anno : annos) {
-                pstAssayAnnot.setString(1, anno.source);
-                pstAssayAnnot.setInt(2, localBardExptId);
-                pstAssayAnnot.setInt(3, anno.id);
-                pstAssayAnnot.setString(4, anno.key);
-                pstAssayAnnot.setString(5, anno.value);
-                pstAssayAnnot.setString(6, anno.extValueId); // anno_value_text
-                pstAssayAnnot.setString(7, anno.display);
-                pstAssayAnnot.setString(8, anno.contextRef); // context_name
-                pstAssayAnnot.setString(9, anno.related); // put into related field
-                pstAssayAnnot.setString(10, anno.url);
-                pstAssayAnnot.setInt(11, anno.displayOrder);
-
-                pstAssayAnnot.addBatch();
+            // TODO this block implies we don't update expt annotations for pre-existing expts
+            if (!experimentExists) {
+                PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'experiment',?,?,?,?,?,?,?,?,?,?)");
+                for (CAPAnnotation anno : annos) {
+                    pstAssayAnnot.setString(1, anno.source);
+                    pstAssayAnnot.setInt(2, localBardExptId);
+                    pstAssayAnnot.setInt(3, anno.id);
+                    pstAssayAnnot.setString(4, anno.key);
+                    pstAssayAnnot.setString(5, anno.value);
+                    pstAssayAnnot.setString(6, anno.extValueId); // anno_value_text
+                    pstAssayAnnot.setString(7, anno.display);
+                    pstAssayAnnot.setString(8, anno.contextRef); // context_name
+                    pstAssayAnnot.setString(9, anno.related); // put into related field
+                    pstAssayAnnot.setString(10, anno.url);
+                    pstAssayAnnot.setInt(11, anno.displayOrder);
+                    pstAssayAnnot.addBatch();
+                }
+                int[] updateCounts = pstAssayAnnot.executeBatch();
+                conn.commit();
+                pstAssayAnnot.close();
+                log.info("Inserted " + updateCounts.length + " annotations for CAP experiment id " + expt.getExperimentId());
             }
-            int[] updateCounts = pstAssayAnnot.executeBatch();
-            conn.commit();
-            pstAssayAnnot.close();
+
             conn.close();
-            log.info("Inserted " + updateCounts.length + " annotations for CAP experiment id " + expt.getExperimentId());
+
         } catch (SQLException e) {
             e.printStackTrace();
             log.error("Error inserting annotations for CAP expt id " + expt.getExperimentId() + "\n" + e.getMessage());

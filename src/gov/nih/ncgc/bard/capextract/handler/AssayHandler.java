@@ -255,6 +255,8 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 
         // at this point we can dump assays and annos to the db.
         try {
+            boolean assayExists = false;
+
             int qcapAssayId = -1;
 
             Connection conn = CAPUtil.connectToBARD();
@@ -318,8 +320,11 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 log.info("Loaded CAP assay id = " + capAssayId + " into production as BARD assay id = " + bardAssayId);
             } else {
                 log.info("CAP assay id = " + capAssayId + " already exists in production as BARD assay id = " + bardAssayId);
+                assayExists = true;
             }
 
+            // TODO this block implies we don't update annos/pubs etc for pre-existing assays
+            if (!assayExists) {
             PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'assay',?,?,?,?,?,?,?,?,?,?)");
             for (CAPAnnotation anno : annos) {
                 pstAssayAnnot.setString(1, anno.source);
@@ -336,6 +341,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 
                 pstAssayAnnot.addBatch();
             }
+
             int[] updateCounts = pstAssayAnnot.executeBatch();
             conn.commit();
             pstAssayAnnot.close();
@@ -373,6 +379,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             pstPubLink.close();
             pstPub.close();
             log.info("Inserted " + updateCounts.length + " annotations for CAP aid " + capAssayId);
+            }
 
             // now insert the experiment
             ExperimentHandler exptHandler = new ExperimentHandler();
