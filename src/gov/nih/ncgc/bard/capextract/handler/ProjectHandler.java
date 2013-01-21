@@ -10,7 +10,9 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A one line summary.
@@ -127,9 +129,10 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
             //  at this point we have a valid bard project id, lets insert all the extra stuff
 
-            List<String> targetAccs = new ArrayList<String>();
-
             // deal with project annotations
+            List<String> gis = new ArrayList<String>();
+            List<String> geneIds = new ArrayList<String>();
+
             List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
             CAPDictionary dict = CAPConstants.getDictionary();
             Contexts contexts = project.getContexts();
@@ -162,10 +165,10 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                     annos.add(new CAPAnnotation(contextId, bardProjId, valueDisplay, contextName, key, value, contextItemType.getExtValueId(), "cap-context", valueUrl, contextItemType.getDisplayOrder(), "project", related));
 
                     // do some special handling to pull out target
-                    if (contextName.equals("target") && attr.getLabel().equals("gene")) {
-
-                    }
-
+                    if (contextName.equals("target") && attr != null && attr.getLabel().equals("gene"))
+                        geneIds.add(contextItemType.getExtValueId());
+                    else if (contextName.equals("target") && attr != null && attr.getLabel().equals("protein"))
+                        gis.add(contextItemType.getExtValueId());
                 }
 
             }
@@ -269,6 +272,48 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 pstAnnot.close();
                 log.info("\tLoaded " + updateCounts.length + " annotations (from " + annos.size() + " CAP annotations) for cap project id " + project.getProjectId());
             }
+
+            // add in targets - get unique set of Uniprot accessions
+            Set<String[]> accs = new HashSet<String[]>();
+            PreparedStatement pstTarget = conn.prepareStatement("select accession from protein_target where gene_id = ?");
+            for (String geneid : geneIds) {
+                pstTarget.setInt(1, Integer.parseInt(geneid));
+                ResultSet rs = pstTarget.executeQuery();
+                String acc = null;
+                while (rs.next()) acc = rs.getString(1);
+                rs.close();
+                if (acc != null) accs.add(new String[]{acc, geneid});
+                pstTarget.clearParameters();
+            }
+            pstTarget.close();
+            pstTarget = conn.prepareStatement("select distinct a.uniprot_acc, b.gene_id from uniprot_map a, protein_target b where acc_type = 'GI' and a.uniprot_acc = b.accession and acc = ?;");
+            for (String gi : gis) {
+                pstTarget.setString(1, gi);
+                ResultSet rs = pstTarget.executeQuery();
+                String acc = null;
+                Integer geneid = null;
+                while (rs.next()) {
+                    acc = rs.getString(1);
+                    geneid = rs.getInt(2);
+                    accs.add(new String[]{acc, geneid.toString()});
+                }
+                rs.close();
+                pstTarget.clearParameters();
+            }
+            pstTarget.close();
+            // insert the target acc's
+            pstTarget = conn.prepareStatement("insert into project_target (bard_proj_id, accession, gene_id) values (?,?,?)");
+            for (String[] acc : accs) {
+                pstTarget.setInt(1, bardProjId);
+                pstTarget.setString(2, acc[0]);
+                pstTarget.setInt(3, Integer.parseInt(acc[1]));
+                pstTarget.addBatch();
+            }
+            if (accs.size() > 0) pstTarget.executeBatch();
+            conn.commit();
+            pstTarget.close();
+            log.info("Inserted "+accs.size()+" target entries for BARD project id = "+bardProjId);
+
 
             // handle the experiments associated with this project
             List<ProjectExperiment> experiments = project.getProjectExperiments().getProjectExperiment();

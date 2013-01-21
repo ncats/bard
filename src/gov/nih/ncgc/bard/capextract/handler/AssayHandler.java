@@ -10,7 +10,9 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Process CAP <code>Assay</code> elements.
@@ -188,7 +190,8 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         }
 
         CAPDictionary dict = CAPConstants.getDictionary();
-
+        List<String> gis = new ArrayList<String>();
+        List<String> geneIds = new ArrayList<String>();
         /* save assay contexts (aka annotations) */
         List<AssayContexType> contexts = assay.getAssayContexts() != null ? assay.getAssayContexts().getAssayContext() : new ArrayList<AssayContexType>();
         for (AssayContexType context : contexts) {
@@ -207,6 +210,15 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             }
 
             if (context.getAssayContextItems() == null) continue;
+
+            // some special handling for targets
+            if (contextName.equals("target")) {
+                for (AssayContextItemType contextItem : context.getAssayContextItems().getAssayContextItem()) {
+                    AbstractContextItemType.AttributeId attr = contextItem.getAttributeId();
+                    if (attr != null && attr.getLabel().equals("gene")) geneIds.add(contextItem.getExtValueId());
+                    else if (attr != null && attr.getLabel().equals("protein")) gis.add(contextItem.getExtValueId());
+                }
+            }
 
             for (AssayContextItemType contextItem : context.getAssayContextItems().getAssayContextItem()) {
                 int displayOrder = contextItem.getDisplayOrder();
@@ -379,6 +391,50 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             pstPubLink.close();
             pstPub.close();
             log.info("Inserted " + updateCounts.length + " annotations for CAP aid " + capAssayId);
+
+                // add in targets - get unique set of Uniprot accessions
+                rs.close();
+                Set<String[]> accs = new HashSet<String[]>();
+                PreparedStatement pstTarget = conn.prepareStatement("select accession from protein_target where gene_id = ?");
+                for (String geneid : geneIds) {
+                    pstTarget.setInt(1, Integer.parseInt(geneid));
+                    rs = pstTarget.executeQuery();
+                    String acc = null;
+                    while (rs.next()) acc = rs.getString(1);
+                    if (acc != null) accs.add(new String[]{acc, geneid});
+                    pstTarget.clearParameters();
+                }
+                rs.close();
+                pstTarget.close();
+                pstTarget = conn.prepareStatement("select distinct a.uniprot_acc, b.gene_id from uniprot_map a, protein_target b where acc_type = 'GI' and a.uniprot_acc = b.accession and acc = ?");
+                for (String gi : gis) {
+                    pstTarget.setString(1, gi);
+                    rs = pstTarget.executeQuery();
+                    String acc = null;
+                    Integer geneid = null;
+                    while (rs.next()) {
+                        acc = rs.getString(1);
+                        geneid = rs.getInt(2);
+                        accs.add(new String[]{acc, geneid.toString()});
+                    }
+                    rs.close();
+                    pstTarget.clearParameters();
+                }
+                pstTarget.close();
+                // insert the target acc's
+                pstTarget = conn.prepareStatement("insert into assay_target (bard_assay_id, aid, accession, gene_id) values (?,?,?,?)");
+                for (String[] acc : accs) {
+                    pstTarget.setInt(1, bardAssayId);
+                    pstTarget.setInt(2, capAssayId.intValue());
+                    pstTarget.setString(3, acc[0]);
+                    pstTarget.setInt(4, Integer.parseInt(acc[1]));
+                    pstTarget.addBatch();
+                }
+                if (accs.size() > 0) pstTarget.executeBatch();
+                conn.commit();
+                pstTarget.close();
+                log.info("Inserted "+accs.size()+" target entries for BARD assay id = "+bardAssayId);
+
             }
 
             // now insert the experiment
