@@ -394,14 +394,14 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 
                 // add in targets - get unique set of Uniprot accessions
                 rs.close();
-                Set<String[]> accs = new HashSet<String[]>();
+                Set<Target> accs = new HashSet<Target>();
                 PreparedStatement pstTarget = conn.prepareStatement("select accession from protein_target where gene_id = ?");
                 for (String geneid : geneIds) {
                     pstTarget.setInt(1, Integer.parseInt(geneid));
                     rs = pstTarget.executeQuery();
                     String acc = null;
                     while (rs.next()) acc = rs.getString(1);
-                    if (acc != null) accs.add(new String[]{acc, geneid});
+                    if (acc != null) accs.add(new Target(geneid, acc));
                     pstTarget.clearParameters();
                 }
                 rs.close();
@@ -415,7 +415,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                     while (rs.next()) {
                         acc = rs.getString(1);
                         geneid = rs.getInt(2);
-                        accs.add(new String[]{acc, geneid.toString()});
+                        accs.add(new Target(geneid.toString(), acc));
                     }
                     rs.close();
                     pstTarget.clearParameters();
@@ -423,11 +423,11 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 pstTarget.close();
                 // insert the target acc's
                 pstTarget = conn.prepareStatement("insert into assay_target (bard_assay_id, aid, accession, gene_id) values (?,?,?,?)");
-                for (String[] acc : accs) {
+                for (Target t : accs) {
                     pstTarget.setInt(1, bardAssayId);
                     pstTarget.setInt(2, capAssayId.intValue());
-                    pstTarget.setString(3, acc[0]);
-                    pstTarget.setInt(4, Integer.parseInt(acc[1]));
+                    pstTarget.setString(3, t.uniprot);
+                    pstTarget.setInt(4, Integer.parseInt(t.geneid));
                     pstTarget.addBatch();
                 }
                 if (accs.size() > 0) pstTarget.executeBatch();
@@ -452,4 +452,6 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
     }
+
+
 }

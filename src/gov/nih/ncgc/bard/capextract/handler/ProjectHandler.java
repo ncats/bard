@@ -274,7 +274,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             }
 
             // add in targets - get unique set of Uniprot accessions
-            Set<String[]> accs = new HashSet<String[]>();
+            Set<Target> accs = new HashSet<Target>();
             PreparedStatement pstTarget = conn.prepareStatement("select accession from protein_target where gene_id = ?");
             for (String geneid : geneIds) {
                 pstTarget.setInt(1, Integer.parseInt(geneid));
@@ -282,7 +282,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 String acc = null;
                 while (rs.next()) acc = rs.getString(1);
                 rs.close();
-                if (acc != null) accs.add(new String[]{acc, geneid});
+                if (acc != null) accs.add(new Target(geneid, acc));
                 pstTarget.clearParameters();
             }
             pstTarget.close();
@@ -295,7 +295,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 while (rs.next()) {
                     acc = rs.getString(1);
                     geneid = rs.getInt(2);
-                    accs.add(new String[]{acc, geneid.toString()});
+                    accs.add(new Target(geneid.toString(), acc));
                 }
                 rs.close();
                 pstTarget.clearParameters();
@@ -303,16 +303,16 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             pstTarget.close();
             // insert the target acc's
             pstTarget = conn.prepareStatement("insert into project_target (bard_proj_id, accession, gene_id) values (?,?,?)");
-            for (String[] acc : accs) {
+            for (Target t : accs) {
                 pstTarget.setInt(1, bardProjId);
-                pstTarget.setString(2, acc[0]);
-                pstTarget.setInt(3, Integer.parseInt(acc[1]));
+                pstTarget.setString(2, t.uniprot);
+                pstTarget.setInt(3, Integer.parseInt(t.geneid));
                 pstTarget.addBatch();
             }
             if (accs.size() > 0) pstTarget.executeBatch();
             conn.commit();
             pstTarget.close();
-            log.info("Inserted "+accs.size()+" target entries for BARD project id = "+bardProjId);
+            log.info("\tInserted "+accs.size()+" target entries for BARD project id = "+bardProjId);
 
 
             // handle the experiments associated with this project
@@ -332,6 +332,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                     handler.process(exptLink.getHref(), res);
                     int bardExptId = ((ExperimentHandler) handler).getBardExptId();
                     int exptPubchemAid = ((ExperimentHandler) handler).getPubchemAid();
+                    if (bardExptId == -1) continue;
                     pstProjExpt.setInt(1, bardProjId);
                     pstProjExpt.setInt(2, bardExptId);
                     pstProjExpt.setInt(3, exptPubchemAid);
@@ -357,5 +358,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
     }
+
+
 
 }
