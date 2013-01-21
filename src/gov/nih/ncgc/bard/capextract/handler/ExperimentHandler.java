@@ -58,6 +58,28 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         BigInteger exptID = expt.getExperimentId();
         log.info("Processing experiment " + exptID + " " + url);
 
+        // lets do a first check to see if we have this experiment already
+        int localBardExptId = -1;
+        try {
+            Connection conn = CAPUtil.connectToBARD();
+            Statement query = conn.createStatement();
+            query.execute("select bard_expt_id, pubchem_aid from bard_experiment where cap_expt_id=" + expt.getExperimentId());
+            ResultSet rs = query.getResultSet();
+            while (rs.next()) {
+                localBardExptId = rs.getInt(1);
+                pubchemAid = rs.getInt(2);
+            }
+            rs.close();
+            query.close();
+            conn.close();
+            bardExptId = localBardExptId;
+            if (bardExptId != -1) {
+                log.info("CAP experiment id " + expt.getExperimentId() + " already exist. Should do an update");
+                return;
+            }
+        } catch (SQLException e) {
+        }
+
         ExternalReferenceHandler extrefHandler = new ExternalReferenceHandler();
         ExternalSystemHandler extsysHandler = new ExternalSystemHandler();
         AssayHandler assayHandler = new AssayHandler();
@@ -152,20 +174,9 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 
         // ready to load in the data
         try {
-            int localBardExptId = -1;
-            Connection conn = CAPUtil.connectToBARD();
-
-            Statement query = conn.createStatement();
-            query.execute("select bard_expt_id, cap_expt_id from bard_experiment where cap_expt_id=" + expt.getExperimentId());
-            ResultSet rs = query.getResultSet();
-            while (rs.next()) {
-                localBardExptId = rs.getInt(1);
-            }
-            rs.close();
-            query.close();
-            bardExptId = localBardExptId;
 
             // this is a new experiment
+            Connection conn = CAPUtil.connectToBARD();
             boolean experimentExists = false;
             PreparedStatement pstExpt = conn.prepareStatement(
                     "insert into bard_experiment (bard_assay_id, cap_expt_id, category, classification, description, pubchem_aid, type, name) values(?,?,?,?,?,?,?,?)",
@@ -184,7 +195,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
                 if (insertedRows == 0) {
 
                 }
-                rs = pstExpt.getGeneratedKeys();
+                ResultSet rs = pstExpt.getGeneratedKeys();
                 while (rs.next()) localBardExptId = rs.getInt(1);
                 rs.close();
                 pstExpt.close();
