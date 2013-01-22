@@ -11,8 +11,14 @@ import java.util.List;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
-public class OrderedSearchResultHandler implements SearchCallback<SearchService2.MolEntry> {
+public class OrderedSearchResultHandler 
+    implements SearchCallback<SearchService2.MolEntry> {
+    static final Logger logger = Logger.getLogger
+        (OrderedSearchResultHandler.class.getName());
+
     List<Long> cids;
 
     PrintWriter pw;
@@ -190,6 +196,8 @@ public class OrderedSearchResultHandler implements SearchCallback<SearchService2
         }
 
         public void run() {
+            logger.info(">>> "+Thread.currentThread().getName());
+            long start = System.currentTimeMillis();
             while (!theEnd()) {
                 synchronized (tLock) {
                     while (!moreToConsume()) {
@@ -202,6 +210,9 @@ public class OrderedSearchResultHandler implements SearchCallback<SearchService2
                     consume();
                 }
             }
+            logger.info("<<< "+Thread.currentThread().getName()
+                        +" "+cids.size()+" "
+                        +(System.currentTimeMillis()-start)+"ms");
         }
     }
 

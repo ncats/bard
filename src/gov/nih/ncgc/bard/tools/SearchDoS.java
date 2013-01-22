@@ -271,6 +271,9 @@ public class SearchDoS {
                     long start = System.currentTimeMillis();
                     HttpURLConnection http = 
                         (HttpURLConnection)url.openConnection();
+                    http.setConnectTimeout(0);// ms
+                    http.setReadTimeout(0);// ms
+
                     long b = getByteCount (http.getInputStream());
                     long e = System.currentTimeMillis()-start;
                     
