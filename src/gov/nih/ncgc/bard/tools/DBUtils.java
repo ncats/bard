@@ -3801,27 +3801,6 @@ public class DBUtils {
         //find targets, get collected bard_assay_ids, for each bard_assay_id under the project
         p.setTargets(getProjectTargets(bardProjId));
 
-        List<String> l1 = new ArrayList<String>();
-        List<String> l2 = new ArrayList<String>();
-        // pull in KEGG disease annotations
-        pst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.bard_proj_id = ? and b.gene_id = c.gene_id");
-        pst.setLong(1, bardProjId);
-        ResultSet resultSet = pst.executeQuery();
-        while (resultSet.next()) {
-            String[] toks = resultSet.getString("disease_names").split(";");
-            for (String tok : toks) l1.add(tok.trim());
-
-            String cat = resultSet.getString("disease_category");
-            if (cat != null) {
-                toks = resultSet.getString("disease_category").split(";");
-                for (String tok : toks) l2.add(tok.trim());
-            }
-        }
-        p.setKegg_disease_names(l1);
-        p.setKegg_disease_cat(l2);
-        resultSet.close();
-        pst.close();
-
         return p;
     }
 
@@ -4455,6 +4434,7 @@ public class DBUtils {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id and a.source in ('cap', 'bao')");
         PreparedStatement gopst = conn.prepareStatement("select * from go_project where bard_proj_id = ? order by go_type");
+        PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.bard_proj_id = ? and b.gene_id = c.gene_id");
         try {
             pst.setLong(1, bardProjectId);
             ResultSet rs = pst.executeQuery();
@@ -4483,6 +4463,11 @@ public class DBUtils {
             gopst.setLong(1, bardProjectId);
             rs = gopst.executeQuery();
             annos.addAll(convertGoToAnno(rs, "project", bardProjectId.intValue()));
+
+            // deal with KEGG annotations
+            keggpst.setLong(1, bardProjectId);
+            rs = keggpst.executeQuery();
+            annos.addAll(convertKeggToAnno(rs, "project", bardProjectId.intValue()));
 
             cache.put(new Element (bardProjectId, annos));
             return annos;
