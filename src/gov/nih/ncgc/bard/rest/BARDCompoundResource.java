@@ -14,6 +14,7 @@ import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.OrderedSearchResultHandler;
+import gov.nih.ncgc.bard.tools.SearchResultHandler;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.search.MoleculeService;
 import gov.nih.ncgc.search.SearchParams;
@@ -63,8 +64,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
-
-    ExecutorService threadPool = Executors.newCachedThreadPool();
+    static final ExecutorService threadPool = Executors.newCachedThreadPool();
 
     public Class<Compound> getEntityClass() {
         return Compound.class;
@@ -231,6 +231,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         PrintWriter pw = new PrintWriter(writer);
         if (skip == -1) skip = 0;
         if (top == -1) top = 100;
+
         OrderedSearchResultHandler handler = 
             new OrderedSearchResultHandler (threadPool, params, pw, skip, top);
         if (countRequested) {
