@@ -235,20 +235,22 @@ public class BARDAssayResource extends BARDResource<Assay> {
     @Path("/{aid}")
     public Response getResources(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         DBUtils db = new DBUtils();
-        Assay a = null;
+        Assay a;
         try {
             a = db.getAssayByAid(Long.valueOf(resourceId));
             if (a == null || a.getAid() == null) throw new WebApplicationException(404);
 
-            String json = Util.toJson(a);
-            if (expand != null && expand.toLowerCase().trim().equals("true")) { // expand experiment and project entries 
-                json = getExpandedJson(a, Long.parseLong(resourceId), db).toString();
+            JsonNode node;
+            if (expand != null && expand.toLowerCase().trim().equals("true")) { // expand experiment and project entries
+                node = getExpandedJson(a, Long.parseLong(resourceId), db);
+            } else {
+                ObjectMapper mapper = new ObjectMapper();
+                node = mapper.valueToTree(a);
             }
+            String json = node.toString();
+
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
-            e.printStackTrace();
-            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
-        } catch (IOException e) {
             e.printStackTrace();
             throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } finally {
@@ -259,6 +261,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
             }
         }
     }
+
 
     @POST
     @Path("/")
@@ -277,7 +280,9 @@ public class BARDAssayResource extends BARDResource<Assay> {
             // remove null assays. If all assays are null return a 404
             List<Assay> assays = new ArrayList<Assay>();
             for (Assay a : tassays) {
-                if (a != null) assays.add(a);
+                if (a != null) {
+                    assays.add(a);
+                }
             }
             if (assays.size() == 0) throw new WebApplicationException(404);
 
