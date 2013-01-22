@@ -36,8 +36,6 @@ public class Assay implements BardEntity {
         return experiments;
     }    
 
-    List<String> kegg_disease_names, kegg_disease_cat;
-
     public Map<String, String> getMinimumAnnotations() {
         return minimumAnnotations;
     }
@@ -52,22 +50,6 @@ public class Assay implements BardEntity {
 
     public void setCapAssayId(Long capAssayId) {
         this.capAssayId = capAssayId;
-    }
-
-    public List<String> getKegg_disease_names() {
-        return kegg_disease_names;
-    }
-
-    public void setKegg_disease_names(List<String> kegg_disease_names) {
-        this.kegg_disease_names = kegg_disease_names;
-    }
-
-    public List<String> getKegg_disease_cat() {
-        return kegg_disease_cat;
-    }
-
-    public void setKegg_disease_cat(List<String> kegg_disease_cat) {
-        this.kegg_disease_cat = kegg_disease_cat;
     }
 
     public void setExperiments(List<Long> experiments) {
