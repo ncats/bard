@@ -135,7 +135,7 @@ public class StructureSearchPlugin implements IPlugin {
         Writer writer = new StringWriter();
         PrintWriter pw = new PrintWriter(writer);
         if ("search".equalsIgnoreCase(method)) {
-            search.search(query, params, new SearchResultHandler(params, pw));
+            search.search(query, params, new SearchResultHandler(params, pw, 0, 10));
         } else if ("count".equalsIgnoreCase(method)) {
             pw.println(search.count(query, params));
         } else
