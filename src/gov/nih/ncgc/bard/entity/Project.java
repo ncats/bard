@@ -35,6 +35,7 @@ public class Project implements BardEntity {
 
     @JsonIgnore
     List<String> av_dict_label, ak_dict_label;
+    @JsonIgnore
     List<String> kegg_disease_names, kegg_disease_cat;
 
     /**

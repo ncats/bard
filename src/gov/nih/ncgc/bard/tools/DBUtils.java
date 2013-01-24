@@ -8,16 +8,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.ETag;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
-import gov.nih.ncgc.bard.entity.Publication;
-import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
@@ -37,25 +28,8 @@ import java.io.Reader;
 import java.math.BigInteger;
 import java.security.Principal;
 import java.security.SecureRandom;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.sql.*;
+import java.util.*;
 
 
 
@@ -1258,9 +1232,9 @@ public class DBUtils {
         return facets;
     }
 
-    public List<Compound> getCompoundsByHash 
+    public List<Compound> getCompoundsByHash
         (String h1, String h2, String h3, String h4) throws SQLException {
-        StringBuilder sql = new StringBuilder 
+        StringBuilder sql = new StringBuilder
             ("select * from compound a, compound_molfile b, "
              +"compound_props c where a.cid = b.cid "
              +"and a.cid = c.pubchem_compound_cid");
@@ -2136,73 +2110,6 @@ public class DBUtils {
         for (Project proj : projs) pids.add(proj.getProjectId());
         a.setProjects(pids);
 
-        // put in annotations
-        PreparedStatement pst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and go_type = 'P'");
-        pst.setLong(1, bardAssayId);
-        ResultSet resultSet = pst.executeQuery();
-        List<String> l1 = new ArrayList<String>();
-        List<String> l2 = new ArrayList<String>();
-        while (resultSet.next()) {
-            l1.add(resultSet.getString("go_id"));
-            l2.add(resultSet.getString("go_term"));
-        }
-        a.setGobp_id(l1);
-        a.setGobp_term(l2);
-        resultSet.close();
-        pst.close();
-
-        pst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and go_type = 'F'");
-        pst.setLong(1, bardAssayId);
-        resultSet = pst.executeQuery();
-        l1 = new ArrayList<String>();
-        l2 = new ArrayList<String>();
-        while (resultSet.next()) {
-            l1.add(resultSet.getString("go_id"));
-            l2.add(resultSet.getString("go_term"));
-        }
-        a.setGomf_id(l1);
-        a.setGomf_term(l2);
-        resultSet.close();
-        pst.close();
-
-        pst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and go_type = 'C'");
-        pst.setLong(1, bardAssayId);
-        resultSet = pst.executeQuery();
-        l1 = new ArrayList<String>();
-        l2 = new ArrayList<String>();
-        while (resultSet.next()) {
-            l1.add(resultSet.getString("go_id"));
-            l2.add(resultSet.getString("go_term"));
-        }
-        a.setGocc_id(l1);
-        a.setGocc_term(l2);
-        resultSet.close();
-        pst.close();
-
-        // pull in KEGG disease annotations
-        pst = conn.prepareStatement("select distinct b.* from bard_assay a, kegg_gene2disease b, assay_target c where a.bard_assay_id = ? and a.pubchem_aid = c.aid and c.gene_id = b.gene_id");
-        pst.setLong(1, bardAssayId);
-        resultSet = pst.executeQuery();
-        l1 = new ArrayList<String>();
-        l2 = new ArrayList<String>();
-        while (resultSet.next()) {
-            String[] toks;
-            String diseaseName = resultSet.getString("disease_names");
-            if (diseaseName != null) {
-                toks = diseaseName.split(";");
-                for (String tok : toks) l1.add(tok.trim());
-            }
-            String diseaseCat = resultSet.getString("disease_category");
-            if (diseaseCat != null) {
-                toks = diseaseCat.split(";");
-                for (String tok : toks) l2.add(tok.trim());
-            }
-        }
-        a.setKegg_disease_names(l1);
-        a.setKegg_disease_cat(l2);
-        resultSet.close();
-        pst.close();
-
         if (dict == null) try {
             dict = getCAPDictionary();
         } catch (IOException e) {
@@ -2210,9 +2117,10 @@ public class DBUtils {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
+
         List<CAPAnnotation> capannots = getAssayAnnotations(bardAssayId);
-        l1 = new ArrayList<String>();
-        l2 = new ArrayList<String>();
+        List<String> l1 = new ArrayList<String>();
+        List<String> l2 = new ArrayList<String>();
         for (CAPAnnotation capannot : capannots) {
             if (capannot.key != null && isInteger(capannot.key)) l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
             if (capannot.value != null && isInteger(capannot.value)) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
@@ -2221,6 +2129,13 @@ public class DBUtils {
         a.setAk_dict_label(l1);
         a.setAv_dict_label(l2);
 
+        try {
+            a.setMinimumAnnotations(AnnotationUtils.getMinimumRequiredAssayAnnotations(aid, this));
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
         return a;
     }
 
@@ -3886,27 +3801,6 @@ public class DBUtils {
         //find targets, get collected bard_assay_ids, for each bard_assay_id under the project
         p.setTargets(getProjectTargets(bardProjId));
 
-        List<String> l1 = new ArrayList<String>();
-        List<String> l2 = new ArrayList<String>();
-        // pull in KEGG disease annotations
-        pst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.bard_proj_id = ? and b.gene_id = c.gene_id");
-        pst.setLong(1, bardProjId);
-        ResultSet resultSet = pst.executeQuery();
-        while (resultSet.next()) {
-            String[] toks = resultSet.getString("disease_names").split(";");
-            for (String tok : toks) l1.add(tok.trim());
-
-            String cat = resultSet.getString("disease_category");
-            if (cat != null) {
-                toks = resultSet.getString("disease_category").split(";");
-                for (String tok : toks) l2.add(tok.trim());
-            }
-        }
-        p.setKegg_disease_names(l1);
-        p.setKegg_disease_cat(l2);
-        resultSet.close();
-        pst.close();
-
         return p;
     }
 
@@ -4384,6 +4278,27 @@ public class DBUtils {
      * ************************************************************************
      */
 
+    private List<CAPAnnotation> convertKeggToAnno(ResultSet rs, String entity, Integer entityId) throws SQLException {
+        List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+        while (rs.next()) {
+            String[] toks;
+            String diseaseName = rs.getString("disease_names");
+            String diseaseCat = rs.getString("disease_category");
+            String diseaseId = rs.getString("disease_id");
+            String url = "http://www.kegg.jp/medicus-bin/search?q=" + diseaseId + "&display=disease&from=disease";
+
+            CAPAnnotation anno = new CAPAnnotation(null,
+                    entityId.intValue(),
+                    diseaseName, null,
+                    "keggdiseaseid", diseaseId,
+                    diseaseId, "KEGG",
+                    url, -1, entity,
+                    diseaseCat);
+            annos.add(anno);
+        }
+        return annos;
+    }
+
     private List<CAPAnnotation> convertGoToAnno(ResultSet rs, String entity, Integer entityId) throws SQLException {
         List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
         while (rs.next()) {
@@ -4453,6 +4368,7 @@ public class DBUtils {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity_id = ? and source != 'cap-old'");
         PreparedStatement gopst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? order by go_type");
+        PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from bard_assay a, kegg_gene2disease b, assay_target c where a.bard_assay_id = ? and a.pubchem_aid = c.aid and c.gene_id = b.gene_id");
         try {
             pst.setLong(1, bardAssayId);
             ResultSet rs = pst.executeQuery();
@@ -4488,12 +4404,18 @@ public class DBUtils {
             rs = gopst.executeQuery();
             annos.addAll(convertGoToAnno(rs, "assay", bardAssayId.intValue()));
 
+            // pull in KEGG disease annotations
+            keggpst.setLong(1, bardAssayId);
+            rs = keggpst.executeQuery();
+            annos.addAll(convertKeggToAnno(rs, "assay", bardAssayId.intValue()));
+
             cache.put(new Element (bardAssayId, annos));
             return annos;
         }
         finally {
             pst.close();
             gopst.close();
+            keggpst.close();
         }
     }
 
@@ -4512,6 +4434,7 @@ public class DBUtils {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id and a.source in ('cap', 'bao')");
         PreparedStatement gopst = conn.prepareStatement("select * from go_project where bard_proj_id = ? order by go_type");
+        PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.bard_proj_id = ? and b.gene_id = c.gene_id");
         try {
             pst.setLong(1, bardProjectId);
             ResultSet rs = pst.executeQuery();
@@ -4540,6 +4463,11 @@ public class DBUtils {
             gopst.setLong(1, bardProjectId);
             rs = gopst.executeQuery();
             annos.addAll(convertGoToAnno(rs, "project", bardProjectId.intValue()));
+
+            // deal with KEGG annotations
+            keggpst.setLong(1, bardProjectId);
+            rs = keggpst.executeQuery();
+            annos.addAll(convertKeggToAnno(rs, "project", bardProjectId.intValue()));
 
             cache.put(new Element (bardProjectId, annos));
             return annos;

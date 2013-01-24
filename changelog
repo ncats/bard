@@ -24,3 +24,11 @@ v8 released
 11/20/12 Assay search results now include the match score provided by Solr. Located within the meta data field, keyed by assay id
 
 v9 released	
+
+v12 released
+
+01/22/2012    Updated /assay resource to expose a field for minimum annotations
+	      Updated assay retrieval methods to extract minimum annotations
+    	      Created a helper class for annotation manipulation
+	      Removed kegg annotation fields from /assays resource, moved to /assays/{aid}/annotations resource
+	      Removed kegg annotation fields from /projects resource, moved to /projects/{aid}/annotations resource
