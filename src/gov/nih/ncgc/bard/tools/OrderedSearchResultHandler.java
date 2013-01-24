@@ -44,8 +44,7 @@ public class OrderedSearchResultHandler
     //Consumer thread
     private Future t;
 
-    public OrderedSearchResultHandler (ExecutorService threadPool, 
-                                       SearchParams params, PrintWriter pw, 
+    public OrderedSearchResultHandler (SearchParams params, PrintWriter pw, 
                                        Integer start, Integer resultCap) {
         cids = new ArrayList<Long>();
 
@@ -53,7 +52,9 @@ public class OrderedSearchResultHandler
         this.pw = pw;
         if (start != null) returnStart = start;
         if (resultCap != null) this.returnCap = resultCap;
+    }
 
+    public void start (ExecutorService threadPool) {
         t = threadPool.submit(new Consumer ());
     }
 

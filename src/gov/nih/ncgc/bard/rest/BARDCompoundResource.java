@@ -48,8 +48,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Prototype of MLBD REST resources.
@@ -64,7 +68,29 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
+
+    /**
+     * Normally using newCachedThreadPool is not recommended since it's
+     * an unbounded pool. However, given that our search handler is really
+     * meant to be short-lived, it's an ideal candidate for this particular
+     * thread pool. If this isn't the case, then a more refined instance
+     * of ThreadPoolExecutor should be used instead!
+     */
     static final ExecutorService threadPool = Executors.newCachedThreadPool();
+
+    /**
+     * these parameters should be configurable somewhere; having a static
+     * is really a bad idea here. We should hook this into the lifecycle 
+     * of the web container so as to properly performing clean up!
+     */
+    /*
+    static final ExecutorService threadPool = 
+        new ThreadPoolExecutor (10, // core size
+                                50, // max pool size
+                                60, // idle timeout 1m
+                                TimeUnit.SECONDS,
+                                new ArrayBlockingQueue<Runnable>(20));
+    */
 
     public Class<Compound> getEntityClass() {
         return Compound.class;
@@ -233,11 +259,12 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         if (top == -1) top = 100;
 
         OrderedSearchResultHandler handler = 
-            new OrderedSearchResultHandler (threadPool, params, pw, skip, top);
+            new OrderedSearchResultHandler (params, pw, skip, top);
         if (countRequested) {
             int n = search.count(query, params);
             response = Response.ok(String.valueOf(n)).build();
         } else {
+            handler.start(threadPool);
             search.search(query, params, handler);
             handler.complete();
 
