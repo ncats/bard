@@ -4,11 +4,7 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import gov.nih.ncgc.bard.tools.DBUtils;
-import nu.xom.Builder;
-import nu.xom.Document;
-import nu.xom.Element;
-import nu.xom.Node;
-import nu.xom.Nodes;
+import nu.xom.*;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -151,6 +147,7 @@ public abstract class SolrSearch implements ISolrSearch {
      * @return the updated query object
      */
     protected SolrQuery setFilterQueries(SolrQuery solrQuery, String filter) {
+
         if (filter == null) return solrQuery;
         try {
             List<SolrField> fields = getFieldNames();
@@ -173,8 +170,10 @@ public abstract class SolrSearch implements ISolrSearch {
                         sb.append(" OR ").append(fvalues.get(i));
                     }
                 }
-                System.out.println(fname+":("+sb.toString()+")");
-                solrQuery.addFilterQuery(fname + ":(" + sb.toString()+")");
+                if (fvalues.size() == 1) {
+                    solrQuery.addFilterQuery(fname + ":" + sb.toString()+"");
+                }
+                else solrQuery.addFilterQuery(fname + ":(" + sb.toString()+")");
             }
         } catch (Exception e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
