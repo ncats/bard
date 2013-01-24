@@ -32,3 +32,4 @@ v12 released
     	      Created a helper class for annotation manipulation
 	      Removed kegg annotation fields from /assays resource, moved to /assays/{aid}/annotations resource
 	      Removed kegg annotation fields from /projects resource, moved to /projects/{aid}/annotations resource
+01/24/2012    Updated text search code so that numeric fields in a filter query do not get quoted

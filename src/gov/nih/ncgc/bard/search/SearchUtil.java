@@ -10,10 +10,7 @@ import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.TermsParams;
 
 import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -56,6 +53,9 @@ public class SearchUtil {
      * @return A map whose keys are field names and values are field values.
      */
     public static Map<String, List<String>> extractFilterQueries(String filter) {
+        // TODO should be a better way to identify numeric fields
+        List<String> numericFields = Arrays.asList(new String[]{"mwt", "tpsa", "xlogp"});
+
         HashMap<String, List<String>> ret = new HashMap<String, List<String>>();
         if (filter == null || filter.trim().equals("")) return ret;
         Pattern pattern = Pattern.compile("fq\\((.*?):(.*?)\\),");
@@ -65,7 +65,7 @@ public class SearchUtil {
                 String fname = matcher.group(i);
                 String fvalue = matcher.group(i + 1).trim();
 
-                if (!fvalue.contains("\"")) fvalue = "\"" + fvalue + "\"";
+                if (!fvalue.contains("\"") && !numericFields.contains(fname)) fvalue = "\"" + fvalue + "\"";
 
                 if (ret.containsKey(fname)) {
                     List<String> tmp = ret.get(fname);
