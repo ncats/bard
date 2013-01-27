@@ -1731,45 +1731,10 @@ public class DBUtils {
         if (rs.wasNull()) potency = null;
         ed.setPotency(potency);
 
-        Blob blob = rs.getBlob("json_data_array");
-        byte[] bytes = blob.getBytes(1, (int) blob.length());
-        String s = new String(bytes);
-
-        ObjectMapper mapper = new ObjectMapper();
-        DataResultObject[] o = mapper.readValue(s, DataResultObject[].class);
-
-        blob = rs.getBlob("expt_result_def");
-        s = new String(blob.getBytes(1, (int) blob.length()));
-        AssayDefinitionObject[] ado = mapper.readValue(s, AssayDefinitionObject[].class);
-        DoseResponseResultObject[] dro = null;
-        blob = rs.getBlob("json_dose_response");
-        if (blob != null) {
-            bytes = blob.getBytes(1, (int) blob.length());
-            s = new String(bytes);
-            dro = mapper.readValue(s, DoseResponseResultObject[].class);
-
-            // for each dose-response 'layer', try and pull a layer label from the assay definition.
-            for (DoseResponseResultObject adro : dro) {
-                String tid = adro.getTid();
-                for (AssayDefinitionObject aado : ado) {
-                    if (aado.getTid().equals(tid)) {
-                        adro.setLabel(aado.getName());
-                        adro.setDescription(aado.getDescription());
-                        adro.setConcUnit(aado.getTestConcUnit());
-                    }
-                }
-            }
-        }
-
-        blob = rs.getBlob("json_response");
+        Blob blob = rs.getBlob("json_response");
         if (blob != null) {
             ed.setResultJson(new String(blob.getBytes(1, (int) blob.length())));
         }
-
-        ed.setDr(dro);
-        ed.setResults(o);
-        ed.setDefs(ado);
-//        ed.transform();
 
         return ed;
     }
