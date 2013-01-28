@@ -23,7 +23,7 @@ public class Project implements BardEntity {
      * <p/>
      * Currently the AID of the summary assay.
      */
-    Long projectId;
+    Long projectId, capProjectId;
 
 
     int category, type, classification;
@@ -60,6 +60,14 @@ public class Project implements BardEntity {
     List<Long> publications;
     List<ProteinTarget> targets;
 
+
+    public Long getCapProjectId() {
+        return capProjectId;
+    }
+
+    public void setCapProjectId(Long capProjectId) {
+        this.capProjectId = capProjectId;
+    }
 
     public List<Compound> getProbes() {
         return probes;

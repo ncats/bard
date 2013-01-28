@@ -33,3 +33,8 @@ v12 released
 	      Removed kegg annotation fields from /assays resource, moved to /assays/{aid}/annotations resource
 	      Removed kegg annotation fields from /projects resource, moved to /projects/{aid}/annotations resource
 01/24/2012    Updated text search code so that numeric fields in a filter query do not get quoted
+01/25/2012    Fixed expt data queries to ignore unused JSON blob fields
+
+v13 released
+
+01/28/2012    Added CAP project id to /projects/{id} JSON
