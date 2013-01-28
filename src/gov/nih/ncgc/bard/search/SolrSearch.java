@@ -154,7 +154,7 @@ public abstract class SolrSearch implements ISolrSearch {
             List<String> fnames = new ArrayList<String>();
             for (SolrField field : fields) fnames.add(field.getName());
 
-            Map<String, List<String>> fq = SearchUtil.extractFilterQueries(filter);
+            Map<String, List<String>> fq = SearchUtil.extractFilterQueries(filter, getFieldNames());
             for (Map.Entry<String, List<String>> entry : fq.entrySet()) {
                 String fname = entry.getKey();
                 List<String> fvalues = entry.getValue();

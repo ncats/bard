@@ -52,9 +52,9 @@ public class SearchUtil {
      * @param filter The filter parameter string from a BARD request
      * @return A map whose keys are field names and values are field values.
      */
-    public static Map<String, List<String>> extractFilterQueries(String filter) {
-        // TODO should be a better way to identify numeric fields
-        List<String> numericFields = Arrays.asList(new String[]{"mwt", "tpsa", "xlogp"});
+    public static Map<String, List<String>> extractFilterQueries(String filter,  List<SolrField> fields) {
+        Map<String, SolrField> map = new HashMap<String, SolrField>();
+        for (SolrField f : fields) map.put(f.getName(), f);
 
         HashMap<String, List<String>> ret = new HashMap<String, List<String>>();
         if (filter == null || filter.trim().equals("")) return ret;
@@ -65,7 +65,9 @@ public class SearchUtil {
                 String fname = matcher.group(i);
                 String fvalue = matcher.group(i + 1).trim();
 
-                if (!fvalue.contains("\"") && !numericFields.contains(fname)) fvalue = "\"" + fvalue + "\"";
+                String type = map.get(fname).getType();
+                boolean isNumericField = type.contains("int") || type.contains("float");
+                if (!fvalue.contains("\"") && !isNumericField) fvalue = "\"" + fvalue + "\"";
 
                 if (ret.containsKey(fname)) {
                     List<String> tmp = ret.get(fname);
