@@ -18,11 +18,26 @@
         <param-value>http://protease.nhgri.nih.gov:8094/solr</param-value>
     </context-param>
 
+    <!-- Specify the Solr cores we should use for full text search -->
+    <context-param>
+        <param-name>core-name-assay</param-name>
+        <param-value>/core-assay-v13/</param-value>
+    </context-param>
+    <context-param>
+        <param-name>core-name-project</param-name>
+        <param-value>/core-project-v13/</param-value>
+    </context-param>
+    <context-param>
+        <param-name>core-name-compound</param-name>
+        <param-value>/core-project-v13/</param-value>
+    </context-param>
+
+
     <context-param>
         <param-name>datasource-context</param-name>
         <param-value>jdbc/bardman-maxwell</param-value>
     </context-param>
- 
+
     <servlet>
         <description>BARD REST Services</description>
         <display-name>BARD REST Web Services</display-name>

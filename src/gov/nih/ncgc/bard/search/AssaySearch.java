@@ -39,10 +39,10 @@ public class AssaySearch extends SolrSearch {
 
     String[] facetNames = {"assay_component_role", "assay_mode", "assay_type", "Cell line", "detection_method_type", "target_name", "kegg_disease_cat"};
 
-    public AssaySearch(String query) {
+    public AssaySearch(String query, String coreName) {
         super(query);
 
-        CORE_NAME = "/core-assay/";
+        CORE_NAME = coreName;
         log = LoggerFactory.getLogger(this.getClass());
 
         // since we currently facte on dictionary terms, lets pre-populate the facet

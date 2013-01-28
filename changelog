@@ -38,3 +38,4 @@ v12 released
 v13 released
 
 01/28/2012    Added CAP project id to /projects/{id} JSON
+	      Parametrized Solr search classes to use core names as defined in web.xml
