@@ -29,7 +29,7 @@
     </context-param>
     <context-param>
         <param-name>core-name-compound</param-name>
-        <param-value>/core-project-v13/</param-value>
+        <param-value>/core-compound-v13/</param-value>
     </context-param>
 
 

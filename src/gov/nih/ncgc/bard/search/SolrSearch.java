@@ -4,7 +4,11 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import gov.nih.ncgc.bard.tools.DBUtils;
-import nu.xom.*;
+import nu.xom.Builder;
+import nu.xom.Document;
+import nu.xom.Element;
+import nu.xom.Node;
+import nu.xom.Nodes;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -154,7 +158,7 @@ public abstract class SolrSearch implements ISolrSearch {
             List<String> fnames = new ArrayList<String>();
             for (SolrField field : fields) fnames.add(field.getName());
 
-            Map<String, List<String>> fq = SearchUtil.extractFilterQueries(filter);
+            Map<String, List<String>> fq = SearchUtil.extractFilterQueries(filter, getFieldNames());
             for (Map.Entry<String, List<String>> entry : fq.entrySet()) {
                 String fname = entry.getKey();
                 List<String> fvalues = entry.getValue();
