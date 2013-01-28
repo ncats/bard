@@ -35,9 +35,9 @@ public class CompoundSearch extends SolrSearch {
     Logger log;
     String[] facetNames = {"compoundClass", "COLLECTION", "mwt", "tpsa", "xlogp"};
 
-    public CompoundSearch(String query) {
+    public CompoundSearch(String query, String coreName) {
         super(query);
-        CORE_NAME = "/core-compound/";
+        CORE_NAME = coreName;
         log = LoggerFactory.getLogger(this.getClass());
     }
 

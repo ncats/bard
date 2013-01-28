@@ -8,11 +8,14 @@ import gov.nih.ncgc.bard.search.ISolrSearch;
 import gov.nih.ncgc.bard.search.ProjectSearch;
 import gov.nih.ncgc.bard.search.SearchResult;
 import gov.nih.ncgc.bard.search.SolrField;
+import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
+import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -20,14 +23,13 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.EntityTag;
-import javax.ws.rs.core.Response;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -36,11 +38,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import javax.servlet.ServletContext;
-import javax.annotation.PostConstruct;
-
-import gov.nih.ncgc.bard.tools.Util;
-import gov.nih.ncgc.bard.tools.DBUtils;
 
 /**
  * A resource to expose full-text and faceted search as well as autocomplete suggestions.
@@ -73,6 +70,12 @@ public class BARDSearchResource implements IBARDResource {
             log.info("** Solr service: " + solrService);
         }
         return solrService;
+    }
+
+    protected String getSolrCoreNameForEntity(String entity) {
+        List<String> validNames = Arrays.asList("assay", "project", "compound");
+        if (!validNames.contains(entity)) return null;
+        return servletContext.getInitParameter("core-name-" + entity);
     }
 
     protected static boolean init = false;
@@ -111,7 +114,7 @@ public class BARDSearchResource implements IBARDResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/projects/fields")
     public Response getProjectields() throws IOException {
-        ProjectSearch search = new ProjectSearch(null);
+        ProjectSearch search = new ProjectSearch(null, getSolrCoreNameForEntity("project"));
         List<SolrField> fields;
         try {
             search.setSolrURL(getSolrService ());
@@ -126,7 +129,7 @@ public class BARDSearchResource implements IBARDResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/compounds/fields")
     public Response getCompoundFields() throws IOException {
-        CompoundSearch search = new CompoundSearch(null);
+        CompoundSearch search = new CompoundSearch(null, getSolrCoreNameForEntity("compound"));
         List<SolrField> fields;
         try {
             search.setSolrURL(getSolrService ());
@@ -141,7 +144,7 @@ public class BARDSearchResource implements IBARDResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/assays/fields")
     public Response getAssayFields() throws IOException {
-        AssaySearch search = new AssaySearch(null);
+        AssaySearch search = new AssaySearch(null, getSolrCoreNameForEntity("assay"));
         List<SolrField> fields;
         try {
             search.setSolrURL(getSolrService ());
@@ -178,10 +181,10 @@ public class BARDSearchResource implements IBARDResource {
 
         if (q == null) throw new WebApplicationException(400);
         if (top == null) top = 10;
-        if (entity == null) search = new AssaySearch(q);
-        else if (entity.toLowerCase().equals("assays")) search = new AssaySearch(q);
-        else if (entity.toLowerCase().equals("projects")) search = new ProjectSearch(q);
-        else if (entity.toLowerCase().equals("compounds")) search = new CompoundSearch(q);
+        if (entity == null) search = new AssaySearch(q, getSolrCoreNameForEntity("assay"));
+        else if (entity.toLowerCase().equals("assays")) search = new AssaySearch(q, getSolrCoreNameForEntity("assay"));
+        else if (entity.toLowerCase().equals("projects")) search = new ProjectSearch(q, getSolrCoreNameForEntity("project"));
+        else if (entity.toLowerCase().equals("compounds")) search = new CompoundSearch(q, getSolrCoreNameForEntity("compound"));
 
         search.setSolrURL(getSolrService ());
         // get field names associated with this entity search
@@ -246,9 +249,9 @@ public class BARDSearchResource implements IBARDResource {
         if (q == null) throw new WebApplicationException(400);
         if (top == null) top = 10;
 
-        AssaySearch as = new AssaySearch(q);
-        CompoundSearch cs = new CompoundSearch(q);
-        ProjectSearch ps = new ProjectSearch(q);
+        AssaySearch as = new AssaySearch(q, getSolrCoreNameForEntity("assay"));
+        CompoundSearch cs = new CompoundSearch(q, getSolrCoreNameForEntity("compound"));
+        ProjectSearch ps = new ProjectSearch(q, getSolrCoreNameForEntity("project"));
 
         ISolrSearch[] searches = new ISolrSearch[]{as, cs, ps};
         ArrayList<Callable<SuggestHelper>> callables = new ArrayList<Callable<SuggestHelper>>();
@@ -331,9 +334,9 @@ public class BARDSearchResource implements IBARDResource {
         if (top == null) top = 10;
         if (skip == null) skip = 0;
 
-        AssaySearch as = new AssaySearch(q);
-        CompoundSearch cs = new CompoundSearch(q);
-        ProjectSearch ps = new ProjectSearch(q);
+        AssaySearch as = new AssaySearch(q, getSolrCoreNameForEntity("assay"));
+        CompoundSearch cs = new CompoundSearch(q, getSolrCoreNameForEntity("compound"));
+        ProjectSearch ps = new ProjectSearch(q, getSolrCoreNameForEntity("project"));
 
         ISolrSearch[] searches = new ISolrSearch[]{as, cs, ps};
         Collection<Callable<ISolrSearch>> callables = new ArrayList<Callable<ISolrSearch>>();
@@ -384,7 +387,7 @@ public class BARDSearchResource implements IBARDResource {
                                       @QueryParam("top") Integer top,
                                       @QueryParam("expand") String expand) throws IOException, SolrServerException {
         if (q == null) throw new WebApplicationException(400);
-        CompoundSearch cs = new CompoundSearch(q);
+        CompoundSearch cs = new CompoundSearch(q, getSolrCoreNameForEntity("compound"));
         cs.setSolrURL(getSolrService());
         SearchResult s = doSearch(cs, skip, top, expand, filter);
 
@@ -401,7 +404,7 @@ public class BARDSearchResource implements IBARDResource {
                                    @QueryParam("top") Integer top,
                                    @QueryParam("expand") String expand) throws IOException, SolrServerException {
         if (q == null) throw new WebApplicationException(400);
-        AssaySearch as = new AssaySearch(q);
+        AssaySearch as = new AssaySearch(q, getSolrCoreNameForEntity("assay"));
         as.setSolrURL(getSolrService());
         SearchResult s = doSearch(as, skip, top, expand, filter);
 
@@ -418,7 +421,7 @@ public class BARDSearchResource implements IBARDResource {
                                      @QueryParam("top") Integer top,
                                      @QueryParam("expand") String expand) throws IOException, SolrServerException {
         if (q == null) throw new WebApplicationException(400);
-        ProjectSearch ps = new ProjectSearch(q);
+        ProjectSearch ps = new ProjectSearch(q, getSolrCoreNameForEntity("project"));
         ps.setSolrURL(getSolrService());
         SearchResult s = doSearch(ps, skip, top, expand, filter);
         if (Util.countRequested(headers))

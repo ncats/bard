@@ -33,9 +33,9 @@ public class ProjectSearch extends SolrSearch {
 
     String[] facetNames = {"num_expt", "target_name", "kegg_disease_cat"};
 
-    public ProjectSearch(String query) {
+    public ProjectSearch(String query, String coreName) {
         super(query);
-        CORE_NAME = "/core-project/";
+        CORE_NAME = coreName;
         log = LoggerFactory.getLogger(this.getClass());
     }
 
