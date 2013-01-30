@@ -2121,7 +2121,7 @@ public class DBUtils {
         a.setAv_dict_label(l2);
 
         try {
-            a.setMinimumAnnotations(AnnotationUtils.getMinimumRequiredAssayAnnotations(aid, this));
+            a.setMinimumAnnotations(AnnotationUtils.getMinimumRequiredAssayAnnotations(bardAssayId, this));
         } catch (ClassNotFoundException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         } catch (IOException e) {
@@ -4346,7 +4346,6 @@ public class DBUtils {
      * @throws SQLException
      */
     public List<CAPAnnotation> getAssayAnnotations(Long bardAssayId) throws SQLException {
-
         Cache cache = getCache ("AssayAnnotationsCache");
         try {
             List<CAPAnnotation> value = getCacheValue
@@ -4358,7 +4357,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity_id = ? and source != 'cap-old'");
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity_id = ?");
         PreparedStatement gopst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? order by go_type");
         PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from bard_assay a, kegg_gene2disease b, assay_target c where a.bard_assay_id = ? and a.pubchem_aid = c.aid and c.gene_id = b.gene_id");
         try {
@@ -4424,7 +4423,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id and a.source in ('cap', 'bao')");
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id");
         PreparedStatement gopst = conn.prepareStatement("select * from go_project where bard_proj_id = ? order by go_type");
         PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.bard_proj_id = ? and b.gene_id = c.gene_id");
         try {
