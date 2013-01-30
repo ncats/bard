@@ -40,3 +40,6 @@ v13 released
 01/28/2012    Added CAP project id to /projects/{id} JSON
 	      Parametrized Solr search classes to use core names as defined in web.xml
               Fixed quoting of numeric filters in Solr queries in general manner
+01/30/2012    Ensure that we use the proper assay identifier for assay min annos
+              Remove the check for old annos when getting project annotations
+
