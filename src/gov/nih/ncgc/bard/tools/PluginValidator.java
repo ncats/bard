@@ -1,8 +1,6 @@
 package gov.nih.ncgc.bard.tools;
 
-import gov.nih.ncgc.bard.plugin.CSLSPlugin;
 import gov.nih.ncgc.bard.plugin.IPlugin;
-import gov.nih.ncgc.bard.rest.BARDDocumentResource;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -125,13 +123,12 @@ public class PluginValidator {
     }
 
     public static void main(String[] args) throws InstantiationException, IllegalAccessException {
-        PluginValidator v = new PluginValidator();
-        CSLSPlugin p = new CSLSPlugin();
-        BARDDocumentResource d = new BARDDocumentResource();
-        boolean status = v.validate(p.getClass());
-        System.out.println("status = " + status);
-        if (!status) {
-            for (String s : v.getErrors()) System.out.println(s);
-        }
+//        PluginValidator v = new PluginValidator();
+//        CSLSPlugin p = new CSLSPlugin();
+//        boolean status = v.validate(p.getClass());
+//        System.out.println("status = " + status);
+//        if (!status) {
+//            for (String s : v.getErrors()) System.out.println(s);
+//        }
     }
 }

@@ -202,8 +202,8 @@
                 <attribute name="Manifest-Version" value="1.0"/>
             </manifest>
             <fileset dir="${bard.build}" casesensitive="yes">
-                <include name="**/plugin/*"/>
-                <include name="**/rest/*Plugin*"/>
+                <include name="**/plugin/IPlugin*"/>
+                <include name="**/rest/*Exception*"/>
                 <include name="**/rest/*Constant*"/>
                 <include name="**/rest/IBARDResource*"/>
                 <include name="**/entity/*"/>
