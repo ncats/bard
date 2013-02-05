@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 public class ExperimentData implements BardEntity {
     String exptDataId;
     Long eid, cid, sid;
-    Long bardExptId, bardAssayId, bardProjectId;
+    Long bardExptId, bardAssayId;
     String resultJson;
 
     @JsonIgnore
@@ -56,14 +56,6 @@ public class ExperimentData implements BardEntity {
 
     public void setBardAssayId(Long bardAssayId) {
         this.bardAssayId = bardAssayId;
-    }
-
-    public Long getBardProjectId() {
-        return bardProjectId;
-    }
-
-    public void setBardProjectId(Long bardProjectId) {
-        this.bardProjectId = bardProjectId;
     }
 
     public String getResultJson() {
