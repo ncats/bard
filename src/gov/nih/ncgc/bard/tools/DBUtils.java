@@ -183,41 +183,7 @@ public class DBUtils {
             conn.close();
     }
 
-//    private Connection getConnection() {
-//        Connection con = null;
-//        try {
-//            Class.forName("com.mysql.jdbc.Driver").newInstance();
-//            con = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov:3306/bard3?autoReconnect=true", "bard_manager", "bard_manager");
-//        } catch (InstantiationException e) {
-//            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-//        } catch (IllegalAccessException e) {
-//            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-//        } catch (ClassNotFoundException e) {
-//            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-//        } catch (SQLException e) {
-//            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-//        }
-//        return con;
-//    }
-
     private Connection getConnection() {
-        Connection con = null;
-        try {
-            Class.forName("com.mysql.jdbc.Driver").newInstance();
-            con = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov:3306/bard3?autoReconnect=true", "bard_manager", "bard_manager");
-        } catch (InstantiationException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (SQLException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
-        return con;
-
-    }
-    private Connection getConnection2() {
         javax.naming.Context initContext;
         Connection con = null;
         try {
@@ -238,6 +204,21 @@ public class DBUtils {
             } catch (Exception e) {
                 System.err.println("Not running in Tomcat/Jetty/Glassfish or other app container?");
                 e.printStackTrace();
+
+                try {
+                    Class.forName("com.mysql.jdbc.Driver").newInstance();
+                    con = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov:3306/bard3?autoReconnect=true", "bard_manager", "bard_manager");
+                    con.setAutoCommit(false);
+                } catch (InstantiationException e1) {
+                    e1.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                } catch (IllegalAccessException e1) {
+                    e1.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                } catch (ClassNotFoundException e1) {
+                    e1.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                } catch (SQLException e1) {
+                    e1.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                }
+
             }
         }
         return con;
@@ -3859,6 +3840,37 @@ public class DBUtils {
             return ps;
         }
         finally {
+            pst.close();
+        }
+    }
+
+    public List<Project> getProjectByProbeId(String probeId)
+            throws SQLException {
+
+        Cache cache = getCache("ProjectByProbeIdCache");
+        try {
+            List<Project> value = getCacheValue(cache, probeId);
+            if (value != null) {
+                return value;
+            }
+        } catch (ClassCastException ex) {
+        }
+
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select bard_proj_id from project_probe where probe_id = ?");
+        try {
+            pst.setString(1, probeId);
+            ResultSet rs = pst.executeQuery();
+            List<Project> ps = new ArrayList<Project>();
+            while (rs.next()) {
+                Project project = getProject(rs.getLong("bard_proj_id"));
+                if (project != null) ps.add(project);
+            }
+            rs.close();
+
+            cache.put(new Element(probeId, ps));
+            return ps;
+        } finally {
             pst.close();
         }
     }

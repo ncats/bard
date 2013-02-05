@@ -5,12 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sun.jersey.api.NotFoundException;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.OrderedSearchResultHandler;
@@ -23,31 +18,19 @@ import gov.nih.ncgc.util.functional.Functional;
 import gov.nih.ncgc.util.functional.IApplyFunction;
 
 import javax.imageio.ImageIO;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.*;
 import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.awt.Color;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -371,10 +354,18 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 String json;
                 ObjectMapper mapper = new ObjectMapper();
                 if (!type.equals("name") && c.size() == 1) {
-                    json = Util.toJson(c);
+                    if (type.equals("probeid")) {
+                        List<Project> projects = db.getProjectByProbeId(c.get(0).getProbeId());
+                        ArrayNode anode = mapper.createArrayNode();
+                        ObjectNode onode = mapper.valueToTree(c.get(0));
+                        if (projects.size() == 1) onode.put("bardProjectid", projects.get(0).getBardProjectId());
+                        else if (projects.size() == 0) onode.put("bardProjectid", -1);
+                        anode.add(onode);
+                        json = mapper.writeValueAsString(anode);
+                    } else json = Util.toJson(c);
                 } else {
                     if (expand) {
-                        json = toJson(db, c, false);
+                        json = toJson(db, c, type, false);
                     } else {
                         List<String> links = new ArrayList<String>();
                         for (Compound ac : c) links.add(ac.getResourcePath());
@@ -411,10 +402,10 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         return etag;
     }
 
-    String toJson(DBUtils db, List<Compound> compounds,
+    String toJson(DBUtils db, List<Compound> compounds,  String type,
                   boolean annotation) throws SQLException, IOException {
 
-        if (!annotation) {
+        if (!annotation && !type.equals("probeid")) {
             return Util.toJson(compounds);
         }
 
@@ -422,6 +413,15 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         ArrayNode node = (ArrayNode) mapper.valueToTree(compounds);
         for (int i = 0; i < node.size(); ++i) {
             ObjectNode n = (ObjectNode) node.get(i);
+
+            if (type.equals("probeid")) {
+                String probeId = node.get("probeId").asText();
+                List<Project> projects = db.getProjectByProbeId(probeId);
+                if (projects.size() == 1) {
+                    if (annotation) n.put("bardProjectId", mapper.valueToTree(projects.get(0)));
+                    else n.put("bardProjectId", projects.get(0).getBardProjectId());
+                } else logger.warning("There were "+projects.size()+" projects for probe "+probeId);
+            }
 
             Map anno = db.getCompoundAnnotations(n.get("cid").asLong());
             if (anno.isEmpty()) {
@@ -644,8 +644,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         try {
             List<Compound> c = db.getCompoundsByETag
                     (skip != null ? skip : -1, top != null ? top : -1, resourceId);
-            String json = toJson(db, c, expand != null
-                    && expand.toLowerCase().equals("true"));
+            String json = toJson(db, c, "", expand != null && expand.toLowerCase().equals("true"));
 
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (Exception e) {
@@ -760,8 +759,10 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             Response response = getCompoundResponse(resourceId, "probeid", headers.getAcceptableMediaTypes(), expand != null && expand.toLowerCase().equals("true"));
             return response;
         } catch (SQLException e) {
+            e.printStackTrace();
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
+            e.printStackTrace();
             throw new WebApplicationException(e, 500);
         }
     }
