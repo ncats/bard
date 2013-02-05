@@ -740,7 +740,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
                                        @PathParam("eid") String eid,
                                        @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         Experiment e = new Experiment();
-        e.setExptId(Long.parseLong(eid));
+        e.setBardExptId(Long.parseLong(eid));
         UriBuilder ub = UriBuilder.fromUri("/experiments/" + eid);
         if (filter != null) ub.queryParam("filter", filter);
         if (expand != null) ub.queryParam("name", expand);

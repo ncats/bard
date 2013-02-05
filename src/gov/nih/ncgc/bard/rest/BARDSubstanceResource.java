@@ -385,7 +385,7 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
                     List<String> links = new ArrayList<String>();
                     for (Long eid : eids) {
                         Experiment ed = new Experiment();
-                        ed.setExptId(eid);
+                        ed.setBardExptId(eid);
                         links.add(ed.getResourcePath());
                     }
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
