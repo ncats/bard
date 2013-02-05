@@ -23,7 +23,7 @@ public class Project implements BardEntity {
      * <p/>
      * Currently the AID of the summary assay.
      */
-    Long projectId, capProjectId;
+    Long bardProjectId, capProjectId;
 
 
     int category, type, classification;
@@ -158,7 +158,7 @@ public class Project implements BardEntity {
     }
 
     public String toString() {
-        return projectId + "[" + name + "]";
+        return bardProjectId + "[" + name + "]";
     }
 
     public List<Long> getProbeIds() {
@@ -225,12 +225,12 @@ public class Project implements BardEntity {
         this.targets = targets;
     }
 
-    public Long getProjectId() {
-        return projectId;
+    public Long getBardProjectId() {
+        return bardProjectId;
     }
 
-    public void setProjectId(Long projectId) {
-        this.projectId = projectId;
+    public void setBardProjectId(Long bardProjectId) {
+        this.bardProjectId = bardProjectId;
     }
 
     public Integer getCategory() {
@@ -299,7 +299,7 @@ public class Project implements BardEntity {
      *         to be publically available via the REST API
      */
     public String getResourcePath() {
-        return BARDConstants.API_BASE + "/projects/" + projectId;
+        return BARDConstants.API_BASE + "/projects/" + bardProjectId;
     }
 
     /**

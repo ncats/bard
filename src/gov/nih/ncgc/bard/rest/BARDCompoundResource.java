@@ -14,7 +14,6 @@ import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.OrderedSearchResultHandler;
-import gov.nih.ncgc.bard.tools.SearchResultHandler;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.search.MoleculeService;
 import gov.nih.ncgc.search.SearchParams;
@@ -51,9 +50,6 @@ import java.util.Map;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Prototype of MLBD REST resources.
@@ -1096,13 +1092,13 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
             if (!expandEntries(expand)) {
                 List<Long> eids = new ArrayList<Long>();
-                for (Experiment expt : data) eids.add(expt.getExptId());
+                for (Experiment expt : data) eids.add(expt.getBardExptId());
                 if (countRequested) json = String.valueOf(eids.size());
                 else {
                     List<String> links = new ArrayList<String>();
                     for (Long eid : eids) {
                         Experiment ed = new Experiment();
-                        ed.setExptId(eid);
+                        ed.setBardExptId(eid);
                         links.add(ed.getResourcePath());
                     }
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
@@ -1166,7 +1162,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
             Long eid = ed.getBardExptId();
             Experiment expt = db.getExperimentByExptId(eid);
-            Long aid = expt.getAssayId();
+            Long aid = expt.getBardAssayId();
 
             testedExperiments.add(expt);
             if (aid != null) {
@@ -1217,7 +1213,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         } else {
             List<String> l = new ArrayList<String>();
             for (Experiment e : testedExperiments) {
-                if (e.getExptId() != null)
+                if (e.getBardExptId() != null)
                     l.add(e.getResourcePath());
             }
 //            s.put("testedExperiments", l);

@@ -210,6 +210,23 @@ public class DBUtils {
     }
 
     private Connection getConnection() {
+        Connection con = null;
+        try {
+            Class.forName("com.mysql.jdbc.Driver").newInstance();
+            con = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov:3306/bard3?autoReconnect=true", "bard_manager", "bard_manager");
+        } catch (InstantiationException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (SQLException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        return con;
+
+    }
+    private Connection getConnection2() {
         javax.naming.Context initContext;
         Connection con = null;
         try {
@@ -644,6 +661,7 @@ public class DBUtils {
             List<Compound> notCachedCompounds = getCompoundsByCid(cids.toArray(new Long[]{}));
             for (Compound c : notCachedCompounds) {
                 List<Long> notCachedSids = c.getSids();
+                if (notCachedSids == null) continue;
                 for (Long sid : notCachedSids) cache.put(new Element(sid, c));
             }
             cmpds.addAll(notCachedCompounds);
@@ -1944,9 +1962,9 @@ public class DBUtils {
             if (e != null) {
                 List<Project> projects = getProjectByExperimentId (bardExptId);
                 for (Project project : projects) {
-                    Long projectId = project.getProjectId();
+                    Long projectId = project.getBardProjectId();
                     if (projectId != null)
-                        e.addProjectID(project.getProjectId());
+                        e.addProjectID(project.getBardProjectId());
                 }
 
                 cache.put(new Element (bardExptId, e));
@@ -1961,8 +1979,8 @@ public class DBUtils {
 
     protected Experiment getExperiment (ResultSet rs) throws SQLException {
         Experiment e= new Experiment();
-        e.setExptId(rs.getLong("bard_expt_id"));
-        e.setAssayId(rs.getLong("bard_assay_id"));
+        e.setBardExptId(rs.getLong("bard_expt_id"));
+        e.setBardAssayId(rs.getLong("bard_assay_id"));
         e.setName(rs.getString("name"));
         e.setDescription(rs.getString("description"));
         e.setCategory(rs.getInt("category"));
@@ -2094,11 +2112,11 @@ public class DBUtils {
         List<Project> projs = getProjectByAssayId(bardAssayId);
 
         List<Long> eids = new ArrayList<Long>();
-        for (Experiment expt : expts) eids.add(expt.getExptId());
+        for (Experiment expt : expts) eids.add(expt.getBardExptId());
         a.setExperiments(eids);
 
         List<Long> pids = new ArrayList<Long>();
-        for (Project proj : projs) pids.add(proj.getProjectId());
+        for (Project proj : projs) pids.add(proj.getBardProjectId());
         a.setProjects(pids);
 
         if (dict == null) try {
@@ -3721,7 +3739,7 @@ public class DBUtils {
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
                 p = new Project();
-                p.setProjectId(bardProjId);
+                p.setBardProjectId(bardProjId);
                 p.setDescription(rs.getString("description"));
                 p.setName(rs.getString("name"));
                 p.setDeposited(rs.getDate("deposited"));
@@ -4783,7 +4801,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         Project project = getProject(projectId);
-        if (project == null || project.getProjectId() == null)
+        if (project == null || project.getBardProjectId() == null)
             return null;
 
         int pcount = 0, syncount = 0, nassay = 0;
