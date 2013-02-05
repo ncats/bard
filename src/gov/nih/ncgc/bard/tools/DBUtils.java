@@ -201,6 +201,23 @@ public class DBUtils {
 //    }
 
     private Connection getConnection() {
+        Connection con = null;
+        try {
+            Class.forName("com.mysql.jdbc.Driver").newInstance();
+            con = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov:3306/bard3?autoReconnect=true", "bard_manager", "bard_manager");
+        } catch (InstantiationException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (SQLException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        return con;
+
+    }
+    private Connection getConnection2() {
         javax.naming.Context initContext;
         Connection con = null;
         try {
