@@ -1548,7 +1548,7 @@ public class DBUtils {
         Long sid = Long.parseLong(toks[1]);
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.bard_expt_id = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id");
+        PreparedStatement pst = conn.prepareStatement("select      a . *, b . *, c . * from     bard_experiment_data a left join bard_experiment_result b on a.expt_data_id = b.expt_data_id left join bard_experiment c on a.bard_expt_id = c.bard_expt_id where a.bard_expt_id = ? and a.sid = ?");
         ExperimentData ed = null;
         try {
             pst.setLong(1, bardExptId);
@@ -1621,7 +1621,8 @@ public class DBUtils {
             }
             sb.append(")");
 
-            String sql = "select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id";
+//            String sql = "select a.*, b.*, c.*, d.bard_proj_id from bard_experiment_data a, bard_experiment_result b, bard_experiment c, bard_project_experiment d where d.bard_expt_id = " + bardExptId + " and a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id";
+            String sql = "select      a . *, b . *, c . * from     bard_experiment_data a left join bard_experiment_result b on a.expt_data_id = b.expt_data_id left join bard_experiment c on a.bard_expt_id = c.bard_expt_id where a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString();
             PreparedStatement pst = conn.prepareStatement(sql);
             ExperimentData ed = null;
             try {
@@ -1753,6 +1754,9 @@ public class DBUtils {
         ed.setSid(rs.getLong("sid"));
         ed.setCid(rs.getLong("cid"));
         ed.setExptDataId(ed.getBardExptId()+"."+ed.getSid());
+
+        ed.setBardAssayId(rs.getLong("bard_assay_id"));
+//        ed.setBardProjectId(rs.getLong("bard_proj_id"));
 
         Integer classification = rs.getInt("classification");
         if (rs.wasNull()) classification = null;
