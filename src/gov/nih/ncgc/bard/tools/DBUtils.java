@@ -1927,7 +1927,7 @@ public class DBUtils {
 
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
-            ("select * from bard_experiment where bard_expt_id = ?");
+            ("select *, b.cap_assay_id as real_cap_assay_id from bard_experiment a, bard_assay b where bard_expt_id = ? and a.bard_assay_id = b.bard_assay_id");
         try {
             pst.setLong(1, bardExptId);
             ResultSet rs = pst.executeQuery();
@@ -1960,6 +1960,8 @@ public class DBUtils {
         Experiment e= new Experiment();
         e.setBardExptId(rs.getLong("bard_expt_id"));
         e.setBardAssayId(rs.getLong("bard_assay_id"));
+        e.setCapExptId(rs.getLong("cap_expt_id"));
+        e.setCapAssayId(rs.getLong("real_cap_assay_id"));
         e.setName(rs.getString("name"));
         e.setDescription(rs.getString("description"));
         e.setCategory(rs.getInt("category"));
