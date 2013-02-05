@@ -42,6 +42,6 @@ v13 released
               Fixed quoting of numeric filters in Solr queries in general manner
 01/30/2012    Ensure that we use the proper assay identifier for assay min annos
               Remove the check for old annos when getting project annotations
-02/04/2013    Updated experiment data entity to include fields for associated assay and project ids. These show up
+02/04/2013    Updated experiment data entity to include fields for associated (CAP & BARD) assay and project ids. These show up
               in compound summary responses, but not in experiment data responses (yet)
 	      /compounds/probeid/{probeid} response is updated to include the bardProjectId field

@@ -1737,6 +1737,9 @@ public class DBUtils {
         ed.setExptDataId(ed.getBardExptId()+"."+ed.getSid());
 
         ed.setBardAssayId(rs.getLong("bard_assay_id"));
+        ed.setCapAssayId(rs.getLong("cap_assay_id"));
+        ed.setCapExptId(rs.getLong("cap_expt_id"));
+
 //        ed.setBardProjectId(rs.getLong("bard_proj_id"));
 
         Integer classification = rs.getInt("classification");
