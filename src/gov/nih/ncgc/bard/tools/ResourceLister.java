@@ -81,9 +81,10 @@ public class ResourceLister {
                     }
 
                     if (httpMethod == null) continue; // ignore a method with no GET/POST
-                    String res = httpMethod + " " + rootResource + "/" + subResource;
+                    String res = rootResource + "/" + subResource;
                     res = res.replace("//", "/");
-                    System.out.println(res);
+                    res = "http://bard.nih.gov/api/v13" + res;
+                    System.out.println("curl -o /dev/null -sL -w \"%{http_code} %{url_effective} %{time_total} %{size_download}\\\\n\"  -X " + httpMethod + " " + res);
                     n++;
                 }
             }
