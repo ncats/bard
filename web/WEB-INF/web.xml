@@ -8,6 +8,7 @@
     <display-name>BARD Web Services</display-name>
     <distributable/>
 
+
     <context-param>
         <param-name>privateService</param-name>
         <param-value>false</param-value>
@@ -47,6 +48,12 @@
             <param-name>com.sun.jersey.spi.container.ContainerRequestFilters</param-name>
             <param-value>gov.nih.ncgc.bard.rest.filter.CountFilter</param-value>
         </init-param>
+
+        <init-param>
+            <param-name>com.sun.jersey.config.property.packages</param-name>
+            <param-value>gov.nih.ncgc.bard.rest</param-value>
+        </init-param>
+
         <!-- this must always be after init-param !-->
         <load-on-startup>1</load-on-startup>
     </servlet>
