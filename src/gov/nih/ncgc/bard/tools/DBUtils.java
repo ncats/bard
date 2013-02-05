@@ -8,16 +8,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.ETag;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
-import gov.nih.ncgc.bard.entity.Publication;
-import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
@@ -37,25 +28,8 @@ import java.io.Reader;
 import java.math.BigInteger;
 import java.security.Principal;
 import java.security.SecureRandom;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.sql.*;
+import java.util.*;
 
 
 
@@ -209,24 +183,24 @@ public class DBUtils {
             conn.close();
     }
 
-    private Connection getConnection() {
-        Connection con = null;
-        try {
-            Class.forName("com.mysql.jdbc.Driver").newInstance();
-            con = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov:3306/bard3?autoReconnect=true", "bard_manager", "bard_manager");
-        } catch (InstantiationException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (SQLException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
-        return con;
+//    private Connection getConnection() {
+//        Connection con = null;
+//        try {
+//            Class.forName("com.mysql.jdbc.Driver").newInstance();
+//            con = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov:3306/bard3?autoReconnect=true", "bard_manager", "bard_manager");
+//        } catch (InstantiationException e) {
+//            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+//        } catch (IllegalAccessException e) {
+//            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+//        } catch (ClassNotFoundException e) {
+//            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+//        } catch (SQLException e) {
+//            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+//        }
+//        return con;
+//    }
 
-    }
-    private Connection getConnection2() {
+    private Connection getConnection() {
         javax.naming.Context initContext;
         Connection con = null;
         try {
