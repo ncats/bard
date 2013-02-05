@@ -7,6 +7,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -42,7 +43,13 @@ public class PluginValidator {
         }
 
         public Class findClass(String name) {
-            return defineClass(name, bytes, 0, bytes.length);
+            Class klass = null;
+            try {
+                klass = defineClass(name, bytes, 0, bytes.length);
+            } catch (IllegalAccessError e) {
+                return null;
+            }
+            return klass;
         }
     }
 
@@ -74,7 +81,7 @@ public class PluginValidator {
                 String className = entryName.split("\\.")[0].replace("WEB-INF/classes/", "").replace("/", ".");
                 loader = new ByteArrayClassLoader(bytes);
                 Class klass = loader.findClass(className);
-                if (implementsPluginInterface(klass)) {
+                if (klass != null && implementsPluginInterface(klass)) {
                     status = validate(klass, basename);
                     atLeastOnePlugin = true;
                 }
@@ -98,7 +105,7 @@ public class PluginValidator {
                     bytes = baos.toByteArray();
                     loader = new ByteArrayClassLoader(bytes);
                     Class klass = loader.findClass(className);
-                    if (implementsPluginInterface(klass)) {
+                    if (klass != null && implementsPluginInterface(klass)) {
                         status = validate(klass, basename);
                         atLeastOnePlugin = true;
                     }
@@ -215,8 +222,22 @@ public class PluginValidator {
         if (!resourcePresent)
             errors.add("At least one public method must have a @Path annotation (in addition to the _info resource");
 
+        boolean hasEmptyCtor = false;
+        Constructor[] ctors = klass.getConstructors();
+        for (Constructor ctor : ctors) {
+            if (ctor.getParameterTypes().length == 0) {
+                hasEmptyCtor = true;
+                break;
+            }
+        }
+        if (!hasEmptyCtor) {
+            errors.add("Cannot instantiate plugin because it does not have an empty constructor");
+            return false;
+        }
+
         // ok, now we create the class
         IPlugin plugin = (IPlugin) klass.newInstance();
+
 
         // check for a non-null description, version, manifest
         String s = plugin.getDescription();
