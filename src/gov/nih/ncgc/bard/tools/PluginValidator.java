@@ -175,7 +175,7 @@ public class PluginValidator {
         }
         if (!hasClassLevelPathAnnot)
             errors.add("Missing the class level @Path annotation");
-        if (!matchesWarFileName)
+        if (warName != null && !matchesWarFileName)
             errors.add("WAR file name does not correspond to @Path annotation");
         if (collidesWithRegistry)
             errors.add("Class level @Path annotation cannot start with '/plugins/registry'");
