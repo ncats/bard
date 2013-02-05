@@ -11,6 +11,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.jar.JarInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -55,6 +56,7 @@ public class PluginValidator {
 
         ZipFile zf = new ZipFile(filename);
         Enumeration entries = zf.entries();
+        ByteArrayClassLoader loader;
         while (entries.hasMoreElements()) {
             ZipEntry ze = (ZipEntry) entries.nextElement();
             String entryName = ze.getName();
@@ -70,12 +72,38 @@ public class PluginValidator {
                 byte[] bytes = baos.toByteArray();
 
                 String className = entryName.split("\\.")[0].replace("WEB-INF/classes/", "").replace("/", ".");
-                ByteArrayClassLoader loader = new ByteArrayClassLoader(bytes);
+                loader = new ByteArrayClassLoader(bytes);
                 Class klass = loader.findClass(className);
                 if (implementsPluginInterface(klass)) {
                     status = validate(klass, basename);
                     atLeastOnePlugin = true;
                 }
+            } else if (entryName.endsWith(".jar")) { // look for classes in the jar file
+                JarInputStream jis = new JarInputStream(zf.getInputStream(ze));
+                ZipEntry entry;
+                while ((entry = jis.getNextEntry()) != null) {
+                    if (!entry.getName().contains(".class") || entry.getName().contains("$")) continue;
+                    String className = entry.getName().replace(".class", "").replace("/", ".");
+                    if (entry.getSize() <= 0) continue;
+
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    byte[] bytes = new byte[1024];
+                    long nbyte = 0;
+                    while (true) {
+                        int n = jis.read(bytes);
+                        if (n == -1) break;
+                        baos.write(bytes, 0, n);
+                        nbyte += n;
+                    }
+                    bytes = baos.toByteArray();
+                    loader = new ByteArrayClassLoader(bytes);
+                    Class klass = loader.findClass(className);
+                    if (implementsPluginInterface(klass)) {
+                        status = validate(klass, basename);
+                        atLeastOnePlugin = true;
+                    }
+                }
+                jis.close();
             }
         }
         zf.close();
@@ -131,8 +159,8 @@ public class PluginValidator {
             if (warName != null) {
                 String[] toks = warName.split("\\.");
                 if (toks.length == 2) {
-                    String tmp = toks[0].replace("bardplugin_","");
-                    matchesWarFileName = tmp.equals(value.replace("/",""));
+                    String tmp = toks[0].replace("bardplugin_", "");
+                    matchesWarFileName = tmp.equals(value.replace("/", ""));
                 }
             }
         }
@@ -204,7 +232,8 @@ public class PluginValidator {
 
     public static void main(String[] args) throws InstantiationException, IllegalAccessException, IOException {
         PluginValidator v = new PluginValidator();
-        boolean status = v.validate("/Users/guhar/src/bard.plugins/csls/deploy/bardplugin_csls.war");
+//        boolean status = v.validate("/Users/guhar/src/bard.plugins/csls/deploy/bardplugin_csls.war");
+        boolean status = v.validate("/Users/guhar/Downloads/bardplugin_hellofromunm.war");
         System.out.println("status = " + status);
         if (!status) {
             for (String s : v.getErrors()) System.out.println(s);
