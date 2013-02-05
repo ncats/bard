@@ -19,6 +19,8 @@ import java.util.zip.ZipFile;
 /**
  * A tool to validate BARD plugins.
  *
+ * TODO Update handling of WAR files so that we add contents of WEB-INF/lib to the current classpath
+ *
  * @author Rajarshi Guha
  */
 public class PluginValidator {
