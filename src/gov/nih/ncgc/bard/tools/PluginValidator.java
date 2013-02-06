@@ -3,12 +3,11 @@ package gov.nih.ncgc.bard.tools;
 import gov.nih.ncgc.bard.plugin.IPlugin;
 
 import javax.ws.rs.*;
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -18,7 +17,7 @@ import java.util.zip.ZipFile;
 
 /**
  * A tool to validate BARD plugins.
- *
+ * <p/>
  * TODO Update handling of WAR files so that we add contents of WEB-INF/lib to the current classpath
  *
  * @author Rajarshi Guha
@@ -37,7 +36,7 @@ public class PluginValidator {
         return errors;
     }
 
-    public class ByteArrayClassLoader extends ClassLoader {
+    class ByteArrayClassLoader extends ClassLoader {
         byte[] bytes;
 
         public ByteArrayClassLoader(byte[] bytes) {
@@ -45,16 +44,42 @@ public class PluginValidator {
         }
 
         public Class findClass(String name) {
-            Class klass = null;
+            Class klass;
             try {
                 klass = defineClass(name, bytes, 0, bytes.length);
             } catch (IllegalAccessError e) {
+                errors.add("Got an IllegalAccessError when loading " + name);
+                return null;
+            } catch (NoClassDefFoundError e) {
+                errors.add("Got an NoClassDefFoundError when loading " + name);
                 return null;
             }
             return klass;
         }
     }
 
+    void loadClass(String filePath) throws IOException {
+
+        URLClassLoader sysLoader;
+        URL u = null;
+        Class sysclass;
+        Class[] parameters;
+
+        try {
+            u = new URL("file://" + filePath);
+            sysLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
+            sysclass = URLClassLoader.class;
+            parameters = new Class[]{URL.class};
+            Method method = sysclass.getDeclaredMethod("addURL", parameters);
+            method.setAccessible(true);
+            method.invoke(sysLoader, new Object[]{u});
+        } catch (Throwable t) {
+            t.printStackTrace(System.err);
+            throw new IOException("Error, could not add file " +
+                    u.toExternalForm() +
+                    " to system classloader");
+        }
+    }
 
     public boolean validate(String filename) throws IOException, InstantiationException, IllegalAccessException {
 
@@ -63,8 +88,39 @@ public class PluginValidator {
         boolean atLeastOnePlugin = false;
         boolean status = false;
 
+        // extract jars from WEB-INF/lib to a temp dir
+        // add them to the classpath as we extract
+        int nJar = 0;
+        String tempDir = System.getProperty("java.io.tmpdir") + "tmp" + System.nanoTime();
+        File tempDirFile = new File(tempDir);
+        if (!tempDirFile.exists())
+            tempDirFile.mkdir();
         ZipFile zf = new ZipFile(filename);
         Enumeration entries = zf.entries();
+        while (entries.hasMoreElements()) {
+            ZipEntry ze = (ZipEntry) entries.nextElement();
+            String entryName = ze.getName();
+            if (entryName.endsWith(".jar")) {
+                String fileName = entryName.replace("WEB-INF/lib/", "");
+                BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(tempDir + File.separator + fileName));
+                BufferedInputStream bis = new BufferedInputStream(zf.getInputStream(ze));
+                int c;
+                while ((c = bis.read()) != -1) {
+                    bos.write(c);
+                }
+                bis.close();
+                bos.close();
+
+                loadClass(tempDir + File.separator + fileName);
+                nJar++;
+            }
+        }
+        zf.close();
+        System.out.println("Added " + nJar + " jars from WEB-INF/lib to the current CLASSPATH");
+
+
+        zf = new ZipFile(filename);
+        entries = zf.entries();
         ByteArrayClassLoader loader;
         while (entries.hasMoreElements()) {
             ZipEntry ze = (ZipEntry) entries.nextElement();
@@ -88,10 +144,11 @@ public class PluginValidator {
                     atLeastOnePlugin = true;
                 }
             } else if (entryName.endsWith(".jar")) { // look for classes in the jar file
+
                 JarInputStream jis = new JarInputStream(zf.getInputStream(ze));
                 ZipEntry entry;
                 while ((entry = jis.getNextEntry()) != null) {
-                    if (!entry.getName().contains(".class") || entry.getName().contains("$")) continue;
+                    if (!entry.getName().contains(".class")) continue;
                     String className = entry.getName().replace(".class", "").replace("/", ".");
                     if (entry.getSize() <= 0) continue;
 
@@ -116,6 +173,8 @@ public class PluginValidator {
             }
         }
         zf.close();
+
+        tempDirFile.delete();
 
         if (!atLeastOnePlugin) {
             errors.add("This does not seem to be a BARD plugin as there were no classes implementing the IPlugin interface");
@@ -256,10 +315,9 @@ public class PluginValidator {
     public static void main(String[] args) throws InstantiationException, IllegalAccessException, IOException {
         PluginValidator v = new PluginValidator();
 //        boolean status = v.validate("/Users/guhar/src/bard.plugins/csls/deploy/bardplugin_csls.war");
+//        boolean status = v.validate("/Users/guhar/Downloads/bardplugin_badapple.war");
         boolean status = v.validate("/Users/guhar/Downloads/bardplugin_hellofromunm.war");
         System.out.println("status = " + status);
-        if (!status) {
-            for (String s : v.getErrors()) System.out.println(s);
-        }
+        for (String s : v.getErrors()) System.out.println(s);
     }
 }
