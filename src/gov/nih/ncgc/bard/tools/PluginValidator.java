@@ -145,7 +145,7 @@ public class PluginValidator {
 
         // extract the war to a temp dir
         int nJar = 0;
-        String tempDir = System.getProperty("java.io.tmpdir") + "tmp" + System.nanoTime();
+        String tempDir = System.getProperty("java.io.tmpdir") + File.separator + "tmp" + System.nanoTime();
         File tempDirFile = new File(tempDir);
         if (!tempDirFile.exists())
             tempDirFile.mkdir();
