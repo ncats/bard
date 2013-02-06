@@ -18,7 +18,6 @@ import java.util.zip.ZipFile;
 /**
  * A tool to validate BARD plugins.
  * <p/>
- * TODO Update handling of WAR files so that we add contents of WEB-INF/lib to the current classpath
  *
  * @author Rajarshi Guha
  */
@@ -26,14 +25,24 @@ public class PluginValidator {
 
     private String currentClassName = "";
 
-    private List<String> errors;
+    private ErrorList errors;
 
     public PluginValidator() {
-        errors = new ArrayList<String>();
+        errors = new ErrorList();
     }
 
     public List<String> getErrors() {
         return errors;
+    }
+
+    class ErrorList extends ArrayList<String> {
+        public void info(String s) {
+            add("INFO:\t" + s);
+        }
+
+        public void error(String s) {
+            add("ERROR:\t" + s);
+        }
     }
 
     class ByteArrayClassLoader extends ClassLoader {
@@ -48,36 +57,82 @@ public class PluginValidator {
             try {
                 klass = defineClass(name, bytes, 0, bytes.length);
             } catch (IllegalAccessError e) {
-                errors.add("Got an IllegalAccessError when loading " + name);
+                errors.info("Got an IllegalAccessError when loading " + name);
                 return null;
             } catch (NoClassDefFoundError e) {
-                errors.add("Got an NoClassDefFoundError when loading " + name);
+                errors.info("Got an NoClassDefFoundError when loading " + name);
                 return null;
             }
             return klass;
         }
     }
 
+    // from http://stackoverflow.com/a/9505409
+    void extractFolder(String zipFile, String todir) throws IOException {
+        int BUFFER = 2048;
+        File file = new File(zipFile);
+
+        ZipFile zip = new ZipFile(file);
+        String newPath = todir;
+        if (newPath == null) newPath = zipFile.substring(0, zipFile.length() - 4);
+
+        Enumeration zipFileEntries = zip.entries();
+
+        // Process each entry
+        while (zipFileEntries.hasMoreElements()) {
+            // grab a zip file entry
+            ZipEntry entry = (ZipEntry) zipFileEntries.nextElement();
+            String currentEntry = entry.getName();
+            File destFile = new File(newPath, currentEntry);
+            //destFile = new File(newPath, destFile.getName());
+            File destinationParent = destFile.getParentFile();
+
+            // create the parent directory structure if needed
+            destinationParent.mkdirs();
+
+            if (!entry.isDirectory()) {
+                BufferedInputStream is = new BufferedInputStream(zip
+                        .getInputStream(entry));
+                int currentByte;
+                // establish buffer for writing file
+                byte data[] = new byte[BUFFER];
+
+                // write the current file to disk
+                FileOutputStream fos = new FileOutputStream(destFile);
+                BufferedOutputStream dest = new BufferedOutputStream(fos,
+                        BUFFER);
+
+                // read and write until last byte is encountered
+                while ((currentByte = is.read(data, 0, BUFFER)) != -1) {
+                    dest.write(data, 0, currentByte);
+                }
+                dest.flush();
+                dest.close();
+                is.close();
+            } else {
+                destFile.mkdirs();
+            }
+            if (currentEntry.endsWith(".zip")) {
+                // found a zip file, try to open
+                extractFolder(destFile.getAbsolutePath(), null);
+            }
+        }
+        zip.close();
+    }
+
     void loadClass(String filePath) throws IOException {
-
         URLClassLoader sysLoader;
-        URL u = null;
+        URL u;
         Class sysclass;
-        Class[] parameters;
-
         try {
             u = new URL("file://" + filePath);
             sysLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
             sysclass = URLClassLoader.class;
-            parameters = new Class[]{URL.class};
-            Method method = sysclass.getDeclaredMethod("addURL", parameters);
+            Method method = sysclass.getDeclaredMethod("addURL", new Class[]{URL.class});
             method.setAccessible(true);
             method.invoke(sysLoader, new Object[]{u});
         } catch (Throwable t) {
             t.printStackTrace(System.err);
-            throw new IOException("Error, could not add file " +
-                    u.toExternalForm() +
-                    " to system classloader");
         }
     }
 
@@ -88,39 +143,23 @@ public class PluginValidator {
         boolean atLeastOnePlugin = false;
         boolean status = false;
 
-        // extract jars from WEB-INF/lib to a temp dir
-        // add them to the classpath as we extract
+        // extract the war to a temp dir
         int nJar = 0;
         String tempDir = System.getProperty("java.io.tmpdir") + "tmp" + System.nanoTime();
         File tempDirFile = new File(tempDir);
         if (!tempDirFile.exists())
             tempDirFile.mkdir();
+        extractFolder(filename, tempDir);
+
+        // load JARs and classes we just extracted
+        File[] jars = (new File(tempDir + File.separator + "WEB-INF/lib")).listFiles();
+        for (File jar : jars) loadClass(jar.getAbsolutePath());
+        System.out.println("Added " + jars.length + " jars from WEB-INF/lib to the current CLASSPATH");
+        loadClass(tempDir + File.separator + "WEB-INF/classes/");
+        System.out.println("Added class from WEB-INF/classes to current CLASSPATH");
+
         ZipFile zf = new ZipFile(filename);
         Enumeration entries = zf.entries();
-        while (entries.hasMoreElements()) {
-            ZipEntry ze = (ZipEntry) entries.nextElement();
-            String entryName = ze.getName();
-            if (entryName.endsWith(".jar")) {
-                String fileName = entryName.replace("WEB-INF/lib/", "");
-                BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(tempDir + File.separator + fileName));
-                BufferedInputStream bis = new BufferedInputStream(zf.getInputStream(ze));
-                int c;
-                while ((c = bis.read()) != -1) {
-                    bos.write(c);
-                }
-                bis.close();
-                bos.close();
-
-                loadClass(tempDir + File.separator + fileName);
-                nJar++;
-            }
-        }
-        zf.close();
-        System.out.println("Added " + nJar + " jars from WEB-INF/lib to the current CLASSPATH");
-
-
-        zf = new ZipFile(filename);
-        entries = zf.entries();
         ByteArrayClassLoader loader;
         while (entries.hasMoreElements()) {
             ZipEntry ze = (ZipEntry) entries.nextElement();
@@ -174,7 +213,7 @@ public class PluginValidator {
         }
         zf.close();
 
-        tempDirFile.delete();
+//        tempDirFile.delete();
 
         if (!atLeastOnePlugin) {
             errors.add("This does not seem to be a BARD plugin as there were no classes implementing the IPlugin interface");
@@ -233,11 +272,11 @@ public class PluginValidator {
             }
         }
         if (!hasClassLevelPathAnnot)
-            errors.add("Missing the class level @Path annotation");
+            errors.error("Missing the class level @Path annotation");
         if (warName != null && !matchesWarFileName)
-            errors.add("WAR file name does not correspond to @Path annotation");
+            errors.error("WAR file name does not correspond to @Path annotation");
         if (collidesWithRegistry)
-            errors.add("Class level @Path annotation cannot start with '/plugins/registry'");
+            errors.error("Class level @Path annotation cannot start with '/plugins/registry'");
 
         Method[] methods = klass.getMethods();
 
@@ -254,7 +293,7 @@ public class PluginValidator {
             }
         }
         if (!infoResourcePresent)
-            errors.add("Missing the getDescription() method with @Path(\"/_info\") and @GET annotations");
+            errors.error("Missing the getDescription() method with @Path(\"/_info\") and @GET annotations");
 
         // check that we have at least one (public) method that is annotated 
         // with a GET or a POST and has a non null @Path annotation
@@ -281,7 +320,7 @@ public class PluginValidator {
             }
         }
         if (!resourcePresent)
-            errors.add("At least one public method must have a @Path annotation (in addition to the _info resource");
+            errors.error("At least one public method must have a @Path annotation (in addition to the _info resource");
 
         boolean hasEmptyCtor = false;
         Constructor[] ctors = klass.getConstructors();
@@ -292,7 +331,7 @@ public class PluginValidator {
             }
         }
         if (!hasEmptyCtor) {
-            errors.add("Cannot instantiate plugin because it does not have an empty constructor");
+            errors.error("Cannot instantiate plugin because it does not have an empty constructor");
             return false;
         }
 
@@ -302,11 +341,11 @@ public class PluginValidator {
 
         // check for a non-null description, version, manifest
         String s = plugin.getDescription();
-        if (s == null) errors.add("getDescription() returned a null value");
+        if (s == null) errors.error("getDescription() returned a null value");
         s = plugin.getManifest();
-        if (s == null) errors.add("getManifest() returned a null value");
+        if (s == null) errors.error("getManifest() returned a null value");
         s = plugin.getVersion();
-        if (s == null) errors.add("getVersion() returned a null value");
+        if (s == null) errors.error("getVersion() returned a null value");
 
         // validate the manifest document
         return errors.size() == 0;
@@ -314,9 +353,9 @@ public class PluginValidator {
 
     public static void main(String[] args) throws InstantiationException, IllegalAccessException, IOException {
         PluginValidator v = new PluginValidator();
-//        boolean status = v.validate("/Users/guhar/src/bard.plugins/csls/deploy/bardplugin_csls.war");
+        boolean status = v.validate("/Users/guhar/src/bard.plugins/csls/deploy/bardplugin_csls.war");
 //        boolean status = v.validate("/Users/guhar/Downloads/bardplugin_badapple.war");
-        boolean status = v.validate("/Users/guhar/Downloads/bardplugin_hellofromunm.war");
+//        boolean status = v.validate("/Users/guhar/Downloads/bardplugin_hellofromunm.war");
         System.out.println("status = " + status);
         for (String s : v.getErrors()) System.out.println(s);
     }
