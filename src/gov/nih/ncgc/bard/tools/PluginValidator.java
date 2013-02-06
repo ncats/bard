@@ -213,7 +213,7 @@ public class PluginValidator {
         }
         zf.close();
 
-//        tempDirFile.delete();
+        tempDirFile.delete();
 
         if (!atLeastOnePlugin) {
             errors.add("This does not seem to be a BARD plugin as there were no classes implementing the IPlugin interface");
