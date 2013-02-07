@@ -1,8 +1,6 @@
 package gov.nih.ncgc.bard.rest;
 
 import gov.nih.ncgc.bard.entity.BardEntity;
-import gov.nih.ncgc.bard.entity.ETag;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -10,20 +8,8 @@ import javax.annotation.PostConstruct;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.EntityTag;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -191,7 +177,7 @@ public abstract class BARDResource<T extends BardEntity>
                                       @QueryParam("skip") Integer skip,
                                       @QueryParam("top") Integer top) {
         throw new WebApplicationException
-                (new UnsupportedOperationException(), 500);
+                (new UnsupportedOperationException(), 501);
     }
 
     @POST
