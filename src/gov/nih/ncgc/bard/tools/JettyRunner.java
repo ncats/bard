@@ -55,6 +55,10 @@ public class JettyRunner {
      * @throws Exception
      */
     public static void main(String[] args) throws Exception {
+        if (args.length != 1) {
+            System.err.println("Must specify path to jetty.xml");
+            System.exit(-1);
+        }
         File configFile = new File(args[0]);
         XmlConfiguration configuration = new XmlConfiguration(new FileInputStream(configFile));
         Server server = (Server) configuration.configure();
