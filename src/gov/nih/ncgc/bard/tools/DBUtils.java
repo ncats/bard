@@ -204,21 +204,6 @@ public class DBUtils {
             } catch (Exception e) {
                 System.err.println("Not running in Tomcat/Jetty/Glassfish or other app container?");
                 e.printStackTrace();
-
-                try {
-                    Class.forName("com.mysql.jdbc.Driver").newInstance();
-                    con = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov:3306/bard3?autoReconnect=true", "bard_manager", "bard_manager");
-                    con.setAutoCommit(false);
-                } catch (InstantiationException e1) {
-                    e1.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-                } catch (IllegalAccessException e1) {
-                    e1.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-                } catch (ClassNotFoundException e1) {
-                    e1.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-                } catch (SQLException e1) {
-                    e1.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-                }
-
             }
         }
         return con;
