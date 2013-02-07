@@ -32,6 +32,10 @@
         <param-name>core-name-compound</param-name>
         <param-value>/core-compound-v13/</param-value>
     </context-param>
+    <context-param>
+        <param-name>core-name-experiment</param-name>
+        <param-value>/core-experiment-v13/</param-value>
+    </context-param>
 
 
     <context-param>

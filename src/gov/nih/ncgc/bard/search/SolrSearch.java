@@ -4,11 +4,7 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import gov.nih.ncgc.bard.tools.DBUtils;
-import nu.xom.Builder;
-import nu.xom.Document;
-import nu.xom.Element;
-import nu.xom.Node;
-import nu.xom.Nodes;
+import nu.xom.*;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -190,7 +186,7 @@ public abstract class SolrSearch implements ISolrSearch {
         SolrDocumentList sdl = response.getResults();
         for (SolrDocument doc : sdl) {
             String pkey = (String) doc.getFieldValue(primaryKey);
-            if (response.getHighlighting() != null) {
+            if (response.getHighlighting() != null && highlightField != null) {
                 List<String> hls = response.getHighlighting().get(pkey).get(highlightField);
                 if (hls != null) {
                     doc.addField("highlight", hls.get(0));

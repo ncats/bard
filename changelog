@@ -45,3 +45,4 @@ v13 released
 02/04/2013    Updated experiment data entity to include fields for associated (CAP & BARD) assay and project ids. These show up
               in compound summary responses, but not in experiment data responses (yet)
 	      /compounds/probeid/{probeid} response is updated to include the bardProjectId field
+02/07/2013    Added search resource for experiments (/search/experiments)
