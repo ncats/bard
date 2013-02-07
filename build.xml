@@ -100,7 +100,7 @@
         <javac srcdir="${bard.src}" destdir="${bard.build}"
                debug="yes" target="1.6"
                includes="**/rest/*.java, **/rest/filter/*.java, **entity/*.java, **/tools/*.java, **/plugin/*.java,**/search/*.java"
-               excludes="**/*Plugin.java"
+               excludes="**/*Plugin.java, **/Jetty*.java"
                >
             <classpath refid="compile.classpath"/>
         </javac>
