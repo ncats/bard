@@ -4972,6 +4972,73 @@ public class DBUtils {
         return ret;
     }
 
+    public List<ProjectStep> getProjectStepsByProjectId(Long projectId) throws SQLException {
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select * from project_step where bard_proj_id = ?");
+        pst.setLong(1, projectId);
+        List<ProjectStep> steps = new ArrayList<ProjectStep>();
+        ResultSet rs = pst.executeQuery();
+        while (rs.next()) {
+            ProjectStep step = new ProjectStep();
+            step.setStepId(rs.getLong("step_id"));
+            step.setBardProjId(projectId);
+            step.setEdgeName(rs.getString("edge_name"));
+            step.setNextBardExptId(rs.getLong("next_bard_expt_id"));
+            step.setPrevBardExptId(rs.getLong("prev_bard_expt_id"));
+            step.setAnnotations(getProjectStepAnnotations(step.getStepId()));
+            steps.add(step);
+        }
+        return steps;
+    }
+
+    public List<CAPAnnotation> getProjectStepAnnotations(Long projectStepId) throws SQLException {
+        Cache cache = getCache ("ProjectStepAnnotationsCache");
+        try {
+            List<CAPAnnotation> value = getCacheValue
+                    (cache, projectStepId);
+            if (value != null) {
+                return value;
+            }
+        }
+        catch (ClassCastException ex) {}
+
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a where a.bard_proj_id = ?");
+        try {
+            pst.setLong(1, projectStepId);
+            ResultSet rs = pst.executeQuery();
+            List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+            while (rs.next()) {
+                String anno_id = rs.getString("anno_id");
+                String anno_key = rs.getString("anno_key");
+                String anno_value = rs.getString("anno_value");
+                String anno_display = rs.getString("anno_display");
+                int displayOrder = rs.getInt("display_order");
+                String source = rs.getString("source");
+                String entity = rs.getString("entity");
+                String contextName = rs.getString("context_name");
+
+                String related = rs.getString("related");
+                String extValueId = null;
+                if (related != null && !related.trim().equals("")) {
+                    String[] toks = related.split("\\|");
+                    if (toks.length == 2) extValueId = toks[1];
+                }
+
+                // TODO Updated the related annotations field to support grouping
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), projectStepId.intValue(),
+                        anno_display, contextName, anno_key, anno_value, extValueId, source, null, displayOrder, entity, related);
+                annos.add(anno);
+            }
+            rs.close();
+            cache.put(new Element (projectStepId, annos));
+            return annos;
+        }
+        finally {
+            pst.close();
+        }
+    }
+
     public static void main(String[] argv) throws Exception {
         if (argv.length == 0) {
             System.out.println("Usage: DBUtils URL");

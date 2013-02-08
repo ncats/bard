@@ -490,6 +490,26 @@ public class BARDProjectResource extends BARDResource<Project> {
         }
     }
 
+    @GET
+    @Path("/{pid}/steps")
+    public Response getProjectSteps(@PathParam("pid") Long projectId, @QueryParam("expand") String expand) throws SQLException, IOException {
+        DBUtils db = new DBUtils();
+        List<ProjectStep> steps = db.getProjectStepsByProjectId(projectId);
+        if (steps.size() == 0) {
+            db.closeConnection();
+            throw new WebApplicationException(404);
+        }
+
+        String json;
+        if (expandEntries(expand)) {
+            json = Util.toJson(steps);
+        } else {
+            json = Util.toJson(steps);
+        }
+        db.closeConnection();
+        return Response.ok(json).type(MediaType.APPLICATION_JSON_TYPE).build();
+    }
+
     @Override
     @GET
     @Path("/etag/{etag}")
