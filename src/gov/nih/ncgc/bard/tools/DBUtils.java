@@ -2122,6 +2122,88 @@ public class DBUtils {
         }
         return true;
     }
+
+    public List<Project> getProjectsByETag(int skip, int top, String etag) throws SQLException {
+        Map info = getETagInfo(etag);
+
+        Cache cache = getCache ("ProjectsByETagCache");
+        Object key = etag+"::"+skip+"::"+top;
+        Element el = cache.get(key);
+        if (el != null) {
+            Timestamp ts = (Timestamp)info.get("accessed");
+            if (ts.getTime() < el.getLastAccessTime()) {
+                try {
+                    List<Project> value = (List)getCacheValue (cache, key);
+                    if (value != null)
+                        return value;
+                }
+                catch (ClassCastException ex) {}
+            }
+        }
+
+        StringBuilder sql = null;
+        Object type = info.get("type");
+        if (Compound.class.getName().equals(type)) {
+            sql = new StringBuilder
+                    ("select * from bard_project where bard_proj_id in "
+                            +"(select distinct bard_proj_id from bard_project_experiment a, "
+                            +"bard_experiment_data b, etag_data c where etag_id = ? "
+                            +"and a.bard_expt_id = b.bard_expt_id "
+                            +"and b.cid = c.data_id)");
+        }
+        else if (Substance.class.getName().equals(type)) {
+            sql = new StringBuilder
+                    ("select * from bard_project where bard_proj_id in "
+                            +"(select distinct bard_proj_id from bard_project_experiment a, "
+                            +"bard_experiment_data b, etag_data c where etag_id = ? "
+                            +"and a.bard_expt_id = b.bard_expt_id "
+                            +"and b.sid = c.data_id)");
+        }
+        else if (Assay.class.getName().equals(type)) {
+            sql = new StringBuilder
+                    ("select * from bard_project where bard_proj_id in " +
+                            " (select distinct bard_proj_id from bard_assay a, bard_experiment b, bard_project_experiment c "+
+                            " etag_data e where etag_id = ? " +
+                            " and a.bard_assay_id = e.data_id and a.bard_assay_id = b.bard_assay_id " +
+                            " and b.bard_expt_id = c.bard_expt_id and d.bard_proj_id = c.bard_proj_id) ");
+        } else if (Project.class.getName().equals(type)) {
+            sql = new StringBuilder
+                    ("select a.* from bard_project a, etag_data e where etag_id = ? "
+                            + "and a.bard_proj_id = e.data_id order by e.index");
+        }
+        else {
+            throw new IllegalArgumentException
+                    ("Don't know how to get Projects's for etag "
+                            +etag + " of type "+type+"!");
+        }
+
+        if (skip >= 0 && top > 0) {
+            sql.append(" limit " + skip + "," + top);
+        } else if (top > 0) {
+            sql.append(" limit " + top);
+        }
+
+        List<Project> projects = new ArrayList<Project>();
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement(sql.toString());
+        try {
+            pst.setString(1, etag);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                Long bardProjectId = rs.getLong("bard_proj_id");
+                projects.add(getProject(bardProjectId));
+            }
+            rs.close();
+            cache.put(new Element (key, projects));
+        }
+        finally {
+            pst.close();
+        }
+        return projects;
+
+
+    }
+
     /**
      * Retruns a list of assay based on an etag.
      * @param skip

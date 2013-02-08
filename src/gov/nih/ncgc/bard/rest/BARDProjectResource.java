@@ -9,26 +9,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
-import gov.nih.ncgc.bard.entity.Publication;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -36,12 +22,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.math.BigInteger;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Prototype of MLBD REST resources.
@@ -505,6 +486,39 @@ public class BARDProjectResource extends BARDResource<Project> {
                 db.closeConnection();
             } catch (SQLException e) {
                 e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            }
+        }
+    }
+
+    @Override
+    @GET
+    @Path("/etag/{etag}")
+    public Response getEntitiesByETag(@PathParam("etag") String resourceId,
+                                      @QueryParam("filter") String filter,
+                                      @QueryParam("expand") String expand,
+                                      @QueryParam("skip") Integer skip,
+                                      @QueryParam("top") Integer top) {
+        DBUtils db = new DBUtils();
+        try {
+            List<Project> projects = db.getProjectsByETag
+                    (skip != null ? skip : -1, top != null ? top : -1, resourceId);
+
+            String json;
+            if (expand == null || expand.toLowerCase().equals("false")) {
+                List<String> links = new ArrayList<String>();
+                for (Project ap : projects)
+                    if (ap != null)
+                        links.add(ap.getResourcePath());
+                json = Util.toJson(links);
+            } else json = Util.toJson(projects);
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (Exception e) {
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
         }
     }
