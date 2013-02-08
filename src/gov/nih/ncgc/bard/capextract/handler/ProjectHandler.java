@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
+import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
 import gov.nih.ncgc.bard.capextract.*;
 import gov.nih.ncgc.bard.capextract.jaxb.*;
 import gov.nih.ncgc.bard.tools.Util;
@@ -9,10 +10,7 @@ import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A one line summary.
@@ -20,7 +18,12 @@ import java.util.Set;
  * @author Rajarshi Guha
  */
 public class ProjectHandler extends CapResourceHandler implements ICapResourceHandler {
+    boolean projectExists = false;
+    int bardProjId = -1;
+    Connection conn;
+
     final static String PUBCHEM = "PubChem,NIH,http://pubchem.ncbi.nlm.nih.gov/assay/assay.cgi?";
+
     public ProjectHandler() {
         super();
     }
@@ -42,7 +45,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         String title = project.getProjectName();
         BigInteger pid = project.getProjectId();
 
-        log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
+//        log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
         if (readyToXtract.equals("Ready")) {
             process(project);
         }
@@ -90,11 +93,11 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             log.info("Got Pubchem AID = " + pubchemAid + " for CAP project id = " + capProjectId);
 
 
-            Connection conn = CAPUtil.connectToBARD();
+            conn = CAPUtil.connectToBARD();
             PreparedStatement pst = null;
             Statement st = conn.createStatement();
             ResultSet result = st.executeQuery("select bard_proj_id, name, description from bard_project where cap_proj_id=" + capProjectId);
-            int bardProjId = -1;
+            bardProjId = -1;
             while (result.next()) bardProjId = result.getInt(1);
             result.close();
 
@@ -118,6 +121,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 pst.close();
                 log.info("Inserted CAP project id " + capProjectId + " as BARD project id " + bardProjId);
             } else {
+                projectExists = true;
                 log.info("Will do an update for the CAP project id = " + project.getProjectId());
                 pst = conn.prepareStatement("update bard_project set name=?, description=?, pubchem_aid=? where cap_proj_id = ?");
                 pst.setString(1, project.getProjectName());
@@ -129,13 +133,323 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
             //  at this point we have a valid bard project id, lets insert all the extra stuff
 
-            // deal with project annotations
-            List<String> gis = new ArrayList<String>();
-            List<String> geneIds = new ArrayList<String>();
 
             List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+
+            // deal with project annotations
+            annos.addAll(processAnnotations(project));
+
+            // handle project documents - we'll get back documents as CAPAnnotation objects
+            annos.addAll(processDocuments(project));
+
+            // deal with targets
+            processTargets(project);
+
+            // load expts
+            processExperiments(project, pubchemAid);
+
+            // handle project steps and include anny anno's we get from this
+            annos.addAll(processProjectSteps(project));
+
+            // store the annotations we've collected
+            if (annos.size() > 0) {
+                PreparedStatement pstAnnot = conn.prepareStatement("insert into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related, context_name, display_order) values (?,?,?,?,?,?,?,?,?,?,?)");
+                for (CAPAnnotation anno : annos) {
+                    pstAnnot.setInt(1, anno.entityId); // for project this is bard_project.bardProjId, for project-step this is project_step.stepId
+                    pstAnnot.setInt(2, project.getProjectId().intValue());
+                    pstAnnot.setString(3, anno.source);
+
+                    if (anno.entity.equals("project-step")) {
+                        pstAnnot.setString(4, "project-step");
+                    } else {
+                        pstAnnot.setString(4, "project");
+                    }
+
+                    pstAnnot.setInt(5, anno.id);
+                    pstAnnot.setString(6, anno.key); // anno_value_text
+                    pstAnnot.setString(7, anno.value);
+                    pstAnnot.setString(8, anno.display); // context_name
+                    pstAnnot.setString(9, anno.related); // put into related field
+                    pstAnnot.setString(10, anno.contextRef);
+                    pstAnnot.setInt(11, anno.displayOrder);
+                    pstAnnot.addBatch();
+                }
+                int[] updateCounts = pstAnnot.executeBatch();
+                conn.commit();
+                pstAnnot.close();
+                log.info("\tLoaded " + updateCounts.length + " annotations (from " + annos.size() + " CAP annotations) for cap project id " + project.getProjectId());
+            }
+
+
+            conn.commit();
+            st.close();
+            pst.close();
+            conn.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ParsingException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+    }
+
+    List<CAPAnnotation> processAnnotations(Project project) {
+        List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+        CAPDictionary dict = CAPConstants.getDictionary();
+        Contexts contexts = project.getContexts();
+        List<ContextType> contextTypes = contexts.getContext();
+        for (ContextType contextType : contextTypes) {
+            int contextId = contextType.getId().intValue();
+            String contextName = contextType.getContextName();
+
+            ContextType.ContextItems contextItems = contextType.getContextItems();
+            for (ContextItemType contextItemType : contextItems.getContextItem()) {
+
+                // dict id for the annotation key
+                String key = null;
+                AbstractContextItemType.AttributeId attr = contextItemType.getAttributeId();
+                if (attr != null) {
+                    key = Util.getEntityIdFromUrl(attr.getLink().getHref());
+                }
+
+                // dict id for the annotation value
+                String valueUrl = null;
+                String value = null;
+                AbstractContextItemType.ValueId vc = contextItemType.getValueId();
+                if (vc != null) {
+                    value = Util.getEntityIdFromUrl(vc.getLink().getHref());
+                    valueUrl = dict.getNode(vc.getLabel()).getExternalUrl() + contextItemType.getExtValueId();
+                }
+                String valueDisplay = contextItemType.getValueDisplay();
+                String related = null;
+
+                annos.add(new CAPAnnotation(contextId, bardProjId, valueDisplay, contextName, key, value, contextItemType.getExtValueId(), "cap-context", valueUrl, contextItemType.getDisplayOrder(), "project", related));
+            }
+        }
+        return annos;
+    }
+
+    void processTargets(Project project) throws SQLException {
+        List<String> gis = new ArrayList<String>();
+        List<String> geneIds = new ArrayList<String>();
+        Contexts contexts = project.getContexts();
+        List<ContextType> contextTypes = contexts.getContext();
+        for (ContextType contextType : contextTypes) {
+            String contextName = contextType.getContextName();
+
+            ContextType.ContextItems contextItems = contextType.getContextItems();
+            for (ContextItemType contextItemType : contextItems.getContextItem()) {
+                AbstractContextItemType.AttributeId attr = contextItemType.getAttributeId();
+                // do some special handling to pull out target
+                if (contextName.equals("target") && attr != null && attr.getLabel().equals("gene"))
+                    geneIds.add(contextItemType.getExtValueId());
+                else if (contextName.equals("target") && attr != null && attr.getLabel().equals("protein"))
+                    gis.add(contextItemType.getExtValueId());
+            }
+        }
+
+        // add in targets - get unique set of Uniprot accessions
+        Set<Target> accs = new HashSet<Target>();
+        PreparedStatement pstTarget = conn.prepareStatement("select accession from protein_target where gene_id = ?");
+        for (String geneid : geneIds) {
+            pstTarget.setInt(1, Integer.parseInt(geneid));
+            ResultSet rs = pstTarget.executeQuery();
+            String acc = null;
+            while (rs.next()) acc = rs.getString(1);
+            rs.close();
+            if (acc != null) accs.add(new Target(geneid, acc));
+            pstTarget.clearParameters();
+        }
+        pstTarget.close();
+        pstTarget = conn.prepareStatement("select distinct a.uniprot_acc, b.gene_id from uniprot_map a, protein_target b where acc_type = 'GI' and a.uniprot_acc = b.accession and acc = ?;");
+        for (String gi : gis) {
+            pstTarget.setString(1, gi);
+            ResultSet rs = pstTarget.executeQuery();
+            String acc = null;
+            Integer geneid = null;
+            while (rs.next()) {
+                acc = rs.getString(1);
+                geneid = rs.getInt(2);
+                accs.add(new Target(geneid.toString(), acc));
+            }
+            rs.close();
+            pstTarget.clearParameters();
+        }
+        pstTarget.close();
+        // insert the target acc's
+        pstTarget = conn.prepareStatement("insert into project_target (bard_proj_id, accession, gene_id) values (?,?,?)");
+        for (Target t : accs) {
+            pstTarget.setInt(1, bardProjId);
+            pstTarget.setString(2, t.uniprot);
+            pstTarget.setInt(3, Integer.parseInt(t.geneid));
+            pstTarget.addBatch();
+        }
+        if (accs.size() > 0) pstTarget.executeBatch();
+        conn.commit();
+        pstTarget.close();
+        log.info("\tInserted " + accs.size() + " target entries for BARD project id = " + bardProjId);
+    }
+
+    void processExperiments(Project project, int pubchemAid) throws SQLException, IOException {
+        List<ProjectExperiment> experiments = project.getProjectExperiments().getProjectExperiment();
+        PreparedStatement pstProjExpt = conn.prepareStatement("insert into bard_project_experiment (bard_proj_id, bard_expt_id, pubchem_aid, expt_type, pubchem_summary_aid) values (?,?,?,?,?)");
+        for (ProjectExperiment experiment : experiments) {
+
+            String exptType;
+            ProjectExperiment.StageRef stageRef = experiment.getStageRef();
+            exptType = stageRef == null ? null : stageRef.getLabel();
+
+            Link exptLink = experiment.getExperimentRef().getLink();
+            CAPConstants.CapResource res = CAPConstants.getResource(exptLink.getType());
+            if (res != CAPConstants.CapResource.EXPERIMENT) continue;
+            ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(res);
+            if (handler != null) {
+                handler.process(exptLink.getHref(), res);
+                int bardExptId = ((ExperimentHandler) handler).getBardExptId();
+                int exptPubchemAid = ((ExperimentHandler) handler).getPubchemAid();
+                if (bardExptId == -1) continue;
+                pstProjExpt.setInt(1, bardProjId);
+                pstProjExpt.setInt(2, bardExptId);
+                pstProjExpt.setInt(3, exptPubchemAid);
+                pstProjExpt.setString(4, exptType);
+                pstProjExpt.setInt(5, pubchemAid);
+                pstProjExpt.addBatch();
+            }
+        }
+        int[] rowsInserted = pstProjExpt.executeBatch();
+        conn.commit();
+        pstProjExpt.close();
+        log.info("Inserted " + rowsInserted.length + " project-experiment entries");
+    }
+
+    List<CAPAnnotation> processDocuments(Project project) throws SQLException, IOException, ParsingException {
+        List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+
+        PreparedStatement pstDoc = conn.prepareStatement("insert into cap_document (cap_doc_id, type, name, url) values (?, ?, ?, ?)");
+        boolean runPst = false;
+        for (Link link : project.getLink()) {
+            CAPConstants.CapResource res = CAPConstants.getResource(link.getType());
+            if (res != CAPConstants.CapResource.PROJECTDOC) continue;
+
+            // for some reason unmarshalling doesn't work properly on assayDocument docs
+            JAXBElement jaxbe = getResponse(link.getHref(), CAPConstants.getResource(link.getType()));
+            DocumentType doc = (DocumentType) jaxbe.getValue();
+
+            String docContent = doc.getDocumentContent();
+            String docType = doc.getDocumentType(); // Description, Protocol, Comments, Paper, External URL, Other
+            String docName = doc.getDocumentName();
+
+            if ("Description".equals(docType)) {
+            } else if ("Protocol".equals(docType)) {
+            } else if ("Comments".equals(docType)) {
+            } else {
+                // hack to add cap project documents as annotations on a project
+                int docId = Integer.parseInt(Util.getEntityIdFromUrl(link.getHref()));
+
+                // check to see if document in cap_document
+                // query the table by cap_doc_id
+                boolean hasDoc = false;
+                Statement query = conn.createStatement();
+                query.execute("select cap_doc_id from cap_document where cap_doc_id=" + docId);
+                ResultSet rs = query.getResultSet();
+                while (rs.next()) {
+                    hasDoc = true;
+                }
+                rs.close();
+                query.close();
+
+                if (!hasDoc) {
+                    pstDoc.setInt(1, docId);
+                    pstDoc.setString(2, docType);
+                    pstDoc.setString(3, docName);
+                    pstDoc.setString(4, docContent);
+                    pstDoc.addBatch();
+                    runPst = true;
+                }
+
+                // add annotation for document back to project
+                annos.add(new CAPAnnotation(docId, bardProjId, docName, docType, "doc", docContent, docContent, "cap-doc", link.getHref(), 0, "project", null));
+
+                // see if we can insert a PubMed paper
+                if (docType.equals("Paper") && docContent.startsWith("http://www.ncbi.nlm.nih.gov/pubmed")) {
+                    String pmid = Util.getEntityIdFromUrl(docContent);
+                    boolean status = CAPUtil.insertPublication(conn, pmid);
+                    if (status) log.info("Inserted Pubmed publication " + pmid);
+
+                    // see if we should make a link in project_pub
+                    PreparedStatement pstPub = conn.prepareStatement("select * from project_pub where bard_proj_id = ?");
+                    pstPub.setInt(1, bardProjId);
+                    ResultSet prs = pstPub.executeQuery();
+                    boolean linkExists = false;
+                    while (prs.next()) linkExists = true;
+                    pstPub.close();
+                    if (!linkExists) {
+                        pstPub = conn.prepareStatement("insert into project_pub (bard_proj_id, pmid) values (?,?)");
+                        pstPub.setInt(1, bardProjId);
+                        pstPub.setInt(2, Integer.parseInt(pmid));
+                        pstPub.execute();
+                        pstPub.close();
+                    }
+                }
+            }
+        }
+        if (runPst)
+            pstDoc.execute();
+        conn.commit();
+        pstDoc.close();
+        return annos;
+    }
+
+    List<CAPAnnotation> processProjectSteps(Project project) throws SQLException {
+
+        PreparedStatement exptLookup = conn.prepareStatement("select bard_expt_id from bard_experiment where cap_expt_id = ?");
+        ResultSet rs;
+
+        // first go through projectExperiment elements and build a map of
+        // pprojectExperiment id <-> bard experiment id
+        Map<Integer, Integer> map = new HashMap<Integer, Integer>();
+        List<ProjectExperiment> pes = project.getProjectExperiments().getProjectExperiment();
+        for (ProjectExperiment pe : pes) {
+            int peId = pe.getProjectExperimentId().intValue();
+            int capExptid = Integer.parseInt(Util.getEntityIdFromUrl(pe.getExperimentRef().getLink().getHref()));
+            exptLookup.setLong(1, capExptid);
+            rs = exptLookup.executeQuery();
+            int bardExptId = -1;
+            while (rs.next()) bardExptId = rs.getInt(1);
+            if (bardExptId == -1) {
+                log.warn("Could not get a bard expt id for cap expt id = " + capExptid + " from projectExperiment id " + peId + " from bard project id " + bardProjId);
+            } else map.put(peId, bardExptId);
+            exptLookup.clearParameters();
+            rs.close();
+        }
+        exptLookup.close();
+
+        List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+
+        PreparedStatement pstep = conn.prepareStatement("insert into project_step(bard_proj_id, step_id, prev_bard_expt_id, next_bard_expt_id, edge_name) " +
+                " values (?,?,?,?,?)");
+
+        List<ProjectStep> steps = project.getProjectSteps().getProjectStep();
+        for (ProjectStep step : steps) {
+            int stepId = step.getProjectStepId().intValue();
+            Integer nextBardExptId = map.get(step.getNextProjectExperimentRef().intValue());
+            Integer prevBardExptId = map.get(step.getPrecedingProjectExperimentRef().intValue());
+            ElementNSImpl o = (ElementNSImpl) step.getEdgeName();
+            String ename = o.getFirstChild().getNodeValue();
+
+            if (nextBardExptId == null || prevBardExptId == null) continue;
+
+            pstep.setLong(1, bardProjId);
+            pstep.setLong(2, stepId);
+            pstep.setLong(3, prevBardExptId);
+            pstep.setLong(4, nextBardExptId);
+            pstep.setString(5, ename);
+            pstep.addBatch();
+
+            // handle the annotation(s) for this step
             CAPDictionary dict = CAPConstants.getDictionary();
-            Contexts contexts = project.getContexts();
+            Contexts contexts = step.getContexts();
             List<ContextType> contextTypes = contexts.getContext();
             for (ContextType contextType : contextTypes) {
                 int contextId = contextType.getId().intValue();
@@ -160,205 +474,21 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                         valueUrl = dict.getNode(vc.getLabel()).getExternalUrl() + contextItemType.getExtValueId();
                     }
                     String valueDisplay = contextItemType.getValueDisplay();
-                    String related = null;
+                    String related = String.valueOf(bardProjId);
 
-                    annos.add(new CAPAnnotation(contextId, bardProjId, valueDisplay, contextName, key, value, contextItemType.getExtValueId(), "cap-context", valueUrl, contextItemType.getDisplayOrder(), "project", related));
-
-                    // do some special handling to pull out target
-                    if (contextName.equals("target") && attr != null && attr.getLabel().equals("gene"))
-                        geneIds.add(contextItemType.getExtValueId());
-                    else if (contextName.equals("target") && attr != null && attr.getLabel().equals("protein"))
-                        gis.add(contextItemType.getExtValueId());
-                }
-
-            }
-
-            // handle project steps
-
-
-            // handle project documents
-            PreparedStatement pstDoc = conn.prepareStatement("insert into cap_document (cap_doc_id, type, name, url) values (?, ?, ?, ?)");
-            boolean runPst = false;
-            for (Link link : project.getLink()) {
-                CAPConstants.CapResource res = CAPConstants.getResource(link.getType());
-                if (res != CAPConstants.CapResource.PROJECTDOC) continue;
-
-                // for some reason unmarshalling doesn't work properly on assayDocument docs
-                JAXBElement jaxbe = getResponse(link.getHref(), CAPConstants.getResource(link.getType()));
-                DocumentType doc = (DocumentType) jaxbe.getValue();
-
-                String docContent = doc.getDocumentContent();
-                String docType = doc.getDocumentType(); // Description, Protocol, Comments, Paper, External URL, Other
-                String docName = doc.getDocumentName();
-
-                if ("Description".equals(docType)) {
-                } else if ("Protocol".equals(docType)) {
-                } else if ("Comments".equals(docType)) {
-                } else {
-                    // hack to add cap project documents as annotations on a project
-                    int docId = Integer.parseInt(Util.getEntityIdFromUrl(link.getHref()));
-
-                    // check to see if document in cap_document
-                    // query the table by cap_doc_id
-                    boolean hasDoc = false;
-                    Statement query = conn.createStatement();
-                    query.execute("select cap_doc_id from cap_document where cap_doc_id=" + docId);
-                    ResultSet rs = query.getResultSet();
-                    while (rs.next()) {
-                        hasDoc = true;
-                    }
-                    rs.close();
-                    query.close();
-
-                    if (!hasDoc) {
-                        pstDoc.setInt(1, docId);
-                        pstDoc.setString(2, docType);
-                        pstDoc.setString(3, docName);
-                        pstDoc.setString(4, docContent);
-                        pstDoc.addBatch();
-                        runPst = true;
-                    }
-
-                    // add annotation for document back to project
-                    annos.add(new CAPAnnotation(docId, bardProjId, docName, docType, "doc", docContent, docContent, "cap-doc", link.getHref(), 0, "project", null));
-
-                    // see if we can insert a PubMed paper
-                    if (docType.equals("Paper") && docContent.startsWith("http://www.ncbi.nlm.nih.gov/pubmed")) {
-                        String pmid = Util.getEntityIdFromUrl(docContent);
-                        boolean status = CAPUtil.insertPublication(conn, pmid);
-                        if (status) log.info("Inserted Pubmed publication " + pmid);
-
-                        // see if we should make a link in project_pub
-                        PreparedStatement pstPub = conn.prepareStatement("select * from project_pub where bard_proj_id = ?");
-                        pstPub.setInt(1, bardProjId);
-                        ResultSet prs = pstPub.executeQuery();
-                        boolean linkExists = false;
-                        while (prs.next()) linkExists = true;
-                        pstPub.close();
-                        if (!linkExists) {
-                            pstPub = conn.prepareStatement("insert into project_pub (bard_proj_id, pmid) values (?,?)");
-                            pstPub.setInt(1, bardProjId);
-                            pstPub.setInt(2, Integer.parseInt(pmid));
-                            pstPub.execute();
-                            pstPub.close();
-                        }
-                    }
+                    annos.add(new CAPAnnotation(contextId, stepId, valueDisplay,
+                            contextName, key, value, contextItemType.getExtValueId(),
+                            "cap-context", valueUrl, contextItemType.getDisplayOrder(),
+                            "project-step", related));
                 }
             }
-            if (runPst)
-                pstDoc.execute();
-            conn.commit();
-            pstDoc.close();
 
-            // store the annotations we've collected
-            if (annos.size() > 0) {
-                PreparedStatement pstAnnot = conn.prepareStatement("insert into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related, context_name, display_order) values (?,?,?,?,?,?,?,?,?,?,?)");
-                for (CAPAnnotation anno : annos) {
-                    pstAnnot.setInt(1, bardProjId);
-                    pstAnnot.setInt(2, project.getProjectId().intValue());
-                    pstAnnot.setString(3, anno.source);
-                    pstAnnot.setString(4, "project");
-                    pstAnnot.setInt(5, anno.id);
-                    pstAnnot.setString(6, anno.key); // anno_value_text
-                    pstAnnot.setString(7, anno.value);
-                    pstAnnot.setString(8, anno.display); // context_name
-                    pstAnnot.setString(9, anno.related); // put into related field
-                    pstAnnot.setString(10, anno.contextRef);
-                    pstAnnot.setInt(11, anno.displayOrder);
-                    pstAnnot.addBatch();
-                }
-                int[] updateCounts = pstAnnot.executeBatch();
-                conn.commit();
-                pstAnnot.close();
-                log.info("\tLoaded " + updateCounts.length + " annotations (from " + annos.size() + " CAP annotations) for cap project id " + project.getProjectId());
-            }
-
-            // add in targets - get unique set of Uniprot accessions
-            Set<Target> accs = new HashSet<Target>();
-            PreparedStatement pstTarget = conn.prepareStatement("select accession from protein_target where gene_id = ?");
-            for (String geneid : geneIds) {
-                pstTarget.setInt(1, Integer.parseInt(geneid));
-                ResultSet rs = pstTarget.executeQuery();
-                String acc = null;
-                while (rs.next()) acc = rs.getString(1);
-                rs.close();
-                if (acc != null) accs.add(new Target(geneid, acc));
-                pstTarget.clearParameters();
-            }
-            pstTarget.close();
-            pstTarget = conn.prepareStatement("select distinct a.uniprot_acc, b.gene_id from uniprot_map a, protein_target b where acc_type = 'GI' and a.uniprot_acc = b.accession and acc = ?;");
-            for (String gi : gis) {
-                pstTarget.setString(1, gi);
-                ResultSet rs = pstTarget.executeQuery();
-                String acc = null;
-                Integer geneid = null;
-                while (rs.next()) {
-                    acc = rs.getString(1);
-                    geneid = rs.getInt(2);
-                    accs.add(new Target(geneid.toString(), acc));
-                }
-                rs.close();
-                pstTarget.clearParameters();
-            }
-            pstTarget.close();
-            // insert the target acc's
-            pstTarget = conn.prepareStatement("insert into project_target (bard_proj_id, accession, gene_id) values (?,?,?)");
-            for (Target t : accs) {
-                pstTarget.setInt(1, bardProjId);
-                pstTarget.setString(2, t.uniprot);
-                pstTarget.setInt(3, Integer.parseInt(t.geneid));
-                pstTarget.addBatch();
-            }
-            if (accs.size() > 0) pstTarget.executeBatch();
-            conn.commit();
-            pstTarget.close();
-            log.info("\tInserted "+accs.size()+" target entries for BARD project id = "+bardProjId);
-
-
-            // handle the experiments associated with this project
-            List<ProjectExperiment> experiments = project.getProjectExperiments().getProjectExperiment();
-            PreparedStatement pstProjExpt = conn.prepareStatement("insert into bard_project_experiment (bard_proj_id, bard_expt_id, pubchem_aid, expt_type, pubchem_summary_aid) values (?,?,?,?,?)");
-            for (ProjectExperiment experiment : experiments) {
-
-                String exptType;
-                ProjectExperiment.StageRef stageRef = experiment.getStageRef();
-                exptType = stageRef == null ? null : stageRef.getLabel();
-
-                Link exptLink = experiment.getExperimentRef().getLink();
-                CAPConstants.CapResource res = CAPConstants.getResource(exptLink.getType());
-                if (res != CAPConstants.CapResource.EXPERIMENT) continue;
-                ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(res);
-                if (handler != null) {
-                    handler.process(exptLink.getHref(), res);
-                    int bardExptId = ((ExperimentHandler) handler).getBardExptId();
-                    int exptPubchemAid = ((ExperimentHandler) handler).getPubchemAid();
-                    if (bardExptId == -1) continue;
-                    pstProjExpt.setInt(1, bardProjId);
-                    pstProjExpt.setInt(2, bardExptId);
-                    pstProjExpt.setInt(3, exptPubchemAid);
-                    pstProjExpt.setString(4, exptType);
-                    pstProjExpt.setInt(5, pubchemAid);
-                    pstProjExpt.addBatch();
-                }
-            }
-            int[] rowsInserted = pstProjExpt.executeBatch();
-            conn.commit();
-            pstProjExpt.close();
-            log.info("Inserted " + rowsInserted.length + " project-experiment entries");
-
-            conn.commit();
-            st.close();
-            pst.close();
-            conn.close();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (ParsingException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
+        int[] rowsAdded = pstep.executeBatch();
+        conn.commit();
+        pstep.close();
+        log.info("Added " + rowsAdded.length + " project steps for BARD project id " + bardProjId + " CAP project id " + project.getProjectId());
+        return annos;
     }
-
-
 
 }
