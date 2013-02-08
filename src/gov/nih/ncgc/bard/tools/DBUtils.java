@@ -4455,7 +4455,7 @@ public class DBUtils {
 
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity_id = ?");
-        PreparedStatement gopst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? order by go_type");
+        PreparedStatement gopst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and implied = 0 order by go_type");
         PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from bard_assay a, kegg_gene2disease b, assay_target c where a.bard_assay_id = ? and a.pubchem_aid = c.aid and c.gene_id = b.gene_id");
         try {
             pst.setLong(1, bardAssayId);
@@ -4521,7 +4521,7 @@ public class DBUtils {
 
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id");
-        PreparedStatement gopst = conn.prepareStatement("select * from go_project where bard_proj_id = ? order by go_type");
+        PreparedStatement gopst = conn.prepareStatement("select * from go_project where bard_proj_id = ? and implied = 0 order by go_type");
         PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.bard_proj_id = ? and b.gene_id = c.gene_id");
         try {
             pst.setLong(1, bardProjectId);

@@ -46,3 +46,6 @@ v13 released
               in compound summary responses, but not in experiment data responses (yet)
 	      /compounds/probeid/{probeid} response is updated to include the bardProjectId field
 02/07/2013    Added search resource for experiments (/search/experiments)
+	      Added the /projects/etag/{etag} subresource
+02/08/2013    Updated GO annotations to only include direct annotations (implied=0) in JSON output (thouhg both direct and 
+              implied annotations are still indexed)
