@@ -47,9 +47,9 @@ public class ProjectsHandler extends CapResourceHandler implements ICapResourceH
                 String readyToXtract = project.getReadyForExtraction();
                 String title = project.getProjectName();
                 BigInteger pid = project.getProjectId();
-                log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
+//                log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
                 if (readyToXtract.equals("Ready")) {
-                    log.info("\tExtracting " + title);
+//                    log.info("\tExtracting " + title);
                     ph.process(project);
                 }
             }
