@@ -4983,8 +4983,8 @@ public class DBUtils {
             step.setStepId(rs.getLong("step_id"));
             step.setBardProjId(projectId);
             step.setEdgeName(rs.getString("edge_name"));
-            step.setNextBardExptId(rs.getLong("next_bard_expt_id"));
-            step.setPrevBardExptId(rs.getLong("prev_bard_expt_id"));
+            step.setNextBardExpt(rs.getLong("next_bard_expt_id"));
+            step.setPrevBardExpt(rs.getLong("prev_bard_expt_id"));
             step.setAnnotations(getProjectStepAnnotations(step.getStepId()));
             steps.add(step);
         }

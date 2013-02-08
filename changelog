@@ -49,3 +49,4 @@ v13 released
 	      Added the /projects/etag/{etag} subresource
 02/08/2013    Updated GO annotations to only include direct annotations (implied=0) in JSON output (thouhg both direct and 
               implied annotations are still indexed)
+	      Added /projects/{pid}/steps subresource to get project steps for a project

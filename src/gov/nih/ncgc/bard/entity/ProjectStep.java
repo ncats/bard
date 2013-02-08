@@ -8,7 +8,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class ProjectStep implements BardEntity {
-    Long prevBardExptId, nextBardExptId, bardProjId;
+    Long prevBardExpt, nextBardExpt, bardProjId;
     Long stepId;
     String edgeName;
     List<CAPAnnotation> annotations;
@@ -17,8 +17,8 @@ public class ProjectStep implements BardEntity {
     }
 
     public ProjectStep(Long prevBardExptId, Long nextBardExptId, Long bardProjId, Long stepId, String edgeName) {
-        this.prevBardExptId = prevBardExptId;
-        this.nextBardExptId = nextBardExptId;
+        this.prevBardExpt = prevBardExptId;
+        this.nextBardExpt = nextBardExptId;
         this.bardProjId = bardProjId;
         this.stepId = stepId;
         this.edgeName = edgeName;
@@ -32,20 +32,20 @@ public class ProjectStep implements BardEntity {
         this.annotations = annotations;
     }
 
-    public Long getPrevBardExptId() {
-        return prevBardExptId;
+    public Long getPrevBardExpt() {
+        return prevBardExpt;
     }
 
-    public void setPrevBardExptId(Long prevBardExptId) {
-        this.prevBardExptId = prevBardExptId;
+    public void setPrevBardExpt(Long prevBardExpt) {
+        this.prevBardExpt = prevBardExpt;
     }
 
-    public Long getNextBardExptId() {
-        return nextBardExptId;
+    public Long getNextBardExpt() {
+        return nextBardExpt;
     }
 
-    public void setNextBardExptId(Long nextBardExptId) {
-        this.nextBardExptId = nextBardExptId;
+    public void setNextBardExpt(Long nextBardExpt) {
+        this.nextBardExpt = nextBardExpt;
     }
 
     public Long getBardProjId() {

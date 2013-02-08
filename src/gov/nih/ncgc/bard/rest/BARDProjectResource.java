@@ -502,7 +502,17 @@ public class BARDProjectResource extends BARDResource<Project> {
 
         String json;
         if (expandEntries(expand)) {
-            json = Util.toJson(steps);
+            ObjectMapper mapper = new ObjectMapper();
+            ArrayNode anode = mapper.createArrayNode();
+            for (ProjectStep step : steps) {
+                ObjectNode node = mapper.valueToTree(step);
+                Experiment e = db.getExperimentByExptId(step.getNextBardExpt());
+                node.put("nextBardExpt", mapper.valueToTree(e));
+                e = db.getExperimentByExptId(step.getPrevBardExpt());
+                node.put("prevBardExpt", mapper.valueToTree(e));
+                anode.add(node);
+            }
+            json = mapper.writeValueAsString(anode);
         } else {
             json = Util.toJson(steps);
         }
