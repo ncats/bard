@@ -42,11 +42,10 @@ v13 released
               Fixed quoting of numeric filters in Solr queries in general manner
 01/30/2012    Ensure that we use the proper assay identifier for assay min annos
               Remove the check for old annos when getting project annotations
-02/04/2013    Updated experiment data entity to include fields for associated (CAP & BARD) assay and project ids. These show up
-              in compound summary responses, but not in experiment data responses (yet)
+02/04/2013    Updated experiment data entity to include fields for associated (CAP & BARD) assay and project ids
 	      /compounds/probeid/{probeid} response is updated to include the bardProjectId field
 02/07/2013    Added search resource for experiments (/search/experiments)
 	      Added the /projects/etag/{etag} subresource
 02/08/2013    Updated GO annotations to only include direct annotations (implied=0) in JSON output (thouhg both direct and 
               implied annotations are still indexed)
-	      Added /projects/{pid}/steps subresource to get project steps for a project
+	      Added /projects/{pid}/steps subresource to get project steps for a project@
