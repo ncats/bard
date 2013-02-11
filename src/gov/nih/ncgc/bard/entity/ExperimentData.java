@@ -22,6 +22,7 @@ public class ExperimentData implements BardEntity {
     Long eid, cid, sid;
     Long bardExptId, bardAssayId;
     Long capExptId, capAssayId;
+    List<Long> capProjId, bardProjId;
     String resultJson;
 
     @JsonIgnore
@@ -49,6 +50,22 @@ public class ExperimentData implements BardEntity {
     AssayDefinitionObject[] ado;
 
     public ExperimentData() {
+    }
+
+    public List<Long> getBardProjId() {
+        return bardProjId;
+    }
+
+    public void setBardProjId(List<Long> bardProjId) {
+        this.bardProjId = bardProjId;
+    }
+
+    public List<Long> getCapProjId() {
+        return capProjId;
+    }
+
+    public void setCapProjId(List<Long> capProjId) {
+        this.capProjId = capProjId;
     }
 
     public Long getBardAssayId() {

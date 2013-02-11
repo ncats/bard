@@ -1725,8 +1725,6 @@ public class DBUtils {
         ed.setCapAssayId(rs.getLong("real_cap_assay_id"));
         ed.setCapExptId(rs.getLong("cap_expt_id"));
 
-//        ed.setBardProjectId(rs.getLong("bard_proj_id"));
-
         Integer classification = rs.getInt("classification");
         if (rs.wasNull()) classification = null;
         ed.setClassification(classification);
@@ -1743,6 +1741,21 @@ public class DBUtils {
         if (blob != null) {
             ed.setResultJson(new String(blob.getBytes(1, (int) blob.length())));
         }
+
+        // pull in associated projects
+        PreparedStatement ps = conn.prepareStatement("select a.bard_proj_id, b.cap_proj_id from bard_project_experiment a, bard_project b where a.bard_expt_id = ? and a.bard_proj_id = b.bard_proj_id");
+        ps.setLong(1, ed.getBardExptId());
+        ResultSet rs2 = ps.executeQuery();
+        List<Long> bpids = new ArrayList<Long>();
+        List<Long> cpids = new ArrayList<Long>();
+        while (rs2.next()) {
+            bpids.add(rs2.getLong(1));
+            cpids.add(rs2.getLong(2));
+        }
+        ed.setBardProjId(bpids);
+        ed.setCapProjId(cpids);
+        rs2.close();
+        ps.close();
 
         return ed;
     }
