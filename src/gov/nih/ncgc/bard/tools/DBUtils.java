@@ -2078,6 +2078,7 @@ public class DBUtils {
         a.setUpdated(rs.getDate("updated"));
         a.setComments(rs.getString("comment"));
         a.setProtocol(rs.getString("protocol"));
+        a.setTitle(rs.getString("title"));
 
         List<Long> pmids = new ArrayList<Long>();
         for (Publication pub : getAssayPublications(bardAssayId)) pmids.add(pub.getPubmedId());
