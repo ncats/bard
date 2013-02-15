@@ -1163,6 +1163,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
             Long eid = ed.getBardExptId();
             Experiment expt = db.getExperimentByExptId(eid);
+            if (expt == null) continue;
             Long aid = expt.getBardAssayId();
 
             testedExperiments.add(expt);
