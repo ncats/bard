@@ -70,7 +70,7 @@ public class ProjectDocHandler extends CapResourceHandler implements ICapResourc
 
 
 //		if (name.equals("CAP")) { // hack to initially update project info from CAP
-//	            PreparedStatement pst = conn.prepareStatement("update bard_project set name=?, description=? where cap_proj_id="+project.getProjectId());
+//	            PreparedStatement pst = conn.prepareStatement("update bard_project set name=?, description=? where cap_proj_id="+project.getBardProjectId());
 //	            pst.setString(1, project.getProjectName());
 //	            pst.setString(2, project.getDescription());
 //	            pst.addBatch();

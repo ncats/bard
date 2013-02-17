@@ -8,16 +8,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.ETag;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
-import gov.nih.ncgc.bard.entity.Publication;
-import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
@@ -37,25 +28,8 @@ import java.io.Reader;
 import java.math.BigInteger;
 import java.security.Principal;
 import java.security.SecureRandom;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.sql.*;
+import java.util.*;
 
 
 
@@ -644,6 +618,7 @@ public class DBUtils {
             List<Compound> notCachedCompounds = getCompoundsByCid(cids.toArray(new Long[]{}));
             for (Compound c : notCachedCompounds) {
                 List<Long> notCachedSids = c.getSids();
+                if (notCachedSids == null) continue;
                 for (Long sid : notCachedSids) cache.put(new Element(sid, c));
             }
             cmpds.addAll(notCachedCompounds);
@@ -1539,7 +1514,7 @@ public class DBUtils {
         Long sid = Long.parseLong(toks[1]);
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.bard_expt_id = ? and a.sid = ? and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id");
+        PreparedStatement pst = conn.prepareStatement("select      a . *, b . *, c . *, d.cap_assay_id as real_cap_assay_id from     bard_experiment_data a left join bard_experiment_result b on a.expt_data_id = b.expt_data_id left join bard_experiment c on a.bard_expt_id = c.bard_expt_id left join bard_assay d on c.bard_assay_id = d.bard_assay_id where a.bard_expt_id = ? and a.sid = ?");
         ExperimentData ed = null;
         try {
             pst.setLong(1, bardExptId);
@@ -1612,7 +1587,8 @@ public class DBUtils {
             }
             sb.append(")");
 
-            String sql = "select * from bard_experiment_data a, bard_experiment_result b, bard_experiment c where a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id";
+//            String sql = "select a.*, b.*, c.*, d.bard_proj_id from bard_experiment_data a, bard_experiment_result b, bard_experiment c, bard_project_experiment d where d.bard_expt_id = " + bardExptId + " and a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id";
+            String sql = "select      a . *, b . *, c . *, d.cap_assay_id as real_cap_assay_id from     bard_experiment_data a left join bard_experiment_result b on a.expt_data_id = b.expt_data_id left join bard_experiment c on a.bard_expt_id = c.bard_expt_id left join bard_assay d on c.bard_assay_id = d.bard_assay_id where a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString();
             PreparedStatement pst = conn.prepareStatement(sql);
             ExperimentData ed = null;
             try {
@@ -1745,6 +1721,10 @@ public class DBUtils {
         ed.setCid(rs.getLong("cid"));
         ed.setExptDataId(ed.getBardExptId()+"."+ed.getSid());
 
+        ed.setBardAssayId(rs.getLong("bard_assay_id"));
+        ed.setCapAssayId(rs.getLong("real_cap_assay_id"));
+        ed.setCapExptId(rs.getLong("cap_expt_id"));
+
         Integer classification = rs.getInt("classification");
         if (rs.wasNull()) classification = null;
         ed.setClassification(classification);
@@ -1761,6 +1741,21 @@ public class DBUtils {
         if (blob != null) {
             ed.setResultJson(new String(blob.getBytes(1, (int) blob.length())));
         }
+
+        // pull in associated projects
+        PreparedStatement ps = conn.prepareStatement("select a.bard_proj_id, b.cap_proj_id from bard_project_experiment a, bard_project b where a.bard_expt_id = ? and a.bard_proj_id = b.bard_proj_id");
+        ps.setLong(1, ed.getBardExptId());
+        ResultSet rs2 = ps.executeQuery();
+        List<Long> bpids = new ArrayList<Long>();
+        List<Long> cpids = new ArrayList<Long>();
+        while (rs2.next()) {
+            bpids.add(rs2.getLong(1));
+            cpids.add(rs2.getLong(2));
+        }
+        ed.setBardProjId(bpids);
+        ed.setCapProjId(cpids);
+        rs2.close();
+        ps.close();
 
         return ed;
     }
@@ -1930,7 +1925,7 @@ public class DBUtils {
 
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
-            ("select * from bard_experiment where bard_expt_id = ?");
+            ("select *, b.cap_assay_id as real_cap_assay_id from bard_experiment a, bard_assay b where bard_expt_id = ? and a.bard_assay_id = b.bard_assay_id");
         try {
             pst.setLong(1, bardExptId);
             ResultSet rs = pst.executeQuery();
@@ -1944,9 +1939,9 @@ public class DBUtils {
             if (e != null) {
                 List<Project> projects = getProjectByExperimentId (bardExptId);
                 for (Project project : projects) {
-                    Long projectId = project.getProjectId();
+                    Long projectId = project.getBardProjectId();
                     if (projectId != null)
-                        e.addProjectID(project.getProjectId());
+                        e.addProjectID(project.getBardProjectId());
                 }
 
                 cache.put(new Element (bardExptId, e));
@@ -1961,8 +1956,10 @@ public class DBUtils {
 
     protected Experiment getExperiment (ResultSet rs) throws SQLException {
         Experiment e= new Experiment();
-        e.setExptId(rs.getLong("bard_expt_id"));
-        e.setAssayId(rs.getLong("bard_assay_id"));
+        e.setBardExptId(rs.getLong("bard_expt_id"));
+        e.setBardAssayId(rs.getLong("bard_assay_id"));
+        e.setCapExptId(rs.getLong("cap_expt_id"));
+        e.setCapAssayId(rs.getLong("real_cap_assay_id"));
         e.setName(rs.getString("name"));
         e.setDescription(rs.getString("description"));
         e.setCategory(rs.getInt("category"));
@@ -2081,6 +2078,7 @@ public class DBUtils {
         a.setUpdated(rs.getDate("updated"));
         a.setComments(rs.getString("comment"));
         a.setProtocol(rs.getString("protocol"));
+        a.setTitle(rs.getString("title"));
 
         List<Long> pmids = new ArrayList<Long>();
         for (Publication pub : getAssayPublications(bardAssayId)) pmids.add(pub.getPubmedId());
@@ -2094,11 +2092,11 @@ public class DBUtils {
         List<Project> projs = getProjectByAssayId(bardAssayId);
 
         List<Long> eids = new ArrayList<Long>();
-        for (Experiment expt : expts) eids.add(expt.getExptId());
+        for (Experiment expt : expts) eids.add(expt.getBardExptId());
         a.setExperiments(eids);
 
         List<Long> pids = new ArrayList<Long>();
-        for (Project proj : projs) pids.add(proj.getProjectId());
+        for (Project proj : projs) pids.add(proj.getBardProjectId());
         a.setProjects(pids);
 
         if (dict == null) try {
@@ -2121,7 +2119,7 @@ public class DBUtils {
         a.setAv_dict_label(l2);
 
         try {
-            a.setMinimumAnnotations(AnnotationUtils.getMinimumRequiredAssayAnnotations(aid, this));
+            a.setMinimumAnnotations(AnnotationUtils.getMinimumRequiredAssayAnnotations(bardAssayId, this));
         } catch (ClassNotFoundException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         } catch (IOException e) {
@@ -2138,6 +2136,88 @@ public class DBUtils {
         }
         return true;
     }
+
+    public List<Project> getProjectsByETag(int skip, int top, String etag) throws SQLException {
+        Map info = getETagInfo(etag);
+
+        Cache cache = getCache ("ProjectsByETagCache");
+        Object key = etag+"::"+skip+"::"+top;
+        Element el = cache.get(key);
+        if (el != null) {
+            Timestamp ts = (Timestamp)info.get("accessed");
+            if (ts.getTime() < el.getLastAccessTime()) {
+                try {
+                    List<Project> value = (List)getCacheValue (cache, key);
+                    if (value != null)
+                        return value;
+                }
+                catch (ClassCastException ex) {}
+            }
+        }
+
+        StringBuilder sql = null;
+        Object type = info.get("type");
+        if (Compound.class.getName().equals(type)) {
+            sql = new StringBuilder
+                    ("select * from bard_project where bard_proj_id in "
+                            +"(select distinct bard_proj_id from bard_project_experiment a, "
+                            +"bard_experiment_data b, etag_data c where etag_id = ? "
+                            +"and a.bard_expt_id = b.bard_expt_id "
+                            +"and b.cid = c.data_id)");
+        }
+        else if (Substance.class.getName().equals(type)) {
+            sql = new StringBuilder
+                    ("select * from bard_project where bard_proj_id in "
+                            +"(select distinct bard_proj_id from bard_project_experiment a, "
+                            +"bard_experiment_data b, etag_data c where etag_id = ? "
+                            +"and a.bard_expt_id = b.bard_expt_id "
+                            +"and b.sid = c.data_id)");
+        }
+        else if (Assay.class.getName().equals(type)) {
+            sql = new StringBuilder
+                    ("select * from bard_project where bard_proj_id in " +
+                            " (select distinct bard_proj_id from bard_assay a, bard_experiment b, bard_project_experiment c "+
+                            " etag_data e where etag_id = ? " +
+                            " and a.bard_assay_id = e.data_id and a.bard_assay_id = b.bard_assay_id " +
+                            " and b.bard_expt_id = c.bard_expt_id and d.bard_proj_id = c.bard_proj_id) ");
+        } else if (Project.class.getName().equals(type)) {
+            sql = new StringBuilder
+                    ("select a.* from bard_project a, etag_data e where etag_id = ? "
+                            + "and a.bard_proj_id = e.data_id order by e.index");
+        }
+        else {
+            throw new IllegalArgumentException
+                    ("Don't know how to get Projects's for etag "
+                            +etag + " of type "+type+"!");
+        }
+
+        if (skip >= 0 && top > 0) {
+            sql.append(" limit " + skip + "," + top);
+        } else if (top > 0) {
+            sql.append(" limit " + top);
+        }
+
+        List<Project> projects = new ArrayList<Project>();
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement(sql.toString());
+        try {
+            pst.setString(1, etag);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                Long bardProjectId = rs.getLong("bard_proj_id");
+                projects.add(getProject(bardProjectId));
+            }
+            rs.close();
+            cache.put(new Element (key, projects));
+        }
+        finally {
+            pst.close();
+        }
+        return projects;
+
+
+    }
+
     /**
      * Retruns a list of assay based on an etag.
      * @param skip
@@ -3721,7 +3801,7 @@ public class DBUtils {
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
                 p = new Project();
-                p.setProjectId(bardProjId);
+                p.setBardProjectId(bardProjId);
                 p.setDescription(rs.getString("description"));
                 p.setName(rs.getString("name"));
                 p.setDeposited(rs.getDate("deposited"));
@@ -3846,6 +3926,37 @@ public class DBUtils {
             return ps;
         }
         finally {
+            pst.close();
+        }
+    }
+
+    public List<Project> getProjectByProbeId(String probeId)
+            throws SQLException {
+
+        Cache cache = getCache("ProjectByProbeIdCache");
+        try {
+            List<Project> value = getCacheValue(cache, probeId);
+            if (value != null) {
+                return value;
+            }
+        } catch (ClassCastException ex) {
+        }
+
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select bard_proj_id from project_probe where probe_id = ?");
+        try {
+            pst.setString(1, probeId);
+            ResultSet rs = pst.executeQuery();
+            List<Project> ps = new ArrayList<Project>();
+            while (rs.next()) {
+                Project project = getProject(rs.getLong("bard_proj_id"));
+                if (project != null) ps.add(project);
+            }
+            rs.close();
+
+            cache.put(new Element(probeId, ps));
+            return ps;
+        } finally {
             pst.close();
         }
     }
@@ -4346,7 +4457,6 @@ public class DBUtils {
      * @throws SQLException
      */
     public List<CAPAnnotation> getAssayAnnotations(Long bardAssayId) throws SQLException {
-
         Cache cache = getCache ("AssayAnnotationsCache");
         try {
             List<CAPAnnotation> value = getCacheValue
@@ -4358,8 +4468,8 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity_id = ? and source != 'cap-old'");
-        PreparedStatement gopst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? order by go_type");
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity_id = ?");
+        PreparedStatement gopst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and implied = 0 order by go_type");
         PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from bard_assay a, kegg_gene2disease b, assay_target c where a.bard_assay_id = ? and a.pubchem_aid = c.aid and c.gene_id = b.gene_id");
         try {
             pst.setLong(1, bardAssayId);
@@ -4424,8 +4534,8 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id and a.source in ('cap', 'bao')");
-        PreparedStatement gopst = conn.prepareStatement("select * from go_project where bard_proj_id = ? order by go_type");
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id");
+        PreparedStatement gopst = conn.prepareStatement("select * from go_project where bard_proj_id = ? and implied = 0 order by go_type");
         PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.bard_proj_id = ? and b.gene_id = c.gene_id");
         try {
             pst.setLong(1, bardProjectId);
@@ -4784,7 +4894,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         Project project = getProject(projectId);
-        if (project == null || project.getProjectId() == null)
+        if (project == null || project.getBardProjectId() == null)
             return null;
 
         int pcount = 0, syncount = 0, nassay = 0;
@@ -4874,6 +4984,73 @@ public class DBUtils {
         List<String> ret = new ArrayList<String>();
         for (String acc : accs) ret.add(map.get(acc));
         return ret;
+    }
+
+    public List<ProjectStep> getProjectStepsByProjectId(Long projectId) throws SQLException {
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select * from project_step where bard_proj_id = ?");
+        pst.setLong(1, projectId);
+        List<ProjectStep> steps = new ArrayList<ProjectStep>();
+        ResultSet rs = pst.executeQuery();
+        while (rs.next()) {
+            ProjectStep step = new ProjectStep();
+            step.setStepId(rs.getLong("step_id"));
+            step.setBardProjId(projectId);
+            step.setEdgeName(rs.getString("edge_name"));
+            step.setNextBardExpt(rs.getLong("next_bard_expt_id"));
+            step.setPrevBardExpt(rs.getLong("prev_bard_expt_id"));
+            step.setAnnotations(getProjectStepAnnotations(step.getStepId()));
+            steps.add(step);
+        }
+        return steps;
+    }
+
+    public List<CAPAnnotation> getProjectStepAnnotations(Long projectStepId) throws SQLException {
+        Cache cache = getCache ("ProjectStepAnnotationsCache");
+        try {
+            List<CAPAnnotation> value = getCacheValue
+                    (cache, projectStepId);
+            if (value != null) {
+                return value;
+            }
+        }
+        catch (ClassCastException ex) {}
+
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a where a.bard_proj_id = ?");
+        try {
+            pst.setLong(1, projectStepId);
+            ResultSet rs = pst.executeQuery();
+            List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+            while (rs.next()) {
+                String anno_id = rs.getString("anno_id");
+                String anno_key = rs.getString("anno_key");
+                String anno_value = rs.getString("anno_value");
+                String anno_display = rs.getString("anno_display");
+                int displayOrder = rs.getInt("display_order");
+                String source = rs.getString("source");
+                String entity = rs.getString("entity");
+                String contextName = rs.getString("context_name");
+
+                String related = rs.getString("related");
+                String extValueId = null;
+                if (related != null && !related.trim().equals("")) {
+                    String[] toks = related.split("\\|");
+                    if (toks.length == 2) extValueId = toks[1];
+                }
+
+                // TODO Updated the related annotations field to support grouping
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), projectStepId.intValue(),
+                        anno_display, contextName, anno_key, anno_value, extValueId, source, null, displayOrder, entity, related);
+                annos.add(anno);
+            }
+            rs.close();
+            cache.put(new Element (projectStepId, annos));
+            return annos;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     public static void main(String[] argv) throws Exception {

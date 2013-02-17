@@ -192,7 +192,7 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
         Experiment experiment;
         try {
             experiment = db.getExperimentByExptId(Long.valueOf(resourceId));
-            if (experiment == null || experiment.getExptId() == null) throw new WebApplicationException(404);
+            if (experiment == null || experiment.getBardExptId() == null) throw new WebApplicationException(404);
             String json = Util.toJson(experiment);
             if (expand != null && expand.toLowerCase().trim().equals("true")) { // expand experiment and project entries
                 json = getExpandedJson(experiment, Long.parseLong(resourceId), db).toString();
@@ -579,7 +579,7 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
         DBUtils db = new DBUtils();
 
         Experiment e = db.getExperimentByExptId(eid);
-        if (e == null || e.getExptId() == null) throw new WebApplicationException(404);
+        if (e == null || e.getBardExptId() == null) throw new WebApplicationException(404);
         int nsub = e.getSubstances();
 
         s.put("compounds.tested", e.getCompounds());

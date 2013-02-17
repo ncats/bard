@@ -12,7 +12,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Experiment implements BardEntity {
-    Long exptId, assayId, pubchemAid;
+    Long bardExptId, capExptId, bardAssayId, capAssayId, pubchemAid;
     int category, type, summary, assays, classification, substances, compounds;
     String name, description, source, grantNo;
     Date deposited, updated;
@@ -23,6 +23,14 @@ public class Experiment implements BardEntity {
     	projectIdList = new ArrayList<Long>();
     }
 
+    public Long getCapAssayId() {
+        return capAssayId;
+    }
+
+    public void setCapAssayId(Long capAssayId) {
+        this.capAssayId = capAssayId;
+    }
+
     public Long getPubchemAid() {
         return pubchemAid;
     }
@@ -31,12 +39,12 @@ public class Experiment implements BardEntity {
         this.pubchemAid = pubchemAid;
     }
 
-    public Long getExptId() {
-        return exptId;
+    public Long getBardExptId() {
+        return bardExptId;
     }
 
-    public void setExptId(Long exptId) {
-        this.exptId = exptId;
+    public void setBardExptId(Long bardExptId) {
+        this.bardExptId = bardExptId;
     }
 
     public List<Long> getProjectIdList() {
@@ -51,12 +59,20 @@ public class Experiment implements BardEntity {
 		this.projectIdList.add(projId);
 	}
 	
-	public Long getAssayId() {
-        return assayId;
+	public Long getBardAssayId() {
+        return bardAssayId;
     }
 
-    public void setAssayId(Long assayId) {
-        this.assayId = assayId;
+    public void setBardAssayId(Long bardAssayId) {
+        this.bardAssayId = bardAssayId;
+    }
+
+    public Long getCapExptId() {
+        return capExptId;
+    }
+
+    public void setCapExptId(Long capExptId) {
+        this.capExptId = capExptId;
     }
 
     public int getCategory() {
@@ -180,7 +196,7 @@ public class Experiment implements BardEntity {
      * @return The path to this resource
      */
     public String getResourcePath() {
-        return BARDConstants.API_BASE + "/experiments/" + exptId;
+        return BARDConstants.API_BASE + "/experiments/" + bardExptId;
     }
 
     /**

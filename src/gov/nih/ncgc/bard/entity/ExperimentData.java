@@ -19,7 +19,10 @@ import java.util.regex.Pattern;
  */
 public class ExperimentData implements BardEntity {
     String exptDataId;
-    Long eid, cid, sid, bardExptId;
+    Long eid, cid, sid;
+    Long bardExptId, bardAssayId;
+    Long capExptId, capAssayId;
+    List<Long> capProjId, bardProjId;
     String resultJson;
 
     @JsonIgnore
@@ -47,6 +50,46 @@ public class ExperimentData implements BardEntity {
     AssayDefinitionObject[] ado;
 
     public ExperimentData() {
+    }
+
+    public List<Long> getBardProjId() {
+        return bardProjId;
+    }
+
+    public void setBardProjId(List<Long> bardProjId) {
+        this.bardProjId = bardProjId;
+    }
+
+    public List<Long> getCapProjId() {
+        return capProjId;
+    }
+
+    public void setCapProjId(List<Long> capProjId) {
+        this.capProjId = capProjId;
+    }
+
+    public Long getBardAssayId() {
+        return bardAssayId;
+    }
+
+    public void setBardAssayId(Long bardAssayId) {
+        this.bardAssayId = bardAssayId;
+    }
+
+    public Long getCapExptId() {
+        return capExptId;
+    }
+
+    public void setCapExptId(Long capExptId) {
+        this.capExptId = capExptId;
+    }
+
+    public Long getCapAssayId() {
+        return capAssayId;
+    }
+
+    public void setCapAssayId(Long capAssayId) {
+        this.capAssayId = capAssayId;
     }
 
     public String getResultJson() {
