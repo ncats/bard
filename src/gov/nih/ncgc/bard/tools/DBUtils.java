@@ -1233,10 +1233,65 @@ public class DBUtils {
         return facets;
     }
 
+    public List<Compound> getEqvCompounds (Long cid) throws SQLException {
+        Cache cache = getCache ("CompoundsEqvClassCache");
+
+        List value = getCacheValue (cache, cid);
+        if (value != null) {
+            return value;
+        }
+
+        if (conn == null) conn = getConnection ();
+        // for extra safe measure we use an additional hash 1
+        PreparedStatement pstm1, pstm2 = null;
+        pstm1 = conn.prepareStatement
+            ("select hash1, hash4 from bard2.compound_molfile where cid = ?");
+
+        try {
+            List<Compound> compounds = new ArrayList<Compound>();
+
+            pstm1.setLong(1, cid);
+            ResultSet rset = pstm1.executeQuery();
+            if (rset.next()) {
+                String h1 = rset.getString(1);
+                String h4 = rset.getString(2);
+                
+                pstm2 = conn.prepareStatement
+                    ("select * from compound a, bard2.compound_molfile b, "
+                     +"compound_props c where a.cid = b.cid "
+                     +"and a.cid = c.pubchem_compound_cid "
+                     +"and b.hash1 = binary(?) and b.hash4 = binary(?)");
+                pstm2.setString(1, h1);
+                pstm2.setString(2, h4);
+
+                ResultSet rs = pstm2.executeQuery();
+                while (rs.next()) {
+                    Compound c = new Compound();
+                    fillCompound(rs, c);
+                    c.setNumAssay(getEntityCountByCid
+                                  (c.getCid(), Assay.class));
+                    c.setNumActiveAssay
+                        (getEntityCountByActiveCid(c.getCid(), Assay.class));
+                    compounds.add(c);
+                }
+                rs.close();
+            }
+            rset.close();
+
+            cache.put(new Element (cid, compounds));
+            return compounds;
+        }
+        finally {
+            if (pstm2 != null)
+                pstm2.close();
+            pstm1.close();
+        }
+    }
+
     public List<Compound> getCompoundsByHash
         (String h1, String h2, String h3, String h4) throws SQLException {
         StringBuilder sql = new StringBuilder
-            ("select * from compound a, compound_molfile b, "
+            ("select * from compound a, bard2.compound_molfile b, "
              +"compound_props c where a.cid = b.cid "
              +"and a.cid = c.pubchem_compound_cid");
 

@@ -601,6 +601,43 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     }
 
     @GET
+    @Path("/{cid}/eqv")
+    public Response getEqvCompounds (@PathParam("cid") String cid,
+                                     @QueryParam("expand") String expand) {
+        DBUtils db = new DBUtils();
+        // return equivalence class based on hash keys
+        try {
+            List<Compound> compounds = 
+                db.getEqvCompounds(Long.parseLong(cid));
+
+            Response response;
+            if (expand != null && (expand.equalsIgnoreCase("true") 
+                                   || expand.equalsIgnoreCase("yes"))) {
+                response = Response.ok(Util.toJson(compounds), 
+                                       MediaType.APPLICATION_JSON).build();
+            }
+            else {
+                List<String> links = new ArrayList<String>();
+                for (Compound a : compounds) 
+                    links.add(a.getResourcePath());
+                response = Response.ok(Util.toJson(links), 
+                                       MediaType.APPLICATION_JSON).build();
+            }
+
+            return response;
+        }
+        catch (Exception ex) {
+            throw new WebApplicationException (ex, 500);
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (Exception ex) {}
+        }
+    }
+
+    @GET
     @Path("/{cid}")
     public Response getResources(@PathParam("cid") String resourceId,
                                  @QueryParam("filter") String filter,
