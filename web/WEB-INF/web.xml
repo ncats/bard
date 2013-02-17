@@ -35,7 +35,7 @@
 
     <context-param>
         <param-name>datasource-context</param-name>
-        <param-value>jdbc/bardman-maxwell</param-value>
+        <param-value>jdbc/bardman3</param-value>
     </context-param>
 
     <servlet>
