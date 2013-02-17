@@ -1260,7 +1260,8 @@ public class DBUtils {
                     ("select * from compound a, bard2.compound_molfile b, "
                      +"compound_props c where a.cid = b.cid "
                      +"and a.cid = c.pubchem_compound_cid "
-                     +"and b.hash1 = binary(?) and b.hash4 = binary(?)");
+                     +"and b.hash1 = binary(?) and b.hash4 = binary(?) "
+                     +"order by a.cid");
                 pstm2.setString(1, h1);
                 pstm2.setString(2, h4);
 
