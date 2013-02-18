@@ -50,3 +50,5 @@ v13 released
               implied annotations are still indexed)
 	      Added /projects/{pid}/steps subresource to get project steps for a project@
 02/15/2013    Assay short name is now exposed in /assay response
+
+v14 released
