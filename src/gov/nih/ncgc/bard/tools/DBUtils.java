@@ -1704,20 +1704,22 @@ public class DBUtils {
         if (type != null) {
             if (type.equals(Compound.class.getName())) {
                 sql = new StringBuilder
-                    ("select * from bard_experiment_data a, "
-                     + "bard_experiment_result b, bard_experiment c, "
+                    ("select *, e.cap_assay_id as real_cap_assay_id from bard_experiment_data a, "
+                     + "bard_experiment_result b, bard_experiment c, bard_assay e, "
                      + "etag_data d where a.bard_expt_id = ? and "
                      + "d.etag_id = ? and "
                      + "a.cid = d.data_id and "
+                     + "c.bard_assay_id = e.bard_assay_id and "
                      + "a.expt_data_id = b.expt_data_id and "
                      + "a.bard_expt_id = c.bard_expt_id order by d.index");
             } else if (type.equals(Substance.class.getName())) {
                 sql = new StringBuilder
-                    ("select * from bard_experiment_data a, "
-                     + "bard_experiment_result b, bard_experiment c, "
+                    ("select *, e.cap_assay_id as real_cap_assay_id from bard_experiment_data a, "
+                     + "bard_experiment_result b, bard_experiment c, bard_assay e, "
                      + "etag_data d where a.bard_expt_id = ? and "
                      + "d.etag_id = ? and "
                      + "a.sid = d.data_id and "
+                     + "c.bard_assay_id = e.bard_assay_id and "
                      + "a.expt_data_id = b.expt_data_id and "
                      + "a.bard_expt_id = c.bard_expt_id order by d.index");
             } else {
@@ -1728,6 +1730,7 @@ public class DBUtils {
             log.error("Invalid ETag " + etag);
         }
 
+        System.out.println("sql = " + sql);
         if (sql == null) {
             return data;
         }
