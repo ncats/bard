@@ -358,8 +358,8 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                         List<Project> projects = db.getProjectByProbeId(c.get(0).getProbeId());
                         ArrayNode anode = mapper.createArrayNode();
                         ObjectNode onode = mapper.valueToTree(c.get(0));
-                        if (projects.size() == 1) onode.put("bardProjectid", projects.get(0).getBardProjectId());
-                        else if (projects.size() == 0) onode.put("bardProjectid", -1);
+                        if (projects.size() == 1) onode.put("bardProjectId", projects.get(0).getBardProjectId());
+                        else if (projects.size() == 0) onode.put("bardProjectId", -1);
                         anode.add(onode);
                         json = mapper.writeValueAsString(anode);
                     } else json = Util.toJson(c);
