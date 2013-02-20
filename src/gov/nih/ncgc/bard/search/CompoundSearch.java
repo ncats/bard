@@ -14,14 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Full text search for compound entities.
@@ -33,7 +26,7 @@ public class CompoundSearch extends SolrSearch {
     private final String PKEY_COMPOUND_DOC = "cid";
 
     Logger log;
-    String[] facetNames = {"compoundClass", "COLLECTION", "mwt", "tpsa", "xlogp"};
+    String[] facetNames = {"compound_class", "COLLECTION", "mwt", "tpsa", "xlogp"};
 
     public CompoundSearch(String query, String coreName) {
         super(query);
@@ -72,7 +65,7 @@ public class CompoundSearch extends SolrSearch {
         sq.addFacetQuery("xlogp:[5 TO *]");
 
         sq.setFacetMinCount(1);
-        sq.addFacetField("compoundClass");
+        sq.addFacetField("compound_class");
 
         response = solr.query(sq);
         List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_COMPOUND_DOC, HL_FIELD);
@@ -183,7 +176,7 @@ public class CompoundSearch extends SolrSearch {
 
         List ret;
         if (!detailed) {
-            ret = copyRange(docs, skip, top, detailed, PKEY_COMPOUND_DOC, "smiles", "iupacName", "preferredTerm", "compoundClass");
+            ret = copyRange(docs, skip, top, detailed, PKEY_COMPOUND_DOC, "smiles", "iupacName", "preferredTerm", "compound_class");
         } else {
             DBUtils db = new DBUtils();
             ret = new ArrayList();
