@@ -52,3 +52,6 @@ v13 released
 02/15/2013    Assay short name is now exposed in /assay response
 
 v14 released
+
+02/19/13      Updated JSON for /compounds/probeid/... to use bardProjectId
+02/19/13      Added cap project id to probeid JSON response
