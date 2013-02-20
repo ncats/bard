@@ -54,4 +54,6 @@ v13 released
 v14 released
 
 02/19/13      Updated JSON for /compounds/probeid/... to use bardProjectId
-02/19/13      Added cap project id to probeid JSON response
+	      Added cap project id to probeid JSON response
+	      Implemented filter=ARG for /exptdata subresources (/compound/{cid}/exptdata, /substance/{sid}/exptdata, /experiment/{eid}/exptdata)
+	      where ARG = active|inactive to return active or inactive results repsectively

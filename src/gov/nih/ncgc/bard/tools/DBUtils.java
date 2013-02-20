@@ -1540,7 +1540,7 @@ public class DBUtils {
     /**
      * Extract the measured results for a substance in an experiment.
      * <p/>
-     * The identifier will usually be obtained via {@link #getExperimentData(Long, int, int)} using the
+     * The identifier will usually be obtained via {@link #getExperimentData(Long, int, int, String)} using the
      * experiment identifier (bard_expt_id).
      * <p/>
      * This method returns an {@link ExperimentData} object that contains the high level summary of the
@@ -2787,22 +2787,30 @@ public class DBUtils {
      * @throws SQLException
      */
     public List<String> getExperimentDataIds
-        (Long bardExptId, int skip, int top) throws SQLException {
+    (Long bardExptId, int skip, int top, String filter) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
 
-        String cacheKey = bardExptId + "#" + skip + "#" + top;
-        Cache cache = getCache ("ExperimentDataIdsCache");
+        String cacheKey = bardExptId + "#" + skip + "#" + top + "#" + filter;
+        Cache cache = getCache("ExperimentDataIdsCache");
         try {
-            List<String> value = (List) getCacheValue (cache, cacheKey);
+            List<String> value = (List) getCacheValue(cache, cacheKey);
             if (value != null) {
                 return value;
             }
+        } catch (ClassCastException ex) {
         }
-        catch (ClassCastException ex) {}
 
         String limitClause = generateLimitClause(skip, top);
+
+        String filterClause = "";
+        if (filter != null) {
+            if (filter.toLowerCase().equals("active")) filterClause = " and outcome = 2 ";
+            else if (filter.toLowerCase().equals("inactive")) filterClause = " and outcome = 1 ";
+        }
+
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? order by id " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? "+
+                filterClause+" order by id " + limitClause);
         try {
             pst.setLong(1, bardExptId);
             ResultSet rs = pst.executeQuery();
@@ -2849,10 +2857,10 @@ public class DBUtils {
      * @throws SQLException
      */
     public List<ExperimentData> getExperimentData
-        (Long bardExptId, int skip, int top) throws SQLException, IOException {
+        (Long bardExptId, int skip, int top, String filter) throws SQLException, IOException {
         if (bardExptId == null || bardExptId < 0) return null;
 
-        String cacheKey = bardExptId + "#" + skip + "#" + top;
+        String cacheKey = bardExptId + "#" + skip + "#" + top + "#" + filter;
         Cache cache = getCache ("ExperimentDataCache");
         try {
             List<ExperimentData> value = getCacheValue (cache, cacheKey);
@@ -2863,8 +2871,16 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         String limitClause = generateLimitClause(skip, top);
+
+        String filterClause = "";
+        if (filter != null) {
+            if (filter.toLowerCase().equals("active")) filterClause = " and outcome = 2 ";
+            else if (filter.toLowerCase().equals("inactive")) filterClause = " and outcome = 1 ";
+        }
+
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? order by score desc, bard_expt_id, sid " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? "+
+                filterClause+" order by score desc, bard_expt_id, sid " + limitClause);
         try {
             pst.setLong(1, bardExptId);
             List<ExperimentData> ret = getExperimentData(pst);
@@ -2921,11 +2937,11 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<String> getSubstanceDataIds(Long sid, int skip, int top)
+    public List<String> getSubstanceDataIds(Long sid, int skip, int top, String filter)
         throws SQLException {
         if (sid == null || sid < 0) return null;
 
-        String cacheKey = sid + "#" + skip + "#" + top;
+        String cacheKey = sid + "#" + skip + "#" + top + "#" + filter;
         Cache cache = getCache ("SubstanceDataIdsCache");
         try {
             List<String> value = getCacheValue (cache, cacheKey);
@@ -2936,8 +2952,16 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         String limitClause = generateLimitClause(skip, top);
+
+        String filterClause = "";
+        if (filter != null) {
+            if (filter.toLowerCase().equals("active")) filterClause = " and outcome = 2 ";
+            else if (filter.toLowerCase().equals("inactive")) filterClause = " and outcome = 1 ";
+        }
+
+
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? " + filterClause +" order by classification desc, score desc " + limitClause);
         try {
             pst.setLong(1, sid);
             ResultSet rs = pst.executeQuery();
@@ -3013,10 +3037,10 @@ public class DBUtils {
      * @throws SQLException
      */
     public List<ExperimentData> getSubstanceData
-        (Long sid, int skip, int top) throws SQLException, IOException {
+        (Long sid, int skip, int top, String filter) throws SQLException, IOException {
         if (sid == null || sid < 0) return null;
 
-        String cacheKey = sid + "#" + skip + "#" + top;
+        String cacheKey = sid + "#" + skip + "#" + top + "#" + filter;
         Cache cache = getCache ("SubstanceDataCache");
         try {
             List<ExperimentData> value = getCacheValue (cache, cacheKey);
@@ -3027,8 +3051,16 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         String limitClause = generateLimitClause(skip, top);
+
+        String filterClause = "";
+        if (filter != null) {
+            if (filter.toLowerCase().equals("active")) filterClause = " and outcome = 2 ";
+            else if (filter.toLowerCase().equals("inactive")) filterClause = " and outcome = 1 ";
+        }
+
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? " +
+                filterClause+" order by classification desc, score desc " + limitClause);
         try {
             pst.setLong(1, sid);
             ResultSet rs = pst.executeQuery();
@@ -3054,11 +3086,11 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
-    public List<String> getCompoundDataIds(Long cid, int skip, int top)
+    public List<String> getCompoundDataIds(Long cid, int skip, int top, String filter)
         throws SQLException {
         if (cid == null || cid < 0) return null;
 
-        String cacheKey = cid + "#" + skip + "#" + top;
+        String cacheKey = cid + "#" + skip + "#" + top + "#" + filter;
         Cache cache = getCache ("CompoundDataIdsCache");
         try {
             List<String> value = getCacheValue (cache, cacheKey);
@@ -3069,8 +3101,15 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         String limitClause = generateLimitClause(skip, top);
+
+        String filterClause = "";
+        if (filter != null) {
+            if (filter.toLowerCase().equals("active")) filterClause = " and outcome = 2 ";
+            else if (filter.toLowerCase().equals("inactive")) filterClause = " and outcome = 1 ";
+        }
+
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where cid = ? order by classification desc, score desc " + limitClause);
+        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where cid = ? "+ filterClause + " order by classification desc, score desc " + limitClause);
         try {
             pst.setLong(1, cid);
             ResultSet rs = pst.executeQuery();

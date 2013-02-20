@@ -1060,7 +1060,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         if (top == null) top = -1;
 
         try {
-            List<String> edids = db.getCompoundDataIds(Long.valueOf(resourceId), skip, top);
+            List<String> edids = db.getCompoundDataIds(Long.valueOf(resourceId), skip, top, filter);
 
 //            // set up skip and top params
 //            if (experiemnt.getSubstances() > BARDConstants.MAX_DATA_COUNT) {
@@ -1089,7 +1089,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                     json = Util.toJson(linkedEntity);
                 }
             } else {
-                List<ExperimentData> data = db.getEntitiesByCid(Long.valueOf(resourceId), ExperimentData.class, skip, top);
+                List<ExperimentData> data = db.getExperimentDataByDataId(edids);
                 if (countRequested) json = String.valueOf(data.size());
                 else {
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(data, linkString);

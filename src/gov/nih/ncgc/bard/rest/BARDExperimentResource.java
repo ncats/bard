@@ -4,13 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.util.functional.Functional;
@@ -18,15 +12,7 @@ import gov.nih.ncgc.util.functional.IApplyFunction;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -445,6 +431,7 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
         if (top == null) top = -1;
 
         try {
+
             Experiment experiemnt = db.getExperimentByExptId(Long.valueOf(resourceId));
 
             // set up skip and top params
@@ -453,15 +440,22 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
                     top = BARDConstants.MAX_DATA_COUNT;
                 }
                 if (skip == -1) skip = 0;
+
                 String expandClause = "expand=false";
                 if (expandEntries) expandClause = "expand=true";
+
+                String filterClause = "";
+                if (filter != null) filterClause = "filter=" + filter;
                 if (skip + top <= experiemnt.getSubstances())
-                    linkString = BARDConstants.API_BASE + "/experiments/" + resourceId + "/exptdata?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
+                    linkString = BARDConstants.API_BASE + "/experiments/" + resourceId + "/exptdata?skip=" + (skip + top) +
+                            "&top=" + top +
+                            "&" + expandClause +
+                            "&" + filterClause;
             }
 
             String json;
             if (!expandEntries) {
-                List<String> edids = db.getExperimentDataIds(Long.valueOf(resourceId), skip, top);
+                List<String> edids = db.getExperimentDataIds(Long.valueOf(resourceId), skip, top, filter);
                 List<String> links = new ArrayList<String>();
                 for (String edid : edids) {
                     ExperimentData ed = new ExperimentData();
@@ -472,7 +466,7 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
                 json = Util.toJson(linkedEntity);
             } else {
                 long start = System.currentTimeMillis();
-                List<ExperimentData> data = db.getExperimentData(Long.valueOf(resourceId), skip, top);
+                List<ExperimentData> data = db.getExperimentData(Long.valueOf(resourceId), skip, top, filter);
                 long end = System.currentTimeMillis();
                 double dbQueryTime = (end - start) / 1000.0;
 
