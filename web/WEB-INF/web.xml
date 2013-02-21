@@ -22,19 +22,19 @@
     <!-- Specify the Solr cores we should use for full text search -->
     <context-param>
         <param-name>core-name-assay</param-name>
-        <param-value>/core-assay-v13/</param-value>
+        <param-value>/core-assay-v14/</param-value>
     </context-param>
     <context-param>
         <param-name>core-name-project</param-name>
-        <param-value>/core-project-v13/</param-value>
+        <param-value>/core-project-v14/</param-value>
     </context-param>
     <context-param>
         <param-name>core-name-compound</param-name>
-        <param-value>/core-compound-v13/</param-value>
+        <param-value>/core-compound-v14/</param-value>
     </context-param>
     <context-param>
         <param-name>core-name-experiment</param-name>
-        <param-value>/core-experiment-v13/</param-value>
+        <param-value>/core-experiment-v14/</param-value>
     </context-param>
 
 
