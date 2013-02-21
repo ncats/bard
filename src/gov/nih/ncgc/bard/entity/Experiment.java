@@ -13,7 +13,7 @@ import java.util.List;
  */
 public class Experiment implements BardEntity {
     Long bardExptId, capExptId, bardAssayId, capAssayId, pubchemAid;
-    int category, type, summary, assays, classification, substances, compounds;
+    int category, type, summary, assays, classification, substances, compounds, activeCompounds;
     String name, description, source, grantNo;
     Date deposited, updated;
     Boolean hasProbe;
@@ -21,6 +21,14 @@ public class Experiment implements BardEntity {
     
     public Experiment() {
     	projectIdList = new ArrayList<Long>();
+    }
+
+    public int getActiveCompounds() {
+        return activeCompounds;
+    }
+
+    public void setActiveCompounds(int activeCompounds) {
+        this.activeCompounds = activeCompounds;
     }
 
     public Long getCapAssayId() {

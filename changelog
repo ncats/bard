@@ -57,3 +57,4 @@ v14 released
 	      Added cap project id to probeid JSON response
 	      Implemented filter=ARG for /exptdata subresources (/compound/{cid}/exptdata, /substance/{sid}/exptdata, /experiment/{eid}/exptdata)
 	      where ARG = active|inactive to return active or inactive results repsectively
+02/21/13      Added count of active cmpds to expt resource
