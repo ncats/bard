@@ -59,3 +59,4 @@ v14 released
 	      where ARG = active|inactive to return active or inactive results repsectively
 02/21/13      Added count of active cmpds to expt resource
 02/22/13      Removed aid field from assay JSON
+	      Added support for a schema resource, only for top level resources at this point (/foo/_schema)

@@ -305,4 +305,11 @@ public abstract class BARDResource<T extends BardEntity>
     protected void warning(String mesg) {
         logger.warning(mesg);
     }
+
+    @GET
+    @Path("/_schema")
+    public Response getSchema() {
+        throw new WebApplicationException
+                (new UnsupportedOperationException(), 500);
+    }
 }
