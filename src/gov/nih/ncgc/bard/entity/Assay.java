@@ -16,7 +16,7 @@ import java.util.Map;
 public class Assay implements BardEntity {
     Long bardAssayId, capAssayId;
     int category, type, summary, assays, classification;
-    String name, source, grantNo, title;
+    String name, source, grantNo, title, designedBy;
     Date deposited, updated;
 
     List<Long> documents;
@@ -31,6 +31,14 @@ public class Assay implements BardEntity {
 
     @JsonIgnore
     List<String> gobp_id, gobp_term, gomf_term, gomf_id, gocc_id, gocc_term, av_dict_label, ak_dict_label;
+
+    public String getDesignedBy() {
+        return designedBy;
+    }
+
+    public void setDesignedBy(String designedBy) {
+        this.designedBy = designedBy;
+    }
 
     public String getTitle() {
         return title;
