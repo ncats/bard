@@ -234,6 +234,8 @@ public class BARDAssayResource extends BARDResource<Assay> {
     @GET
     @Path("/{aid}")
     public Response getResources(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+        if (!Util.isNumber(resourceId)) throw new WebApplicationException(400);
+
         DBUtils db = new DBUtils();
         Assay a;
         try {
@@ -444,6 +446,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     @GET
     @Path("/{aid}/targets")
     public Response getAssayTargets(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+        if (!Util.isNumber(resourceId)) throw new WebApplicationException(400);
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
@@ -484,6 +487,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     @GET
     @Path("/{aid}/documents")
     public Response getAssayPublications(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+        if (!Util.isNumber(resourceId)) throw new WebApplicationException(400);
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
@@ -550,6 +554,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     @GET
     @Path("/{aid}/experiments")
     public Response getAssayExperiments(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+        if (!Util.isNumber(resourceId)) throw new WebApplicationException(400);
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
@@ -592,6 +597,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
                                       @QueryParam("expand") String expand,
                                       @QueryParam("skip") Integer skip,
                                       @QueryParam("top") Integer top) {
+        if (!Util.isNumber(resourceId)) throw new WebApplicationException(400);
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
@@ -666,6 +672,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
                                        @QueryParam("expand") String expand,
                                        @QueryParam("skip") Integer skip,
                                        @QueryParam("top") Integer top) {
+        if (!Util.isNumber(resourceId)) throw new WebApplicationException(400);
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
@@ -739,6 +746,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     public Response getAssayExperiment(@PathParam("aid") String aid,
                                        @PathParam("eid") String eid,
                                        @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+        if (!Util.isNumber(aid)) throw new WebApplicationException(400);
         Experiment e = new Experiment();
         e.setBardExptId(Long.parseLong(eid));
         UriBuilder ub = UriBuilder.fromUri("/experiments/" + eid);
