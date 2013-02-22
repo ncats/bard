@@ -14,7 +14,7 @@ import java.util.Map;
  * @author Rajarshi Guha
  */
 public class Assay implements BardEntity {
-    Long aid, bardAssayId, capAssayId;
+    Long bardAssayId, capAssayId;
     int category, type, summary, assays, classification;
     String name, source, grantNo, title;
     Date deposited, updated;
@@ -150,14 +150,6 @@ public class Assay implements BardEntity {
 
     public void setComments(String comments) {
         this.comments = comments;
-    }
-
-    public Long getAid() {
-        return aid;
-    }
-
-    public void setAid(Long aid) {
-        this.aid = aid;
     }
 
     public Long getBardAssayId() {

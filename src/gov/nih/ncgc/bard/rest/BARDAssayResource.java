@@ -238,7 +238,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
         Assay a;
         try {
             a = db.getAssayByAid(Long.valueOf(resourceId));
-            if (a == null || a.getAid() == null) throw new WebApplicationException(404);
+            if (a == null || a.getBardAssayId() == null) throw new WebApplicationException(404);
 
             JsonNode node;
             if (expand != null && expand.toLowerCase().trim().equals("true")) { // expand experiment and project entries

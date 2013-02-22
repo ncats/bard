@@ -1190,7 +1190,7 @@ public class DBUtils {
                 }
 
                 // disease facet
-                PreparedStatement pst2 = conn.prepareStatement("select disease_category from bard_assay a, kegg_gene2disease b, assay_target c where a.bard_assay_id = ? and a.pubchem_aid=c.aid and c.gene_id=b.gene_id");
+                PreparedStatement pst2 = conn.prepareStatement("select disease_category from bard_assay a, kegg_gene2disease b, assay_target c where a.bard_assay_id = ? and a.bard_assay_id=c.bard_assay_id and c.gene_id=b.gene_id");
                 pst2.setLong(1, bardAssayId);
                 ResultSet rs2 = pst2.executeQuery();
                 while (rs2.next()) {
@@ -2123,8 +2123,6 @@ public class DBUtils {
 
     Assay getAssay (ResultSet rs) throws SQLException {
         Assay a = new Assay();
-        long aid = rs.getLong("pubchem_aid");
-        a.setAid(aid);
 
         Long capAssayId = rs.getLong("cap_assay_id");
         a.setCapAssayId(capAssayId);
@@ -4571,7 +4569,7 @@ public class DBUtils {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity_id = ?");
         PreparedStatement gopst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and implied = 0 order by go_type");
-        PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from bard_assay a, kegg_gene2disease b, assay_target c where a.bard_assay_id = ? and a.pubchem_aid = c.aid and c.gene_id = b.gene_id");
+        PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from bard_assay a, kegg_gene2disease b, assay_target c where a.bard_assay_id = ? and a.bard_assay_id = c.bard_assay_id and c.gene_id = b.gene_id");
         try {
             pst.setLong(1, bardAssayId);
             ResultSet rs = pst.executeQuery();

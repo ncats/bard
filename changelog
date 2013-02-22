@@ -58,3 +58,4 @@ v14 released
 	      Implemented filter=ARG for /exptdata subresources (/compound/{cid}/exptdata, /substance/{sid}/exptdata, /experiment/{eid}/exptdata)
 	      where ARG = active|inactive to return active or inactive results repsectively
 02/21/13      Added count of active cmpds to expt resource
+02/22/13      Removed aid field from assay JSON
