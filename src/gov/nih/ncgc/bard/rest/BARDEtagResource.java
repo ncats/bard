@@ -1,15 +1,15 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.ETag;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -30,8 +30,8 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
         return ETag.class;
     }
 
-    public String getResourceBase () {
-        return BARDConstants.API_BASE+"/etags";
+    public String getResourceBase() {
+        return BARDConstants.API_BASE + "/etags";
     }
 
     @GET
@@ -102,7 +102,8 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
         DBUtils db = new DBUtils();
         try {
             ETag etag = db.getEtagByEtagId(etagId);
-            if (etag.getName() == null) return Response.status(404).entity("No such etag " + etagId).type("text/plain").build();
+            if (etag.getName() == null)
+                return Response.status(404).entity("No such etag " + etagId).type("text/plain").build();
             return Response.ok(Util.toJson(etag), MediaType.APPLICATION_JSON).build();
         } catch (Exception ex) {
             throw new WebApplicationException(ex, 500);
@@ -115,20 +116,64 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
         }
     }
 
+    // recurse through a composite etag - this assumes we want expanded entries
+    private JsonNode recurseCompositeEtag(ETag etag, DBUtils db, Integer skip, Integer top) throws SQLException {
+        ObjectMapper mapper = new ObjectMapper();
+        ArrayNode nodes = mapper.createArrayNode();
+        for (ETag child : etag.getLinkedTags()) {
+            String type = child.getType().substring(child.getType().lastIndexOf(".") + 1).toLowerCase() + "s";
+            ObjectNode onode = mapper.createObjectNode();
+            onode.put("etag", child.getEtag());
+            onode.put("type", type);
+
+            if (!type.equals("etags")) {
+                List entities = db.getEntitiesByEtag(child.getEtag(), skip != null ? skip : -1, top != null ? top : -1);
+                onode.put("entities", mapper.valueToTree(entities));
+            } else {
+                JsonNode rnode = recurseCompositeEtag(child, db, skip, top);
+                onode.put("entities", rnode);
+            }
+            nodes.add(onode);
+        }
+        return nodes;
+    }
+
     @GET
     @Path("/{etag}")
-    public Response getEtag(@PathParam("etag") String etagId, 
-                            @QueryParam("skip") Integer skip, 
-                            @QueryParam("top") Integer top) {
+    public Response getEtag(@PathParam("etag") String etagId,
+                            @QueryParam("skip") Integer skip,
+                            @QueryParam("top") Integer top,
+                            @QueryParam("expand") String expand) {
+        boolean expandEntries = expand != null && expand.toLowerCase().equals("true");
+
         DBUtils db = new DBUtils();
         try {
             ETag etag = db.getEtagByEtagId(etagId);
-            List entities = db.getEntitiesByEtag
-                (etag.getEtag(), skip != null ? skip : -1, 
-                 top != null ? top : -1);
-            if (entities == null || entities.size() == 0)
-                return Response.status(404).entity("No objects associated with etag " + etagId).type("text/plain").build();
-            return Response.ok(Util.toJson(entities), MediaType.APPLICATION_JSON).build();
+            if (etag.getType().equals(ETag.class.getCanonicalName())) {
+                // this is a composite etag, so we just need to deal with linked etags
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode nodes;
+                if (expandEntries)
+                    nodes = recurseCompositeEtag(etag, db, skip, top);
+                else {
+                    nodes = mapper.createArrayNode();
+                    for (ETag child : etag.getLinkedTags()) {
+                        String type = child.getType().substring(child.getType().lastIndexOf(".") + 1).toLowerCase() + "s";
+                        ObjectNode onode = mapper.createObjectNode();
+                        onode.put("etag", child.getEtag());
+                        onode.put("type", type);
+                        ((ArrayNode) nodes).add(onode);
+                    }
+                }
+                return Response.ok(mapper.writeValueAsString(nodes), MediaType.APPLICATION_JSON).build();
+            } else {
+                List entities = db.getEntitiesByEtag
+                        (etag.getEtag(), skip != null ? skip : -1,
+                                top != null ? top : -1);
+                if (entities == null || entities.size() == 0)
+                    return Response.status(404).entity("No objects associated with etag " + etagId).type("text/plain").build();
+                return Response.ok(Util.toJson(entities), MediaType.APPLICATION_JSON).build();
+            }
         } catch (Exception ex) {
             throw new WebApplicationException(ex, 500);
         } finally {
@@ -147,16 +192,13 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
         try {
             ETag etag = db.getEtagByEtagId(etagId);
             return Response.ok
-                (Util.toJson(etag), MediaType.APPLICATION_JSON).build();
-        }
-        catch (Exception ex) {
+                    (Util.toJson(etag), MediaType.APPLICATION_JSON).build();
+        } catch (Exception ex) {
             throw new WebApplicationException(ex, 500);
-        }
-        finally {
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
             }
         }
     }

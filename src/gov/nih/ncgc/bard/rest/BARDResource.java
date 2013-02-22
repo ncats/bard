@@ -184,7 +184,8 @@ public abstract class BARDResource<T extends BardEntity>
     @Path("/etag")
     @Consumes("application/x-www-form-urlencoded")
     public Response createETag(@FormParam("name") String name,
-                               @FormParam("ids") String ids) {
+                               @FormParam("ids") String ids,
+                               @FormParam("etagids") String etagids) {
         DBUtils db = new DBUtils();
         try {
             if (name == null) {
@@ -211,6 +212,12 @@ public abstract class BARDResource<T extends BardEntity>
                 log("** New ETag: " + etag.getValue() + " \"" + name + "\"");
             }
 
+            if (etagids != null) {
+                for (String anEtag : etagids.split(",")) {
+                    db.createETagLinks(anEtag.trim(), etag.getValue());
+                }
+            }
+
             return Response.ok().tag(etag).build();
         } catch (Exception ex) {
             throw new WebApplicationException(ex, 500);
@@ -227,7 +234,8 @@ public abstract class BARDResource<T extends BardEntity>
     @Path("/etag/{etag}")
     @Consumes("application/x-www-form-urlencoded")
     public Response putETag(@PathParam("etag") String etag,
-                            @FormParam("ids") String ids) {
+                            @FormParam("ids") String ids,
+                            @FormParam("etagids") String etagids) {
         DBUtils db = new DBUtils();
         try {
             if (ids == null) {
@@ -252,6 +260,13 @@ public abstract class BARDResource<T extends BardEntity>
             }
             int cnt = db.putETag(etag, list.toArray(new Long[0]));
             log("** put ETag: " + etag + " " + cnt);
+
+            if (etagids != null) {
+                for (String anEtag : etagids.split(",")) {
+                    db.createETagLinks(anEtag.trim(), etag);
+                }
+            }
+
 
             return Response.ok(String.valueOf(cnt), "text/plain")
                     .tag(etag).build();

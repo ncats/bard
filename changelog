@@ -60,4 +60,5 @@ v14 released
 02/21/13      Added count of active cmpds to expt resource
 02/22/13      Removed aid field from assay JSON and added the designed_by field
 	      Added support for a schema resource, only for top level resources at this point (/foo/_schema)
-	      
+	      Added support composite etags. Display of composite etags will expand them recursively if expand=true. Only accessible via /etags/{etag}
+	      Composite etags can be modified via PUT /etags/{etag} 
