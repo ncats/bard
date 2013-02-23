@@ -710,7 +710,10 @@ public class DBUtils {
         }
     }
 
-    public int putETag (String etag, Long... ids) throws SQLException {
+    public int putETag(String etag, Long... ids) throws SQLException {
+        return putETag(etag, null, ids);
+    }
+    public int putETag (String etag, String name,  Long... ids) throws SQLException {
         int cnt = 0;
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
@@ -731,6 +734,15 @@ public class DBUtils {
             }
             rs.close();
             pst.close();
+
+            if (name != null) {
+                pst = conn.prepareStatement("update etag set name = ?, modified = ? where etag_id = ?");
+                pst.setString(1, name);
+                pst.setTimestamp(2, new java.sql.Timestamp(new java.util.Date().getTime()));
+                pst.setString(3, etag);
+                pst.executeUpdate();
+                pst.close();
+            }
 
             cnt = size;
             pst = conn.prepareStatement

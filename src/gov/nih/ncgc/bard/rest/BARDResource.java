@@ -235,6 +235,7 @@ public abstract class BARDResource<T extends BardEntity>
     @Path("/etag/{etag}")
     @Consumes("application/x-www-form-urlencoded")
     public Response putETag(@PathParam("etag") String etag,
+                            @FormParam("name") String name,
                             @FormParam("ids") String ids,
                             @FormParam("etagids") String etagids) {
         DBUtils db = new DBUtils();
@@ -259,7 +260,7 @@ public abstract class BARDResource<T extends BardEntity>
                 } catch (NumberFormatException ex) {
                 }
             }
-            int cnt = db.putETag(etag, list.toArray(new Long[0]));
+            int cnt = db.putETag(etag, name,  list.toArray(new Long[0]));
             log("** put ETag: " + etag + " " + cnt);
 
             if (etagids != null) {
