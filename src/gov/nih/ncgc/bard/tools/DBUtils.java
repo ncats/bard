@@ -2152,7 +2152,7 @@ public class DBUtils {
         a.setDescription(rs.getString("description"));
         a.setName(rs.getString("name"));
         a.setSource(rs.getString("source"));
-        a.setDesignedBy(rs.getString("designed_"));
+        a.setDesignedBy(rs.getString("designed_by"));
         a.setUpdated(rs.getDate("updated"));
         a.setComments(rs.getString("comment"));
         a.setProtocol(rs.getString("protocol"));
