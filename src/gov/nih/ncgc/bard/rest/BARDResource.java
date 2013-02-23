@@ -184,6 +184,7 @@ public abstract class BARDResource<T extends BardEntity>
     @Path("/etag")
     @Consumes("application/x-www-form-urlencoded")
     public Response createETag(@FormParam("name") String name,
+                               @FormParam("url") String url,
                                @FormParam("ids") String ids,
                                @FormParam("etagids") String etagids) {
         DBUtils db = new DBUtils();
@@ -194,7 +195,7 @@ public abstract class BARDResource<T extends BardEntity>
             }
 
             EntityTag etag = new EntityTag
-                    (db.newETag(name, getEntityClass().getName()));
+                    (db.newETag(name, url, getEntityClass().getName()));
 
             if (ids != null) {
                 List<Long> list = new ArrayList<Long>();

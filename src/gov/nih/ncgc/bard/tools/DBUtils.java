@@ -628,16 +628,19 @@ public class DBUtils {
         return cmpds;
     }
 
-
     public String newETag(String name, String clazz) throws SQLException {
+        return newETag(name, null, clazz);
+    }
+
+    public String newETag(String name, String url, String clazz) throws SQLException {
         if (clazz == null) {
             throw new IllegalArgumentException("Please specify the class!");
         }
 
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
-            ("insert into etag(etag_id,name,type,created,modified) "
-             + "values (?,?,?,?,?)");
+            ("insert into etag(etag_id,name,type,created,modified,url) "
+             + "values (?,?,?,?,?,?)");
         try {
             String etag = null;
             int tries = 0;
@@ -654,6 +657,7 @@ public class DBUtils {
                         (new java.util.Date().getTime());
                     pst.setTimestamp(4, ts);
                     pst.setTimestamp(5, ts);
+                    pst.setString(6, url);
 
                     if (pst.executeUpdate() > 0) {
                     } else {
@@ -832,6 +836,7 @@ public class DBUtils {
                 etag.setCreated(rs.getDate("created"));
                 etag.setModified(rs.getDate("modified"));
                 etag.setCount(rs.getInt("cnt"));
+                etag.setUrl(rs.getString("url"));
             }
             rs.close();
 

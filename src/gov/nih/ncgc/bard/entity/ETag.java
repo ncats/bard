@@ -12,7 +12,7 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class ETag implements BardEntity {
-    private String etag = null, name, type;
+    private String etag = null, name, type, url;
     private Date accessed, created, modified;
     private int count;
     private List<ETag> linkedTags = new ArrayList<ETag>();
@@ -48,6 +48,14 @@ public class ETag implements BardEntity {
      * @param resourcePath the resource path for this entity
      */
     public void setResourcePath(String resourcePath) {
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public int getCount() {
