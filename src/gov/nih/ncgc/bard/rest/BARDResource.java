@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsonschema.JsonSchema;
 import gov.nih.ncgc.bard.entity.BardEntity;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
@@ -10,6 +13,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -326,7 +330,16 @@ public abstract class BARDResource<T extends BardEntity>
     @GET
     @Path("/_schema")
     public Response getSchema() {
-        throw new WebApplicationException
-                (new UnsupportedOperationException(), 500);
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonSchema schema = mapper.generateJsonSchema(getEntityClass());
+            return Response.ok(schema.toString()).build();
+        } catch (JsonMappingException e) {
+            e.printStackTrace();
+            throw new WebApplicationException(500);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new WebApplicationException(500);
+        }
     }
 }
