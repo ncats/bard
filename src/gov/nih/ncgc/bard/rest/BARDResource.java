@@ -330,11 +330,12 @@ public abstract class BARDResource<T extends BardEntity>
 
     @GET
     @Path("/_schema")
+    @Produces(MediaType.APPLICATION_JSON)
     public Response getSchema() {
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode schemaNode = JsonUtil.getJsonSchema(getEntityClass());
-            return Response.ok(mapper.writeValueAsString(schemaNode)).build();
+            return Response.ok(mapper.writeValueAsString(schemaNode)).type(MediaType.APPLICATION_JSON_TYPE).build();
         } catch (JsonMappingException e) {
             e.printStackTrace();
             throw new WebApplicationException(500);
