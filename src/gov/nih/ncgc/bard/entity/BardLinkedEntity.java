@@ -1,5 +1,7 @@
 package gov.nih.ncgc.bard.entity;
 
+import gov.nih.ncgc.bard.tools.BARDJsonRequired;
+
 /**
  * A simple container to enclose a collection of resources plus a link to the next collection.
  * <p/>
@@ -9,6 +11,8 @@ package gov.nih.ncgc.bard.entity;
  */
 public class BardLinkedEntity {
     Object collection;
+
+    @BARDJsonRequired
     String link;
 
     public BardLinkedEntity(Object collection, String link) {

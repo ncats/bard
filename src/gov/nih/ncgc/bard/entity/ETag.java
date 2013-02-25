@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.entity;
 
 import gov.nih.ncgc.bard.rest.BARDConstants;
+import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -12,7 +13,11 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class ETag implements BardEntity {
-    private String etag = null, name, type, url;
+
+    @BARDJsonRequired
+    private String etag = null;
+
+    String name, type, url;
     private Date accessed, created, modified;
     private int count;
     private List<ETag> linkedTags = new ArrayList<ETag>();

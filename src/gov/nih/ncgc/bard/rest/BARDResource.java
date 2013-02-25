@@ -1,9 +1,12 @@
 package gov.nih.ncgc.bard.rest;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsonschema.JsonSchema;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.entity.BardEntity;
+import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -14,6 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -332,8 +336,23 @@ public abstract class BARDResource<T extends BardEntity>
     public Response getSchema() {
         ObjectMapper mapper = new ObjectMapper();
         try {
-            JsonSchema schema = mapper.generateJsonSchema(getEntityClass());
-            return Response.ok(schema.toString()).build();
+            Class klass = getEntityClass();
+            JsonSchema schema = mapper.generateJsonSchema(klass);
+            JsonNode schemaRootNode = schema.getSchemaNode();
+
+            // lets examine the class to see if any fields were marked
+            // with @BARDJsonRequired and if so include a 'required' field
+            // in the schema
+            List<String> requiredFieldNames = new ArrayList<String>();
+            for (Field field : klass.getDeclaredFields()) {
+                if (field.isAnnotationPresent(BARDJsonRequired.class))
+                    requiredFieldNames.add(field.getName());
+            }
+            if (requiredFieldNames.size() > 0) {
+                ((ObjectNode) schemaRootNode).put("required", mapper.valueToTree(requiredFieldNames));
+            }
+
+            return Response.ok(mapper.writeValueAsString(schemaRootNode)).build();
         } catch (JsonMappingException e) {
             e.printStackTrace();
             throw new WebApplicationException(500);

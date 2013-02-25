@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
+import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
 import java.sql.Date;
 import java.util.HashMap;
@@ -14,7 +15,11 @@ import java.util.Map;
  * @author Rajarshi Guha
  */
 public class Assay implements BardEntity {
-    Long bardAssayId, capAssayId;
+
+    @BARDJsonRequired
+    Long bardAssayId;
+
+    Long capAssayId;
     int category, type, summary, assays, classification;
     String name, source, grantNo, title, designedBy;
     Date deposited, updated;

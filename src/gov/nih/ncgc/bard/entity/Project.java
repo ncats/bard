@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
+import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
 import java.sql.Date;
 import java.util.ArrayList;
@@ -23,7 +24,10 @@ public class Project implements BardEntity {
      * <p/>
      * Currently the AID of the summary assay.
      */
-    Long bardProjectId, capProjectId;
+    @BARDJsonRequired
+    Long bardProjectId;
+
+    Long capProjectId;
 
 
     int category, type, classification;

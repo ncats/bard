@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
+import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -14,7 +15,10 @@ import java.util.Date;
  * @author Rajarshi Guha
  */
 public class Substance implements BardEntity {
+
+    @BARDJsonRequired
     Long sid = null;
+
     Long cid;
 
     String depRegId, sourceName, url;

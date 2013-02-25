@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
+import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -13,7 +14,11 @@ import java.io.Writer;
  * @author Rajarshi Guha
  */
 public class ProteinTarget implements BardEntity {
-    String acc, name, description, status, url;
+
+    @BARDJsonRequired
+    String acc;
+
+    String name, description, status, url;
     Long geneId, taxId;
 
     public ProteinTarget(String acc, String name, String description, String status, Long geneId, Long taxId) {

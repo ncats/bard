@@ -5,6 +5,7 @@ import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
+import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
 import java.sql.Date;
 import java.util.ArrayList;
@@ -18,7 +19,10 @@ import java.util.regex.Pattern;
  * @author Rajarshi Guha
  */
 public class ExperimentData implements BardEntity {
+
+    @BARDJsonRequired
     String exptDataId;
+
     Long eid, cid, sid;
     Long bardExptId, bardAssayId;
     Long capExptId, capAssayId;

@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.entity;
 
 import gov.nih.ncgc.bard.rest.BARDConstants;
+import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
 import java.sql.Date;
 import java.util.ArrayList;
@@ -12,7 +13,11 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Experiment implements BardEntity {
-    Long bardExptId, capExptId, bardAssayId, capAssayId, pubchemAid;
+
+    @BARDJsonRequired
+    Long bardExptId;
+
+    Long capExptId, bardAssayId, capAssayId, pubchemAid;
     int category, type, summary, assays, classification, substances, compounds, activeCompounds;
     String name, description, source, grantNo;
     Date deposited, updated;

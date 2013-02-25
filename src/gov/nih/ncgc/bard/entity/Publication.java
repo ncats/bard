@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.entity;
 
 import gov.nih.ncgc.bard.rest.BARDConstants;
+import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
 /**
  * Represents a publication.
@@ -12,6 +13,8 @@ import gov.nih.ncgc.bard.rest.BARDConstants;
  */
 public class Publication implements BardEntity {
     String title, doi, abs;
+
+    @BARDJsonRequired
     Long pubmedId;
 
     public Publication() {
