@@ -50,8 +50,9 @@ public class JsonUtil {
     }
 
     static String getJsonTypeFromJavaType(Class klass) {
-        String jtype = "string";
+        String jtype = "object";
         if (klass == null) jtype = "null";
+        else if (klass.equals(String.class)) jtype = "string";
         else if (klass.equals(Boolean.class)) jtype = "boolean";
         else if (klass.equals(Integer.class)) jtype = "integer";
         else if (klass.equals(BigInteger.class)) jtype = "integer";
