@@ -3990,6 +3990,19 @@ public class DBUtils {
         //find targets, get collected bard_assay_ids, for each bard_assay_id under the project
         p.setTargets(getProjectTargets(bardProjId));
 
+        // experiment types - this can't go in Experiment, since the 'type' of the
+        // experiment depends on how it was used in a project
+        pst = conn.prepareStatement("select * from bard_project_experiment where bard_proj_id = ?");
+        try {
+            pst.setLong(1, bardProjId);
+            ResultSet rs = pst.executeQuery();
+            Map<Long, String> etypes = new HashMap<Long, String>();
+            while (rs.next()) etypes.put(rs.getLong("bard_expt_id"), rs.getString("expt_type"));
+            rs.close();
+            p.setExperimentTypes(etypes);
+        } finally {
+            pst.close();
+        }
         return p;
     }
 
