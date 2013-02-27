@@ -69,8 +69,8 @@ public class JsonUtil {
         Type keyType = mapType.getActualTypeArguments()[0];
         Type valType = mapType.getActualTypeArguments()[1];
 
-        String jsonKeyType = getJsonTypeFromJavaType(keyType.getClass());
-        String jsonValType = getJsonTypeFromJavaType(valType.getClass());
+        String jsonKeyType = getJsonTypeFromJavaType((Class) keyType);
+        String jsonValType = getJsonTypeFromJavaType((Class) valType);
 
         ObjectNode node = mapper.createObjectNode();
         node.put("type", "array");
