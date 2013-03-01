@@ -147,7 +147,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             processTargets(project);
 
             // load expts
-//            processExperiments(project, pubchemAid);
+            processExperiments(project, pubchemAid);
 
             // handle project steps and include anny anno's we get from this
             annos.addAll(processProjectSteps(project));
