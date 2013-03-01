@@ -1561,7 +1561,6 @@ public class DBUtils {
                 List props = new ArrayList();
                 for (CAPAnnotation anno : annos) {
                     if (anno.contextRef == null || !anno.contextRef.equals("probe")) continue;
-                    if (!Util.isNumber(anno.key)) continue;
                     props.add(anno);
                 }
                 c.setProbeAnnotations(props);
