@@ -49,6 +49,9 @@ public class Compound implements BardEntity {
     // number of assays compound is tested in and is active
     Integer numActiveAssay;
 
+//    Map<String, String> probeDetails = null;
+    List probeAnnotations;
+
     @JsonIgnore
     String[] anno_val, anno_key;
 
@@ -61,6 +64,14 @@ public class Compound implements BardEntity {
     }
 
     public Compound() {
+    }
+
+    public List getProbeAnnotations() {
+        return probeAnnotations;
+    }
+
+    public void setProbeAnnotations(List probeAnnotations) {
+        this.probeAnnotations = probeAnnotations;
     }
 
     public String getCompoundClass() {

@@ -1552,6 +1552,21 @@ public class DBUtils {
         }
         c.setCompoundClass(rs.getString("compound_class"));
         if (rs.wasNull()) c.setCompoundClass(null);
+
+        if (c.getProbeId() != null) {
+            List<Project> projects = getProjectByProbeId(c.getProbeId());
+            if (projects != null && projects.size() > 0) {
+                Project p = projects.get(0);
+                List<CAPAnnotation> annos = getProjectAnnotations(p.getBardProjectId());
+                List props = new ArrayList();
+                for (CAPAnnotation anno : annos) {
+                    if (anno.contextRef == null || !anno.contextRef.equals("probe")) continue;
+                    if (!Util.isNumber(anno.key)) continue;
+                    props.add(anno);
+                }
+                c.setProbeAnnotations(props);
+            }
+        }
     }
 
     /**
@@ -4679,6 +4694,8 @@ public class DBUtils {
                 String source = rs.getString("source");
                 int displayOrder = rs.getInt("display_order");
                 String entity = rs.getString("entity");
+                String contextRef = rs.getString("context_name");
+                String url = rs.getString("url");
 
                 String related = rs.getString("related");
                 String extValueId = null;
@@ -4686,7 +4703,7 @@ public class DBUtils {
                     String[] toks = related.split("\\|");
                     if (toks.length == 2) extValueId = toks[1];
                 }
-                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, null, anno_key, anno_value, extValueId, source, null, displayOrder, entity, related);
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, contextRef, anno_key, anno_value, extValueId, source, url, displayOrder, entity, related);
                 annos.add(anno);
             }
             rs.close();
