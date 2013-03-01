@@ -154,7 +154,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
             // store the annotations we've collected
             if (annos.size() > 0) {
-                PreparedStatement pstAnnot = conn.prepareStatement("insert into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related, context_name, display_order) values (?,?,?,?,?,?,?,?,?,?,?)");
+                PreparedStatement pstAnnot = conn.prepareStatement("insert into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related, context_name, display_order, url) values (?,?,?,?,?,?,?,?,?,?,?,?)");
                 for (CAPAnnotation anno : annos) {
                     pstAnnot.setInt(1, anno.entityId); // for project this is bard_project.bardProjId, for project-step this is project_step.stepId
                     pstAnnot.setInt(2, project.getProjectId().intValue());
@@ -173,6 +173,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                     pstAnnot.setString(9, anno.related); // put into related field
                     pstAnnot.setString(10, anno.contextRef);
                     pstAnnot.setInt(11, anno.displayOrder);
+                    pstAnnot.setString(12, anno.url);
                     pstAnnot.addBatch();
                 }
                 int[] updateCounts = pstAnnot.executeBatch();
@@ -191,7 +192,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         } catch (IOException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         } catch (ParsingException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
     }
 
@@ -222,10 +223,20 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 // dict id for the annotation value
                 String valueUrl = null;
                 String value = null;
+                String extValueId = contextItemType.getExtValueId();
+
                 AbstractContextItemType.ValueId vc = contextItemType.getValueId();
                 if (vc != null) {
                     value = Util.getEntityIdFromUrl(vc.getLink().getHref());
-                    valueUrl = dict.getNode(vc.getLabel()).getExternalUrl() + contextItemType.getExtValueId();
+                    String dictUrl = dict.getNode(vc.getLabel()).getExternalUrl();
+                    if (dictUrl != null && !dictUrl.equals("null") && extValueId != null) valueUrl = dictUrl + extValueId;
+                } else {
+                    // if there is no valueId field and there is an extValueId field, we
+                    // construct the valueUrl from the key + extValueId
+                    if (extValueId != null) {
+                        CAPDictionaryElement dictNode = dict.getNode(new BigInteger(key));
+                        valueUrl = dictNode.getExternalUrl() + extValueId;
+                    }
                 }
                 String valueDisplay = contextItemType.getValueDisplay();
                 String related = null;
@@ -245,12 +256,13 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             String contextName = contextType.getContextName();
 
             ContextType.ContextItems contextItems = contextType.getContextItems();
+            if (contextItems == null) continue;
             for (ContextItemType contextItemType : contextItems.getContextItem()) {
                 AbstractContextItemType.AttributeId attr = contextItemType.getAttributeId();
                 // do some special handling to pull out target
-                if (contextName.equals("target") && attr != null && attr.getLabel().equals("gene"))
+                if (contextName.equals("target") && attr != null && attr.getLabel().contains("gene"))
                     geneIds.add(contextItemType.getExtValueId());
-                else if (contextName.equals("target") && attr != null && attr.getLabel().equals("protein"))
+                else if (contextName.equals("target") && attr != null && attr.getLabel().contains("protein"))
                     gis.add(contextItemType.getExtValueId());
             }
         }
