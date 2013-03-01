@@ -147,7 +147,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             processTargets(project);
 
             // load expts
-            processExperiments(project, pubchemAid);
+//            processExperiments(project, pubchemAid);
 
             // handle project steps and include anny anno's we get from this
             annos.addAll(processProjectSteps(project));
@@ -200,6 +200,19 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
     }
 
     void updateProbeLinks(List<CAPAnnotation> annos, Long bardProjId) {
+
+        // we'll use project targets later on, to annotate probes with targets
+        List<String> targetAccs = new ArrayList<String>();
+        try {
+            PreparedStatement targetPst = conn.prepareStatement("select accession from project_target where bard_proj_id = ?");
+            targetPst.setLong(1, bardProjId);
+            ResultSet rs = targetPst.executeQuery();
+            while (rs.next()) targetAccs.add(rs.getString(1));
+            rs.close();
+            targetPst.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
         CAPDictionary dict = CAPConstants.getDictionary();
         Map<Integer, List<CAPAnnotation>> annoGroups = groupAnnotationsByAnnoId(annos);
@@ -279,6 +292,18 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 pst.setLong(3, cid);
                 pst.executeUpdate();
                 pst.close();
+
+                // finally update the compound target table by assuming that all project targets
+                // are also probe targets
+                pst = conn.prepareStatement("insert into compound_target (cid, target_acc, evidence) values (?, ?, 'probe')");
+                for (String acc : targetAccs) {
+                    pst.setLong(1, cid);
+                    pst.setString(2, acc);
+                    pst.executeUpdate();
+                    pst.clearParameters();
+                }
+                pst.close();
+
             } catch (SQLException e) {
                 e.printStackTrace();
             }
