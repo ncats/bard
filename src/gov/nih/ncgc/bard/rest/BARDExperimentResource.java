@@ -245,6 +245,49 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
         }
     }
 
+    @GET
+    @Path("/{eid}/scaffolds")
+    public Response getExperimentScaffolds
+        (@PathParam("eid") String resourceId,
+         @QueryParam("expand") String expand,
+         @QueryParam("skip") Integer skip,
+         @QueryParam("top") Integer top,
+         @QueryParam("outcome") Integer outcome) {
+
+        DBUtils db = new DBUtils ();
+        List<Scaffold> scaffolds = null;
+        try {
+
+            if (skip == null || skip < 0) skip = 0;
+            if (top == null || top <= 0) top = 100;
+
+            scaffolds = db.getScaffoldsByExperimentId
+                (Long.parseLong(resourceId), skip, top, 
+                 outcome != null ? outcome : 0);
+
+            String json;
+            if (expand != null && (expand.toLowerCase().equals("true") 
+                                   || expand.toLowerCase().equals("yes"))) {
+                json = Util.toJson(scaffolds);
+            }
+            else {
+                List<String> links = new ArrayList<String>();
+                for (Scaffold scaf : scaffolds) 
+                    links.add(scaf.getResourcePath());
+
+                json = Util.toJson(links);
+            }
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        }
+        catch (Exception ex) {
+            throw new WebApplicationException (ex, 500);
+        }
+        finally {
+            try { db.closeConnection(); }
+            catch (Exception ex) {}
+        }
+    }
+
     // TODO right now, we don't support filtering on compounds
     @GET
     @Path("/{eid}/compounds")

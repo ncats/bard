@@ -3,6 +3,9 @@ package gov.nih.ncgc.bard.tools;
 import chemaxon.formats.MolFormatException;
 import chemaxon.formats.MolImporter;
 import chemaxon.struc.Molecule;
+import chemaxon.struc.MolAtom;
+import chemaxon.util.MolHandler;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -153,6 +156,9 @@ public class DBUtils {
         final List<String> assayFields = Arrays.asList("name", "description", "protocol", "comemnt", "source", "grant_no");
         final List<String> edFields = Arrays.asList();
         final List<String> etagFields = Arrays.asList("name", "type");
+        final List<String> scaffoldFields = Arrays.asList
+            ("acount","bcount","complexity","symmetry","instances","snr",
+             "apt","actives","activities");
 
         fieldMap = new HashMap<Class, Query>() {{
                 put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
@@ -164,6 +170,7 @@ public class DBUtils {
                 put(Assay.class, new Query(assayFields, "bard_assay_id", null, "bard_assay"));
                 put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "bard_experiment_data"));
                 put(ETag.class, new Query(etagFields, "etag_id", null, "etag", "status=1"));
+                put (Scaffold.class, new Query(scaffoldFields, "class_id", null, "bard2.compound_fragment_class"));
             }};
 
 //        conn = getConnection();
@@ -456,6 +463,244 @@ public class DBUtils {
         finally {
             pst.close();
         }
+    }
+
+
+    public List<Scaffold> getScaffoldsById (Long... ids) throws SQLException {
+        if (ids == null || ids.length < 0) return null;
+
+        Cache cache = getCache ("ScaffoldsByIdCache");
+        List<Scaffold> scaffolds = new ArrayList<Scaffold>();
+        List<Long> notcached = new ArrayList<Long>();
+
+        for (Long id : ids) {
+            Scaffold value = null;
+            try {
+                value = getCacheValue (cache, id);
+            }
+            catch (ClassCastException ex) {}
+
+            if (value != null) {
+                scaffolds.add(value);
+            }
+            else {
+                notcached.add(id);
+            }
+        }
+
+        if (!notcached.isEmpty()) {
+            if (conn == null) conn = getConnection();
+            ids = notcached.toArray(new Long[0]);
+            List<List<Long>> chunks = Util.chunk(ids, CHUNK_SIZE);
+
+            for (List<Long> chunk : chunks) {
+                String idClause = Util.join(chunk, ",");
+                String sql = 
+                    ("select *,snr*apt*log(10, instances) as scaf_score "
+                     +"from bard2.compound_fragment_class "
+                     +"where class_id in (" + idClause + ")");
+                Statement stm = conn.createStatement();
+                try {
+                    ResultSet rs = stm.executeQuery(sql);
+                    while (rs.next()) {
+                        long scafId = rs.getLong("class_id");
+                        Scaffold scaf = new Scaffold (scafId);
+
+                        fillScaffold (rs, scaf);
+                        scaffolds.add(scaf);
+
+                        cache.put(new Element (scafId, scaf));
+                    }
+                    rs.close();
+                }
+                finally {
+                    stm.close();
+                }
+            }
+        }
+
+        return scaffolds;
+    }
+
+    public List<Scaffold> getScaffoldsByCid (Long cid) throws SQLException {
+        Cache cache = getCache ("ScaffoldsByCidCache");
+
+        List<Scaffold> scaffolds = getCacheValue (cache, cid);
+        if (scaffolds != null) {
+            return scaffolds;
+        }
+
+        scaffolds = new ArrayList<Scaffold>();
+        if (conn == null) conn = getConnection ();
+        PreparedStatement pstm = conn.prepareStatement
+            // we're assuming null is returned if activities = 0
+            ("select a.*,(actives/activities)*snr*log(10, instances) as scaf_score "
+             +"from bard2.compound_fragment_class a, "
+             +"bard2.compound_fragment_instances b "
+             +"where a.class_id = b.class_id and b.cid = ? "
+             +"order by instances");
+        try {
+            pstm.setLong(1, cid);
+            ResultSet rset = pstm.executeQuery();
+            Set<Long> unique = new HashSet<Long>();
+            while (rset.next()) {
+                long scafId = rset.getLong("class_id");
+                if (!unique.contains(scafId)) {
+                    Scaffold scaf = new Scaffold (scafId);
+                    fillScaffold (rset, scaf);
+                    scaffolds.add(scaf);
+                    unique.add(scafId);
+                }
+            }
+            rset.close();
+        }
+        finally {
+            pstm.close();
+        }
+        return scaffolds;
+    }
+
+    public List<Scaffold> getScaffoldsByExperimentId 
+        (Long exptId, int skip, int top, int outcome) throws SQLException {
+        // normalize outcome outside of the supported range
+        if (outcome < 1 || outcome > 5) outcome = 0; 
+
+        Cache cache = getCache ("ScaffoldsByExperimentIdCache");
+        Object key = exptId+"::"+skip+"::"+top+"::"+outcome;
+
+        List<Scaffold> scaffolds = getCacheValue (cache, key);
+        if (scaffolds != null) {
+            return scaffolds;
+        }
+
+        StringBuilder sql = new StringBuilder 
+            ("select c.* from "
+             +"bard_experiment_data a, bard2.compound_fragment_instances b, "
+             +"bard2.compound_fragment_class c "
+             +"where " +(outcome < 1 || outcome > 5 
+                         ? "" : ("a.outcome = " + outcome+" and "))
+             +"a.bard_expt_id = ? and "
+             +"a.cid = b.cid and b.class_id = c.class_id "
+             +"order by a.score desc");
+
+        if (skip > 0 && top > 0)
+            sql.append(" limit "+skip+","+top);
+        else if (top > 0)
+            sql.append(" limit "+top);
+        else if (skip > 0)
+            sql.append(" limit "+skip+",100");
+
+        if (conn == null) conn = getConnection ();
+
+        scaffolds = new ArrayList<Scaffold>();
+        PreparedStatement pstm = conn.prepareStatement(sql.toString());
+        pstm.setLong(1, exptId);
+        try {
+            ResultSet rset = pstm.executeQuery();
+            Set<Long> unique = new HashSet<Long> ();
+            while (rset.next()) {
+                long scafId = rset.getLong("class_id");
+                if (!unique.contains(scafId)) {
+                    Scaffold scaf = new Scaffold (scafId);
+                    fillScaffold (rset, scaf);
+                    scaffolds.add(scaf);
+                    unique.add(scafId);
+                }
+            }
+            rset.close();
+        }
+        finally {
+            pstm.close();
+        }
+        
+        return scaffolds;
+    }
+
+    protected void fillScaffold (ResultSet rs, Scaffold scaf) 
+        throws SQLException {
+
+        scaf.setSmiles(rs.getString("smiles"));
+        scaf.setAtomCount(rs.getInt("acount"));
+        scaf.setBondCount(rs.getInt("bcount"));
+        scaf.setComplexity(rs.getInt("complexity"));
+        scaf.setSymmetry(rs.getInt("symmetry"));
+        if (rs.wasNull()) scaf.setSymmetry(null);
+        scaf.setSNR(rs.getDouble("snr"));
+        if (rs.wasNull()) scaf.setSNR(null);
+        scaf.setAPT(rs.getDouble("apt"));
+        if (rs.wasNull()) scaf.setAPT(null);
+        scaf.setInstances(rs.getInt("instances"));
+        if (rs.wasNull()) scaf.setInstances(null);
+        scaf.setScore(rs.getDouble("score"));
+        if (rs.wasNull()) scaf.setScore(null);
+        scaf.setActiveCount(rs.getInt("actives"));
+        if (rs.wasNull()) scaf.setActiveCount(null);
+        scaf.setActivityCount(rs.getInt("activities"));
+        if (rs.wasNull()) scaf.setActivityCount(null);
+    }
+
+    public List<Compound> getCompoundsByScafId 
+        (Long id, int skip, int top) throws SQLException {
+
+        Cache cache = getCache ("CompoundsByScafIdCache");
+        List<Compound> compounds = getCacheValue (cache, id);
+        if (compounds != null) {
+            return compounds;
+        }
+
+        if (conn == null) conn = getConnection();
+
+        StringBuilder sql = new StringBuilder 
+            ("select * from bard2.compound a, "
+             +"bard2.compound_props b, "
+             +"bard2.compound_fragment_instances c "
+             +"where c.class_id = ? and "
+             +"b.pubchem_compound_cid = a.cid and "
+             +"a.cid = c.cid order by a.cid");
+
+        if (skip >= 0 && top > 0) {
+            sql.append(" limit "+skip+","+Math.max(6, top));
+        }
+        else if (top > 0) {
+            sql.append(" limit "+Math.max(6, top));
+        }
+        
+        compounds = new ArrayList<Compound>();
+        PreparedStatement pstm = conn.prepareStatement(sql.toString());
+        pstm.setLong(1, id);
+        try {
+            ResultSet rs = pstm.executeQuery();
+            Set<Long> unique = new HashSet<Long>();
+            while (rs.next()) {
+                long cid = rs.getLong("cid");
+                if (!unique.contains(cid)) {
+                    Compound c = new Compound();
+                    c.setCid(cid);
+                    fillCompound (rs, c);
+                    
+                    String scaf = rs.getString("smiles");
+                    c.setHighlight(scaf);
+                    compounds.add(c);                
+                    c.setNumAssay(getEntityCountByCid
+                                  (c.getCid(), Assay.class));
+                    c.setNumActiveAssay(getEntityCountByActiveCid
+                                        (c.getCid(), Assay.class));
+                    cache.put(new Element (cid, c));
+                    unique.add(cid);
+                }
+            }
+            rs.close();
+
+            if (top > 0 && top < 6) {
+                // truncate it to fit the desired size
+                compounds = compounds.subList(0, top);
+            }
+        }
+        finally {
+            pstm.close();
+        }
+
+        return compounds;
     }
 
 
@@ -1554,6 +1799,72 @@ public class DBUtils {
         if (rs.wasNull()) c.setCompoundClass(null);
     }
 
+    public List<ExperimentData> getExperimentDataByScafId 
+        (long scafId, long exptId, int skip, int top) throws SQLException {
+        return getExperimentDataByScafId (scafId, exptId, skip, top, 0);
+    }
+
+    public List<ExperimentData> getExperimentDataByScafId 
+        (long scafId, long exptId, int skip, int top, int outcome)
+        throws SQLException {
+
+        // normalize outcome outside of the supported range
+        if (outcome < 1 || outcome > 5) outcome = 0; 
+
+        Cache cache = getCache ("ExperimentDataByScafIdCache");
+        Object key = scafId+"::"+exptId+"::"+skip+"::"+top+"::"+outcome;
+
+        List<ExperimentData> exptdata = getCacheValue (cache, key);
+        if (exptdata != null) {
+            return exptdata;
+        }
+
+        StringBuilder sql = new StringBuilder 
+            ("select distinct bard_expt_id,sid from "
+             +"bard_experiment_data a, bard2.compound_fragment_instances b "
+             +"where " +(outcome < 1 || outcome > 5 
+                         ? "" : ("a.outcome = " + outcome+" and "))
+             +"a.cid = b.cid and class_id = ?");
+        if (exptId > 0) {
+            sql.append(" and bard_expt_id = ?");
+        }
+        sql.append(" order by bard_expt_id, sid");
+
+        if (skip > 0 && top > 0)
+            sql.append(" limit "+skip+","+top);
+        else if (top > 0)
+            sql.append(" limit "+top);
+        else if (skip > 0)
+            sql.append(" limit "+skip+",100");
+
+        if (conn == null) conn = getConnection ();
+
+        PreparedStatement pstm = conn.prepareStatement(sql.toString());
+        pstm.setLong(1, scafId);
+        if (exptId > 0) {
+            pstm.setLong(2, exptId);
+        }
+
+        exptdata = new ArrayList<ExperimentData>();
+        try {
+            ResultSet rset = pstm.executeQuery();
+            while (rset.next()) {
+                String eid = rset.getString(1);
+                String sid = rset.getString(2);
+                ExperimentData ed = getExperimentDataByDataId (eid+"."+sid);
+                if (ed != null) {
+                    exptdata.add(ed);
+                }
+            }
+            rset.close();
+        }
+        finally {
+            pstm.close();
+        }
+
+        return exptdata;
+    }
+
     /**
      * Extract the measured results for a substance in an experiment.
      * <p/>
@@ -1609,6 +1920,7 @@ public class DBUtils {
         }
         return ed;
     }
+
 
     /**
      * Helper method to get experiment data in chunks.
@@ -4414,6 +4726,8 @@ public class DBUtils {
             else if (klass.equals(Substance.class)) entity = getSubstanceBySid((Long) id);
             else if (klass.equals(Assay.class)) entity = getAssayByAid((Long) id);
             else if (klass.equals(ETag.class)) entity = getEtagByEtagId((String) id);
+            else if (klass.equals(Scaffold.class)) 
+                entity = getScaffoldsById (Long.parseLong(id.toString()));
             if (entity != null) {
                 if (entity instanceof List) entities.addAll((Collection<T>) entity);
                 else if (entity instanceof BardEntity) entities.add((T) entity);

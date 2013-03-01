@@ -444,6 +444,28 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     }
 
     @GET
+    @Path("/{cid}/scaffolds")
+    public Response getScaffolds (@PathParam("cid") String resourceId) {
+        DBUtils db = new DBUtils ();
+        try {
+            List<Scaffold> scaffolds = 
+                db.getScaffoldsByCid(Long.parseLong(resourceId));
+            return Response.ok(Util.toJson(scaffolds), 
+                               MediaType.APPLICATION_JSON).build();
+        }
+        catch (Exception ex) {
+            throw new WebApplicationException (ex, 500);
+        }
+        finally {
+            try {
+                db.closeConnection();
+            }
+            catch (Exception ex) { ex.printStackTrace(); }
+        }
+    }
+
+
+    @GET
     @Path("/{cid}/image")
     public Response getImage(@PathParam("cid") String resourceId,
                              @QueryParam("s") Integer s,
