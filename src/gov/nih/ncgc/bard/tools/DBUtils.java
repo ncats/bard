@@ -2061,6 +2061,7 @@ public class DBUtils {
         e.setCompounds(rs.getInt("cid_count"));
         e.setHasProbe(rs.getBoolean("have_probe"));
         e.setPubchemAid(rs.getLong("pubchem_aid"));
+        e.setConfidenceLevel(rs.getFloat("confidence_level"));
 
         e.setActiveCompounds(getExperimentCidCount(e.getBardExptId(), true));
 
