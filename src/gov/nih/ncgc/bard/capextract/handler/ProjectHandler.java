@@ -40,6 +40,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
         // get the Project object here
         Project project = getResponse(url, resource);
+        if (project == null) return;
 
         String readyToXtract = project.getReadyForExtraction();
         String title = project.getProjectName();
@@ -204,6 +205,11 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             String contextName = contextType.getContextName();
 
             ContextType.ContextItems contextItems = contextType.getContextItems();
+            if (contextItems == null) {
+                log.warn("Context ID "+contextId+" for CAP project "+project.getProjectId()+" was null");
+                continue;
+            }
+
             for (ContextItemType contextItemType : contextItems.getContextItem()) {
 
                 // dict id for the annotation key
