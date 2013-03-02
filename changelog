@@ -64,3 +64,7 @@ v14 released
 	      Composite etags can be modified (ie new etags can be added) via PUT /etags/{etag} 
 02/23/13      Updated ETag to support URL and added support to specify the URL for a new etag and also update /etags/{etag}/_info to display URL
               Allow user to update name of an etag via PUT
+02/27/13      /project/{pid} JSON now includes experimentTypes field that provides the experiment type for each experiment id listed for the project
+02/28/13      /compounds JSON now includes probeAnnotations field that is a list of annotations when compound is a probe and empty otherwise
+03/01/13      Updated /experiments/{id} JSON to include confidenceLevel field
+

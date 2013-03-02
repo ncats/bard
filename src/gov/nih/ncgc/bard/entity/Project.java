@@ -7,6 +7,7 @@ import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A representation of a project.
@@ -29,6 +30,7 @@ public class Project implements BardEntity {
 
     Long capProjectId;
 
+    Map<Long, String> experimentTypes;
 
     int category, type, classification;
     String name, description, source;
@@ -64,6 +66,14 @@ public class Project implements BardEntity {
     List<Long> publications;
     List<ProteinTarget> targets;
 
+
+    public Map<Long, String> getExperimentTypes() {
+        return experimentTypes;
+    }
+
+    public void setExperimentTypes(Map<Long, String> experimentTypes) {
+        this.experimentTypes = experimentTypes;
+    }
 
     public Long getCapProjectId() {
         return capProjectId;

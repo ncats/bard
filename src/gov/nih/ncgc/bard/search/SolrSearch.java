@@ -163,7 +163,7 @@ public abstract class SolrSearch implements ISolrSearch {
                 StringBuilder sb = new StringBuilder();
                 sb.append(fvalues.get(0));
                 for (int i = 1; i < fvalues.size(); i++) {
-                    if (fvalues.contains("["))
+                    if (fvalues.get(i).contains("["))
                         sb.append(" OR ").append(fvalues.get(i)); // name + ":" + fvalue
                     else {
                         sb.append(" OR ").append("\"").append(fvalues.get(i).replace("\"", "")).append("\"");

@@ -37,7 +37,7 @@ public class ExperimentsHandler extends CapResourceHandler implements ICapResour
             Experiments experiments = getResponse(url, resource);
             url = null;
             BigInteger n = experiments.getCount();
-            log.info("\tWill be processing " + n + " experiments");
+            log.info("Will be processing " + n + " experiments");
             List<Link> links = experiments.getLink();
             for (Link link : links) {
         	if (link.getRel().equals("next")) {

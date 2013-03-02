@@ -43,6 +43,10 @@ public class ProjectsHandler extends CapResourceHandler implements ICapResourceH
             CAPConstants.CapResource res = CAPConstants.getResource(projLink.getType());
             if (res == CAPConstants.CapResource.PROJECT && ph != null) {
                 Project project = (Project) ph.poll(projLink.getHref(), res).get(0);
+                if (project == null) {
+                    log.warn("null response for "+projLink.getHref());
+                    continue;
+                }
 
                 String readyToXtract = project.getReadyForExtraction();
                 String title = project.getProjectName();

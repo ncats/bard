@@ -94,6 +94,18 @@ public abstract class CapResourceHandler {
 //            while ((line = reader.readLine()) != null) writer.write(line+"\n");
 //            writer.close();
 //            System.exit(-1);
+////        }
+
+        // dump all documents for an entity type
+//        if (url.contains("/projects/") && !url.endsWith("/projects/")) {
+//            String[] toks = url.split("/");
+//            String fname = "tmp-project/"+toks[toks.length-1]+".xml";
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+//            BufferedWriter writer = new BufferedWriter(new FileWriter(fname));
+//            String line;
+//            while ((line = reader.readLine()) != null) writer.write(line+"\n");
+//            writer.close();
+//            return null;
 //        }
 
         Unmarshaller unmarshaller;

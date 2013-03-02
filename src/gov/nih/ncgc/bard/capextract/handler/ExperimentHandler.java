@@ -55,11 +55,16 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         if (resource != CAPConstants.CapResource.EXPERIMENT) return;
 
         Experiment expt = getResponse(url, resource);
+        if (expt == null) return;
+
         BigInteger exptID = expt.getExperimentId();
-        log.info("Processing experiment " + exptID + " " + url);
+        BigInteger confLevel = expt.getConfidenceLevel();
+
+        log.info("Processing CAP experiment " + exptID + " " + url);
 
         // lets do a first check to see if we have this experiment already
         int localBardExptId = -1;
+        boolean doUpdate = false;
         try {
             Connection conn = CAPUtil.connectToBARD();
             Statement query = conn.createStatement();
@@ -73,10 +78,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             query.close();
             conn.close();
             bardExptId = localBardExptId;
-            if (bardExptId != -1) {
-                log.info("CAP experiment id " + expt.getExperimentId() + " already exist. Should do an update");
-                return;
-            }
+            if (bardExptId != -1) doUpdate = true;
         } catch (SQLException e) {
         }
 
@@ -106,7 +108,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
                     assayHandler.process(link.getHref(), CAPConstants.CapResource.ASSAY);
                     bardAssayId = assayHandler.getBardAssayId();
                     if (bardAssayId == -1) {
-                        log.error("Invalid bardAssayId even after inserting CAP assay id "+capAssayId+". Skipping this err");
+                        log.error("Invalid bardAssayId even after inserting CAP assay id " + capAssayId + ". Skipping this err");
                         return;
                     }
                 }
@@ -175,38 +177,45 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         // ready to load in the data
         try {
 
-            // this is a new experiment
+
             Connection conn = CAPUtil.connectToBARD();
-            boolean experimentExists = false;
-            PreparedStatement pstExpt = conn.prepareStatement(
-                    "insert into bard_experiment (bard_assay_id, cap_expt_id, category, classification, description, pubchem_aid, type, name) values(?,?,?,?,?,?,?,?)",
-                    Statement.RETURN_GENERATED_KEYS);
+
+            PreparedStatement pstExpt;
             if (localBardExptId == -1) {
-                pstExpt.setInt(1,_CAP_ExptID_AssayID_lookup.get(exptID));
-                pstExpt.setInt(2, exptID.intValue());
-                pstExpt.setInt(3, -1);
-                pstExpt.setInt(4, -1);
-                pstExpt.setString(5, expt.getDescription());
-                pstExpt.setInt(6, Integer.parseInt(_CAP_ExptID_PubChemAID_lookup.get(exptID)));
-                pstExpt.setInt(7, -1);
-                pstExpt.setString(8, expt.getExperimentName());
+                pstExpt = conn.prepareStatement(
+                        "insert into bard_experiment (bard_assay_id, cap_expt_id, category, classification, description, pubchem_aid, type, name, confidence_level) values(?,?,?,?,?,?,?,?,?)",
+                        Statement.RETURN_GENERATED_KEYS);
+                log.info("Inserting CAP experiment id " + expt.getExperimentId() + " as BARD experiment id " + localBardExptId);
+            } else {
+                pstExpt = conn.prepareStatement(
+                        "update bard_experiment set bard_assay_id=?, cap_expt_id=?, category=?, classification=?, description=?, pubchem_aid=?, type=?, name=?, confidence_level=? where bard_expt_id = ?");
+                log.info("Updating CAP experiment id " + expt.getExperimentId());
+            }
+            pstExpt.setInt(1, _CAP_ExptID_AssayID_lookup.get(exptID));
+            pstExpt.setInt(2, exptID.intValue());
+            pstExpt.setInt(3, -1);
+            pstExpt.setInt(4, -1);
+            pstExpt.setString(5, expt.getDescription());
+            pstExpt.setInt(6, Integer.parseInt(_CAP_ExptID_PubChemAID_lookup.get(exptID)));
+            pstExpt.setInt(7, -1);
+            pstExpt.setString(8, expt.getExperimentName());
+            pstExpt.setFloat(9, (float) expt.getConfidenceLevel().intValue());
+            if (doUpdate) pstExpt.setLong(10, bardExptId);
 
-                int insertedRows = pstExpt.executeUpdate();
-                if (insertedRows == 0) {
+            pstExpt.executeUpdate();
 
-                }
+            if (!doUpdate) { // get the bard id that we just inserted
                 ResultSet rs = pstExpt.getGeneratedKeys();
                 while (rs.next()) localBardExptId = rs.getInt(1);
+                bardExptId = localBardExptId;
                 rs.close();
-                pstExpt.close();
-                log.info("Inserted CAP experiment id " + expt.getExperimentId() + " as BARD experiment id " + localBardExptId);
-            } else {
-                log.info("CAP experiment id " + expt.getExperimentId() + " already exist. Should do an update");
-                experimentExists = true;
             }
 
+            pstExpt.close();
+
+
             // TODO this block implies we don't update expt annotations for pre-existing expts
-            if (!experimentExists) {
+            if (!doUpdate) {
                 PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'experiment',?,?,?,?,?,?,?,?,?,?)");
                 for (CAPAnnotation anno : annos) {
                     pstAssayAnnot.setString(1, anno.source);

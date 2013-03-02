@@ -1866,6 +1866,20 @@ public class DBUtils {
         }
         c.setCompoundClass(rs.getString("compound_class"));
         if (rs.wasNull()) c.setCompoundClass(null);
+
+        if (c.getProbeId() != null) {
+            List<Project> projects = getProjectByProbeId(c.getProbeId());
+            if (projects != null && projects.size() > 0) {
+                Project p = projects.get(0);
+                List<CAPAnnotation> annos = getProjectAnnotations(p.getBardProjectId());
+                List props = new ArrayList();
+                for (CAPAnnotation anno : annos) {
+                    if (anno.contextRef == null || !anno.contextRef.equals("probe")) continue;
+                    props.add(anno);
+                }
+                c.setProbeAnnotations(props);
+            }
+        }
     }
 
     public List<ExperimentData> getExperimentDataByScafId 
@@ -2428,6 +2442,7 @@ public class DBUtils {
         e.setCompounds(rs.getInt("cid_count"));
         e.setHasProbe(rs.getBoolean("have_probe"));
         e.setPubchemAid(rs.getLong("pubchem_aid"));
+        e.setConfidenceLevel(rs.getFloat("confidence_level"));
 
         e.setActiveCompounds(getExperimentCidCount(e.getBardExptId(), true));
 
@@ -4371,6 +4386,19 @@ public class DBUtils {
         //find targets, get collected bard_assay_ids, for each bard_assay_id under the project
         p.setTargets(getProjectTargets(bardProjId));
 
+        // experiment types - this can't go in Experiment, since the 'type' of the
+        // experiment depends on how it was used in a project
+        pst = conn.prepareStatement("select * from bard_project_experiment where bard_proj_id = ?");
+        try {
+            pst.setLong(1, bardProjId);
+            ResultSet rs = pst.executeQuery();
+            Map<Long, String> etypes = new HashMap<Long, String>();
+            while (rs.next()) etypes.put(rs.getLong("bard_expt_id"), rs.getString("expt_type"));
+            rs.close();
+            p.setExperimentTypes(etypes);
+        } finally {
+            pst.close();
+        }
         return p;
     }
 
@@ -5049,6 +5077,8 @@ public class DBUtils {
                 String source = rs.getString("source");
                 int displayOrder = rs.getInt("display_order");
                 String entity = rs.getString("entity");
+                String contextRef = rs.getString("context_name");
+                String url = rs.getString("url");
 
                 String related = rs.getString("related");
                 String extValueId = null;
@@ -5056,7 +5086,7 @@ public class DBUtils {
                     String[] toks = related.split("\\|");
                     if (toks.length == 2) extValueId = toks[1];
                 }
-                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, null, anno_key, anno_value, extValueId, source, null, displayOrder, entity, related);
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, contextRef, anno_key, anno_value, extValueId, source, url, displayOrder, entity, related);
                 annos.add(anno);
             }
             rs.close();

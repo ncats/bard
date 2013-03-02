@@ -19,6 +19,7 @@ public class Experiment implements BardEntity {
 
     Long capExptId, bardAssayId, capAssayId, pubchemAid;
     int category, type, summary, assays, classification, substances, compounds, activeCompounds;
+    float confidenceLevel;
     String name, description, source, grantNo;
     Date deposited, updated;
     Boolean hasProbe;
@@ -26,6 +27,14 @@ public class Experiment implements BardEntity {
     
     public Experiment() {
     	projectIdList = new ArrayList<Long>();
+    }
+
+    public float getConfidenceLevel() {
+        return confidenceLevel;
+    }
+
+    public void setConfidenceLevel(float confidenceLevel) {
+        this.confidenceLevel = confidenceLevel;
     }
 
     public int getActiveCompounds() {
