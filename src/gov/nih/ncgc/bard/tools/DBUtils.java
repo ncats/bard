@@ -170,7 +170,7 @@ public class DBUtils {
                 put(Assay.class, new Query(assayFields, "bard_assay_id", null, "bard_assay"));
                 put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "bard_experiment_data"));
                 put(ETag.class, new Query(etagFields, "etag_id", null, "etag", "status=1"));
-                put (Scaffold.class, new Query(scaffoldFields, "class_id", null, "bard2.compound_fragment_class"));
+                put (Scaffold.class, new Query(scaffoldFields, "snr desc", "class_id", "bard2.compound_fragment_class"));
             }};
 
 //        conn = getConnection();
@@ -538,7 +538,7 @@ public class DBUtils {
              +"from bard2.compound_fragment_class a, "
              +"bard2.compound_fragment_instances b "
              +"where a.class_id = b.class_id and b.cid = ? "
-             +"order by instances");
+             +"order by snr desc");
         try {
             pstm.setLong(1, cid);
             ResultSet rset = pstm.executeQuery();
@@ -581,7 +581,7 @@ public class DBUtils {
                          ? "" : ("a.outcome = " + outcome+" and "))
              +"a.bard_expt_id = ? and "
              +"a.cid = b.cid and b.class_id = c.class_id "
-             +"order by a.score desc");
+             +"order by c.snr desc");
 
         if (skip > 0 && top > 0)
             sql.append(" limit "+skip+","+top);
@@ -614,6 +614,75 @@ public class DBUtils {
         }
         
         return scaffolds;
+    }
+
+    public List<Scaffold> getScaffoldsByETag (String etag, int skip, int top) 
+        throws SQLException {
+
+        Map info = getETagInfo(etag);
+        if (!Compound.class.getName().equals(info.get("type"))) {
+            throw new IllegalArgumentException
+                ("ETag " + etag + " is of type " + Compound.class.getName());
+        }
+
+        List<Scaffold> scaffolds;
+
+        Cache cache = getCache ("ScaffoldsByETagCache");
+        Element el = cache.get(etag);
+        if (el != null) {
+            Timestamp ts = (Timestamp)info.get("accessed");
+            if (ts.getTime() < el.getLastAccessTime()) {
+                scaffolds = getCacheValue (cache, etag);
+                if (scaffolds != null)
+                    return scaffolds;
+            }
+        }
+
+        scaffolds = new ArrayList<Scaffold>();
+        StringBuilder sql = new StringBuilder
+            ("select distinct a.* from bard2.compound_fragment_class a, "
+             + "bard2.compound_fragment_instances b, etag e1, "
+             + "etag_data e2 where e1.etag_id = ? "
+             + "and e1.type = ? "
+             + "and e2.etag_id = e1.etag_id "
+             + "and b.cid = e2.data_id "
+             + "and b.class_id = a.class_id "
+             + "order by a.snr desc");
+
+        if (skip >= 0 && top > 0) {
+            sql.append(" limit " + skip + "," + Math.max(6, top));
+        } 
+        else if (top > 0) {
+            sql.append(" limit " + Math.max(6, top));
+        }
+        else if (skip > 0) {
+            sql.append(" limit "+skip+",100");
+        }
+
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst1 = conn.prepareStatement(sql.toString());
+        try {
+            pst1.setString(1, etag);
+            pst1.setString(2, Compound.class.getName());
+
+            ResultSet rs = pst1.executeQuery();
+            while (rs.next()) {
+                Scaffold scaf = new Scaffold (rs.getLong("class_id"));
+                fillScaffold (rs, scaf);
+                scaffolds.add(scaf);
+            }
+            rs.close();
+
+            if (top > 0 && top < 6) {
+                // truncate it to fit the desired size
+                scaffolds = scaffolds.subList(0, top);
+            }
+
+            return scaffolds;
+        } 
+        finally {
+            pst1.close();
+        }
     }
 
     protected void fillScaffold (ResultSet rs, Scaffold scaf) 

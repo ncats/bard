@@ -290,4 +290,41 @@ public class BARDScaffoldResource extends BARDResource<Scaffold> {
             catch (Exception ex) {}
         }
     }
+
+    @Override
+    @GET
+    @Path("/etag/{etag}")
+    public Response getEntitiesByETag(@PathParam("etag") String resourceId,
+                                      @QueryParam("filter") String filter,
+                                      @QueryParam("expand") String expand,
+                                      @QueryParam("skip") Integer skip,
+                                      @QueryParam("top") Integer top) {
+        DBUtils db = new DBUtils();
+        try {
+            List<Scaffold> scaffolds = db.getScaffoldsByETag
+                (resourceId, skip != null ? skip : -1, top != null ? top : -1);
+            String json;
+            if (expand != null && expand.equalsIgnoreCase("true")) {
+                json = Util.toJson(scaffolds);
+            }
+            else {
+                List<String> links = new ArrayList<String>();
+                for (Scaffold scaf : scaffolds) 
+                    links.add(scaf.getResourcePath());
+                json = Util.toJson(links);
+            }
+
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } 
+        catch (Exception e) {
+            throw new WebApplicationException(e, 500);
+        } 
+        finally {
+            try {
+                db.closeConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
 }
