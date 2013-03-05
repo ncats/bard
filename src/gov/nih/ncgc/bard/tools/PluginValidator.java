@@ -295,6 +295,22 @@ public class PluginValidator {
         if (!infoResourcePresent)
             errors.error("Missing the getDescription() method with @Path(\"/_info\") and @GET annotations");
 
+        // check for the _info resource
+        boolean versionResourcePresent = false;
+        for (Method method : methods) {
+            if (method.isAnnotationPresent(Path.class)) {
+                Path annot = method.getAnnotation(Path.class);
+                // make sure the @GET annotation is present and the annotation is on the expected method
+                if (annot.value().equals("/_version") && method.getAnnotation(GET.class) != null && method.getName().equals("getVersion")) {
+                    versionResourcePresent = true;
+                    break;
+                }
+            }
+        }
+        if (!versionResourcePresent)
+            errors.error("Missing the getVersion() method with @Path(\"/_version\") and @GET annotations");
+
+
         // check that we have at least one (public) method that is annotated 
         // with a GET or a POST and has a non null @Path annotation
         // and a @Produces annotations
