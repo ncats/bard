@@ -35,13 +35,12 @@ public class AssaysHandler extends CapResourceHandler implements ICapResourceHan
         // get the Assays object here
         Assays assays = getResponse(url, resource);
         BigInteger n = assays.getCount();
-        log.info("\tWill be processing " + n + " assays");
+//        log.info("\tWill be processing " + n + " assays");
         List<Link> links = assays.getLink();
         for (Link link : links) {
             String href = link.getHref();
             String type = link.getType();
             String title = link.getTitle();
-            log.info("\t" + title + "/" + type + "/ href = " + href);
 
             // for now lets just handle a few specific assays
 //            if (href.endsWith("/1640")) {
