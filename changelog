@@ -67,4 +67,4 @@ v14 released
 02/27/13      /project/{pid} JSON now includes experimentTypes field that provides the experiment type for each experiment id listed for the project
 02/28/13      /compounds JSON now includes probeAnnotations field that is a list of annotations when compound is a probe and empty otherwise
 03/01/13      Updated /experiments/{id} JSON to include confidenceLevel field
-
+03/06/13      Added assayStatus and assayType fields to the assay JSON (/assays/{id})

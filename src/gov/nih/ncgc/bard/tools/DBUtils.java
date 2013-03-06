@@ -2172,6 +2172,8 @@ public class DBUtils {
         a.setComments(rs.getString("comment"));
         a.setProtocol(rs.getString("protocol"));
         a.setTitle(rs.getString("title"));
+        a.setAssayStatus(rs.getString("status"));
+        a.setAssayType(rs.getString("assay_type"));
 
         List<Long> pmids = new ArrayList<Long>();
         for (Publication pub : getAssayPublications(bardAssayId)) pmids.add(pub.getPubmedId());
@@ -2204,8 +2206,8 @@ public class DBUtils {
         List<String> l1 = new ArrayList<String>();
         List<String> l2 = new ArrayList<String>();
         for (CAPAnnotation capannot : capannots) {
-            if (capannot.key != null && isInteger(capannot.key)) l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
-            if (capannot.value != null && isInteger(capannot.value)) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
+            if (capannot.key != null && Util.isNumber(capannot.key)) l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
+            if (capannot.value != null && Util.isNumber(capannot.value)) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
             else l2.add(capannot.display);
         }
         a.setAk_dict_label(l1);
@@ -2221,14 +2223,6 @@ public class DBUtils {
         return a;
     }
 
-    private boolean isInteger(String s) {
-        try {
-            new BigInteger(s);
-        } catch (NumberFormatException e) {
-            return false;
-        }
-        return true;
-    }
 
     public List<Project> getProjectsByETag(int skip, int top, String etag) throws SQLException {
         Map info = getETagInfo(etag);
