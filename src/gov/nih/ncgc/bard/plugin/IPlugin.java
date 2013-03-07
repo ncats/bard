@@ -23,23 +23,30 @@ public interface IPlugin {
      * In the implementing class, this method should be annotated using
      * <p/>
      * <pre>
-     *
-     * @return a description of the plugin.
      * @GET
-     * @Path("/_info") </pre>
+     * @Path("/_info")
+     * @Produces(MediaType.TEXT_PLAIN) </pre>
      * <p/>
      * where the annotations are from the <code>javax.ws.rs</code> hierarchy.
+     *
+     * @return a description of the plugin.
      */
     public String getDescription();
 
     /**
      * Get the manifest for this plugin.
      * <p/>
-     * This should be an XML document conforming
-     * to the plugin manifest specification described
-     * <a href="http://foo.bar">here</a>
+     * This should be an JSON document conforming
+     * to the <a href="https://github.com/ncatsdpiprobedev/bardplugins/blob/master/resources/manifest.json">plugin manifest schema</a>
+     * <p/>
+     * In the implementing class, this method should be annotated using
+     * <pre>
+     * @GET
+     * @Path("/_manifest")
+     * @Produces(MediaType.APPLICATION_JSON) </pre>
+     * where the annotations are from the <code>javax.ws.rs</code> hierarchy.
      *
-     * @return an XML document containing the plugin manifest
+     * @return a JSON document containing the plugin manifest
      */
     public String getManifest();
 }
