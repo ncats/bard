@@ -83,9 +83,12 @@ public class PluginManifest {
         this.resources = resources;
     }
 
-    class PluginResource {
+    public static class PluginResource {
         String path, mimetype;
         PathArg[] args;
+
+        public PluginResource() {
+        }
 
         public String getPath() {
             return path;
@@ -112,8 +115,16 @@ public class PluginManifest {
         }
     }
 
-    class PathArg {
+    public static class PathArg {
         String arg, argtype;
+
+        public PathArg() {
+        }
+
+        public PathArg(String arg, String argtype) {
+            this.arg = arg;
+            this.argtype = argtype;
+        }
 
         public String getArg() {
             return arg;
