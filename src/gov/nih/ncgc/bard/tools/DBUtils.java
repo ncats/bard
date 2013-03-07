@@ -359,6 +359,7 @@ public class DBUtils {
                 p.setTaxId(rs.getLong("taxid"));
                 p.setName(rs.getString("name"));
                 p.setStatus(rs.getString("uniprot_status"));
+                p.setClasses(getPantherClassesForAccession(accession));
             }
             rs.close();
             cache.put(new Element (accession, p));
@@ -394,6 +395,7 @@ public class DBUtils {
                     p.setTaxId(rs.getLong("taxid"));
                     p.setName(rs.getString("name"));
                     p.setStatus(rs.getString("uniprot_status"));
+                    p.setClasses(getPantherClassesForAccession(p.getAcc()));
                 }
                 rs.close();
 
@@ -3593,6 +3595,8 @@ public class DBUtils {
             ResultSet rs2 = pst2.executeQuery();
             List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
             while (rs2.next()) {
+                String acc = rs2.getString("accession");
+//                targets.add(getProteinTargetByAccession(acc));
                 ProteinTarget t = new ProteinTarget();
                 t.setDescription(rs2.getString("description"));
                 t.setGeneId(rs2.getLong("gene_id"));
@@ -3600,6 +3604,7 @@ public class DBUtils {
                 t.setStatus(rs2.getString("uniprot_status"));
                 t.setAcc(rs2.getString("accession"));
                 t.setTaxId(rs2.getLong("taxid"));
+                t.setClasses(getPantherClassesForAccession(t.getAcc()));
                 targets.add(t);
             }
             rs2.close();
@@ -5147,6 +5152,8 @@ public class DBUtils {
     }
 
     public List<CAPAnnotation> getProjectStepAnnotations(Long projectStepId) throws SQLException {
+        if (conn == null) conn = getConnection();
+
         Cache cache = getCache ("ProjectStepAnnotationsCache");
         try {
             List<CAPAnnotation> value = getCacheValue
@@ -5190,6 +5197,62 @@ public class DBUtils {
             return annos;
         }
         finally {
+            pst.close();
+        }
+    }
+
+    public List<TargetClassification> getPantherClassesForAccession(String acc) throws SQLException {
+        if (conn == null) conn = getConnection();
+
+        Cache cache = getCache("PantherClassesCache");
+        try {
+            List<TargetClassification> value = getCacheValue(cache, acc);
+            if (value != null) return value;
+        } catch (ClassCastException e) {
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select b.* from panther_uniprot_map a, panther_class b where a.accession = ? and a.pclass_id = b.pclass_id order by node_level");
+        try {
+            pst.setString(1, acc);
+            ResultSet rs = pst.executeQuery();
+            List<TargetClassification> classes = new ArrayList<TargetClassification>();
+            while (rs.next()) {
+                PantherClassification pc = new PantherClassification();
+                pc.setDescription(rs.getString("class_descr"));
+                pc.setName(rs.getString("class_name"));
+                pc.setId(rs.getString("pclass_id"));
+                pc.setLevelIdentifier(rs.getString("node_code"));
+                pc.setNodeLevel(rs.getInt("node_level"));
+                classes.add(pc);
+            }
+            cache.put(new Element (acc, classes));
+            return classes;
+        } finally {
+            pst.close();
+        }
+    }
+    public List<ProteinTarget> getProteinTargetsForPantherClassification(String clsid) throws SQLException {
+        if (conn == null) conn = getConnection();
+
+        Cache cache = getCache("TargetsForPantherClassCache");
+        try {
+            List<ProteinTarget> value = getCacheValue(cache, clsid);
+            if (value != null) return value;
+        } catch (ClassCastException e) {
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select distinct a.accession from panther_uniprot_map a where a.pclass_id = ?");
+        try {
+            pst.setString(1, clsid);
+            ResultSet rs = pst.executeQuery();
+            List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
+            while (rs.next()) {
+                String acc = rs.getString(1);
+                targets.add(getProteinTargetByAccession(acc));
+            }
+            cache.put(new Element(clsid, targets));
+            return targets;
+        } finally {
             pst.close();
         }
     }
