@@ -42,25 +42,4 @@ public interface IPlugin {
      * @return an XML document containing the plugin manifest
      */
     public String getManifest();
-
-    /**
-     * Get the version for the plugin.
-     *
-     * @return the plugin version
-     */
-    public String getVersion();
-
-    /**
-     * Get the REST resource paths for this plugin.
-     * <p/>
-     * The paths should omit the BARD prefix. Multiple paths
-     * can be returned (and should ideally be documented via the
-     * description, though this is currently not enforced).
-     * <p/>
-     * A plugin must return at least one resource path. If not
-     * it will fail the compliance checks
-     *
-     * @return an array of REST resource paths
-     */
-    public String[] getResourcePaths();
 }

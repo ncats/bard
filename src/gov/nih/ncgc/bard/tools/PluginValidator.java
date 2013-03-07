@@ -296,19 +296,19 @@ public class PluginValidator {
             errors.error("Missing the getDescription() method with @Path(\"/_info\") and @GET annotations");
 
         // check for the _info resource
-        boolean versionResourcePresent = false;
+        boolean manifestResourcePresent = false;
         for (Method method : methods) {
             if (method.isAnnotationPresent(Path.class)) {
                 Path annot = method.getAnnotation(Path.class);
                 // make sure the @GET annotation is present and the annotation is on the expected method
-                if (annot.value().equals("/_version") && method.getAnnotation(GET.class) != null && method.getName().equals("getVersion")) {
-                    versionResourcePresent = true;
+                if (annot.value().equals("/_manifest") && method.getAnnotation(GET.class) != null && method.getName().equals("getManifest")) {
+                    manifestResourcePresent = true;
                     break;
                 }
             }
         }
-        if (!versionResourcePresent)
-            errors.error("Missing the getVersion() method with @Path(\"/_version\") and @GET annotations");
+        if (!manifestResourcePresent)
+            errors.error("Missing the getManifest() method with @Path(\"/_manifest\") and @GET annotations");
 
 
         // check that we have at least one (public) method that is annotated 
@@ -336,7 +336,7 @@ public class PluginValidator {
             }
         }
         if (!resourcePresent)
-            errors.error("At least one public method must have a @Path annotation (in addition to the _info resource");
+            errors.error("At least one public method must have a @Path annotation (in addition to the _info & _manifest resources");
 
         boolean hasEmptyCtor = false;
         Constructor[] ctors = klass.getConstructors();
@@ -354,14 +354,11 @@ public class PluginValidator {
         // ok, now we create the class
         IPlugin plugin = (IPlugin) klass.newInstance();
 
-
         // check for a non-null description, version, manifest
         String s = plugin.getDescription();
         if (s == null) errors.error("getDescription() returned a null value");
         s = plugin.getManifest();
         if (s == null) errors.error("getManifest() returned a null value");
-        s = plugin.getVersion();
-        if (s == null) errors.error("getVersion() returned a null value");
 
         // validate the manifest document
         return errors.size() == 0;
