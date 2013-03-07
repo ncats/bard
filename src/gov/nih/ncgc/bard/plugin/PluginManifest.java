@@ -84,10 +84,18 @@ public class PluginManifest {
     }
 
     public static class PluginResource {
-        String path, mimetype;
+        String path, mimetype, method;
         PathArg[] args;
 
         public PluginResource() {
+        }
+
+        public String getMethod() {
+            return method;
+        }
+
+        public void setMethod(String method) {
+            this.method = method;
         }
 
         public String getPath() {
