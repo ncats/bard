@@ -379,14 +379,27 @@ public class PluginValidator {
         s = plugin.getManifest();
         if (s == null) errors.error("getManifest() returned a null value");
 
-        // validate the manifest document
+        // validate the manifest document. First we need to get the manifest schema
+
+
         return errors.size() == 0;
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) {
-            System.out.println("Usage: java -jar validator.jar bardplugin_FOO.war");
+        boolean printInfo = false;
+        boolean printWarn = false;
+
+        if (args.length < 1) {
+            System.out.println("\nUsage: java -jar validator.jar bardplugin_FOO.war [-i|-w]");
+            System.out.println("\n-i\tPrint INFO messages");
+            System.out.println("-w\tPrint WARN messages");
+            System.out.println("\nBy default only ERROR messages are reported");
             System.exit(-1);
+        }
+
+        for (String arg : args) {
+            if (arg.contains("-i")) printInfo = true;
+            if (arg.contains("-w")) printWarn = true;
         }
 
         PluginValidator v = new PluginValidator();
@@ -394,6 +407,10 @@ public class PluginValidator {
 //        boolean status = v.validate("/Users/guhar/Downloads/bardplugin_badapple.war");
 //        boolean status = v.validate("/Users/guhar/Downloads/bardplugin_hellofromunm.war");
         System.out.println("status = " + status);
-        for (String s : v.getErrors()) System.out.println(s);
+        for (String s : v.getErrors()) {
+            if (s.startsWith("INFO") && printInfo) System.out.println(s);
+            else if (s.startsWith("WARN") && printWarn) System.out.println(s);
+            else if (s.startsWith("ERROR")) System.out.println(s);
+        }
     }
 }
