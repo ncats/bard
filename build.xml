@@ -16,6 +16,9 @@
         <fileset dir="${bard.lib}">
             <include name="*.jar"/>
         </fileset>
+        <fileset dir="${bard.lib}/plugin">
+            <include name="*.jar"/>
+        </fileset>
         <fileset dir="${bard.lib}/solr">
             <include name="*.jar"/>
         </fileset>
@@ -235,6 +238,7 @@
         <unjar dest="${bard.build}" src="${bard.lib}/plugin/guava-14.0.jar"/>
         <unjar dest="${bard.build}" src="${bard.lib}/plugin/joda-time-2.2.jar"/>
         <unjar dest="${bard.build}" src="${bard.lib}/mail.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/javaee.jar"/>
         <unjar dest="${bard.build}" src="${bard.lib}/plugin/libphonenumber-5.4.jar"/>
 
         <jar destfile="${bard.deploy}/validator.jar">

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonschema.exceptions.ProcessingException;
 import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
+import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
 import gov.nih.ncgc.bard.plugin.IPlugin;
 
@@ -387,15 +388,17 @@ public class PluginValidator {
 
         // validate the manifest document. First we need to get the manifest schema
         boolean manifestIsValid = false;
-
         try {
-            if (s != null) {
+            if (s != null && !s.equals("")) {
                 ObjectMapper mapper = new ObjectMapper();
                 JsonNode manifestNode = mapper.readTree(s);
                 JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
                 JsonSchema schema = factory.getJsonSchema("https://raw.github.com/ncatsdpiprobedev/bardplugins/master/resources/manifest.json?login=rajarshi&token=18b5aa8be3d35e760d4fb841ac885d06");
                 ProcessingReport report = schema.validate(manifestNode);
                 manifestIsValid = report.isSuccess();
+                if (!manifestIsValid) {
+                    for (ProcessingMessage msg : report) errors.error(msg.getMessage());
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
