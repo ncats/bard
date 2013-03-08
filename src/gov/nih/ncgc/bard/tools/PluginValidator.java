@@ -1,5 +1,11 @@
 package gov.nih.ncgc.bard.tools;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonschema.exceptions.ProcessingException;
+import com.github.fge.jsonschema.main.JsonSchema;
+import com.github.fge.jsonschema.main.JsonSchemaFactory;
+import com.github.fge.jsonschema.report.ProcessingReport;
 import gov.nih.ncgc.bard.plugin.IPlugin;
 
 import javax.ws.rs.*;
@@ -380,7 +386,23 @@ public class PluginValidator {
         if (s == null) errors.error("getManifest() returned a null value");
 
         // validate the manifest document. First we need to get the manifest schema
+        boolean manifestIsValid = false;
 
+        try {
+            if (s != null) {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode manifestNode = mapper.readTree(s);
+                JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
+                JsonSchema schema = factory.getJsonSchema("https://raw.github.com/ncatsdpiprobedev/bardplugins/master/resources/manifest.json?login=rajarshi&token=18b5aa8be3d35e760d4fb841ac885d06");
+                ProcessingReport report = schema.validate(manifestNode);
+                manifestIsValid = report.isSuccess();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ProcessingException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        if (!manifestIsValid) errors.error("Manifest did not validate");
 
         return errors.size() == 0;
     }
