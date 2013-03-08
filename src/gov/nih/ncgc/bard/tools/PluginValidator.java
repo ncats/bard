@@ -23,6 +23,8 @@ import java.util.zip.ZipFile;
  */
 public class PluginValidator {
 
+    private String[] packagesToIgnore = {"javax.servlet"};
+
     private String currentClassName = "";
 
     private ErrorList errors;
@@ -53,14 +55,22 @@ public class PluginValidator {
         }
 
         public Class findClass(String name) {
-            Class klass;
+            Class klass = null;
             try {
-                klass = defineClass(name, bytes, 0, bytes.length);
+                if (name.startsWith("java")) {
+                    System.out.println("trying to load via super");
+                    klass = super.findClass(name);
+                    System.out.println("  got " + name + " from super");
+                } else klass = defineClass(name, bytes, 0, bytes.length);
+                resolveClass(klass);
             } catch (IllegalAccessError e) {
                 errors.info("Got an IllegalAccessError when loading " + name);
                 return null;
             } catch (NoClassDefFoundError e) {
                 errors.info("Got an NoClassDefFoundError when loading " + name);
+                return null;
+            } catch (ClassNotFoundException e) {
+                errors.info("Got an ClassNotFound when loading " + name);
                 return null;
             }
             return klass;
@@ -120,7 +130,7 @@ public class PluginValidator {
         zip.close();
     }
 
-    void loadClass(String filePath) throws IOException {
+    void loadJarFile(String filePath) throws IOException {
         URLClassLoader sysLoader;
         URL u;
         Class sysclass;
@@ -136,7 +146,14 @@ public class PluginValidator {
         }
     }
 
-    public boolean validate(String filename) throws IOException, InstantiationException, IllegalAccessException {
+    private boolean ignoreClass(String className) {
+        for (String pkg : packagesToIgnore) {
+            if (className.contains(pkg)) return true;
+        }
+        return false;
+    }
+
+    public boolean validate(String filename) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
 
         String basename = (new File(filename)).getName();
 
@@ -153,9 +170,9 @@ public class PluginValidator {
 
         // load JARs and classes we just extracted
         File[] jars = (new File(tempDir + File.separator + "WEB-INF/lib")).listFiles();
-        for (File jar : jars) loadClass(jar.getAbsolutePath());
+        for (File jar : jars) loadJarFile(jar.getAbsolutePath());
         System.out.println("Added " + jars.length + " jars from WEB-INF/lib to the current CLASSPATH");
-        loadClass(tempDir + File.separator + "WEB-INF/classes/");
+        loadJarFile(tempDir + File.separator + "WEB-INF/classes/");
         System.out.println("Added class from WEB-INF/classes to current CLASSPATH");
 
         ZipFile zf = new ZipFile(filename);
@@ -176,6 +193,7 @@ public class PluginValidator {
                 byte[] bytes = baos.toByteArray();
 
                 String className = entryName.split("\\.")[0].replace("WEB-INF/classes/", "").replace("/", ".");
+                if (ignoreClass(className)) continue;
                 loader = new ByteArrayClassLoader(bytes);
                 Class klass = loader.findClass(className);
                 if (klass != null && implementsPluginInterface(klass)) {
@@ -189,6 +207,7 @@ public class PluginValidator {
                 while ((entry = jis.getNextEntry()) != null) {
                     if (!entry.getName().contains(".class")) continue;
                     String className = entry.getName().replace(".class", "").replace("/", ".");
+                    if (ignoreClass(className)) continue;
                     if (entry.getSize() <= 0) continue;
 
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -364,9 +383,14 @@ public class PluginValidator {
         return errors.size() == 0;
     }
 
-    public static void main(String[] args) throws InstantiationException, IllegalAccessException, IOException {
+    public static void main(String[] args) throws Exception {
+        if (args.length != 1) {
+            System.out.println("Usage: java -jar validator.jar bardplugin_FOO.war");
+            System.exit(-1);
+        }
+
         PluginValidator v = new PluginValidator();
-        boolean status = v.validate("/Users/guhar/src/bard.plugins/csls/deploy/bardplugin_csls.war");
+        boolean status = v.validate(args[0]);
 //        boolean status = v.validate("/Users/guhar/Downloads/bardplugin_badapple.war");
 //        boolean status = v.validate("/Users/guhar/Downloads/bardplugin_hellofromunm.war");
         System.out.println("status = " + status);

@@ -214,6 +214,38 @@
         </jar>
     </target>
 
+    <target name="validator" depends="compile-rest">
+        <path id="plugin.compile.classpath">
+            <fileset dir="${bard.lib}">
+                <include name="*.jar"/>
+            </fileset>
+        </path>
+        <mkdir dir="${bard.build}"/>
+        <javac srcdir="${bard.src}" destdir="${bard.build}"
+               debug="yes" target="1.6"
+               includes="**/plugin/*">
+            <classpath refid="compile.classpath"/>
+        </javac>
+        <unjar dest="${bard.build}" src="${bard.lib}/jersey-core-1.12.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/jackson-core-2.0.0.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/jackson-databind-2.0.0.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/jackson-annotations-2.0.0.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/javaee.jar"/>
+        <jar destfile="${bard.deploy}/validator.jar">
+            <manifest>
+                <attribute name="Created-By" value="NCGC"/>
+                <attribute name="Manifest-Version" value="1.0"/>
+                <attribute name="Main-class" value="gov.nih.ncgc.bard.tools.PluginValidator"/>
+            </manifest>
+            <fileset dir="${bard.build}" casesensitive="yes">
+                <include name="**/plugin/*"/>
+                <include name="**/tools/Plugin*"/>
+                <include name="javax/**"/>
+                <include name="com/**"/>
+            </fileset>
+        </jar>
+    </target>
+
     <!-- ############################################################################
     ##
     ## Caching related targets
