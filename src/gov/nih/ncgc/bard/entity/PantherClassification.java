@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  */
 public class PantherClassification implements TargetClassification{
     String id, name, description, levelIdentifier;
-    PantherClassification[] children;
 
     @JsonIgnore
     int nodeLevel;
@@ -45,11 +44,6 @@ public class PantherClassification implements TargetClassification{
         return levelIdentifier;
     }
 
-    @Override
-    public TargetClassification[] getChildren() {
-        return children;
-    }
-
     public void setId(String id) {
         this.id = id;
     }
@@ -64,9 +58,5 @@ public class PantherClassification implements TargetClassification{
 
     public void setLevelIdentifier(String levelIdentifier) {
         this.levelIdentifier = levelIdentifier;
-    }
-
-    public void setChildren(PantherClassification[] children) {
-        this.children = children;
     }
 }

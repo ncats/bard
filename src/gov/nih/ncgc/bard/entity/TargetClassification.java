@@ -18,9 +18,4 @@ public interface TargetClassification {
      * This can be null or empty if the hierarchy does not provide such a descriptor.
      */
     String getLevelIdentifier();
-
-    /**
-     * Return the immediate children of this node in the classification hierarchy.
-     */
-    TargetClassification[] getChildren();
 }

@@ -22,6 +22,7 @@ public class ProteinTarget implements BardEntity {
     String name, description, status, url;
     Long geneId, taxId;
 
+//    @JsonBackReference
     List<TargetClassification> classes;
 
     public ProteinTarget(String acc, String name, String description, String status, Long geneId, Long taxId) {
