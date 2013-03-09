@@ -7,6 +7,7 @@ import com.github.fge.jsonschema.main.JsonSchema;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
+import com.github.fge.jsonschema.util.JsonLoader;
 import gov.nih.ncgc.bard.plugin.IPlugin;
 
 import javax.ws.rs.*;
@@ -393,7 +394,10 @@ public class PluginValidator {
                 ObjectMapper mapper = new ObjectMapper();
                 JsonNode manifestNode = mapper.readTree(s);
                 JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
-                JsonSchema schema = factory.getJsonSchema("https://raw.github.com/ncatsdpiprobedev/bardplugins/master/resources/manifest.json?login=rajarshi&token=18b5aa8be3d35e760d4fb841ac885d06");
+
+                JsonNode schemaNode = JsonLoader.fromResource("/manifest.json");
+                JsonSchema schema = factory.getJsonSchema(schemaNode);
+
                 ProcessingReport report = schema.validate(manifestNode);
                 manifestIsValid = report.isSuccess();
                 if (!manifestIsValid) {

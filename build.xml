@@ -240,6 +240,7 @@
         <unjar dest="${bard.build}" src="${bard.lib}/mail.jar"/>
         <unjar dest="${bard.build}" src="${bard.lib}/javaee.jar"/>
         <unjar dest="${bard.build}" src="${bard.lib}/plugin/libphonenumber-5.4.jar"/>
+        <copy file="resources/manifest.json" todir="${bard.build}"/>
 
         <jar destfile="${bard.deploy}/validator.jar">
             <manifest>
@@ -254,6 +255,7 @@
                 <include name="com/**"/>
                 <include name="org/**"/>
                 <include name="draft*/**"/>
+                <include name="manifest.json"/>
             </fileset>
         </jar>
     </target>
