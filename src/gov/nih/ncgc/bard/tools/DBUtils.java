@@ -4467,6 +4467,8 @@ public class DBUtils {
             entities = (List<T>) getSubstanceByETag(skip, top, etag.getEtag());
         else if (Experiment.class.getName().equals(etag.getType()))
             entities = (List<T>) getExperimentsByETag(skip, top, etag.getEtag());
+        else if (Project.class.getName().equals(etag.getType()))
+            entities = (List<T>) getProjectsByETag(skip, top, etag.getEtag());
         return entities;
     }
 
