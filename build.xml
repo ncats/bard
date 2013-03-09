@@ -16,6 +16,9 @@
         <fileset dir="${bard.lib}">
             <include name="*.jar"/>
         </fileset>
+        <fileset dir="${bard.lib}/plugin">
+            <include name="*.jar"/>
+        </fileset>
         <fileset dir="${bard.lib}/solr">
             <include name="*.jar"/>
         </fileset>
@@ -144,12 +147,12 @@
         <copy file="${bard.lib}/solr/wstx-asl-3.2.7.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/wstx-asl-3.2.7.jar"/>
 
-        <copy file="${bard.lib}/jackson-core-2.0.0.jar"
-              tofile="${bard.explode.dir}/WEB-INF/lib/jackson-core-2.0.0.jar"/>
-        <copy file="${bard.lib}/jackson-annotations-2.0.0.jar"
-              tofile="${bard.explode.dir}/WEB-INF/lib/jackson-annotations-2.0.0.jar"/>
-        <copy file="${bard.lib}/jackson-databind-2.0.0.jar"
-              tofile="${bard.explode.dir}/WEB-INF/lib/jackson-databind-2.0.0.jar"/>
+        <copy file="${bard.lib}/jackson-core-2.1.4.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/jackson-core-2.1.4.jar"/>
+        <copy file="${bard.lib}/jackson-annotations-2.1.4.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/jackson-annotations-2.1.4.jar"/>
+        <copy file="${bard.lib}/jackson-databind-2.1.4.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/jackson-databind-2.1.4.jar"/>
         <!--Move compiled classes into WEB-INF-->
         <copy todir="${bard.explode.dir}/WEB-INF/classes">
             <fileset dir="${bard.build}/" excludes="**/service/* **/plugin/* **/rest/*Plugin*"/>
@@ -227,10 +230,18 @@
             <classpath refid="compile.classpath"/>
         </javac>
         <unjar dest="${bard.build}" src="${bard.lib}/jersey-core-1.12.jar"/>
-        <unjar dest="${bard.build}" src="${bard.lib}/jackson-core-2.0.0.jar"/>
-        <unjar dest="${bard.build}" src="${bard.lib}/jackson-databind-2.0.0.jar"/>
-        <unjar dest="${bard.build}" src="${bard.lib}/jackson-annotations-2.0.0.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/jackson-core-2.1.4.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/jackson-databind-2.1.4.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/jackson-annotations-2.1.4.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/json-schema-core-1.1.1-SNAPSHOT.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/json-schema-validator-2.1.0-SNAPSHOT.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/guava-14.0.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/joda-time-2.2.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/mail.jar"/>
         <unjar dest="${bard.build}" src="${bard.lib}/javaee.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/libphonenumber-5.4.jar"/>
+        <copy file="resources/manifest.json" todir="${bard.build}"/>
+
         <jar destfile="${bard.deploy}/validator.jar">
             <manifest>
                 <attribute name="Created-By" value="NCGC"/>
@@ -242,6 +253,9 @@
                 <include name="**/tools/Plugin*"/>
                 <include name="javax/**"/>
                 <include name="com/**"/>
+                <include name="org/**"/>
+                <include name="draft*/**"/>
+                <include name="manifest.json"/>
             </fileset>
         </jar>
     </target>

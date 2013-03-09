@@ -1,5 +1,13 @@
 package gov.nih.ncgc.bard.tools;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonschema.exceptions.ProcessingException;
+import com.github.fge.jsonschema.main.JsonSchema;
+import com.github.fge.jsonschema.main.JsonSchemaFactory;
+import com.github.fge.jsonschema.report.ProcessingMessage;
+import com.github.fge.jsonschema.report.ProcessingReport;
+import com.github.fge.jsonschema.util.JsonLoader;
 import gov.nih.ncgc.bard.plugin.IPlugin;
 
 import javax.ws.rs.*;
@@ -18,6 +26,9 @@ import java.util.zip.ZipFile;
 /**
  * A tool to validate BARD plugins.
  * <p/>
+ * If used in your own code, you should ensure that the plugin manifest schema
+ * is located at <code>/manifest.json</code> in your CLASSPATH. When run from the
+ * command line, the schema is bundled with the final JAR file.
  *
  * @author Rajarshi Guha
  */
@@ -380,7 +391,28 @@ public class PluginValidator {
         if (s == null) errors.error("getManifest() returned a null value");
 
         // validate the manifest document. First we need to get the manifest schema
+        boolean manifestIsValid = false;
+        try {
+            if (s != null && !s.equals("")) {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode manifestNode = mapper.readTree(s);
+                JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
 
+                JsonNode schemaNode = JsonLoader.fromResource("/manifest.json");
+                JsonSchema schema = factory.getJsonSchema(schemaNode);
+
+                ProcessingReport report = schema.validate(manifestNode);
+                manifestIsValid = report.isSuccess();
+                if (!manifestIsValid) {
+                    for (ProcessingMessage msg : report) errors.error(msg.getMessage());
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ProcessingException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        if (!manifestIsValid) errors.error("Manifest did not validate");
 
         return errors.size() == 0;
     }
