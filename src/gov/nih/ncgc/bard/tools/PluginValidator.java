@@ -26,6 +26,9 @@ import java.util.zip.ZipFile;
 /**
  * A tool to validate BARD plugins.
  * <p/>
+ * If used in your own code, you should ensure that the plugin manifest schema
+ * is located at <code>/manifest.json</code> in your CLASSPATH. When run from the
+ * command line, the schema is bundled with the final JAR file.
  *
  * @author Rajarshi Guha
  */
