@@ -2,8 +2,12 @@ package gov.nih.ncgc.bard.tools;
 
 import gov.nih.ncgc.bard.plugin.IPlugin;
 
-import javax.ws.rs.*;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -14,6 +18,12 @@ import java.util.List;
 import java.util.jar.JarInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 
 /**
  * A tool to validate BARD plugins.

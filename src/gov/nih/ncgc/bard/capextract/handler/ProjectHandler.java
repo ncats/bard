@@ -1,16 +1,43 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
-import gov.nih.ncgc.bard.capextract.*;
-import gov.nih.ncgc.bard.capextract.jaxb.*;
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
+import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
+import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
+import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
+import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
+import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.capextract.jaxb.Project;
+import gov.nih.ncgc.bard.capextract.jaxb.ProjectExperiment;
+import gov.nih.ncgc.bard.capextract.jaxb.ProjectStep;
 import gov.nih.ncgc.bard.tools.Util;
-import nu.xom.ParsingException;
 
-import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.xml.bind.JAXBElement;
+
+import nu.xom.ParsingException;
+
+import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
 
 /**
  * A one line summary.

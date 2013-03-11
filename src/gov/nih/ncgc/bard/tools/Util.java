@@ -1,17 +1,10 @@
 package gov.nih.ncgc.bard.tools;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.service.CachingService;
 import gov.nih.ncgc.search.MoleculeService;
 import gov.nih.ncgc.search.SearchService2;
 
-import javax.naming.InitialContext;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -21,6 +14,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.naming.InitialContext;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.HttpHeaders;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Miscellaneous utility functions.

@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.entity;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
@@ -8,6 +7,8 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Date;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Represents Pubchem substances and includes the related CID's

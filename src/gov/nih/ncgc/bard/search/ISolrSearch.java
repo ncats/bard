@@ -1,10 +1,10 @@
 package gov.nih.ncgc.bard.search;
 
-import org.apache.solr.client.solrj.SolrServerException;
-
 import java.net.MalformedURLException;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.solr.client.solrj.SolrServerException;
 
 /**
  * An interface that classes supporting Solr search will implement.

@@ -1,9 +1,9 @@
 package gov.nih.ncgc.bard.search;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * A one line summary.

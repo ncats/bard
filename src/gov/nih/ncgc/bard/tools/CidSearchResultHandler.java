@@ -1,12 +1,13 @@
 package gov.nih.ncgc.bard.tools;
 
-import chemaxon.struc.Molecule;
 import gov.nih.ncgc.search.SearchCallback;
 import gov.nih.ncgc.search.SearchParams;
 import gov.nih.ncgc.search.SearchService2;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import chemaxon.struc.Molecule;
 
 /**
  * A one line summary.

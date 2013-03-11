@@ -3,22 +3,24 @@ package gov.nih.ncgc.bard.capextract.handler;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.SslHttpClient;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.conn.HttpHostConnectException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Vector;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.HttpHostConnectException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 //import java.io.BufferedReader;
 //import java.io.InputStream;

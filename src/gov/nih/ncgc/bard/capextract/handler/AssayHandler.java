@@ -1,18 +1,34 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import gov.nih.ncgc.bard.capextract.*;
-import gov.nih.ncgc.bard.capextract.jaxb.*;
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
+import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.Assay;
+import gov.nih.ncgc.bard.capextract.jaxb.AssayContexType;
+import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.tools.Util;
-import nu.xom.ParsingException;
 
-import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import javax.xml.bind.JAXBElement;
+
+import nu.xom.ParsingException;
 
 /**
  * Process CAP <code>Assay</code> elements.

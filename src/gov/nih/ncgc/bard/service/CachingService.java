@@ -1,11 +1,11 @@
 package gov.nih.ncgc.bard.service;
 
+import java.util.logging.Logger;
+
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
-
-import java.util.logging.Logger;
 
 public class CachingService {
     static final String CACHE_MANAGER = 

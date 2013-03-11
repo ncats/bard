@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.tools;
 
-import gov.nih.ncgc.bard.capextract.CAPAssayAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.entity.Assay;
@@ -8,14 +7,15 @@ import gov.nih.ncgc.bard.entity.BardEntity;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Substance;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
+
+import org.testng.Assert;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
 
 /**
  * A one line summary.

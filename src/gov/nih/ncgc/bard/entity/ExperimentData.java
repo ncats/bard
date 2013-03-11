@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
@@ -12,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * A representation of experiment data (ie measurements).

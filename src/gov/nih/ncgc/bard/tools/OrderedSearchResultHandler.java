@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.tools;
 
-import chemaxon.struc.Molecule;
 import gov.nih.ncgc.search.SearchCallback;
 import gov.nih.ncgc.search.SearchParams;
 import gov.nih.ncgc.search.SearchService2;
@@ -8,11 +7,12 @@ import gov.nih.ncgc.search.SearchService2;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.logging.Logger;
-import java.util.logging.Level;
+
+import chemaxon.struc.Molecule;
 
 public class OrderedSearchResultHandler 
     implements SearchCallback<SearchService2.MolEntry> {

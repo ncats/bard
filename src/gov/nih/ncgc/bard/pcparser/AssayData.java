@@ -1,10 +1,10 @@
 package gov.nih.ncgc.bard.pcparser;
 // $Id: AssayData.java 2278 2008-05-29 22:27:45Z nguyenda $
 
-import java.io.Serializable;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 
 
 public class AssayData implements Serializable {

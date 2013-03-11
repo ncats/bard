@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
@@ -8,6 +7,8 @@ import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * A representation of a project.

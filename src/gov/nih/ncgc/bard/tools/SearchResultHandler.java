@@ -1,15 +1,17 @@
 package gov.nih.ncgc.bard.tools;
 
-import chemaxon.struc.Molecule;
 import gov.nih.ncgc.search.SearchCallback;
 import gov.nih.ncgc.search.SearchParams;
 import gov.nih.ncgc.search.SearchService2;
-import static gov.nih.ncgc.search.SearchService2.*;
+import gov.nih.ncgc.search.SearchService2.MolEntry;
 
 import java.io.PrintWriter;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.PriorityQueue;
+
+import chemaxon.struc.Molecule;
 
 /**
  * A one line summary.
