@@ -2176,6 +2176,7 @@ public class DBUtils {
         a.setTitle(rs.getString("title"));
         a.setAssayStatus(rs.getString("status"));
         a.setAssayType(rs.getString("assay_type"));
+        a.setScore(rs.getFloat("score"));
 
         List<Long> pmids = new ArrayList<Long>();
         for (Publication pub : getAssayPublications(bardAssayId)) pmids.add(pub.getPubmedId());
@@ -3938,6 +3939,7 @@ public class DBUtils {
                 p.setDeposited(rs.getDate("deposited"));
                 p.setSource(rs.getString("source_name"));
                 p.setCapProjectId(rs.getLong("cap_proj_id"));
+                p.setScore(rs.getInt("score"));
 
                 cache.put(new Element (bardProjId, p));
             }

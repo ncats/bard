@@ -32,12 +32,22 @@ public class Assay implements BardEntity {
 
     Map<String, String> minimumAnnotations = new HashMap<String, String>();
 
+    float score;
+
     @JsonIgnore
     String description, protocol, comments;
 
 
     @JsonIgnore
     List<String> gobp_id, gobp_term, gomf_term, gomf_id, gocc_id, gocc_term, av_dict_label, ak_dict_label;
+
+    public float getScore() {
+        return score;
+    }
+
+    public void setScore(float score) {
+        this.score = score;
+    }
 
     public String getAssayType() {
         return assayType;
