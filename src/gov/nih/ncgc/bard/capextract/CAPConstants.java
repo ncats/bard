@@ -41,6 +41,7 @@ public class CAPConstants {
         EXPERIMENT("application/vnd.bard.cap+xml;type=experiment"),
         RESULTS("application/vnd.bard.cap+xml;type=results"),
         RESULT("application/vnd.bard.cap+xml;type=result"),
+        RESULT_JSON("application/json;type=results"),        
         ASSAYDOC("application/vnd.bard.cap+xml;type=assayDoc"),
         PROJECTDOC("application/vnd.bard.cap+xml;type=projectDoc"),
         EXTREF("application/vnd.bard.cap+xml;type=externalReference"),

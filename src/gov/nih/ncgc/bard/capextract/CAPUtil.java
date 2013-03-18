@@ -51,12 +51,12 @@ public class CAPUtil {
         return conn;
     }
 
-    public static Connection connectToBARD(String serverName) throws SQLException {
+    public static Connection connectToBARD(String serverURL) throws SQLException {
         Connection conn = null;
         try {
             Class.forName("com.mysql.jdbc.Driver").newInstance();
 //            conn = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov/bard2", "capbard", "bard");
-            conn = DriverManager.getConnection(serverName, "bard_manager", "bard_manager");
+            conn = DriverManager.getConnection(serverURL, "bard_manager", "bard_manager");
             conn.setAutoCommit(false);
         } catch (IllegalAccessException e) {
             System.out.println("Can't connect to db" + e.toString());
