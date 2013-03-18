@@ -67,6 +67,7 @@ public class ScoreHandler extends CapResourceHandler {
 
         // for each project, get the new project score and update
         PreparedStatement probe = conn.prepareStatement("select * from project_probe where bard_proj_id = ?");
+        PreparedStatement confirm = conn.prepareStatement("select * from bard_project_experiment where bard_proj_id = ?");
         pst = conn.prepareStatement("select distinct a.bard_expt_id, a.confidence_level from bard_experiment a, bard_project_experiment b " +
                 " where b.bard_proj_id = ? and a.bard_expt_id = b.bard_expt_id");
         for (Long bardProjId : pids) {
@@ -79,6 +80,24 @@ public class ScoreHandler extends CapResourceHandler {
                 hasProbe = rs.getString("probe_id") != null;
             }
             probe.clearParameters();
+            rs.close();
+
+            // see whether we have a confirmatory experiment
+            boolean hasConfirmation = false;
+            confirm.setLong(1, bardProjId);
+            rs = confirm.executeQuery();
+            while (rs.next()) {
+                String type = rs.getString("expt_type");
+                if (type.equals("confirmatory assay") ||
+                        type.equals("secondary assay") ||
+                        type.equals("counter-screening assay") ||
+                        type.equals("alternative confirmatory assay")
+                        ) {
+                    hasConfirmation = true;
+                    break;
+                }
+            }
+            confirm.clearParameters();
             rs.close();
 
             // get all confidence scores
@@ -102,8 +121,12 @@ public class ScoreHandler extends CapResourceHandler {
                 else projectScore = 3;
             } else {
                 if (hasProbe) projectScore = 3;
-                else if (avg < 2) projectScore = avg;
-                else projectScore = 2;
+                else {
+                    if (avg < 2) projectScore = avg;
+                    else projectScore = 2;
+
+                    if (hasConfirmation) projectScore += 0.5;
+                }
             }
 
             // update project score
@@ -117,5 +140,6 @@ public class ScoreHandler extends CapResourceHandler {
         log.info("## Update project scores for bard experiment id " + bardExptId);
         pst.close();
         probe.close();
+        confirm.close();
     }
 }
