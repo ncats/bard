@@ -34,7 +34,7 @@ public class Project implements BardEntity {
 
     int category, type, classification;
     String name, description, source;
-    int score;
+    float score;
 
     // annotations
     @JsonIgnore
@@ -67,11 +67,11 @@ public class Project implements BardEntity {
     List<Long> publications;
     List<ProteinTarget> targets;
 
-    public int getScore() {
+    public float getScore() {
         return score;
     }
 
-    public void setScore(int score) {
+    public void setScore(float score) {
         this.score = score;
     }
 

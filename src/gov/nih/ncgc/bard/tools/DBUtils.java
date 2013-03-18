@@ -3939,7 +3939,7 @@ public class DBUtils {
                 p.setDeposited(rs.getDate("deposited"));
                 p.setSource(rs.getString("source_name"));
                 p.setCapProjectId(rs.getLong("cap_proj_id"));
-                p.setScore(rs.getInt("score"));
+                p.setScore(rs.getFloat("score"));
 
                 cache.put(new Element (bardProjId, p));
             }
