@@ -5150,9 +5150,23 @@ public class DBUtils {
             step.setNextBardExpt(rs.getLong("next_bard_expt_id"));
             step.setPrevBardExpt(rs.getLong("prev_bard_expt_id"));
             step.setAnnotations(getProjectStepAnnotations(step.getStepId()));
+            step.setPrevStageRef(getExperimentTypeByProject(projectId, step.getPrevBardExpt()));
+            step.setNextStageRef(getExperimentTypeByProject(projectId, step.getNextBardExpt()));
             steps.add(step);
         }
         return steps;
+    }
+
+    public String getExperimentTypeByProject(Long bardProjId, Long bardExptId) throws SQLException {
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select expt_type from bard_project_experiment where bard_proj_id = ? and bard_expt_id = ?");
+        pst.setLong(1, bardProjId);
+        pst.setLong(2, bardExptId);
+        ResultSet rs = pst.executeQuery();
+        String ret = null;
+        while (rs.next()) ret = rs.getString(1);
+        pst.close();
+        return ret;
     }
 
     public List<CAPAnnotation> getProjectStepAnnotations(Long projectStepId) throws SQLException {

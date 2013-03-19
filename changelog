@@ -72,3 +72,7 @@ v14 released
               is currently not represented (but can be reconstructed from the JSON). New resources are:
                /targets/{acc}/classification/{source} - source must be panther, acc is Uniprot ID
                /targets/classification/{source}/{id} - source must be panther, id is a Panther class ID
+
+v15 released
+
+03/19/13      Added stage ref fields to project step JSON

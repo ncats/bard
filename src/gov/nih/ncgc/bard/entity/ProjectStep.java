@@ -9,6 +9,7 @@ import java.util.List;
  */
 public class ProjectStep implements BardEntity {
     Long prevBardExpt, nextBardExpt, bardProjId;
+    String prevStageRef, nextStageRef;
     Long stepId;
     String edgeName;
     List<CAPAnnotation> annotations;
@@ -22,6 +23,22 @@ public class ProjectStep implements BardEntity {
         this.bardProjId = bardProjId;
         this.stepId = stepId;
         this.edgeName = edgeName;
+    }
+
+    public String getPrevStageRef() {
+        return prevStageRef;
+    }
+
+    public void setPrevStageRef(String prevStageRef) {
+        this.prevStageRef = prevStageRef;
+    }
+
+    public String getNextStageRef() {
+        return nextStageRef;
+    }
+
+    public void setNextStageRef(String nextStageRef) {
+        this.nextStageRef = nextStageRef;
     }
 
     public List<CAPAnnotation> getAnnotations() {
