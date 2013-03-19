@@ -29,26 +29,36 @@ public class AssaysHandler extends CapResourceHandler implements ICapResourceHan
      *                 can choose to proceed or not based on this parameter.
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
-        if (resource != CAPConstants.CapResource.ASSAYS) return;
-        log.info("Processing " + resource);
+	if (resource != CAPConstants.CapResource.ASSAYS) return;
+	log.info("Processing " + resource);
 
-        // get the Assays object here
-        Assays assays = getResponse(url, resource);
-        BigInteger n = assays.getCount();
-        log.info("\tWill be processing " + n + " assays");
-        List<Link> links = assays.getLink();
-        for (Link link : links) {
-            String href = link.getHref();
-            String type = link.getType();
-            String title = link.getTitle();
-            log.info("\t" + title + "/" + type + "/ href = " + href);
+	// get the Assays object here
+	Assays assays = getResponse(url, resource);
+	BigInteger n = assays.getCount();
+	log.info("\tWill be processing " + n + " assays");
+	List<Link> links = assays.getLink();
+	for (Link link : links) {
+	    String href = link.getHref();
+	    String type = link.getType();
+	    String title = link.getTitle();
+	    log.info("\t" + title + "/" + type + "/ href = " + href);
 
-            // for now lets just handle a few specific assays
-//            if (href.endsWith("/1640")) {
-            if (true) {
-                ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.ASSAY);
-                if (handler != null) handler.process(href, CAPConstants.CapResource.ASSAY);
-            }
-        }
+	    // for now lets just handle a few specific assays
+	    //            if (href.endsWith("/1640")) {
+	    if (true) {
+		ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.ASSAY);
+		if (handler != null) {		    
+		    //start
+		    setExtractionStatus(CAPConstants.CAP_STATUS_STARTED, href, 
+			    CAPConstants.CapResource.ASSAY);
+		    //process
+		    handler.process(href, CAPConstants.CapResource.ASSAY);
+		    //mark complete
+		    setExtractionStatus(CAPConstants.CAP_STATUS_COMPLETE, href, 
+			    CAPConstants.CapResource.ASSAY);
+		}
+	    }
+	}
     }
 }
+

@@ -52,9 +52,15 @@ public class ProjectsHandler extends CapResourceHandler implements ICapResourceH
                 String title = project.getProjectName();
                 BigInteger pid = project.getProjectId();
 //                log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
-                if (readyToXtract.equals("Ready")) {
-//                    log.info("\tExtracting " + title);
+                if (readyToXtract.equals("Ready")) {                    
+		    //start
+		    setExtractionStatus(CAPConstants.CAP_STATUS_STARTED, projLink.getHref(), 
+			    CAPConstants.CapResource.PROJECT);
+		    //process
                     ph.process(project);
+		    //mark complete
+		    setExtractionStatus(CAPConstants.CAP_STATUS_COMPLETE, projLink.getHref(), 
+			    CAPConstants.CapResource.PROJECT);  
                 }
             }
         }
