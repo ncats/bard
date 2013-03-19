@@ -16,9 +16,12 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.conn.HttpHostConnectException;
+import org.apache.http.entity.StringEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,4 +125,53 @@ public abstract class CapResourceHandler {
             throw new IOException("Error unmarshalling document from " + url, e);
         }
     }
+    
+    /**
+     * Sets the extraction status for a given CAP resource.
+     * 
+     * @param status Status String, set from CAPConstants.(CAP_STATUS_READY | CAP_STATUS_STARTED | CAP_STATUS_COMPLETE) 
+     * @param url The URL for the CAP resource
+     * @param resource  The CAP resource 
+     * @param entityVersionEtagId CAP resources are versioned, a header field labeled 'Etag' provides the current version
+     * @return on success returns the new entity version (Etag), else returns -1
+     */
+    public int setExtractionStatus(String status, String url, CAPConstants.CapResource resource) {
+	int etag = -1;
+	String etagStr = null;
+	try {
+	    httpClient = SslHttpClient.getHttpClient();
+
+	    //need to get the current CAP etag for the header, arggg
+	    HttpGet get =  new HttpGet(url);
+	    get.setHeader("Accept", resource.getMimeType());
+	    get.setHeader(CAPConstants.CAP_APIKEY_HEADER, CAPConstants.getApiKey());
+
+	    HttpResponse baseResponse = httpClient.execute(get);
+	    if(baseResponse != null && baseResponse.getFirstHeader("Etag").getValue() != null) {
+		etag = Integer.parseInt(baseResponse.getFirstHeader("Etag").getValue());
+
+		HttpPut put = new HttpPut(url);
+		put.setHeader("Accept", resource.getMimeType());
+		put.setHeader(CAPConstants.CAP_APIKEY_HEADER, CAPConstants.getApiKey());
+		put.setHeader("If-Match", Integer.toString(etag));  //use the etag here
+
+		//set the status
+		put.setEntity(new StringEntity(status));
+
+		HttpResponse response = httpClient.execute(put);
+		if(response.getStatusLine().getStatusCode() == 200) {
+		    log.info("Changed CAP Entity status to "+status+ " for resource URL:"+url);
+		    etag = Integer.parseInt(response.getFirstHeader("Etag").getValue());
+		}
+	    }
+	} catch (ClientProtocolException e) {
+	    log.warn("Error setting CAP extraction status ("+status+")");
+	    e.printStackTrace();
+	} catch (IOException e) {
+	    log.warn("Error setting CAP extraction status ("+status+")");
+	    e.printStackTrace();
+	} 
+	return etag;
+    }
+    
 }
