@@ -1,6 +1,6 @@
 package gov.nih.ncgc.bard.resourcemgr.extresource.ontology.go;
 
-import gov.nih.ncgc.bard.ontology.OntologyNode;
+import gov.nih.ncgc.bard.resourcemgr.extresource.ontology.OntologyNode;
 
 import java.util.Vector;
 

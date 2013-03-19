@@ -8,6 +8,7 @@ import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
 import gov.nih.ncgc.bard.capextract.handler.BardexportHandler;
 import gov.nih.ncgc.bard.capextract.handler.DictionaryHandler;
 import gov.nih.ncgc.bard.capextract.handler.ExperimentHandler;
+import gov.nih.ncgc.bard.capextract.handler.ExperimentResultHandler;
 import gov.nih.ncgc.bard.capextract.handler.ExperimentsHandler;
 import gov.nih.ncgc.bard.capextract.handler.ExternalReferenceHandler;
 import gov.nih.ncgc.bard.capextract.handler.ExternalSystemHandler;
@@ -105,6 +106,7 @@ public class CAPExtractor {
         registry.setHandler(CAPConstants.CapResource.DICTIONARY, new DictionaryHandler());
         registry.setHandler(CAPConstants.CapResource.EXTREF, new ExternalReferenceHandler());
         registry.setHandler(CAPConstants.CapResource.EXTSYS, new ExternalSystemHandler());
+        registry.setHandler(CAPConstants.CapResource.RESULT_JSON, new ExperimentResultHandler());
 
         //        registry.setHandler(CAPConstants.CapResource.RESULTS, new ResultsHandler());
     }

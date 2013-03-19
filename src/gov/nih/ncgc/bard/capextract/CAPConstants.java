@@ -26,6 +26,14 @@ public class CAPConstants {
     public static String getApiKey() {
         return System.getProperty("CAP_API_KEY");
     }
+    
+    public static String getBardScratchDir() {
+	return System.getProperty("BARD_SCRATCH_DIR");
+    }
+    
+    public static String getBardDBJDBCUrl() {
+	return System.getProperty("BARD_DB_URL");
+    }
 
     public static enum CapResource {
         BARDEXPORT("application/vnd.bard.cap+xml;type=bardexport"),

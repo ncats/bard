@@ -1,7 +1,7 @@
 package gov.nih.ncgc.bard.resourcemgr.extresource.ontology.go;
 
-import gov.nih.ncgc.bard.ontology.OntologyNode;
 import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
+import gov.nih.ncgc.bard.resourcemgr.extresource.ontology.OntologyNode;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
