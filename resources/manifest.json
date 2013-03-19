@@ -43,8 +43,9 @@
 		    "path" : {"type":"string", "required":true},
 		    "method" : {"enum":["GET","POST","PUT","DELETE"], "required":true},
 		    "mimetype" : {"type":"string", "required":true},
-		    "args" : {"type":"array", 
+		    "args" : {"type":["array","null"], 
 			      "uniqueItems": true,
+			      "minItems" : 1,
 			      "items" : [{
 				  "type" : "object",
 				  "properties" : {
