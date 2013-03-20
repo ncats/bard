@@ -56,7 +56,7 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
             // now we dump in the dict elements (a partial representation) that will be useful
             // for SQL queries. We're assuming for now that a dict elem is associated with
             // a single ontology
-            pst = conn.prepareStatement("insert into cap_dict_elem (ins_date, dictid, label, description, abbreviation, ext_url, onto_name, onto_abbrv, onto_url, onto_id) values (?,?,?,?,?,?,  ?,?,?,?)");
+            pst = conn.prepareStatement("insert into cap_dict_elem (ins_date, dictid, label, description, abbreviation, ext_url, onto_name, onto_abbrv, onto_url, onto_id, element_status) values (?,?,?,?,?,?,  ?,?,?,?, ?)");
             for (CAPDictionaryElement elem : dict.getNodes()) {
                 pst.setDate(1, new java.sql.Date(today.getTime()));
                 pst.setInt(2, elem.getElementId().intValue());
@@ -69,6 +69,9 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
                 pst.setString(8, elem.getOnto_abbrv());
                 pst.setString(9, elem.getOnto_url());
                 pst.setString(10, elem.getOnto_id());
+
+                pst.setString(11, elem.getElementStatus());
+
                 pst.addBatch();
             }
             pst.executeBatch();
