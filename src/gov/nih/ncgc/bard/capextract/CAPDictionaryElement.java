@@ -24,6 +24,9 @@ public class CAPDictionaryElement implements Serializable {
     private String elementStatus;
     transient private String readyForExtraction;
     private String synonyms;
+
+    String onto_name, onto_abbrv, onto_url, onto_id;
+
 //    private String unit;
 
 
@@ -118,7 +121,55 @@ public class CAPDictionaryElement implements Serializable {
         readyForExtraction = e.getReadyForExtraction();
         abbreviation = e.getAbbreviation();
         synonyms = e.getSynonyms();
+
+        Element.Ontologies ontologies = e.getOntologies();
+        if (ontologies != null) {
+            int nonto = 0;
+            for (Element.Ontologies.Ontology onto : ontologies.getOntology()) {
+                nonto++;
+                if (nonto > 1)
+                    System.out.println("Element ID " + elementId + " was associated with " + nonto + " ontology terms");
+                onto_name = onto.getName();
+                onto_abbrv = onto.getAbbreviation();
+                onto_url = onto.getSourceUrl();
+                onto_id = null;
+            }
+        } else {
+            System.out.println("Element ID " + elementId + " was associated with no ontologies");
+        }
 //        unit = e.getUnit();
+    }
+
+    public String getOnto_name() {
+        return onto_name;
+    }
+
+    public void setOnto_name(String onto_name) {
+        this.onto_name = onto_name;
+    }
+
+    public String getOnto_abbrv() {
+        return onto_abbrv;
+    }
+
+    public void setOnto_abbrv(String onto_abbrv) {
+        this.onto_abbrv = onto_abbrv;
+    }
+
+    public String getOnto_url() {
+        return onto_url;
+    }
+
+    public void setOnto_url(String onto_url) {
+        this.onto_url = onto_url;
+    }
+
+    public String getOnto_id() {
+        return onto_id;
+    }
+
+    public void setOnto_id(String onto_id) {
+        this.onto_id = onto_id;
     }
 
     @Override
@@ -132,6 +183,6 @@ public class CAPDictionaryElement implements Serializable {
 
     @Override
     public String toString() {
-        return label + "[" + elementId + "]: "+description+" | "+abbreviation+" "+synonyms;
+        return label + "[" + elementId + "]: " + description + " | " + abbreviation + " " + synonyms;
     }
 }
