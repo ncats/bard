@@ -460,6 +460,67 @@ public class DBUtils {
         }
     }
 
+    public Long[][] getSidsByCids(Long[] cids) throws SQLException {
+
+        List<Long[]> list  = new ArrayList<Long[]>();
+
+        Cache cache = getCache ("SidsByCidCache");
+        List<Long> uncachedCids = new ArrayList<Long>();
+        try {
+            for (Long cid : cids) {
+                List<Long> sids = getCacheValue(cache, cid);
+                if (sids != null) {
+                    for (Long sid : sids) list.add(new Long[]{cid, sid});
+                } else uncachedCids.add(cid);
+            }
+        }
+        catch (ClassCastException ex) {}
+
+        // if there's nothing in uncachedCids, we got everything from the cache
+        if (uncachedCids.size() == 0) return list.toArray(new Long[][]{});
+
+        if (conn == null) conn = getConnection();
+        List<List<Long>> chunks = Util.chunk(uncachedCids, CHUNK_SIZE);
+
+        for (List<Long> chunk : chunks) {
+            String cidClause = Util.join(chunk, ",");
+            String sql = "select cid, sid from cid_sid where cid in ("+cidClause+") order by cid";
+            Statement stm = conn.createStatement();
+            try {
+                ResultSet rs = stm.executeQuery(sql);
+
+                List<Long> sids = new ArrayList<Long>();
+
+                rs.next();
+                Long oldCid = rs.getLong(1);
+                Long sid = rs.getLong(2);
+                list.add(new Long[]{oldCid, sid});
+                sids.add(sid);
+
+                while (rs.next()) {
+                    Long cid = rs.getLong(1);
+                    sid = rs.getLong(2);
+
+                    list.add(new Long[]{cid, sid});
+
+                    if (cid != oldCid) {
+                        cache.put(new Element (oldCid, sids));
+                        sids.clear();
+                    }
+                    sids.add(sid);
+                    oldCid = cid;
+                }
+                cache.put(new Element (oldCid, sids));
+                rs.close();
+            }
+            finally {
+                stm.close();
+            }
+        }
+
+        return list.toArray(new Long[][]{});
+    }
+
 
     /**
      * Obtain compounds based on their CIDs.
