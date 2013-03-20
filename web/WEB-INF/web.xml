@@ -16,7 +16,7 @@
 
     <context-param>
         <param-name>solr-server</param-name>
-        <param-value>http://protease.nhgri.nih.gov:8094/solr</param-value>
+        <param-value>http://carnot.ncats.nih.gov:8094/solr</param-value>
     </context-param>
 
     <!-- Specify the Solr cores we should use for full text search -->
