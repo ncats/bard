@@ -18,7 +18,7 @@ import java.util.List;
 public class ExperimentsHandler extends CapResourceHandler implements ICapResourceHandler {
 
     public ExperimentsHandler() {
-        super();
+	super();
     }
 
     /**
@@ -29,30 +29,45 @@ public class ExperimentsHandler extends CapResourceHandler implements ICapResour
      *                 can choose to proceed or not based on this parameter.
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
-        if (resource != CAPConstants.CapResource.EXPERIMENTS) return;
-        log.info("Processing " + resource);
+	if (resource != CAPConstants.CapResource.EXPERIMENTS) return;
+	log.info("Processing " + resource);
 
-        while (url != null) { // in case 206 partial response is returned, we should continue to iterate
-            // get the Experiments object here
-            Experiments experiments = getResponse(url, resource);
-            url = null;
-            BigInteger n = experiments.getCount();
-            log.info("Will be processing " + n + " experiments");
-            List<Link> links = experiments.getLink();
-            for (Link link : links) {
-        	if (link.getRel().equals("next")) {
-        	    url = link.getHref();
-        	} else if (link.getRel().equals("related") &&
-        		link.getType().equals(CAPConstants.CapResource.EXPERIMENT.getMimeType())) {
-        	    String href = link.getHref();
-        	    link.getType();
-        	    link.getTitle();
+	while (url != null) { // in case 206 partial response is returned, we should continue to iterate
+	    // get the Experiments object here
+	    Experiments experiments = getResponse(url, resource);
+	    url = null;
+	    BigInteger n = experiments.getCount();
+	    log.info("Will be processing " + n + " experiments");
+	    List<Link> links = experiments.getLink();
+	    for (Link link : links) {
+		if (link.getRel().equals("next")) {
+		    url = link.getHref();
+		} else if (link.getRel().equals("related") &&
+			link.getType().equals(CAPConstants.CapResource.EXPERIMENT.getMimeType())) {
+		    String href = link.getHref();
+		    link.getType();
+		    link.getTitle();
 
-        	    //log.info("\t" + title + "/" + type + "/ href = " + href);
-        	    ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.EXPERIMENT);
-        	    if (handler != null) handler.process(href, CAPConstants.CapResource.EXPERIMENT);
-        	}
-            }
-        }
+		    //log.info("\t" + title + "/" + type + "/ href = " + href);
+
+		    //load experiment, then results
+		    ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.EXPERIMENT);
+		    if (handler != null) { 
+			//set status to started
+			this.setExtractionStatus(CAPConstants.CAP_STATUS_STARTED, href, CAPConstants.CapResource.EXPERIMENT);
+			//load experiment
+			handler.process(href, CAPConstants.CapResource.EXPERIMENT);
+
+			//if loading experiment, load experiment results
+			handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.RESULT_JSON);
+			if (handler != null) {
+			    handler.process(href, CAPConstants.CapResource.RESULT_JSON);
+			}
+			//set status to completed
+			this.setExtractionStatus(CAPConstants.CAP_STATUS_COMPLETE, href, CAPConstants.CapResource.EXPERIMENT);
+		    }
+		}
+	    }
+	}
     }
 }
