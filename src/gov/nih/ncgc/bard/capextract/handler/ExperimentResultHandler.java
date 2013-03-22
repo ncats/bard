@@ -23,6 +23,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.sql.Blob;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,6 +40,8 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
@@ -55,6 +58,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
     private Logger logger = Logger.getLogger(ExperimentResultHandler.class.getName());
   
     private Connection conn;
+    private Connection conn2;
     private ArrayList<Long> tempProjectList;
 
     /**
@@ -74,18 +78,20 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    //open connection
 	    conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
 	    conn.setAutoCommit(false);
+	    conn2 = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+	    conn2.setAutoCommit(false);
 
 	    Statement stmt = conn.createStatement();
-	    ResultSet cidRS;
+	    ResultSet rs;
 
 	    //first clear the data for the experiment in the staging table
 	    stmt.execute("delete from cap_expt_result where cap_expt_id="+capExptId);
 
 	    //dump the cap data into a file in bard-scratch
-	    String stageFile = CAPConstants.getBardScratchDir()+"/result_load_"+capExptId+".txt";
+	    String stageFile = CAPConstants.getBardScratchDir()+"/result_load_cap_expt_"+capExptId+".txt";
 	    this.stageDataToFile(url, resource, capExptId, stageFile);
 
-	    logger.info("et for FILE staging data="+(System.currentTimeMillis()-start));
+	    logger.info("Data has be staged in file: "+stageFile);
 
 	    start = System.currentTimeMillis();
 
@@ -93,7 +99,8 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    Hashtable <String, Long> ids = getIds(capExptId);	    
 
 	    //we need to verify that we have a corresponding bard expt id, if not log warning and get out.
-	    if(ids.get("bardExptId") == null) {
+	    Long bardExptId = ids.get("bardExptId");
+	    if(bardExptId == null) {
 		logger.warning("A bardExtId does not exist corresponding to capExptId:"+capExptId+". Experiment data load aborted. Load experiment first.");
 		return;
 	    }
@@ -108,12 +115,14 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    logger.info("CAP Expt ID="+capExptId+" ResultFactory Initialized, entity ID's Exist.");  
 
 	    //prepare for insert of staged data
-	    PreparedStatement insertPS = conn.prepareStatement("insert into cap_expt_result set seq_result_id = ?, cap_expt_id = ?, cid = ?, cap_json = ?, bard_json = ?");
+	    PreparedStatement insertPS = conn.prepareStatement("insert into cap_expt_result set seq_result_id = ?, cap_expt_id = ?, sid = ?, cid = ?, outcome = ?, score=?, potency=?, cap_json = ?, bard_json = ?");
 
 	    ObjectMapper mapper = new ObjectMapper();
 	    long procCnt = 0;
 	    String capData;
 	    Long cid;
+	    Double score, potency;
+	    Integer outcome;
 	    BufferedReader br = new BufferedReader(new FileReader(stageFile));
 
 	    //process each result (fore each substance). The helper class just acts as a container.
@@ -125,9 +134,9 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 		    CAPExperimentResult result = mapper.readValue(capData, CAPExperimentResult.class);
 
 		    //get the cid for the sid
-		    cidRS = stmt.executeQuery("select cid from cid_sid where sid ="+result.getSid());
-		    if(cidRS.next()) {
-			cid = cidRS.getLong(1);
+		    rs = stmt.executeQuery("select cid from cid_sid where rel_type = 1 and sid ="+result.getSid());
+		    if(rs.next()) {
+			cid = rs.getLong(1);
 		    } else {
 			cid = null;
 		    }
@@ -147,12 +156,29 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 		    //set insert data
 		    insertPS.setLong(1, procCnt);
 		    insertPS.setLong(2, capExptId);
+		    insertPS.setLong(3, bardResponse.getSid());
 		    if(cid != null)
-			insertPS.setLong(3, cid);
+			insertPS.setLong(4, cid);
 		    else
-			insertPS.setNull(3, java.sql.Types.INTEGER);
-		    insertPS.setString(4, capData);
-		    insertPS.setString(5, mapper.writeValueAsString(bardResponse));
+			insertPS.setNull(4, java.sql.Types.INTEGER);
+		    
+		    outcome = bardResponse.getOutcome();
+		    score = bardResponse.getScore();
+		    potency = bardResponse.getPotency();
+		    if(outcome != null && outcome != 0)
+			insertPS.setInt(5, outcome);
+		    else
+			insertPS.setNull(5, java.sql.Types.INTEGER);
+		    if(score != null) 
+			insertPS.setDouble(6, score);
+		    else
+			insertPS.setNull(6,java.sql.Types.DOUBLE);
+		    if(potency != null)
+			insertPS.setDouble(7, potency);
+		    else
+			insertPS.setNull(7, java.sql.Types.DOUBLE);
+		    insertPS.setString(8, capData);
+		    insertPS.setString(9, mapper.writeValueAsString(bardResponse));
 		    
 		    insertPS.addBatch();
 		    //update and commit each 100
@@ -171,17 +197,20 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    //lets gzip the file in bard-scratch
 	    gzipStagingFile(stageFile);
 	    
-	    //verify result load, count in table vs. process count
-	    
-	    //check for the experiment results in the data tables
-	    
-	    //delete results if they exist
-	    
-	    //load data tables (bard_experiment_data and bard_experiment_result)
-	    
-	    //close the connnection
-	    conn.close();
+	    //verify result staging load, count in table vs. process count
+	    if(verifyStagedLoad(procCnt, capExptId)) {
+			
+		//delete results if they exist
+		stmt.execute("delete from temp_bard_experiment_data where bard_expt_id ="+bardExptId);
+		stmt.execute("delete from temp_bard_experiment_result where bard_expt_id ="+bardExptId);
 
+		//load data tables (bard_experiment_data and bard_experiment_result)
+		loadDataServingTables(capExptId, bardExptId);
+	    }
+	    //close the connnection		
+	    conn.close();
+	    conn2.close();
+	    
 	    logger.info("Process time for expt "+capExptId+": "+(System.currentTimeMillis()-start));
 
 	} catch (FileNotFoundException e) {
@@ -191,6 +220,128 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	} catch (SQLException e) {
 	    e.printStackTrace();
 	}	
+    }
+    
+    private void loadDataServingTables(long capExptId, long bardExptId) throws SQLException, JsonParseException, JsonMappingException, IOException {
+	
+	Statement stmt = conn2.createStatement();	
+	long dataId;
+
+	ResultSet rs = stmt.executeQuery("select max(expt_data_id) from temp_bard_experiment_data");
+	if(rs.next()) {
+	    dataId = rs.getLong(1) + 1;
+	} else {
+	    log.warn("Abort result load for capExptID:"+capExptId+" Can't get max expt_data_id");
+	    return;
+	}
+
+	stmt.setFetchSize(Integer.MIN_VALUE);
+	ResultSet stagedDataRS = stmt.executeQuery("select sid, cid, outcome, score, potency, cap_json, bard_json from cap_expt_result where cap_expt_id="+capExptId);	
+
+	/*
+	 * bard_expt_data fields:
+	 * expt_data_id (AI), bard_expt_id, eid (defunct), sid, cid, classification (defunct), updated (date),
+	 * runset(varchar), outcome, score, potency, ADD efficacy and test conc?
+	 * 
+	 * bard_experiment_result fields:
+	 * expt_result_id (AI), expt_data_id, bard_expt_id, replicate_id (defunct), eid (defunct),
+	 * sid, json_data_array, json_dose_response (defunct), json_response. 
+	 *  
+	 */
+	PreparedStatement insertDataPS = conn.prepareStatement("insert into temp_bard_experiment_data " +
+			"set bard_expt_id=?, sid=?, cid=?, updated=?, outcome=?, score=?, potency=?, expt_data_id=?");
+	
+	PreparedStatement insertResultPS = conn.prepareStatement("insert into temp_bard_experiment_result " +
+			"set expt_data_id=?, bard_expt_id=?, sid=?, json_data_array=?, json_response=?");
+	Statement aiStmt = conn.createStatement();
+	Long cid, sid;
+	String bardData;
+	String capData;
+	BardExptDataResponse bardResponse;
+	Double score, potency;
+	Integer outcome;
+	Date date = new Date(System.currentTimeMillis());
+	long procCnt = 0;
+	while(stagedDataRS.next()) {
+	    procCnt++;
+	    cid = stagedDataRS.getLong("cid");
+	    capData = stagedDataRS.getString("cap_json");
+	    bardData = stagedDataRS.getString("bard_json");
+	    sid = stagedDataRS.getLong("sid");
+	    
+	    score = stagedDataRS.getDouble("score");
+	    if(stagedDataRS.wasNull())
+		score = null;
+	    outcome = stagedDataRS.getInt("outcome");
+	    if(stagedDataRS.wasNull())
+		outcome = null;
+	    potency = stagedDataRS.getDouble("potency");
+	    if(stagedDataRS.wasNull())
+		potency = null;
+
+	    //bard_experiment_data fields
+	    insertDataPS.setLong(1, bardExptId);
+	    insertDataPS.setLong(2, sid);
+	    if(cid != null)
+		insertDataPS.setLong(3, cid);
+	    else
+		insertDataPS.setNull(3, java.sql.Types.INTEGER);
+	    insertDataPS.setDate(4, date);
+	    if(outcome != null)
+		insertDataPS.setInt(5, outcome);
+	    else
+		insertDataPS.setNull(5, java.sql.Types.TINYINT);		
+	    if(score != null)
+		insertDataPS.setDouble(6, score);
+	    else
+		insertDataPS.setNull(6, java.sql.Types.DOUBLE);
+	    if(potency != null)
+		insertDataPS.setDouble(7, potency);
+	    else
+		insertDataPS.setNull(7, java.sql.Types.DOUBLE);
+	    insertDataPS.setLong(8, dataId);
+
+	    //bard_experiment_result fields
+	    insertResultPS.setLong(1, dataId);
+	    insertResultPS.setLong(2, bardExptId);
+	    insertResultPS.setLong(3, sid);
+	    insertResultPS.setString(4, capData);
+	    insertResultPS.setString(5, bardData);
+	    
+	    insertDataPS.addBatch();
+	    insertResultPS.addBatch();
+	    //increment the shared data id
+	    dataId++;
+    
+	    if(procCnt % 100 == 0) {
+		insertDataPS.executeBatch();		
+		insertResultPS.executeBatch();
+		conn.commit();
+	    }
+	}
+	insertDataPS.executeBatch();
+	insertResultPS.executeBatch();
+	conn.commit();    
+    }
+    
+    /*
+     * Verfies the count of staged data in the DB. 
+     * Preconditions: Assumes an existing db connection (conn).
+     */
+    private boolean verifyStagedLoad(long dataCnt, long capExptId) throws SQLException {
+	boolean verified = false;	
+	Statement stmt = conn.createStatement();
+	ResultSet rs = stmt.executeQuery("select count(*) from cap_expt_result where cap_expt_id = "+capExptId);
+	if(rs.next()) {
+	    if(rs.getLong(1) ==  dataCnt) {
+		verified = true;
+		log.info("Verified: File data count == DB Count ("+dataCnt+") for capExptId:"+capExptId);
+	    } else {
+		log.warn("Data Staging Verification FAILED: File data count:"+dataCnt+" != DB data count:"+rs.getLong(1)+" for capExptId:"+capExptId);
+	    }
+	}
+	rs.close();
+	return verified;
     }
     
     /*

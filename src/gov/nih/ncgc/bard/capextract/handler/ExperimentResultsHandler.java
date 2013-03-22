@@ -76,6 +76,10 @@ public class ExperimentResultsHandler extends CapResourceHandler implements ICap
      * Test load
      */
     public static void main(String [] args) {
+	
+	
+	
+	
 	//initialize handlers
 	CAPExtractor extractor = new CAPExtractor();
 	extractor.setHandlers();

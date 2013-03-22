@@ -28,18 +28,18 @@ public class BardExptDataResponse {
     private Long sid;
     private Long cid;
     
-    //Result sets for priority and other root elements, project ids
-    private ArrayList <BardResultType> priorityElements;
-    private ArrayList <BardResultType> rootElements;
-    private ArrayList <ProjectIdPair> projects;
-    
     //These are used to collect these values for fast retrieval
-    @JsonIgnore
     private Double potency;
     @JsonIgnore
     private Double score;
     @JsonIgnore
     private Integer outcome;
+    
+    //Result sets for priority and other root elements, project ids
+    private ArrayList <BardResultType> priorityElements;
+    private ArrayList <BardResultType> rootElements;
+    private ArrayList <ProjectIdPair> projects;
+    
         
     /**
      * Default constructor
@@ -195,7 +195,10 @@ public class BardExptDataResponse {
     }
 
     public void addProjectPair(Long bardProjId, Long capProjId) {
-	this.projects.add(new ProjectIdPair(bardProjId, capProjId));
+	ProjectIdPair pp = new ProjectIdPair();
+	pp.setBardProjId(bardProjId);
+	pp.setCapProjId(capProjId);
+	this.projects.add(pp);
     }
 
     /**
@@ -203,16 +206,36 @@ public class BardExptDataResponse {
      * 
      * @author braistedjc
      */
-    public class ProjectIdPair {
+    //Note on reconstructing from JSON, it Jackson ObjectMapper required that the inner class be
+    //declared as 'static'. If the class was external I think it would be fine.
+    //I need to find out why this is the case.
+    public static class ProjectIdPair {
 	
 	private Long bardProjId;
 	private Long capProjId;
 	
-	public ProjectIdPair() { }
+	public ProjectIdPair() { 
+	    
+	}
 	
 	public ProjectIdPair(Long bardProjId, Long capProjId) {
 	    this.bardProjId = bardProjId;
 	    this.capProjId = capProjId;
+	}
+	
+	public ProjectIdPair(long bardProjId, long capProjId) {
+	    this.bardProjId = bardProjId;
+	    this.capProjId = capProjId;
+	}
+	
+	public ProjectIdPair(String bardProjId, String capProjId) {
+	    this.bardProjId = Long.parseLong(bardProjId);
+	    this.capProjId = Long.parseLong(capProjId);
+	}
+	
+	public ProjectIdPair(int bardProjId, int capProjId) {
+	    this.bardProjId = Long.valueOf(bardProjId);
+	    this.capProjId = Long.valueOf(capProjId);
 	}
 	
 	public Long getBardProjId() {
