@@ -78,7 +78,7 @@ public class DBUtils {
         return cache;
     }
 
-    static private String datasourceContext = "jdbc/bardman";
+    static private String datasourceContext = "jdbc/bardman3";
     static public void setDataSourceContext (String context) {
         if (context == null) {
             throw new IllegalArgumentException ("Can't set null context!");
