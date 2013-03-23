@@ -132,10 +132,14 @@ public class CAPDictionaryElement implements Serializable {
                 onto_name = onto.getName();
                 onto_abbrv = onto.getAbbreviation();
                 onto_url = onto.getSourceUrl();
+
                 onto_id = null;
+                if (onto_url != null) {
+                    String[] tmp = onto_url.split("#");
+                    if (tmp.length == 2) onto_id = tmp[1];
+                }
             }
         } else {
-            System.out.println("Element ID " + elementId + " was associated with no ontologies");
         }
 //        unit = e.getUnit();
     }
