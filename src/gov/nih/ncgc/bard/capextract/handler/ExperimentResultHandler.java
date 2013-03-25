@@ -201,8 +201,8 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    if(verifyStagedLoad(procCnt, capExptId)) {
 			
 		//delete results if they exist
-		stmt.execute("delete from temp_bard_experiment_data where bard_expt_id ="+bardExptId);
-		stmt.execute("delete from temp_bard_experiment_result where bard_expt_id ="+bardExptId);
+		stmt.execute("delete from bard_experiment_data where bard_expt_id ="+bardExptId);
+		stmt.execute("delete from bard_experiment_result where bard_expt_id ="+bardExptId);
 
 		//load data tables (bard_experiment_data and bard_experiment_result)
 		loadDataServingTables(capExptId, bardExptId);
@@ -227,7 +227,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	Statement stmt = conn2.createStatement();	
 	long dataId;
 
-	ResultSet rs = stmt.executeQuery("select max(expt_data_id) from temp_bard_experiment_data");
+	ResultSet rs = stmt.executeQuery("select max(expt_data_id) from bard_experiment_data");
 	if(rs.next()) {
 	    dataId = rs.getLong(1) + 1;
 	} else {
@@ -248,10 +248,10 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	 * sid, json_data_array, json_dose_response (defunct), json_response. 
 	 *  
 	 */
-	PreparedStatement insertDataPS = conn.prepareStatement("insert into temp_bard_experiment_data " +
+	PreparedStatement insertDataPS = conn.prepareStatement("insert into bard_experiment_data " +
 			"set bard_expt_id=?, sid=?, cid=?, updated=?, outcome=?, score=?, potency=?, expt_data_id=?");
 	
-	PreparedStatement insertResultPS = conn.prepareStatement("insert into temp_bard_experiment_result " +
+	PreparedStatement insertResultPS = conn.prepareStatement("insert into bard_experiment_result " +
 			"set expt_data_id=?, bard_expt_id=?, sid=?, json_data_array=?, json_response=?");
 	Statement aiStmt = conn.createStatement();
 	Long cid, sid;
