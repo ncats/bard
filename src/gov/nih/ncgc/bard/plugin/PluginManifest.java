@@ -125,13 +125,19 @@ public class PluginManifest {
 
     public static class PathArg {
         String arg, argtype;
+        String format = "path";
 
         public PathArg() {
         }
 
         public PathArg(String arg, String argtype) {
+            this(arg, argtype, "path");
+        }
+
+        public PathArg(String arg, String argtype, String format) {
             this.arg = arg;
             this.argtype = argtype;
+            this.format = format;
         }
 
         public String getArg() {
@@ -142,12 +148,52 @@ public class PluginManifest {
             this.arg = arg;
         }
 
+        /**
+         * Get the type of the argument.
+         * <p/>
+         * Valid values are defined in the JSON schema
+         * <a href="http://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.1">specification</a>
+         *
+         * @return The type of the argument
+         */
         public String getArgtype() {
             return argtype;
         }
 
+        /**
+         * Set the type of the argument.
+         * <p/>
+         * Valid values are defined in the JSON schema
+         * <a href="http://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.1">specification</a>
+         *
+         * @param argtype The type of the argument
+         */
         public void setArgtype(String argtype) {
             this.argtype = argtype;
+        }
+
+        /**
+         * The format of the argument - either a path argument or query argument.
+         * <p/>
+         * Query arguments are specified in the form <code>?argname=argvalue</code>.
+         *
+         * @return The format of the argument
+         */
+        public String getFormat() {
+            return format;
+        }
+
+        /**
+         * Set the format of the argument - either a path argument or query argument.
+         * <p/>
+         * Query arguments are specified in the form <code>?argname=argvalue</code>.
+         * Currently, the valid values are <code>path</code> or <code>query</code>
+         */
+        public void setFormat(String format) {
+            if (format.toLowerCase().equals("path") ||
+                    format.toLowerCase().equals("query"))
+                this.format = format;
+            else throw new IllegalArgumentException("format must be path or query");
         }
     }
 

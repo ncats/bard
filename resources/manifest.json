@@ -50,7 +50,8 @@
 				  "type" : "object",
 				  "properties" : {
 				      "arg" : {"type":"string", "required":true},
-				      "argtype" : {"required":true,"enum":["string","number","integer","boolean","object","any"]}
+				      "argtype" : {"required":true,"enum":["string","number","integer","boolean","object","any"]},
+                      "format" : {"enum":["query", "path"]}
 				  }
 			      }]
 			     }
