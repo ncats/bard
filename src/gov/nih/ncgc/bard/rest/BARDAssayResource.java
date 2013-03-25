@@ -794,7 +794,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
         ArrayNode array = (ArrayNode) mapper.valueToTree(assays);
         for (int i = 0; i < array.size(); ++i) {
             ObjectNode n = (ObjectNode) array.get(i);
-            long aid = n.get("aid").asLong();
+            long aid = n.get("bardAssayId").asLong();
 
             try {
                 List<CAPAnnotation> a = db.getAssayAnnotations(aid);

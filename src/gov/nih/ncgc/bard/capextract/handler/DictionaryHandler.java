@@ -1,10 +1,6 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import gov.nih.ncgc.bard.capextract.CAPConstants;
-import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
-import gov.nih.ncgc.bard.capextract.CAPUtil;
-import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.*;
 import gov.nih.ncgc.bard.capextract.jaxb.Dictionary;
 import gov.nih.ncgc.bard.capextract.jaxb.Element;
 
@@ -58,8 +54,9 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
             log.info("\tSerialized dictionary object to database");
 
             // now we dump in the dict elements (a partial representation) that will be useful
-            // for SQL queries
-            pst = conn.prepareStatement("insert into cap_dict_elem (ins_date, dictid, label, description, abbreviation, ext_url) values (?,?,?,?,?,?)");
+            // for SQL queries. We're assuming for now that a dict elem is associated with
+            // a single ontology
+            pst = conn.prepareStatement("insert into cap_dict_elem (ins_date, dictid, label, description, abbreviation, ext_url, onto_name, onto_abbrv, onto_url, onto_id, element_status) values (?,?,?,?,?,?,  ?,?,?,?, ?)");
             for (CAPDictionaryElement elem : dict.getNodes()) {
                 pst.setDate(1, new java.sql.Date(today.getTime()));
                 pst.setInt(2, elem.getElementId().intValue());
@@ -67,6 +64,14 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
                 pst.setString(4, elem.getDescription());
                 pst.setString(5, elem.getAbbreviation());
                 pst.setString(6, elem.getExternalUrl());
+
+                pst.setString(7, elem.getOnto_name());
+                pst.setString(8, elem.getOnto_abbrv());
+                pst.setString(9, elem.getOnto_url());
+                pst.setString(10, elem.getOnto_id());
+
+                pst.setString(11, elem.getElementStatus());
+
                 pst.addBatch();
             }
             pst.executeBatch();

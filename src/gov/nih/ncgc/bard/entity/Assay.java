@@ -21,9 +21,11 @@ public class Assay implements BardEntity {
     Long bardAssayId;
 
     Long capAssayId;
-    int category, type, summary, assays, classification;
+    int category, summary, assays, classification;
     String name, source, grantNo, title, designedBy;
     Date deposited, updated;
+
+    String assayType, assayStatus;
 
     List<Long> documents;
     List<String> targets; // Uniprot accession
@@ -31,12 +33,38 @@ public class Assay implements BardEntity {
 
     Map<String, String> minimumAnnotations = new HashMap<String, String>();
 
+    float score;
+
     @JsonIgnore
     String description, protocol, comments;
 
 
     @JsonIgnore
     List<String> gobp_id, gobp_term, gomf_term, gomf_id, gocc_id, gocc_term, av_dict_label, ak_dict_label;
+
+    public float getScore() {
+        return score;
+    }
+
+    public void setScore(float score) {
+        this.score = score;
+    }
+
+    public String getAssayType() {
+        return assayType;
+    }
+
+    public void setAssayType(String assayType) {
+        this.assayType = assayType;
+    }
+
+    public String getAssayStatus() {
+        return assayStatus;
+    }
+
+    public void setAssayStatus(String assayStatus) {
+        this.assayStatus = assayStatus;
+    }
 
     public String getDesignedBy() {
         return designedBy;
@@ -228,14 +256,6 @@ public class Assay implements BardEntity {
 
     public void setCategory(Integer category) {
         this.category = category;
-    }
-
-    public Integer getType() {
-        return type;
-    }
-
-    public void setType(Integer type) {
-        this.type = type;
     }
 
     public Integer getSummary() {

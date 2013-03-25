@@ -91,11 +91,11 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             log.warn("Unable to process non-regular assays at the moment, assay:" + url + " " + type);
             return;
         }
-        String status = assay.getStatus(); // Pending, Active, Superceded, Retired
-        if (!"Active".equals(status)) {
-            log.warn("Unable to process non-active assays at the moment, assay:" + url + " " + status);
-            return;
-        }
+        String status = assay.getStatus(); // Pending, Active, Superceded, Retired. Probably should do something with the status
+//        if (!"Active".equals(status)) {
+//            log.warn("Unable to process non-active assays at the moment, assay:" + url + " " + status);
+//            return;
+//        }
         String name = assay.getAssayName();
         String title = assay.getAssayShortName();
         String designedBy = assay.getDesignedBy(); // becomes source
@@ -326,17 +326,21 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             query.close();
             bardAssayId = localBardAssayId;
 
-            PreparedStatement pstAssay = conn.prepareStatement(
-                    "insert into bard_assay (cap_assay_id, title, name, description, protocol, comment, designed_by) values(?,?,?,?,?,?,?)",
-                    Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement pstAssay;
             if (bardAssayId == -1) {
-                 pstAssay.setInt(1, capAssayId.intValue());
+                pstAssay = conn.prepareStatement(
+                        "insert into bard_assay (cap_assay_id, title, name, description, protocol, comment, designed_by, assay_type, status) values(?,?,?,?,?,?,?,?,?)",
+                        Statement.RETURN_GENERATED_KEYS);
+
+                pstAssay.setInt(1, capAssayId.intValue());
                 pstAssay.setString(2, title);
                 pstAssay.setString(3, name);
                 pstAssay.setString(4, description);
                 pstAssay.setString(5, protocol);
                 pstAssay.setString(6, comments);
                 pstAssay.setString(7, designedBy);
+                pstAssay.setString(8, type);
+                pstAssay.setString(9, status);
                 int insertedRows = pstAssay.executeUpdate();
                 if (insertedRows == 0) {
                     log.error("Could not insert new CAP assay id = " + capAssayId + " into production");
@@ -347,28 +351,41 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 pstAssay.close();
                 log.info("Loaded CAP assay id = " + capAssayId + " into production as BARD assay id = " + bardAssayId);
             } else {
-                log.info("CAP assay id = " + capAssayId + " already exists in production as BARD assay id = " + bardAssayId);
+                log.info("CAP assay id = " + capAssayId + " already exists in production as BARD assay id = " + bardAssayId + ". Updating");
                 assayExists = true;
+
+                pstAssay = conn.prepareStatement(
+                        "update bard_assay set title=?, name=?, description=?, protocol=?, comment=?, designed_by=?, assay_type=?, status=? where bard_assay_id = ?");
+                pstAssay.setString(1, title);
+                pstAssay.setString(2, name);
+                pstAssay.setString(3, description);
+                pstAssay.setString(4, protocol);
+                pstAssay.setString(5, comments);
+                pstAssay.setString(6, designedBy);
+                pstAssay.setString(7, type);
+                pstAssay.setString(8, status);
+                pstAssay.setLong(9, bardAssayId);
+                pstAssay.executeUpdate();
+                pstAssay.close();
             }
 
             // TODO this block implies we don't update annos/pubs etc for pre-existing assays
             if (!assayExists) {
-            PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'assay',?,?,?,?,?,?,?,?,?,?)");
-            for (CAPAnnotation anno : annos) {
-                pstAssayAnnot.setString(1, anno.source);
-                pstAssayAnnot.setInt(2, bardAssayId);
-                pstAssayAnnot.setInt(3, anno.id);
-                pstAssayAnnot.setString(4, anno.key);
-                pstAssayAnnot.setString(5, anno.value);
-                pstAssayAnnot.setString(6, anno.extValueId); // anno_value_text
-                pstAssayAnnot.setString(7, anno.display);
-                pstAssayAnnot.setString(8, anno.contextRef); // context_name
-                pstAssayAnnot.setString(9, anno.related); // put into related field
-                pstAssayAnnot.setString(10, anno.url);
-                pstAssayAnnot.setInt(11, anno.displayOrder);
-
-                pstAssayAnnot.addBatch();
-            }
+                PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'assay',?,?,?,?,?,?,?,?,?,?)");
+                for (CAPAnnotation anno : annos) {
+                    pstAssayAnnot.setString(1, anno.source);
+                    pstAssayAnnot.setInt(2, bardAssayId);
+                    pstAssayAnnot.setInt(3, anno.id);
+                    pstAssayAnnot.setString(4, anno.key);
+                    pstAssayAnnot.setString(5, anno.value);
+                    pstAssayAnnot.setString(6, anno.extValueId); // anno_value_text
+                    pstAssayAnnot.setString(7, anno.display);
+                    pstAssayAnnot.setString(8, anno.contextRef); // context_name
+                    pstAssayAnnot.setString(9, anno.related); // put into related field
+                    pstAssayAnnot.setString(10, anno.url);
+                    pstAssayAnnot.setInt(11, anno.displayOrder);
+                    pstAssayAnnot.addBatch();
+                }
 
             int[] updateCounts = pstAssayAnnot.executeBatch();
             conn.commit();
@@ -444,9 +461,10 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                     pstTarget.setInt(2, capAssayId.intValue());
                     pstTarget.setString(3, t.uniprot);
                     pstTarget.setInt(4, Integer.parseInt(t.geneid));
-                    pstTarget.addBatch();
+                    try {
+                        pstAssay.executeUpdate();
+                    } catch (com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException e) {}
                 }
-                if (accs.size() > 0) pstTarget.executeBatch();
                 conn.commit();
                 pstTarget.close();
                 log.info("Inserted "+accs.size()+" target entries for BARD assay id = "+bardAssayId);

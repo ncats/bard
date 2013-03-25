@@ -1,10 +1,20 @@
 package gov.nih.ncgc.bard.rest;
 
+
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Substance;
+
+import chemaxon.struc.Molecule;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.sun.jersey.api.NotFoundException;
+import gov.nih.ncgc.bard.entity.*;
+
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.search.MoleculeService;
@@ -52,8 +62,8 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
         return Substance.class;
     }
 
-    public String getResourceBase () {
-        return BARDConstants.API_BASE+"/substances";
+    public String getResourceBase() {
+        return BARDConstants.API_BASE + "/substances";
     }
 
     @GET
@@ -94,7 +104,7 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
                 String expandClause = "expand=false";
                 if (expandEntries) expandClause = "expand=true";
                 String filterClause = "";
-                if (filter != null) filterClause = "&filter="+filter;
+                if (filter != null) filterClause = "&filter=" + filter;
 
                 String linkString = null;
                 if (skip + top <= db.getEntityCount(Substance.class))
@@ -172,6 +182,7 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
             if (!expand) {
                 List<String> paths = new ArrayList<String>();
                 for (Long sid : sids) paths.add(BARDConstants.API_BASE + "/substances/" + sid);
+                db.closeConnection();
                 return Response.ok(Util.toJson(paths), MediaType.APPLICATION_JSON).build();
             } else { // TODO should be able to get multiple SIDs at one go
                 List<Substance> slist = new ArrayList<Substance>();
@@ -179,11 +190,11 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
                     Substance sub = db.getSubstanceBySid(sid);
                     if (sub != null) {
                         slist.add(sub);
-                    }
-                    else {
-                        log ("No substance found for sid "+sid);
+                    } else {
+                        log("No substance found for sid " + sid);
                     }
                 }
+                db.closeConnection();
                 return Response.ok(Util.toJson(slist), MediaType.APPLICATION_JSON).build();
             }
         } else if (type.equals("sid"))
@@ -238,6 +249,51 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @POST
+    @Path("/cid")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response getCompoundByCids(@FormParam("cids") String cids,
+                                      @QueryParam("filter") String filter,
+                                      @QueryParam("expand") String expand) throws SQLException {
+        if (cids == null) throw new WebApplicationException(
+                new Exception("Must specify the cids form parameter as a comma separated list of CIDs"), 400);
+
+
+        String[] toks = cids.split(",");
+        Long[] lcids = new Long[toks.length];
+        for (int i = 0; i < toks.length; i++) lcids[i] = Long.parseLong(toks[i].trim());
+
+        DBUtils db = new DBUtils();
+        try {
+            Long[][] mapping = db.getSidsByCids(lcids);
+
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode node = mapper.createObjectNode();
+            ArrayNode anode = mapper.createArrayNode();
+            Long oldCid = mapping[0][0];
+            anode.add(mapping[0][1]);
+            for (int i = 1; i < mapping.length; i++) {
+                Long cid = mapping[i][0];
+                Long sid = mapping[i][1];
+                anode.add(sid);
+                if (cid != oldCid) {
+                    node.put(oldCid.toString(), anode);
+                    anode = mapper.createArrayNode();
+                    anode.add(sid);
+                }
+                oldCid = cid;
+            }
+            node.put(oldCid.toString(), anode);
+            return Response.ok(mapper.writeValueAsString(node)).type(MediaType.APPLICATION_JSON_TYPE).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (JsonProcessingException e) {
+            throw new WebApplicationException(e, 500);
+        } finally {
+            db.closeConnection();
         }
     }
 

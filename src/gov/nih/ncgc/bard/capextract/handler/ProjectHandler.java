@@ -307,7 +307,9 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                     pst.setLong(2, cid);
                     pst.setLong(3, sid);
                     pst.setString(4, mlid);
-                    pst.executeUpdate();
+                    try {
+                        pst.executeUpdate();
+                    } catch (com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException e){}
                     log.info("Made probe-project link for BARD project id " + bardProjId + " and probe id " + mlid);
                 }
                 pst.close();
@@ -326,7 +328,9 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 for (String acc : targetAccs) {
                     pst.setLong(1, cid);
                     pst.setString(2, acc);
-                    pst.executeUpdate();
+                    try {
+                        pst.executeUpdate();
+                    } catch(com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException e) {}
                     pst.clearParameters();
                 }
                 pst.close();
