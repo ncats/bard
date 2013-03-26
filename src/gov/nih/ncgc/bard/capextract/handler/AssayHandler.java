@@ -82,7 +82,9 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 
         // get the Assay object here
         Assay assay = getResponse(url, resource);
-        if (!assay.getReadyForExtraction().equals("Ready")) return;
+        
+        //JB: Assays that aren't 'Ready' will not be exposed by bard export
+        //if (!assay.getReadyForExtraction().equals("Ready")) return;
 
         BigInteger capAssayId = assay.getAssayId();
         String version = assay.getAssayVersion();

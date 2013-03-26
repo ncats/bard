@@ -74,9 +74,10 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         BigInteger pid = project.getProjectId();
 
 //        log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
-        if (readyToXtract.equals("Ready")) {
-            process(project);
-        }
+        
+        //JB: Note, project will not be exposed unless it's 'Ready'    
+        process(project);
+       
     }
 
     public void process(Project project) {
@@ -88,12 +89,9 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
         ExternalReferenceHandler extrefHandler = new ExternalReferenceHandler();
         ExternalSystemHandler extsysHandler = new ExternalSystemHandler();
-
-        // project steps should have already been loaded by hand !!!
-        // do not create project if it has no experiments or steps
-        if (project.getProjectSteps() == null) return;
-        if (project.getProjectSteps().getProjectStep().size() == 0) return;
-
+        
+        // 3/26/13 note: we used to perform a check for projectSteps, they are no longer mandatory for project loading
+        
         int capProjectId = project.getProjectId().intValue();
         int pubchemAid = -1;
 
@@ -176,7 +174,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             // load expts
             processExperiments(project, pubchemAid);
 
-            // handle project steps and include anny anno's we get from this
+            // handle project steps and include anny anno's we get from this, possibly empty
             annos.addAll(processProjectSteps(project));
 
             // store the annotations we've collected
@@ -619,6 +617,10 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         PreparedStatement pstep = conn.prepareStatement("insert into project_step(bard_proj_id, step_id, prev_bard_expt_id, next_bard_expt_id, edge_name) " +
                 " values (?,?,?,?,?)");
 
+        //if there are no project steps or there are 0 project steps, trunter the empty annos for project steps
+        if(project.getProjectSteps() == null || project.getProjectSteps().getProjectStep().size() == 0)
+            return annos;  //empty annos
+        
         List<ProjectStep> steps = project.getProjectSteps().getProjectStep();
         for (ProjectStep step : steps) {
             int stepId = step.getProjectStepId().intValue();

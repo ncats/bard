@@ -433,18 +433,27 @@ public class BardResultFactory {
 		} else if(dictId == 896) {
 		    haveOutcome = true;
 		    outcome = tempBardResult.getValue();
-		    if(outcome.equals("Inactive"))
+		    
+		    if(outcome.equalsIgnoreCase("Inactive"))
 			outcomeIndex = 1;
-		    else if(outcome.equals("Active"))
+		    else if(outcome.equalsIgnoreCase("Active"))
 			outcomeIndex = 2;
-		    else if(outcome.equals("Inconclusive"))
+		    else if(outcome.equalsIgnoreCase("Inconclusive"))
 			outcomeIndex = 3;
-		    else if(outcome.equals("Unspecified"))    
+		    else if(outcome.equalsIgnoreCase("Unspecified"))    
 			outcomeIndex = 4;
-		    else if(outcome.equals("Probe"))
+		    else if(outcome.equalsIgnoreCase("Probe"))
 			outcomeIndex = 5;
-		    else
-			outcomeIndex = 4;
+		    else {
+			//fall through
+			try {
+			    outcomeIndex = 6;
+			    //see if this works
+			    outcomeIndex = (int)(Double.parseDouble(outcome));				
+			} catch (NumberFormatException nfe) {
+			    continue; //quietly
+			}		    
+		    }
 		    response.setOutcome(outcomeIndex);
 		} else if(dictId == 898) {
 		    haveScore = true;

@@ -75,6 +75,8 @@ public class ExperimentsHandler extends CapResourceHandler implements ICapResour
 			handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.RESULT_JSON);
 			if (handler != null) {
 			    handler.process(href, CAPConstants.CapResource.RESULT_JSON);
+			} else {
+			    log.warn("!!! Don't have handler for result json, it's null.");
 			}
 			//set status to completed
 			this.setExtractionStatus(CAPConstants.CAP_STATUS_COMPLETE, href, CAPConstants.CapResource.EXPERIMENT);

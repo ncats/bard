@@ -207,6 +207,10 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 		//load data tables (bard_experiment_data and bard_experiment_result)
 		loadDataServingTables(capExptId, bardExptId);
 	    }
+	    
+	    //now update test sid count, cid count, acitve count, and probe count, and has probe.
+	    updateExperimentTestingStats(bardExptId);
+	    
 	    //close the connnection		
 	    conn.close();
 	    conn2.close();
@@ -440,7 +444,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 		ids.add(tempProjectList);
 	    }
 	}
-	return ids;	
+	return ids;
     }
     
     
@@ -462,6 +466,45 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
     }
     
     
+    public void updateExperimentTestingStats(Long bardExptId) throws SQLException {
+	if(bardExptId != null) {
+	    Statement stmt = conn.createStatement();
+	    Long sampleCount = 0l;
+	    Long cidCount = 0l;
+	    Long activeCount = 0l; 
+	    Long probeCount = 0l;
+	    Boolean haveProbe = false;
+	    ResultSet rs = stmt.executeQuery("select count(distinct(sid)) from bard_experiment_data where bard_expt_id="+bardExptId);
+	    if(rs.next())
+		sampleCount = rs.getLong(1);
+	    
+	    rs = stmt.executeQuery("select count(distinct(cid)) from bard_experiment_data where bard_expt_id ="+bardExptId);
+	    if(rs.next())
+		cidCount = rs.getLong(1);
+	    
+	    rs = stmt.executeQuery("select count(distinct(sid)) from bard_experiment_data where outcome=2 or outcome=5 and bard_expt_id="+bardExptId);
+	    if(rs.next())
+		activeCount = rs.getLong(1);
+	    
+	    rs = stmt.executeQuery("select count(distinct(sid)) from bard_experiment_data where outcome=5 and bard_expt_id="+bardExptId);
+	    if(rs.next())
+		probeCount = rs.getLong(1);
+
+	    haveProbe = (probeCount != null && probeCount > 0);
+	    
+	    stmt.executeUpdate("update bard_experiment set " +
+	    		" sample_count="+sampleCount+
+	    		", cid_count="+cidCount+
+	    		", active_count="+activeCount+
+	    		", probe_count="+probeCount+
+	    		", have_probe="+haveProbe+
+	    		" where bard_expt_id = "+bardExptId
+	    		);
+	    conn.commit();
+	}
+    }
+
+    
     /*
      * Utility method to pull an example of each experiment result in the db.
      */
@@ -476,7 +519,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    }
 	    rs.close();
 	    
-	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples.txt"));	    
+	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples2.txt"));	    
 	    PreparedStatement ps = conn.prepareStatement("select eid, json_response from bard_experiment_result " +
 	    		" where bard_expt_id = ? limit 1");	    
 	    int progress = 0;
@@ -511,13 +554,40 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	}
     }
     
+    public void updateExperimentTestStats(String dbURL) {
+	try {
+	    conn = CAPUtil.connectToBARD(dbURL);
+	    Statement stmt = conn.createStatement();
+	    ResultSet rs = stmt.executeQuery("select bard_expt_id from bard_experiment");
+	    ArrayList <Long> beds = new ArrayList <Long>();
+	    while(rs.next()) {
+		beds.add(rs.getLong(1));		
+	    }
+	    rs.close();
+	    stmt.close();
+	    
+	    for(Long bed : beds) {
+		this.updateExperimentTestingStats(bed);
+	    }
+	    
+	    conn.close();
+	    
+	} catch (SQLException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	}
+	
+    }
     
-//    public static void main(String [] args) {
-//	ExperimentResultHandler worker = new ExperimentResultHandler();
-//	long start = System.currentTimeMillis();
-//	//worker.testResultTypes();	
-//	//worker.processCapExperimentResultViaFileCache(36, "jdbc:mysql://protein.nhgri.nih.gov/bard3", "/ifs/prod/bard/entity_mgr/bard-scratch/");	
-//	System.out.println("et="+((System.currentTimeMillis()-start)));		
-//    }
+    public static void main(String [] args) {
+	ExperimentResultHandler worker = new ExperimentResultHandler();
+	long start = System.currentTimeMillis();
+	//worker.testResultTypes("jdbc:mysql://bohr.ncats.nih.gov/bard3");
+	
+	worker.updateExperimentTestStats("jdbc:mysql://bohr.ncats.nih.gov/bard3");
+	
+	//worker.processCapExperimentResultViaFileCache(36, "jdbc:mysql://protein.nhgri.nih.gov/bard3", "/ifs/prod/bard/entity_mgr/bard-scratch/");	
+	System.out.println("et="+((System.currentTimeMillis()-start)));		
+    }
     
 }
