@@ -1,13 +1,5 @@
 package gov.nih.ncgc.bard.tools;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.fge.jsonschema.exceptions.ProcessingException;
-import com.github.fge.jsonschema.main.JsonSchema;
-import com.github.fge.jsonschema.main.JsonSchemaFactory;
-import com.github.fge.jsonschema.report.ProcessingMessage;
-import com.github.fge.jsonschema.report.ProcessingReport;
-import com.github.fge.jsonschema.util.JsonLoader;
 import gov.nih.ncgc.bard.plugin.IPlugin;
 
 import java.io.BufferedInputStream;
@@ -32,6 +24,10 @@ import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsonschema.JsonSchema;
 
 /**
  * A tool to validate BARD plugins.
@@ -426,7 +422,7 @@ public class PluginValidator {
 
         return errors.size() == 0;
     }
-
+ 
     public static void main(String[] args) throws Exception {
         boolean printInfo = false;
         boolean printWarn = false;

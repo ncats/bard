@@ -6,15 +6,6 @@ import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Substance;
-
-import chemaxon.struc.Molecule;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.sun.jersey.api.NotFoundException;
-import gov.nih.ncgc.bard.entity.*;
-
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.search.MoleculeService;
@@ -31,7 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -42,6 +36,10 @@ import javax.ws.rs.core.Response;
 
 import chemaxon.struc.Molecule;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sun.jersey.api.NotFoundException;
 
 /**
@@ -292,7 +290,9 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
             throw new WebApplicationException(e, 500);
         } catch (JsonProcessingException e) {
             throw new WebApplicationException(e, 500);
-        } finally {
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+	} finally {
             db.closeConnection();
         }
     }
