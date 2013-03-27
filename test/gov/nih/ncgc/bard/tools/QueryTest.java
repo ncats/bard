@@ -4,12 +4,13 @@ import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.Compound;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
-import org.testng.Assert;
-import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 /**
  * A one line summary.

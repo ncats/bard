@@ -1,8 +1,5 @@
 package gov.nih.ncgc.bard.tools;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -10,6 +7,10 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
 
 /**
  * List available REST resources.

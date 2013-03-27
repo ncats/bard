@@ -1,21 +1,30 @@
 package gov.nih.ncgc.bard.capextract;
 
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Vector;
+
 import nu.xom.Builder;
 import nu.xom.Document;
 import nu.xom.Nodes;
 import nu.xom.ParsingException;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.impl.client.DefaultHttpClient;
-
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.sql.*;
-import java.util.*;
 
 public class CAPUtil {
 
@@ -42,6 +51,29 @@ public class CAPUtil {
         return conn;
     }
 
+    public static Connection connectToBARD(String serverURL) throws SQLException {
+        Connection conn = null;
+        try {
+            Class.forName("com.mysql.jdbc.Driver").newInstance();
+//            conn = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov/bard2", "capbard", "bard");
+            conn = DriverManager.getConnection(serverURL, "bard_manager", "bard_manager");
+            conn.setAutoCommit(false);
+        } catch (IllegalAccessException e) {
+            System.out.println("Can't connect to db" + e.toString());
+            System.exit(-1);
+        } catch (ClassNotFoundException e) {
+            System.out.println("Can't connect to db" + e.toString());
+            System.exit(-1);
+        } catch (InstantiationException e) {
+            System.out.println("Can't connect to db" + e.toString());
+            System.exit(-1);
+        } catch (SQLException e) {
+            System.out.println("Can't connect to db" + e.toString());
+            System.exit(-1);
+        }
+        return conn;
+    }
+    
 
     public static boolean insertPublication(Connection conn, String pmid) throws SQLException, IOException, ParsingException {
         // check to see if we already have a pub with this pmid

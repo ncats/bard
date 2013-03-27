@@ -1,16 +1,43 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
-import gov.nih.ncgc.bard.capextract.*;
-import gov.nih.ncgc.bard.capextract.jaxb.*;
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
+import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
+import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
+import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
+import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
+import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.capextract.jaxb.Project;
+import gov.nih.ncgc.bard.capextract.jaxb.ProjectExperiment;
+import gov.nih.ncgc.bard.capextract.jaxb.ProjectStep;
 import gov.nih.ncgc.bard.tools.Util;
-import nu.xom.ParsingException;
 
-import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.xml.bind.JAXBElement;
+
+import nu.xom.ParsingException;
+
+import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
 
 /**
  * A one line summary.
@@ -47,9 +74,10 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         BigInteger pid = project.getProjectId();
 
 //        log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
-        if (readyToXtract.equals("Ready")) {
-            process(project);
-        }
+        
+        //JB: Note, project will not be exposed unless it's 'Ready'    
+        process(project);
+       
     }
 
     public void process(Project project) {
@@ -61,12 +89,9 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
         ExternalReferenceHandler extrefHandler = new ExternalReferenceHandler();
         ExternalSystemHandler extsysHandler = new ExternalSystemHandler();
-
-        // project steps should have already been loaded by hand !!!
-        // do not create project if it has no experiments or steps
-        if (project.getProjectSteps() == null) return;
-        if (project.getProjectSteps().getProjectStep().size() == 0) return;
-
+        
+        // 3/26/13 note: we used to perform a check for projectSteps, they are no longer mandatory for project loading
+        
         int capProjectId = project.getProjectId().intValue();
         int pubchemAid = -1;
 
@@ -94,7 +119,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             log.info("Got Pubchem AID = " + pubchemAid + " for CAP project id = " + capProjectId);
 
 
-            conn = CAPUtil.connectToBARD();
+            conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
             PreparedStatement pst = null;
             Statement st = conn.createStatement();
             ResultSet result = st.executeQuery("select bard_proj_id, name, description from bard_project where cap_proj_id=" + capProjectId);
@@ -149,7 +174,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             // load expts
             processExperiments(project, pubchemAid);
 
-            // handle project steps and include anny anno's we get from this
+            // handle project steps and include anny anno's we get from this, possibly empty
             annos.addAll(processProjectSteps(project));
 
             // store the annotations we've collected
@@ -592,6 +617,10 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         PreparedStatement pstep = conn.prepareStatement("insert into project_step(bard_proj_id, step_id, prev_bard_expt_id, next_bard_expt_id, edge_name) " +
                 " values (?,?,?,?,?)");
 
+        //if there are no project steps or there are 0 project steps, trunter the empty annos for project steps
+        if(project.getProjectSteps() == null || project.getProjectSteps().getProjectStep().size() == 0)
+            return annos;  //empty annos
+        
         List<ProjectStep> steps = project.getProjectSteps().getProjectStep();
         for (ProjectStep step : steps) {
             int stepId = step.getProjectStepId().intValue();

@@ -1,13 +1,15 @@
 package gov.nih.ncgc.bard.rest.filter;
 
+import gov.nih.ncgc.bard.rest.BARDConstants;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+
+import javax.ws.rs.core.MultivaluedMap;
+
 import com.sun.jersey.core.header.InBoundHeaders;
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerRequestFilter;
-import gov.nih.ncgc.bard.rest.BARDConstants;
-
-import javax.ws.rs.core.MultivaluedMap;
-import java.net.URI;
-import java.net.URISyntaxException;
 
 /**
  * Processes a request to identify whether a count is desired or not.

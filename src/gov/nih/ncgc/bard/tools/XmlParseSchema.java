@@ -2,17 +2,26 @@
 
 package gov.nih.ncgc.bard.tools;
 
-import java.io.*;
-import java.net.*;
-import javax.xml.parsers.*;
-import org.xml.sax.helpers.DefaultHandler;
-import org.xml.sax.*;
-import java.util.zip.*;
-
-import java.util.*;
-import java.util.logging.Logger;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.io.PrintWriter;
+import java.io.Reader;
+import java.util.HashMap;
+import java.util.Stack;
+import java.util.Vector;
 import java.util.logging.Level;
-import java.util.concurrent.*;
+import java.util.logging.Logger;
+
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.helpers.DefaultHandler;
 
 public class XmlParseSchema extends PipedInputStream {
     static final Logger logger = Logger.getLogger(XmlParseSchema.class.getName());

@@ -1,5 +1,7 @@
 package gov.nih.ncgc.bard.capextract;
 
+import java.security.KeyStore;
+
 import org.apache.http.HttpVersion;
 import org.apache.http.client.HttpClient;
 import org.apache.http.conn.ClientConnectionManager;
@@ -13,8 +15,6 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.HTTP;
-
-import java.security.KeyStore;
 
 /**
  * Get a {@link org.apache.http.client.HttpClient} that uses SSL and accepts self signed certificates.

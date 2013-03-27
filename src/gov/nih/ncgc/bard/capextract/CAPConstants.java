@@ -14,7 +14,10 @@ public class CAPConstants {
     public static final String CAP_ROOT = "https://bard.broadinstitute.org/dataExport/api";
     public static final String CAP_ROOT_MIMETYPE = "application/vnd.bard.cap+xml;type=bardexport";
     public static final String CAP_APIKEY_HEADER = "APIKEY";
-
+    public static final String CAP_STATUS_READY = "Ready";
+    public static final String CAP_STATUS_STARTED = "Started";
+    public static final String CAP_STATUS_COMPLETE = "Complete";
+    
     /**
      * Get the API key.
      * <p/>
@@ -25,6 +28,14 @@ public class CAPConstants {
      */
     public static String getApiKey() {
         return System.getProperty("CAP_API_KEY");
+    }
+    
+    public static String getBardScratchDir() {
+	return System.getProperty("BARD_SCRATCH_DIR");
+    }
+    
+    public static String getBardDBJDBCUrl() {
+	return System.getProperty("BARD_DB_URL");
     }
 
     public static enum CapResource {
@@ -41,6 +52,7 @@ public class CAPConstants {
         EXPERIMENT("application/vnd.bard.cap+xml;type=experiment"),
         RESULTS("application/vnd.bard.cap+xml;type=results"),
         RESULT("application/vnd.bard.cap+xml;type=result"),
+        RESULT_JSON("application/vnd.bard.cap+json;type=results"),        
         ASSAYDOC("application/vnd.bard.cap+xml;type=assayDoc"),
         PROJECTDOC("application/vnd.bard.cap+xml;type=projectDoc"),
         EXTREF("application/vnd.bard.cap+xml;type=externalReference"),

@@ -1,9 +1,9 @@
 package gov.nih.ncgc.bard.tools;
 
+import java.util.List;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.List;
 
 /**
  * A one line summary.

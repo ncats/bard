@@ -196,5 +196,120 @@ public interface Constants {
 	    return this.dictText+":"+this.dictElem;
 	}
     }
+    
+    
+    public static Integer [] HIGH_PRIORITY_DICT_ELEM = {
+	952,
+	959,
+	961,
+	963,
+	983,
+	984,
+	917,
+	956,
+	961,
+	964,
+	965,
+	966,
+	993,
+	997,
+	1000,
+	1002,
+	1008,
+	1015,
+	1378,
+	1378,
+	1387
+    };
+    
+    public static Integer [] LOW_PRIORITY_DATA_ELEM = {
+	590,
+	602,
+	613,
+	625,
+	627,
+	628,
+	896,
+	897,
+	1025,
+	1329,
+	1334,
+	1338
+    };
+    
+    
+    public static Integer [] XX50_DICT_ELEM = {
+	952,
+	959,
+	961,
+	963,
+	917,
+	956,
+	964,
+	965,
+	966,
+	1378,
+	1378,
+    };
+    
+    public static Integer [] FIT_PARAM_DICT_ELEM = {
+	919,
+	920,
+	921,
+	953,
+	958,
+	960,
+	962,
+	968,
+	1355,
+	1385	
+    };
+    
+    public static Integer [] LOG_XX50_DICT_ELEM = {
+	1355,
+	1385,
+	960,
+	962,
+	968,
+	953
+    };
+
+    public static Integer [] EFFICACY_PERCENT_MEASURES = {
+	982,
+	986,
+	991,
+	992,
+	994,
+	996,
+	998,
+	1004,
+	1005,
+	1006,
+	1007,
+	1008,
+	1009,
+	1010,
+	1011,
+	1012,
+	1013,
+	1014,
+	1016,
+	1322,
+	1324,
+	1330,
+	1340,
+	1359,
+	1361,
+	1415,
+	1416,
+	1417,
+	1448,
+	1483,
+	1484,
+	1485,
+	1486,
+	1487
+    };
+    
    
 }

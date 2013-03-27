@@ -2,8 +2,8 @@ package gov.nih.ncgc.bard.pcparser;
 // $Id: AssayDataDoseResponseHill4p.java 2278 2008-05-29 22:27:45Z nguyenda $
 
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 public class AssayDataDoseResponseHill4p extends AssayDataDoseResponse {
     private static final long serialVersionUID = 12242007L;

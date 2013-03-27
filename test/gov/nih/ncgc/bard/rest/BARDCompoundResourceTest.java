@@ -1,15 +1,18 @@
 package gov.nih.ncgc.bard.rest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
 import gov.nih.ncgc.bard.entity.Compound;
+
+import java.io.IOException;
+
+import javax.ws.rs.core.MediaType;
+
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import javax.ws.rs.core.MediaType;
-import java.io.IOException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
 
 /**
  * A test of the compound resource.

@@ -1,11 +1,7 @@
 package gov.nih.ncgc.bard.pcparser;
 // $Id: PubChemAssaySource.java 3488 2009-10-29 15:49:42Z nguyenda $
 
-import gov.nih.ncgc.bard.capextract.CAPConstants;
-import gov.nih.ncgc.bard.capextract.CAPExtractor;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
-import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
-import gov.nih.ncgc.bard.capextract.jaxb.Dictionary;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -37,12 +33,13 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class PubChemAssayParser implements Constants {
     private static final Logger logger = Logger.getLogger
@@ -1044,13 +1041,13 @@ public class PubChemAssayParser implements Constants {
 	for (Iterator<JsonNode> iter =node.iterator(); iter.hasNext();) {
 	    JsonNode child = iter.next();
 	    ResultType rt = new ResultType();
-	    for (Iterator<String> iter2 = child.getFieldNames(); iter2.hasNext();) {
+	    for (Iterator<String> iter2 = child.fieldNames(); iter2.hasNext();) {
 		String field = iter2.next();
 		if (rtSetMethods.containsKey(field.toLowerCase())) {
 		    Method method = rtSetMethods.get(field.toLowerCase());
 		    Class<?>[] inputs = method.getParameterTypes();
 		    if (inputs.length != 1) throw new IllegalArgumentException("Method has too many input arguements: "+method.getName());
-		    Object input = mapper.readValue(child.get(field), inputs[0]);
+		    Object input = mapper.readValue(child.get(field).traverse(), inputs[0]);
 		    method.invoke(rt, input);
 		}
 	    }

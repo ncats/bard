@@ -1,13 +1,13 @@
 package gov.nih.ncgc.bard.tools;
 
+import java.io.File;
+import java.io.FileInputStream;
+
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.xml.XmlConfiguration;
-
-import java.io.File;
-import java.io.FileInputStream;
 
 
 /**
@@ -65,8 +65,7 @@ public class JettyRunner {
         Connector connector = new SelectChannelConnector();
         connector.setPort(8080);
         connector.setHost("127.0.0.1");
-        server.addConnector(connector);
-
+        server.addConnector(connector); 
         WebAppContext wac = new WebAppContext();
         wac.setContextPath("/");
         wac.setDescriptor("web/WEB-INF/web.xml");

@@ -1,14 +1,14 @@
 package gov.nih.ncgc.bard.pcparser;
 // $Id: AssayResults.java 2278 2008-05-29 22:27:45Z nguyenda $
 
-import java.io.Serializable;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.io.ObjectInputStream;
-import java.util.List;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
 
 public class AssayResults implements Constants, Serializable, 
                                      Comparable<AssayResults> {

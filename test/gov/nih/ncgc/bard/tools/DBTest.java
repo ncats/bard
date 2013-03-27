@@ -1,8 +1,5 @@
 package gov.nih.ncgc.bard.tools;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -10,6 +7,9 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 /**
  * The superclass for all DB related tests.

@@ -1,11 +1,12 @@
 package gov.nih.ncgc.bard.capextract;
 
 import gov.nih.ncgc.bard.capextract.handler.DictionaryHandler;
-import org.testng.Assert;
-import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.util.Set;
+
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 /**
  * A one line summary.

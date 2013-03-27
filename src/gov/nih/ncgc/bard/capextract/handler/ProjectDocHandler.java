@@ -4,11 +4,21 @@ import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.*;
+import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
+import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.capextract.jaxb.Project;
+import gov.nih.ncgc.bard.capextract.jaxb.ProjectExperiment;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 
 /**
@@ -59,7 +69,7 @@ public class ProjectDocHandler extends CapResourceHandler implements ICapResourc
         if (project.getProjectSteps().getProjectStep().size() == 0) return;
 
         try {
-            Connection conn = CAPUtil.connectToBARD();
+            Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
             Statement st = conn.createStatement();
             ResultSet result = st.executeQuery("select bard_proj_id, name, description from bard_project where cap_proj_id=" + project.getProjectId());
             if (result.next()) {
