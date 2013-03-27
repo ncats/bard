@@ -119,7 +119,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             log.info("Got Pubchem AID = " + pubchemAid + " for CAP project id = " + capProjectId);
 
 
-            conn = CAPUtil.connectToBARD();
+            conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
             PreparedStatement pst = null;
             Statement st = conn.createStatement();
             ResultSet result = st.executeQuery("select bard_proj_id, name, description from bard_project where cap_proj_id=" + capProjectId);

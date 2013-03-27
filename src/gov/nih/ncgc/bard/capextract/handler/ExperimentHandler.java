@@ -78,7 +78,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         int localBardExptId = -1;
         boolean doUpdate = false;
         try {
-            Connection conn = CAPUtil.connectToBARD();
+            Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
             Statement query = conn.createStatement();
             query.execute("select bard_expt_id, pubchem_aid from bard_experiment where cap_expt_id=" + expt.getExperimentId());
             ResultSet rs = query.getResultSet();
@@ -108,7 +108,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             if (!link.getType().equals(CAPConstants.CapResource.ASSAY.getMimeType())) continue;
             String capAssayId = Util.getEntityIdFromUrl(link.getHref());
             try {
-                Connection conn = CAPUtil.connectToBARD();
+                Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
                 PreparedStatement pst = conn.prepareStatement("select bard_assay_id, cap_assay_id from bard_assay where cap_assay_id = ?");
                 pst.setLong(1, Long.parseLong(capAssayId));
                 ResultSet rs = pst.executeQuery();
@@ -190,7 +190,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         try {
 
 
-            Connection conn = CAPUtil.connectToBARD();
+            Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
 
             PreparedStatement pstExpt;
             if (localBardExptId == -1) {

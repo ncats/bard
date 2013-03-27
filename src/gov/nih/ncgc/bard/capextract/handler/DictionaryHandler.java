@@ -43,7 +43,7 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
         PreparedStatement pst;
         java.util.Date today = null;
         try {
-            conn = CAPUtil.connectToBARD();
+            conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
             pst = conn.prepareStatement("INSERT INTO cap_dict_obj(ins_date, dict) VALUES (?, ?)");
             today = new java.util.Date();
             pst.setDate(1, new java.sql.Date(today.getTime()));

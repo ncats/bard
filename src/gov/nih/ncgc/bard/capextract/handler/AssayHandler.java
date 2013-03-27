@@ -109,7 +109,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         String description = null, protocol = null, comments = null;
         List<Link> docLinks = assay.getLink();
         try {
-            Connection conn = CAPUtil.connectToBARD();
+            Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
             PreparedStatement pstDoc = conn.prepareStatement("insert into cap_document (cap_doc_id, type, name, url) values (?, ?, ?, ?)");
             boolean runPst = false;
 
@@ -289,7 +289,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 
             int qcapAssayId = -1;
 
-            Connection conn = CAPUtil.connectToBARD();
+            Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
             Statement query = conn.createStatement();
 
             // first see if we need to stage it

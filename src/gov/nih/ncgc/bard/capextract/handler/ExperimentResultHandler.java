@@ -519,7 +519,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    }
 	    rs.close();
 	    
-	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples2.txt"));	    
+	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples_maxwell.txt"));	    
 	    PreparedStatement ps = conn.prepareStatement("select eid, json_response from bard_experiment_result " +
 	    		" where bard_expt_id = ? limit 1");	    
 	    int progress = 0;
@@ -582,9 +582,9 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
     public static void main(String [] args) {
 	ExperimentResultHandler worker = new ExperimentResultHandler();
 	long start = System.currentTimeMillis();
-	//worker.testResultTypes("jdbc:mysql://bohr.ncats.nih.gov/bard3");
+	worker.testResultTypes("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
 	
-	worker.updateExperimentTestStats("jdbc:mysql://bohr.ncats.nih.gov/bard3");
+	//worker.updateExperimentTestStats("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
 	
 	//worker.processCapExperimentResultViaFileCache(36, "jdbc:mysql://protein.nhgri.nih.gov/bard3", "/ifs/prod/bard/entity_mgr/bard-scratch/");	
 	System.out.println("et="+((System.currentTimeMillis()-start)));		
