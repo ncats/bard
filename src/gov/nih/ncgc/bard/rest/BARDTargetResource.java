@@ -2,6 +2,9 @@ package gov.nih.ncgc.bard.rest;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.tools.DBUtils;
@@ -236,8 +239,42 @@ public class BARDTargetResource extends BARDResource<ProteinTarget> {
         if (classes == null)
             throw new NotFoundException("No classifications for " + acc + " in the " + source + " hierarchy");
         if (countRequested) return Response.ok(String.valueOf(classes.size())).type(MediaType.TEXT_PLAIN_TYPE).build();
-        else return Response.ok(Util.toJson(classes)).type(MediaType.APPLICATION_JSON_TYPE).build();
+        else {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode node = mapper.createObjectNode();
+            JsonNode classNodes = mapper.valueToTree(classes);
+            node.put(acc, classNodes);
+            String json = mapper.writeValueAsString(node);
+            return Response.ok(json).type(MediaType.APPLICATION_JSON_TYPE).build();
+        }
     }
+
+    @POST
+    @Path("/accession/classification/{source}")
+    @Consumes("application/x-www-form-urlencoded")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getClassificationsForAccessions(@PathParam("source") String source,
+                                                    @FormParam("accs") String accs) throws SQLException, IOException {
+
+        DBUtils db = new DBUtils();
+        String[] laccs = accs.split(",");
+
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = mapper.createObjectNode();
+
+        for (String acc : laccs) {
+            List<TargetClassification> classes = null;
+            if (source.toLowerCase().equals("panther")) {
+                classes = db.getPantherClassesForAccession(acc.trim());
+            }
+            JsonNode classNodes = mapper.valueToTree(classes);
+            node.put(acc, classNodes);
+        }
+        db.closeConnection();
+        String json = mapper.writeValueAsString(node);
+        return Response.ok(json).type(MediaType.APPLICATION_JSON_TYPE).build();
+    }
+
 
     @GET
     @Path("/classification/{source}/{clsid}")

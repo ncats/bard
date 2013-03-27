@@ -76,3 +76,5 @@ v14 released
 v15 released
 
 03/19/13      Added stage ref fields to project step JSON
+03/27/13      Updated JSON response from /accession/{acc}/classification/{source}
+              Added POST resource to get classifications for multiple targets at one go (/accession//classification/{source})
