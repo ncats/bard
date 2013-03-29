@@ -12,6 +12,15 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  */
 public class BardExptDataResponse {
     
+    public enum ResponseClass {
+	SP,
+	CR_SER,
+	UNCLASS,
+	MULCONC,
+	CR_NO_SER,
+	UNDEF;
+    }
+    
     @JsonIgnore
     private Integer responseType;
     private String responseClass;
@@ -44,8 +53,8 @@ public class BardExptDataResponse {
     /**
      * Default constructor
      */
-    public BardExptDataResponse() {
-	responseType = new Integer(2);
+    public BardExptDataResponse() {	
+	responseType = new Integer(ResponseClass.UNCLASS.ordinal());
 	priorityElements = new ArrayList<BardResultType>();
 	rootElements = new ArrayList<BardResultType>();
 	projects = new ArrayList<ProjectIdPair>();
@@ -140,18 +149,9 @@ public class BardExptDataResponse {
      * @param responseType
      */
     public void setResponseType(Integer responseType) {
-	if(responseType == 0) {
-	    this.responseClass = "SP";
-	} else if(responseType == 1) {
-	    this.responseClass = "CR_SER";	    
-	} else if(responseType == 2) {
-	    this.responseClass = "UNCLASS";
-	} else if(responseType == 3) {
-	    this.responseClass = "MULTCONC";
-	} else if(responseType == 4) {
-	    this.responseClass = "CR_NO_SER";
-	}
-        this.responseType = responseType;
+	ResponseClass [] types = ResponseClass.values();	
+	this.responseClass = types[responseType].name();
+	this.responseType = responseType;
     }
 
     public String getResponseClass() {
@@ -251,4 +251,5 @@ public class BardExptDataResponse {
 	    this.capProjId = capProjId;
 	}	
     }
+
 }
