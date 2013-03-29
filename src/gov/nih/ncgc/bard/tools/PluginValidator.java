@@ -1,13 +1,16 @@
 package gov.nih.ncgc.bard.tools;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonschema.exceptions.ProcessingException;
+import com.github.fge.jsonschema.main.JsonSchemaFactory;
+import com.github.fge.jsonschema.report.ProcessingMessage;
+import com.github.fge.jsonschema.report.ProcessingReport;
+import com.github.fge.jsonschema.util.JsonLoader;
 import gov.nih.ncgc.bard.plugin.IPlugin;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import javax.ws.rs.*;
+import java.io.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -18,16 +21,6 @@ import java.util.List;
 import java.util.jar.JarInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsonschema.JsonSchema;
 
 /**
  * A tool to validate BARD plugins.
@@ -405,7 +398,7 @@ public class PluginValidator {
                 JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
 
                 JsonNode schemaNode = JsonLoader.fromResource("/manifest.json");
-                JsonSchema schema = factory.getJsonSchema(schemaNode);
+                com.github.fge.jsonschema.main.JsonSchema schema = factory.getJsonSchema(schemaNode);
 
                 ProcessingReport report = schema.validate(manifestNode);
                 manifestIsValid = report.isSuccess();
