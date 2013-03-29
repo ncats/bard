@@ -146,7 +146,7 @@ public class BardConcResponseSeries {
 	    result.setReadoutName(null);
 	    result.setQualifierValue(null);
 	    
-	    if(result.getValue() == null)
+	    if(result.getValue() == null || result.getValue().equals("NA"))
 		nullCRPoints.add(result);
 	    
 	    //add each cr point to the array
@@ -185,7 +185,7 @@ public class BardConcResponseSeries {
 	
 	if(concRespPoints != null) {
 	    for(BardResultType result : concRespPoints) {	    
-		if(result.getValue() == null)
+		if(result.getValue() == null || result.getValue().equals("NA"))
 		    nullCRPoints.add(result);
 	    }
 	}
