@@ -77,9 +77,6 @@ public class ExperimentResultsHandler extends CapResourceHandler implements ICap
      */
     public static void main(String [] args) {
 	
-	
-	
-	
 	//initialize handlers
 	CAPExtractor extractor = new CAPExtractor();
 	extractor.setHandlers();

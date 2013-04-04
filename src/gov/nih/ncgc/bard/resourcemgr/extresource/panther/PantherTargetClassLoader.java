@@ -17,8 +17,9 @@ import java.util.logging.Logger;
 public class PantherTargetClassLoader {
 
     Logger logger = Logger.getLogger(PantherTargetClassLoader.class.getName());
-    
     private Connection conn;
+    
+    
     
     public boolean loadPantherClassInfo(Properties loaderProps) throws ClassNotFoundException, SQLException, IOException {
 	
