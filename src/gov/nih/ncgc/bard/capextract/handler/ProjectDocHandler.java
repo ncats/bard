@@ -69,7 +69,7 @@ public class ProjectDocHandler extends CapResourceHandler implements ICapResourc
         if (project.getProjectSteps().getProjectStep().size() == 0) return;
 
         try {
-            Connection conn = CAPUtil.connectToBARD();
+            Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
             Statement st = conn.createStatement();
             ResultSet result = st.executeQuery("select bard_proj_id, name, description from bard_project where cap_proj_id=" + project.getProjectId());
             if (result.next()) {

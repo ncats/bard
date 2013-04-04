@@ -39,6 +39,19 @@ public class ExperimentsHandler extends CapResourceHandler implements ICapResour
 	    BigInteger n = experiments.getCount();
 	    log.info("Will be processing " + n + " experiments");
 	    List<Link> links = experiments.getLink();
+	    
+	    //need to change status immediately so that subsequent pulls won't encounter these experiments
+	    //if they are still loading results
+	    log.info("Setting experiment status to started for all experiments in queue.");
+	    for(Link link : links) {
+		if(link.getRel().equals(link.getRel().equals("related") &&
+			link.getType().equals(CAPConstants.CapResource.EXPERIMENT.getMimeType()))) {
+		    String href = link.getHref();
+		    //set status to started
+		    setExtractionStatus(CAPConstants.CAP_STATUS_STARTED, href, CAPConstants.CapResource.EXPERIMENT);
+		}
+	    }
+	    
 	    for (Link link : links) {
 		if (link.getRel().equals("next")) {
 		    url = link.getHref();
@@ -53,8 +66,8 @@ public class ExperimentsHandler extends CapResourceHandler implements ICapResour
 		    //load experiment, then results
 		    ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.EXPERIMENT);
 		    if (handler != null) { 
-			//set status to started
-			this.setExtractionStatus(CAPConstants.CAP_STATUS_STARTED, href, CAPConstants.CapResource.EXPERIMENT);
+			//Note status ALREADY set to started
+
 			//load experiment
 			handler.process(href, CAPConstants.CapResource.EXPERIMENT);
 
@@ -62,6 +75,8 @@ public class ExperimentsHandler extends CapResourceHandler implements ICapResour
 			handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.RESULT_JSON);
 			if (handler != null) {
 			    handler.process(href, CAPConstants.CapResource.RESULT_JSON);
+			} else {
+			    log.warn("!!! Don't have handler for result json, it's null.");
 			}
 			//set status to completed
 			this.setExtractionStatus(CAPConstants.CAP_STATUS_COMPLETE, href, CAPConstants.CapResource.EXPERIMENT);

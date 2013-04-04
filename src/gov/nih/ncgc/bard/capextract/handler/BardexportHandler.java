@@ -33,6 +33,7 @@ public class BardexportHandler extends CapResourceHandler implements ICapResourc
         for (Link link : export.getLink()) {
             String aurl = link.getHref();
             CAPConstants.CapResource res = CAPConstants.getResource(link.getType());
+            if (res == null) continue;
             ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(res);
             if (handler == null) {
                 log.error("No handler for " + link.getType());

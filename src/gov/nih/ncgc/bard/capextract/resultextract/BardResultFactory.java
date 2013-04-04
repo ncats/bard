@@ -26,7 +26,7 @@ public class BardResultFactory {
     // Element categories, these help to identify key element ids
     private Vector <Integer> highPriorityDataElemV;
     private Vector <Integer> lowPriorityDataElemV;
-    private Vector <Integer> hillCoefDataElemV;
+    private Vector <Integer> xx50DataElemV;
     private Vector <Integer> curveFitParameterElemV;
     private Vector <Integer> logXx50ParameterElemV;
     private Vector <Integer> efficacyDataElemV;
@@ -65,9 +65,9 @@ public class BardResultFactory {
 	for(Integer elem : Constants.LOW_PRIORITY_DATA_ELEM) {
 	    lowPriorityDataElemV.add(elem);
 	}
-	hillCoefDataElemV = new Vector <Integer>();
+	xx50DataElemV = new Vector <Integer>();
 	for(Integer elem : Constants.XX50_DICT_ELEM) {
-	    hillCoefDataElemV.add(elem);
+	    xx50DataElemV.add(elem);
 	}
 	curveFitParameterElemV = new Vector <Integer>();
 	for(Integer elem : Constants.FIT_PARAM_DICT_ELEM) {
@@ -85,8 +85,9 @@ public class BardResultFactory {
     
     
     public void initialize(Long bardExptId, Long capExptId, Long bardAssayId, Long capAssayId,
-	    ArrayList <ArrayList<Long>> projectIdList, Contexts contexts) {
+	    ArrayList <ArrayList<Long>> projectIdList, Contexts contexts, Integer responseType) {
 	response = new BardExptDataResponse();
+	response.setResponseType(responseType);
 	
 	response.setBardExptId(bardExptId);
 	response.setBardAssayId(bardAssayId);
@@ -126,8 +127,9 @@ public class BardResultFactory {
 	//build the basic response structure, note that this also builds the simple list of results 
 	buildBasicResponseFromCapResult(result);
 	
-	//only evaluate the response type once
-	if(processCnt == 0) {
+	// Typically the result type is determined during initialization
+	// If it's set to UNDEF, it signals that we should determine it on the first response
+	if(processCnt == 0 && this.response.getResponseType() == BardExptDataResponse.ResponseClass.UNDEF.ordinal()) {
 	    evaluateResponseType();
 	}
 	
@@ -244,7 +246,7 @@ public class BardResultFactory {
 	    if(haveConcResponse(result)) {
 		//have a series, is the series in a root element
 		//could check but the root might be a mean XX50 measurement
-		response.setResponseType(1);		
+		response.setResponseType(BardExptDataResponse.ResponseClass.CR_SER.ordinal());		
 		haveType = true;
 		if(result.getTestConc() != null)
 		    concentrations.add(result.getTestConc());
@@ -267,33 +269,39 @@ public class BardResultFactory {
 			    result.setTestConc(concentrations.iterator().next());
 			    result.setTestConcUnit("uM");
 			}
-			response.setResponseType(0);
+			response.setResponseType(BardExptDataResponse.ResponseClass.SP.ordinal());
 			haveType = true;
 		    }
 		}		
-	    } else if(concentrations.size() > 1) {
+	    } else if(concentrations.size() > 1 || concentrations.size() == 0) {
 		//have more than one concentration but no structure 
 		//the ec50 doesn't have concentration points as children
 		//or we have multiple concentrations but no ec50
 		
-		//if we have an AC50 we have CR_NO_SER
+		//if we have an AC50 we have CR_NO_SER, going to permit no concentrations
+		//have XX50
 		for(BardResultType result : response.getRootElements()) {
-		    if(result.getDictElemId() != null && this.hillCoefDataElemV.contains(result.getDictElemId())) {
-			response.setResponseType(4);
+		    if(result.getDictElemId() != null && this.xx50DataElemV.contains(result.getDictElemId())) {
+			response.setResponseType(BardExptDataResponse.ResponseClass.CR_NO_SER.ordinal());
 			haveType = true;
 			haveXX50 = true;
 		    }
 		}
 		
 		//have multiple concentrations but tno AC50 in root, type = MULTCONC
-		if(!haveType && !haveXX50) {
-		    response.setResponseType(3);
+		if(concentrations.size() > 0 && !haveType && !haveXX50) {
+		    response.setResponseType(BardExptDataResponse.ResponseClass.MULCONC.ordinal());
 		    haveType = true;
+		}
+		
+		if(!haveType) {
+		  //fall through type = UNCLASS (2)
+		    response.setResponseType(BardExptDataResponse.ResponseClass.UNCLASS.ordinal());
 		}
 		
 	    } else {
 		//fall through type = UNCLASS (2)
-		response.setResponseType(2);
+		response.setResponseType(BardExptDataResponse.ResponseClass.UNCLASS.ordinal());
 	    }
 	}
     }
@@ -390,7 +398,7 @@ public class BardResultFactory {
 		
 		//get the parameters
 		try {
-		    series.reconcileParameters(logXx50ParameterElemV, hillCoefDataElemV);
+		    series.reconcileParameters(logXx50ParameterElemV, xx50DataElemV);
 		} catch (Exception e) {
 		    e.printStackTrace();
 		}		
@@ -421,7 +429,7 @@ public class BardResultFactory {
 	    dictId = tempBardResult.getDictElemId();
 
 	    if(dictId != null) {		
-		if(!havePotency && hillCoefDataElemV.contains(tempBardResult.getDictElemId())) {
+		if(!havePotency && xx50DataElemV.contains(tempBardResult.getDictElemId())) {
 		    havePotency = true;
 		    try {
 			if(tempBardResult.getValue() != null) {
@@ -433,18 +441,27 @@ public class BardResultFactory {
 		} else if(dictId == 896) {
 		    haveOutcome = true;
 		    outcome = tempBardResult.getValue();
-		    if(outcome.equals("Inactive"))
+		    
+		    if(outcome.equalsIgnoreCase("Inactive"))
 			outcomeIndex = 1;
-		    else if(outcome.equals("Active"))
+		    else if(outcome.equalsIgnoreCase("Active"))
 			outcomeIndex = 2;
-		    else if(outcome.equals("Inconclusive"))
+		    else if(outcome.equalsIgnoreCase("Inconclusive"))
 			outcomeIndex = 3;
-		    else if(outcome.equals("Unspecified"))    
+		    else if(outcome.equalsIgnoreCase("Unspecified"))    
 			outcomeIndex = 4;
-		    else if(outcome.equals("Probe"))
+		    else if(outcome.equalsIgnoreCase("Probe"))
 			outcomeIndex = 5;
-		    else
-			outcomeIndex = 4;
+		    else {
+			//fall through
+			try {
+			    outcomeIndex = 6;
+			    //see if this works
+			    outcomeIndex = (int)(Double.parseDouble(outcome));				
+			} catch (NumberFormatException nfe) {
+			    continue; //quietly
+			}		    
+		    }
 		    response.setOutcome(outcomeIndex);
 		} else if(dictId == 898) {
 		    haveScore = true;
@@ -459,5 +476,8 @@ public class BardResultFactory {
 	}
     }
 
+    public ArrayList<BardResultType> getResultList() {
+        return resultList;
+    }   
 
 }

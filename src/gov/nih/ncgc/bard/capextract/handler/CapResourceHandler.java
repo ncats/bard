@@ -174,4 +174,5 @@ public abstract class CapResourceHandler {
 	return etag;
     }
     
+    
 }

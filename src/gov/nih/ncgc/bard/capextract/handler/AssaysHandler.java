@@ -29,6 +29,7 @@ public class AssaysHandler extends CapResourceHandler implements ICapResourceHan
      *                 can choose to proceed or not based on this parameter.
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
+
 	if (resource != CAPConstants.CapResource.ASSAYS) return;
 	log.info("Processing " + resource);
 

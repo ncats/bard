@@ -1,24 +1,26 @@
 package gov.nih.ncgc.bard.tools;
 
+import chemaxon.formats.MolFormatException;
+import chemaxon.formats.MolImporter;
+import chemaxon.struc.Molecule;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.ETag;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.ProjectStep;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
-import gov.nih.ncgc.bard.entity.Publication;
-import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.search.Facet;
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -26,42 +28,8 @@ import java.io.Reader;
 import java.math.BigInteger;
 import java.security.Principal;
 import java.security.SecureRandom;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-
-import javax.sql.DataSource;
-
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Element;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import chemaxon.formats.MolFormatException;
-import chemaxon.formats.MolImporter;
-import chemaxon.struc.Molecule;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.sql.*;
+import java.util.*;
 
 
 
@@ -110,7 +78,7 @@ public class DBUtils {
         return cache;
     }
 
-    static private String datasourceContext = "jdbc/bardman";
+    static private String datasourceContext = "jdbc/bardman3";
     static public void setDataSourceContext (String context) {
         if (context == null) {
             throw new IllegalArgumentException ("Can't set null context!");
@@ -391,6 +359,7 @@ public class DBUtils {
                 p.setTaxId(rs.getLong("taxid"));
                 p.setName(rs.getString("name"));
                 p.setStatus(rs.getString("uniprot_status"));
+                p.setClasses(getPantherClassesForAccession(accession));
             }
             rs.close();
             cache.put(new Element (accession, p));
@@ -426,6 +395,7 @@ public class DBUtils {
                     p.setTaxId(rs.getLong("taxid"));
                     p.setName(rs.getString("name"));
                     p.setStatus(rs.getString("uniprot_status"));
+                    p.setClasses(getPantherClassesForAccession(p.getAcc()));
                 }
                 rs.close();
 
@@ -488,6 +458,67 @@ public class DBUtils {
         finally {
             pst.close();
         }
+    }
+
+    public Long[][] getSidsByCids(Long[] cids) throws SQLException {
+
+        List<Long[]> list  = new ArrayList<Long[]>();
+
+        Cache cache = getCache ("SidsByCidCache");
+        List<Long> uncachedCids = new ArrayList<Long>();
+        try {
+            for (Long cid : cids) {
+                List<Long> sids = getCacheValue(cache, cid);
+                if (sids != null) {
+                    for (Long sid : sids) list.add(new Long[]{cid, sid});
+                } else uncachedCids.add(cid);
+            }
+        }
+        catch (ClassCastException ex) {}
+
+        // if there's nothing in uncachedCids, we got everything from the cache
+        if (uncachedCids.size() == 0) return list.toArray(new Long[][]{});
+
+        if (conn == null) conn = getConnection();
+        List<List<Long>> chunks = Util.chunk(uncachedCids, CHUNK_SIZE);
+
+        for (List<Long> chunk : chunks) {
+            String cidClause = Util.join(chunk, ",");
+            String sql = "select cid, sid from cid_sid where cid in ("+cidClause+") order by cid";
+            Statement stm = conn.createStatement();
+            try {
+                ResultSet rs = stm.executeQuery(sql);
+
+                List<Long> sids = new ArrayList<Long>();
+
+                rs.next();
+                Long oldCid = rs.getLong(1);
+                Long sid = rs.getLong(2);
+                list.add(new Long[]{oldCid, sid});
+                sids.add(sid);
+
+                while (rs.next()) {
+                    Long cid = rs.getLong(1);
+                    sid = rs.getLong(2);
+
+                    list.add(new Long[]{cid, sid});
+
+                    if (cid != oldCid) {
+                        cache.put(new Element (oldCid, sids));
+                        sids.clear();
+                    }
+                    sids.add(sid);
+                    oldCid = cid;
+                }
+                cache.put(new Element (oldCid, sids));
+                rs.close();
+            }
+            finally {
+                stm.close();
+            }
+        }
+
+        return list.toArray(new Long[][]{});
     }
 
 
@@ -1812,7 +1843,7 @@ public class DBUtils {
             ResultSet rs = pst.executeQuery();
             while (rs.next()) {
                 ExperimentData ed = getExperimentData(rs);
-                ed.setExptDataId(ed.getEid() + "." + ed.getSid());
+                ed.setExptDataId(ed.getBardExptId() + "." + ed.getSid());
                 data.add(ed);
             }
             rs.close();
@@ -2204,6 +2235,9 @@ public class DBUtils {
         a.setComments(rs.getString("comment"));
         a.setProtocol(rs.getString("protocol"));
         a.setTitle(rs.getString("title"));
+        a.setAssayStatus(rs.getString("status"));
+        a.setAssayType(rs.getString("assay_type"));
+        a.setScore(rs.getFloat("score"));
 
         List<Long> pmids = new ArrayList<Long>();
         for (Publication pub : getAssayPublications(bardAssayId)) pmids.add(pub.getPubmedId());
@@ -2236,8 +2270,8 @@ public class DBUtils {
         List<String> l1 = new ArrayList<String>();
         List<String> l2 = new ArrayList<String>();
         for (CAPAnnotation capannot : capannots) {
-            if (capannot.key != null && isInteger(capannot.key)) l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
-            if (capannot.value != null && isInteger(capannot.value)) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
+            if (capannot.key != null && Util.isNumber(capannot.key)) l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
+            if (capannot.value != null && Util.isNumber(capannot.value)) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
             else l2.add(capannot.display);
         }
         a.setAk_dict_label(l1);
@@ -2253,14 +2287,6 @@ public class DBUtils {
         return a;
     }
 
-    private boolean isInteger(String s) {
-        try {
-            new BigInteger(s);
-        } catch (NumberFormatException e) {
-            return false;
-        }
-        return true;
-    }
 
     public List<Project> getProjectsByETag(int skip, int top, String etag) throws SQLException {
         Map info = getETagInfo(etag);
@@ -3631,6 +3657,8 @@ public class DBUtils {
             ResultSet rs2 = pst2.executeQuery();
             List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
             while (rs2.next()) {
+                String acc = rs2.getString("accession");
+//                targets.add(getProteinTargetByAccession(acc));
                 ProteinTarget t = new ProteinTarget();
                 t.setDescription(rs2.getString("description"));
                 t.setGeneId(rs2.getLong("gene_id"));
@@ -3638,6 +3666,7 @@ public class DBUtils {
                 t.setStatus(rs2.getString("uniprot_status"));
                 t.setAcc(rs2.getString("accession"));
                 t.setTaxId(rs2.getLong("taxid"));
+                t.setClasses(getPantherClassesForAccession(t.getAcc()));
                 targets.add(t);
             }
             rs2.close();
@@ -3971,6 +4000,7 @@ public class DBUtils {
                 p.setDeposited(rs.getDate("deposited"));
                 p.setSource(rs.getString("source_name"));
                 p.setCapProjectId(rs.getLong("cap_proj_id"));
+                p.setScore(rs.getFloat("score"));
 
                 cache.put(new Element (bardProjId, p));
             }
@@ -4500,6 +4530,8 @@ public class DBUtils {
             entities = (List<T>) getSubstanceByETag(skip, top, etag.getEtag());
         else if (Experiment.class.getName().equals(etag.getType()))
             entities = (List<T>) getExperimentsByETag(skip, top, etag.getEtag());
+        else if (Project.class.getName().equals(etag.getType()))
+            entities = (List<T>) getProjectsByETag(skip, top, etag.getEtag());
         return entities;
     }
 
@@ -5179,12 +5211,28 @@ public class DBUtils {
             step.setNextBardExpt(rs.getLong("next_bard_expt_id"));
             step.setPrevBardExpt(rs.getLong("prev_bard_expt_id"));
             step.setAnnotations(getProjectStepAnnotations(step.getStepId()));
+            step.setPrevStageRef(getExperimentTypeByProject(projectId, step.getPrevBardExpt()));
+            step.setNextStageRef(getExperimentTypeByProject(projectId, step.getNextBardExpt()));
             steps.add(step);
         }
         return steps;
     }
 
+    public String getExperimentTypeByProject(Long bardProjId, Long bardExptId) throws SQLException {
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select expt_type from bard_project_experiment where bard_proj_id = ? and bard_expt_id = ?");
+        pst.setLong(1, bardProjId);
+        pst.setLong(2, bardExptId);
+        ResultSet rs = pst.executeQuery();
+        String ret = null;
+        while (rs.next()) ret = rs.getString(1);
+        pst.close();
+        return ret;
+    }
+
     public List<CAPAnnotation> getProjectStepAnnotations(Long projectStepId) throws SQLException {
+        if (conn == null) conn = getConnection();
+
         Cache cache = getCache ("ProjectStepAnnotationsCache");
         try {
             List<CAPAnnotation> value = getCacheValue
@@ -5228,6 +5276,62 @@ public class DBUtils {
             return annos;
         }
         finally {
+            pst.close();
+        }
+    }
+
+    public List<TargetClassification> getPantherClassesForAccession(String acc) throws SQLException {
+        if (conn == null) conn = getConnection();
+
+        Cache cache = getCache("PantherClassesCache");
+        try {
+            List<TargetClassification> value = getCacheValue(cache, acc);
+            if (value != null) return value;
+        } catch (ClassCastException e) {
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select b.* from panther_uniprot_map a, panther_class b where a.accession = ? and a.pclass_id = b.pclass_id order by node_level");
+        try {
+            pst.setString(1, acc);
+            ResultSet rs = pst.executeQuery();
+            List<TargetClassification> classes = new ArrayList<TargetClassification>();
+            while (rs.next()) {
+                PantherClassification pc = new PantherClassification();
+                pc.setDescription(rs.getString("class_descr"));
+                pc.setName(rs.getString("class_name"));
+                pc.setId(rs.getString("pclass_id"));
+                pc.setLevelIdentifier(rs.getString("node_code"));
+                pc.setNodeLevel(rs.getInt("node_level"));
+                classes.add(pc);
+            }
+            cache.put(new Element (acc, classes));
+            return classes;
+        } finally {
+            pst.close();
+        }
+    }
+    public List<ProteinTarget> getProteinTargetsForPantherClassification(String clsid) throws SQLException {
+        if (conn == null) conn = getConnection();
+
+        Cache cache = getCache("TargetsForPantherClassCache");
+        try {
+            List<ProteinTarget> value = getCacheValue(cache, clsid);
+            if (value != null) return value;
+        } catch (ClassCastException e) {
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select distinct a.accession from panther_uniprot_map a where a.pclass_id = ?");
+        try {
+            pst.setString(1, clsid);
+            ResultSet rs = pst.executeQuery();
+            List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
+            while (rs.next()) {
+                String acc = rs.getString(1);
+                targets.add(getProteinTargetByAccession(acc));
+            }
+            cache.put(new Element(clsid, targets));
+            return targets;
+        } finally {
             pst.close();
         }
     }

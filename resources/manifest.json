@@ -1,0 +1,63 @@
+{
+    "$schema": "http://json-schema.org/draft-03/schema#",
+    "type": "object",	
+    "properties": {
+	"version" : {
+	    "type" : "string", 
+	    "required" : true
+	},
+	"title" : {
+	    "type" : "string", 
+	    "required" : true
+	},
+	"description" : {
+	    "type" : "string",
+	    "required" : true
+	},
+	"author" : {
+	    "type" : "string",
+	    "required" : true
+	},
+	"authorEmail" : {
+	    "type" : "string",
+	    "format" : "email", 
+	    "required" : true
+	},
+	"maintainer" : {
+	    "type" : "string",
+	    "required" : true
+	},
+	"maintainerEmail" : {
+	    "type" : "string",
+	    "format" : "email", 
+	    "required" : true
+	},
+	"resources" : {
+	    "type" : "array",
+	    "required" : true,
+	    "minItems" : 1,
+	    "uniqueItems": true,
+	    "items" : [{
+		"type" : "object",
+		"properties" : {
+		    "path" : {"type":"string", "required":true},
+		    "method" : {"enum":["GET","POST","PUT","DELETE"], "required":true},
+		    "mimetype" : {"type":"string", "required":true},
+		    "args" : {"type":["array","null"], 
+			      "uniqueItems": true,
+			      "minItems" : 1,
+			      "items" : [{
+				  "type" : "object",
+				  "properties" : {
+				      "arg" : {"type":"string", "required":true},
+				      "argtype" : {"required":true,"enum":["string","number","integer","boolean","object","any"]},
+                      "format" : {"enum":["query", "path"]}
+				  }
+			      }]
+			     }
+		}
+	    }]
+	}
+	
+    }
+}

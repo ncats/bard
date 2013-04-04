@@ -1,31 +1,25 @@
 package gov.nih.ncgc.bard.rest;
 
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
-import gov.nih.ncgc.bard.entity.Publication;
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.sun.jersey.api.NotFoundException;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 
 /**
  * Prototype of MLBD REST resources.
@@ -230,6 +224,75 @@ public class BARDTargetResource extends BARDResource<ProteinTarget> {
             throw new WebApplicationException(e, 500);
         }
     }
+
+    @GET
+    @Path("/accession/{acc}/classification/{source}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getClassificationsForAccession(@PathParam("source") String source,
+                                                   @PathParam("acc") String acc) throws SQLException, IOException {
+        List<TargetClassification> classes = null;
+        DBUtils db = new DBUtils();
+        if (source.toLowerCase().equals("panther")) {
+            classes = db.getPantherClassesForAccession(acc);
+        }
+        db.closeConnection();
+        if (classes == null)
+            throw new NotFoundException("No classifications for " + acc + " in the " + source + " hierarchy");
+        if (countRequested) return Response.ok(String.valueOf(classes.size())).type(MediaType.TEXT_PLAIN_TYPE).build();
+        else {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode node = mapper.createObjectNode();
+            JsonNode classNodes = mapper.valueToTree(classes);
+            node.put(acc, classNodes);
+            String json = mapper.writeValueAsString(node);
+            return Response.ok(json).type(MediaType.APPLICATION_JSON_TYPE).build();
+        }
+    }
+
+    @POST
+    @Path("/accession/classification/{source}")
+    @Consumes("application/x-www-form-urlencoded")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getClassificationsForAccessions(@PathParam("source") String source,
+                                                    @FormParam("accs") String accs) throws SQLException, IOException {
+
+        DBUtils db = new DBUtils();
+        String[] laccs = accs.split(",");
+
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode node = mapper.createObjectNode();
+
+        for (String acc : laccs) {
+            List<TargetClassification> classes = null;
+            if (source.toLowerCase().equals("panther")) {
+                classes = db.getPantherClassesForAccession(acc.trim());
+            }
+            JsonNode classNodes = mapper.valueToTree(classes);
+            node.put(acc, classNodes);
+        }
+        db.closeConnection();
+        String json = mapper.writeValueAsString(node);
+        return Response.ok(json).type(MediaType.APPLICATION_JSON_TYPE).build();
+    }
+
+
+    @GET
+    @Path("/classification/{source}/{clsid}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getAccessionsForClassification(@PathParam("source") String source,
+                                                   @PathParam("clsid") String clsid) throws SQLException, IOException {
+        List<ProteinTarget> targets = null;
+        DBUtils db = new DBUtils();
+        if (source.toLowerCase().equals("panther")) {
+            targets = db.getProteinTargetsForPantherClassification(clsid);
+        }
+        db.closeConnection();
+        if (targets == null)
+            throw new NotFoundException("No protein targets for " + clsid + " in the " + source + " hierarchy");
+        if (countRequested) return Response.ok(String.valueOf(targets.size())).type(MediaType.TEXT_PLAIN_TYPE).build();
+        else return Response.ok(Util.toJson(targets)).type(MediaType.APPLICATION_JSON_TYPE).build();
+    }
+
 
     @GET
     @Path("/geneid/{geneid}/assays")

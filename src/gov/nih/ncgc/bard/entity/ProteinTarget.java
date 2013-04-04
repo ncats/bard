@@ -6,6 +6,7 @@ import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -22,6 +23,9 @@ public class ProteinTarget implements BardEntity {
     String name, description, status, url;
     Long geneId, taxId;
 
+//    @JsonBackReference
+    List<TargetClassification> classes;
+
     public ProteinTarget(String acc, String name, String description, String status, Long geneId, Long taxId) {
         this.acc = acc;
         this.name = name;
@@ -35,6 +39,14 @@ public class ProteinTarget implements BardEntity {
 
     public boolean equals(Object o) {
         return o instanceof ProteinTarget && ((ProteinTarget) o).getAcc().equals(acc);
+    }
+
+    public List<TargetClassification> getClasses() {
+        return classes;
+    }
+
+    public void setClasses(List<TargetClassification> classes) {
+        this.classes = classes;
     }
 
     public String getUrl() {

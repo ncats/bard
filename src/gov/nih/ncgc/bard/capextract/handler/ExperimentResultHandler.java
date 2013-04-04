@@ -8,6 +8,7 @@ import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
 import gov.nih.ncgc.bard.capextract.resultextract.BardExptDataResponse;
 import gov.nih.ncgc.bard.capextract.resultextract.BardResultFactory;
+import gov.nih.ncgc.bard.capextract.resultextract.BardResultType;
 import gov.nih.ncgc.bard.capextract.resultextract.CAPExperimentResult;
 
 import java.io.BufferedOutputStream;
@@ -57,9 +58,12 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 
     private Logger logger = Logger.getLogger(ExperimentResultHandler.class.getName());
   
+    private static int RESPONSE_CLASS_SAMPLE_SIZE = 100;
+    
     private Connection conn;
     private Connection conn2;
     private ArrayList<Long> tempProjectList;
+    
 
     /**
      * This method pulls result data from CAP using the supplied CAP experiment id and saves it in a
@@ -110,7 +114,6 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 
 	    //construct a result factory and initialize with entity ids common to all responses
 	    BardResultFactory resultFactory = new BardResultFactory();
-	    resultFactory.initialize(ids.get("bardExptId"), capExptId, ids.get("bardAssayId"), ids.get("capAssayId"), projIds, fetchContexts(capExptId));
 
 	    logger.info("CAP Expt ID="+capExptId+" ResultFactory Initialized, entity ID's Exist.");  
 
@@ -124,7 +127,16 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    Double score, potency;
 	    Integer outcome;
 	    BufferedReader br = new BufferedReader(new FileReader(stageFile));
-
+	    
+	    //here we need to determine the response class by polling a collection of input responses from CAP
+	    //use the BufferedReader to iterate, then reset the BR for processing
+	    Integer responseClass = determineResultClass(capExptId, br);
+	    //now pass the experiment level response class on to the response factory when initializing
+	    resultFactory.initialize(ids.get("bardExptId"), capExptId, ids.get("bardAssayId"), ids.get("capAssayId"), projIds, fetchContexts(capExptId), responseClass);
+	    
+	    
+	    br = new BufferedReader(new FileReader(stageFile));
+	    
 	    //process each result (fore each substance). The helper class just acts as a container.
 	    while((capData = br.readLine()) != null) {
 		capData = capData.trim();
@@ -207,6 +219,10 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 		//load data tables (bard_experiment_data and bard_experiment_result)
 		loadDataServingTables(capExptId, bardExptId);
 	    }
+	    
+	    //now update test sid count, cid count, acitve count, and probe count, and has probe.
+	    updateExperimentTestingStats(bardExptId);
+	    
 	    //close the connnection		
 	    conn.close();
 	    conn2.close();
@@ -220,6 +236,80 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	} catch (SQLException e) {
 	    e.printStackTrace();
 	}	
+    }
+
+    private Integer determineResultClass(Long capExptId, BufferedReader bufferedReader) throws IOException {
+	//set to unclassified first
+	Integer resultType = new Integer(BardExptDataResponse.ResponseClass.UNCLASS.ordinal());
+
+	String capData;
+	ArrayList <BardExptDataResponse> respList = new ArrayList <BardExptDataResponse>();
+	ArrayList <Integer> respSizeList = new ArrayList<Integer>();
+	ArrayList <BardResultType> resultList;
+	
+	BardResultFactory resultFactory = new BardResultFactory();
+	ObjectMapper mapper = new ObjectMapper();
+	
+	long ced, bed, cad, bad;
+	ced = bed = cad = bad = 0l;
+	ArrayList <ArrayList<Long>> pids = new ArrayList <ArrayList<Long>>();
+	ArrayList <Long> pidList = new ArrayList<Long>();
+	pidList.add(1l);
+	pidList.add(2l);
+	pids.add(pidList);
+	Contexts contexts = this.fetchContexts(capExptId);
+	
+	CAPExperimentResult capResult;
+	BardExptDataResponse response;
+	int procCnt = 0;
+	while((capData = bufferedReader.readLine()) != null) {
+
+	    //break if hit the sample limit
+	    if(procCnt >= RESPONSE_CLASS_SAMPLE_SIZE)
+		break;
+	    
+	    capData = capData.trim();
+	    if(capData.length() > 0) {
+		
+		//track process count
+		procCnt++;
+		
+		//need to initialize factory to make a new response object to pass out
+		resultFactory.initialize(bed, ced, bad, cad, pids, contexts, BardExptDataResponse.ResponseClass.UNDEF.ordinal());
+		
+		capResult = mapper.readValue(capData, CAPExperimentResult.class);
+		
+		//build a response **** Has a type determined
+		response = resultFactory.processCapResult(capResult);
+		resultList = resultFactory.getResultList();
+		
+		respList.add(response);
+		//add the size
+		if(resultList != null) {
+		    respSizeList.add(resultList.size());
+		} else {
+		    respSizeList.add(0);
+		}
+	    }
+	}
+
+	if(respList.size() > 0) {
+	    log.info("Sampling "+ respList.size()+ " responses to determine responseClass for capExptId"+capExptId);
+	    int maxSize = 0;
+	    BardExptDataResponse maxResponse = respList.get(0);
+	    for(int i = 0; i < respSizeList.size(); i++) {
+		if(respSizeList.get(i) > maxSize) {
+		    maxSize = respSizeList.get(i);
+		    maxResponse = respList.get(i);
+		}
+	    }
+	    //now finally, get the result class...
+	    resultType = maxResponse.getResponseType();
+	} else {
+	    log.info("PROBLEM Trying to sample response class: NO responses available to determine responseClass for capExptId"+capExptId);
+	}
+	
+	return resultType;
     }
     
     private void loadDataServingTables(long capExptId, long bardExptId) throws SQLException, JsonParseException, JsonMappingException, IOException {
@@ -431,16 +521,27 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    ResultSet rs = stmt.executeQuery("select a.bard_proj_id, b.cap_proj_id from bard_project_experiment a, bard_project b where a.bard_expt_id = "+ bardExptId + " "
 		    +"and a.bard_proj_id = b.bard_proj_id");
 	    long capProjId;
+	    ArrayList <Long> uniqueCapProjectIds = new ArrayList<Long>();
+	    
 	    while(rs.next()) {
-		tempProjectList = new ArrayList<Long>();		
-		tempProjectList.add(rs.getLong(1));
+		
 		capProjId = rs.getLong(2);
-		if(!rs.wasNull())
+		
+		//if cap id is null (shouldn't be), just add the bard id and add the list to ids
+		if(rs.wasNull()) {
+		    tempProjectList = new ArrayList<Long>();		
+		    tempProjectList.add(rs.getLong(1));
+		    ids.add(tempProjectList);
+		} else if(!uniqueCapProjectIds.contains(capProjId)) {
+		    //if the cap id isn't null, then check that it hasn't been added before
+		    tempProjectList = new ArrayList<Long>();
+		    tempProjectList.add(rs.getLong(1));
 		    tempProjectList.add(capProjId);
-		ids.add(tempProjectList);
+		    ids.add(tempProjectList);
+		}
 	    }
 	}
-	return ids;	
+	return ids;
     }
     
     
@@ -462,6 +563,45 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
     }
     
     
+    public void updateExperimentTestingStats(Long bardExptId) throws SQLException {
+	if(bardExptId != null) {
+	    Statement stmt = conn.createStatement();
+	    Long sampleCount = 0l;
+	    Long cidCount = 0l;
+	    Long activeCount = 0l; 
+	    Long probeCount = 0l;
+	    Boolean haveProbe = false;
+	    ResultSet rs = stmt.executeQuery("select count(distinct(sid)) from bard_experiment_data where bard_expt_id="+bardExptId);
+	    if(rs.next())
+		sampleCount = rs.getLong(1);
+	    
+	    rs = stmt.executeQuery("select count(distinct(cid)) from bard_experiment_data where bard_expt_id ="+bardExptId);
+	    if(rs.next())
+		cidCount = rs.getLong(1);
+	    
+	    rs = stmt.executeQuery("select count(distinct(sid)) from bard_experiment_data where (outcome=2 or outcome=5) and bard_expt_id="+bardExptId);
+	    if(rs.next())
+		activeCount = rs.getLong(1);
+	    
+	    rs = stmt.executeQuery("select count(distinct(sid)) from bard_experiment_data where outcome=5 and bard_expt_id="+bardExptId);
+	    if(rs.next())
+		probeCount = rs.getLong(1);
+
+	    haveProbe = (probeCount != null && probeCount > 0);
+	    
+	    stmt.executeUpdate("update bard_experiment set " +
+	    		" sample_count="+sampleCount+
+	    		", cid_count="+cidCount+
+	    		", active_count="+activeCount+
+	    		", probe_count="+probeCount+
+	    		", have_probe="+haveProbe+
+	    		" where bard_expt_id = "+bardExptId
+	    		);
+	    conn.commit();
+	}
+    }
+
+    
     /*
      * Utility method to pull an example of each experiment result in the db.
      */
@@ -476,14 +616,15 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    }
 	    rs.close();
 	    
-	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples.txt"));	    
-	    PreparedStatement ps = conn.prepareStatement("select eid, json_response from bard_experiment_result " +
-	    		" where bard_expt_id = ? limit 1");	    
+	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples_max_redux.txt"));	    
+	    PreparedStatement ps = conn.prepareStatement("select b.cap_expt_id, a.json_response, a.sid from bard_experiment_result a, bard_experiment b " +
+	    		" where a.bard_expt_id=b.bard_expt_id and a.bard_expt_id = ? limit 1");	    
 	    int progress = 0;
 	    Blob response;
 	    BufferedReader in;
 	    String line;
 	    long aid;
+	    long sid;
 	    for(Long bid : v) {
 		ps.setLong(1, bid);
 		rs = ps.executeQuery();		
@@ -491,10 +632,11 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 		    progress++;
 		    aid = rs.getLong(1);
 		    response = rs.getBlob(2);
+		    sid = rs.getLong("sid");
 		    if(response != null) {
 			in = new BufferedReader(new InputStreamReader(response.getBinaryStream()));
 			while((line = in.readLine()) != null) {
-			    pw.println(bid+"\t"+aid+"\t"+line);			    
+			    pw.println(bid+"\t"+sid+"\t"+line);			    
 			}
 		    }
 		    if(progress %100 == 0)
@@ -511,13 +653,40 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	}
     }
     
+    public void updateExperimentTestStats(String dbURL) {
+	try {
+	    conn = CAPUtil.connectToBARD(dbURL);
+	    Statement stmt = conn.createStatement();
+	    ResultSet rs = stmt.executeQuery("select bard_expt_id from bard_experiment");
+	    ArrayList <Long> beds = new ArrayList <Long>();
+	    while(rs.next()) {
+		beds.add(rs.getLong(1));		
+	    }
+	    rs.close();
+	    stmt.close();
+	    
+	    for(Long bed : beds) {
+		this.updateExperimentTestingStats(bed);
+	    }
+	    
+	    conn.close();
+	    
+	} catch (SQLException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	}
+	
+    }
     
-//    public static void main(String [] args) {
-//	ExperimentResultHandler worker = new ExperimentResultHandler();
-//	long start = System.currentTimeMillis();
-//	//worker.testResultTypes();	
-//	//worker.processCapExperimentResultViaFileCache(36, "jdbc:mysql://protein.nhgri.nih.gov/bard3", "/ifs/prod/bard/entity_mgr/bard-scratch/");	
-//	System.out.println("et="+((System.currentTimeMillis()-start)));		
-//    }
+    public static void main(String [] args) {
+	ExperimentResultHandler worker = new ExperimentResultHandler();
+	long start = System.currentTimeMillis();
+	//worker.testResultTypes("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
+	
+	worker.updateExperimentTestStats("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
+	
+	//worker.processCapExperimentResultViaFileCache(36, "jdbc:mysql://protein.nhgri.nih.gov/bard3", "/ifs/prod/bard/entity_mgr/bard-scratch/");	
+	System.out.println("et="+((System.currentTimeMillis()-start)));		
+    }
     
 }

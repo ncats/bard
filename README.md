@@ -53,7 +53,4 @@ Plugins
 -------
 
 The REST API also supports the concept of plugins - user contributed Java classes that appear as resources in the REST hierarchy. See
-[`plugins/`](https://github.com/ncatsdpiprobedev/bard/tree/master/src/gov/nih/ncgc/bard/plugin) for some examples. A more detailed description of how plugins should be written can be found [here](https://github.com/broadinstitute/BARD/wiki/Plugins). Currently the example plugins are built as part of the WAR build target. However, users can provide a standalone JAR file containing
-the components of their plugin. The actual deployment mechanism of such code is still to be decided. The tools directory also contains a plugin 
-validator class. This can be used within client code to ensure a valid plugin. In the future this will be converted to an Ant task to allow 
-validation at build time.
+[`plugins/`](https://github.com/ncatsdpiprobedev/bardplugins) for some examples. A more detailed description of how plugins should be written can be found [here](https://github.com/ncatsdpiprobedev/bard/wiki/Plugins). Plugins are built & deployed separately from the main BARD API. A proxy server in front of all BARD resources performs the appropriate redirection

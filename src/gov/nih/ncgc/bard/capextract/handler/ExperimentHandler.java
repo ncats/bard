@@ -11,6 +11,8 @@ import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
 import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.capextract.*;
+import gov.nih.ncgc.bard.capextract.jaxb.*;
 import gov.nih.ncgc.bard.tools.Util;
 
 import java.io.IOException;
@@ -76,7 +78,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         int localBardExptId = -1;
         boolean doUpdate = false;
         try {
-            Connection conn = CAPUtil.connectToBARD();
+            Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
             Statement query = conn.createStatement();
             query.execute("select bard_expt_id, pubchem_aid from bard_experiment where cap_expt_id=" + expt.getExperimentId());
             ResultSet rs = query.getResultSet();
@@ -106,7 +108,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             if (!link.getType().equals(CAPConstants.CapResource.ASSAY.getMimeType())) continue;
             String capAssayId = Util.getEntityIdFromUrl(link.getHref());
             try {
-                Connection conn = CAPUtil.connectToBARD();
+                Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
                 PreparedStatement pst = conn.prepareStatement("select bard_assay_id, cap_assay_id from bard_assay where cap_assay_id = ?");
                 pst.setLong(1, Long.parseLong(capAssayId));
                 ResultSet rs = pst.executeQuery();
@@ -188,7 +190,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         try {
 
 
-            Connection conn = CAPUtil.connectToBARD();
+            Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
 
             PreparedStatement pstExpt;
             if (localBardExptId == -1) {
@@ -209,7 +211,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             pstExpt.setInt(6, Integer.parseInt(_CAP_ExptID_PubChemAID_lookup.get(exptID)));
             pstExpt.setInt(7, -1);
             pstExpt.setString(8, expt.getExperimentName());
-            pstExpt.setFloat(9, (float) expt.getConfidenceLevel().intValue());
+            pstExpt.setFloat(9, (float) confLevel.intValue());
             if (doUpdate) pstExpt.setLong(10, bardExptId);
 
             pstExpt.executeUpdate();
@@ -246,6 +248,10 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
                 pstAssayAnnot.close();
                 log.info("Inserted " + updateCounts.length + " annotations for CAP experiment id " + expt.getExperimentId());
             }
+
+            // Finally we update the scores of connected assays and projects
+            ScoreHandler scoreHandler = new ScoreHandler(conn);
+            scoreHandler.updateScores(bardExptId);
 
             conn.close();
 
