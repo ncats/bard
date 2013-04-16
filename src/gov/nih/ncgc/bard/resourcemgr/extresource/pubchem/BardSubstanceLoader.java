@@ -51,7 +51,7 @@ import chemaxon.struc.Molecule;
 public class BardSubstanceLoader {
 
 	static final private Logger logger = 
-			Logger.getLogger(MLBDLoadAssay.class.getName());
+			Logger.getLogger(BardSubstanceLoader.class.getName());
 
 	private static String sidKey = "PUBCHEM_SUBSTANCE_ID";
 	private static String dataSourceNameKey = "PUBCHEM_EXT_DATASOURCE_NAME";

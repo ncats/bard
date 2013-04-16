@@ -1,8 +1,8 @@
 package gov.nih.ncgc.bard.plugin;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Java representation of a plugin manifest.

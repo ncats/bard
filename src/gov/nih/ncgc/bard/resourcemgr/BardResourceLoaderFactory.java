@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.resourcemgr;
 
-import java.util.Properties;
 
 public class BardResourceLoaderFactory {
 
@@ -10,7 +9,7 @@ public class BardResourceLoaderFactory {
 	return loader; 
     }
     
-    public IBardExtResourceLoader getLoader(BardResourceService service, Properties loaderProps) {
+    public IBardExtResourceLoader getLoader(BardResourceService service) {
 	
 	//IBardExtResourceLoader loader = (IBardExtResourceLoader) (ClassLoader.getSystemClassLoader().loadClass(service.getLoaderClass()));
 	IBardExtResourceLoader loader = null;
@@ -18,7 +17,7 @@ public class BardResourceLoaderFactory {
 	    loader = (IBardExtResourceLoader)(Class.forName(service.getLoaderClass()).newInstance());
 	    //the service and loader props provide service info for the loader
 	    loader.setService(service);
-	    loader.setLoaderProps(loaderProps);
+//	    loader.setLoaderProps(loaderProps);
 	} catch (ClassNotFoundException e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();

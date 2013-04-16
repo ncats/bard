@@ -203,8 +203,9 @@ public class BardResultFactory {
     
     private void processContextItem(CAPMeasureContextItem item, BardResultType bardResult) {
 	//context items either lead to children OR if 971's we have to grab the test conc.
+
 	if(item.getAttributeId() != null && item.getAttributeId() == 971) {
-	    bardResult.setTestConc(item.getValueNum());
+	    bardResult.setTestConc(item.getValueNum()); 
 	    bardResult.setTestConcUnit("uM");
 	} else {
 	    bardResult.addChildResult(buildResultTypeFromContextItem(item));

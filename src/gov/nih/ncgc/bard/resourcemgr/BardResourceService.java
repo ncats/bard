@@ -1,33 +1,45 @@
 package gov.nih.ncgc.bard.resourcemgr;
 
+import java.util.ArrayList;
+
 
 public class BardResourceService {
 
     private String serviceKey;
     private String serviceName;
     private String serviceDescr;
-    private String ftpURL;
+    private ArrayList <BardExternalResource> extResources;
     private String localResPath;
     private String loaderClass;
+    private String dbURL;
     
     public enum ServiceFields {
 	SERVICE_KEY,
 	SERVICE_NAME,
 	SERVICE_DESCR,
-	FTP_URL,
+	EXT_RESOURCE,
 	LOCAL_RESOURCE_PATH,
-	LOADER_CLASS
+	LOADER_CLASS,
+	DB_URL
+    }
+    
+    public enum ResourceProtocolTypes {
+	FTP,
+	HTTP
+    }
+    
+    public enum CompressionTypes {
+	NONE,
+	GZIP,
+	TAR_GZIP,
+	ZIP,
+	TAR_ZIP,
+	BZ2,
+	SEVEN_ZIP
     }
 
-    public BardResourceService() { }
-
-    public BardResourceService(String serviceKey, String serviceName, String serviceDescription, 
-	    String ftpURL, String localResourcePath) {
-	this.serviceKey = serviceKey;
-	this.serviceName = serviceName;
-	this.serviceDescr = serviceDescription;
-	this.ftpURL = ftpURL;
-	this.localResPath = localResourcePath;
+    public BardResourceService() { 
+	extResources = new ArrayList<BardExternalResource>();
     }
 
     public boolean equals(Object obj) {
@@ -63,14 +75,6 @@ public class BardResourceService {
 	this.serviceDescr = serviceDescr;
     }
 
-    public String getFtpURL() {
-	return ftpURL;
-    }
-
-    public void setFtpURL(String ftpURL) {
-	this.ftpURL = ftpURL;
-    }
-
     public String getLocalResPath() {
 	return localResPath;
     }
@@ -86,6 +90,46 @@ public class BardResourceService {
     public void setLoaderClass(String loaderClass) {
 	this.loaderClass = loaderClass;
     }
+    
+    public ArrayList<BardExternalResource> getExtResources() {
+        return extResources;
+    }
 
+    public void setExtResources(ArrayList<BardExternalResource> extResources) {
+        this.extResources = extResources;
+    }
+
+    public void addExtResource(BardExternalResource resource) {
+	this.extResources.add(resource);
+    }
+    
+    public String getDbURL() {
+        return dbURL;
+    }
+
+    public void setDbURL(String dbURL) {
+        this.dbURL = dbURL;
+    }
+    
+    public void dumpServiceVals() {
+//	    private String serviceKey;
+//	    private String serviceName;
+//	    private String serviceDescr;
+//	    private ArrayList <BardExternalResource> extResources;
+//	    private String localResPath;
+//	    private String loaderClass;
+//	    private String dbURL;
+	System.out.println("SERVICE_KEY:"+serviceKey);
+	System.out.println("SERVICE_NAME:"+serviceName);
+	System.out.println("SERVICE_DESC:"+serviceDescr);
+	for(BardExternalResource res : extResources) {
+	    res.dumpExtResourceVals();
+	}
+	System.out.println("LOCAL_RES_PATH:"+localResPath);
+	System.out.println("LOADER_CLASS:"+loaderClass);
+	System.out.println("DB_URL:"+dbURL);
+
+
+    }
 
 }

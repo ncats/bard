@@ -1,23 +1,20 @@
 package gov.nih.ncgc.bard.resourcemgr;
 
+import gov.nih.ncgc.bard.resourcemgr.util.BardResourceLoaderException;
 import gov.nih.ncgc.bard.resourcemgr.util.BardServiceParser;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Properties;
 
 public class BardResourceManager {
     
     private BardResourceLoaderFactory loaderFactory;
     private ArrayList <BardResourceService> services;
-    private Properties loaderProps;
     
-    public BardResourceManager(String servicePath, String configPath) {
+    public BardResourceManager() { }
+    
+    public BardResourceManager(String servicePath) {
 	loadServices(servicePath);
-	loadProperties(configPath);
 	loaderFactory = new BardResourceLoaderFactory();	
     }
     
@@ -27,12 +24,32 @@ public class BardResourceManager {
      * @param serviceKey the key for the service to run
      * @return returns true if service completed with intended outcome
      */
-    public boolean runService(String serviceKey) {
-	boolean loaded = false;	
-	BardResourceService service = findService(serviceKey);	
-	IBardExtResourceLoader loader = loaderFactory.getLoader(service, loaderProps);
-	loaded = loader.load();	
-	return loaded;
+    public boolean runService(String serviceKey) throws BardResourceLoaderException {
+	boolean loaded = false;
+	long logId = -1;
+	BardResourceService service = null;
+	try {
+	    
+	    for(BardResourceService s : services) {
+		s.dumpServiceVals();
+	    }
+	    service = findService(serviceKey);	
+	    if(service != null) {	    
+		logId = BardDBUpdateLogger.logStart(service.getServiceName(), service.getDbURL());
+		IBardExtResourceLoader loader = loaderFactory.getLoader(service);
+		loaded = loader.load();	
+		loaded = true;
+		BardDBUpdateLogger.logEnd(logId, 0, loader.getLoadStatusReport(), service.getDbURL());
+	    }
+	} catch (Exception e) {
+	    if(logId != -1 && service != null) {
+		BardDBUpdateLogger.logEnd(logId, 0, "Error/Exception during "+service.getServiceName(), service.getDbURL());
+	    }
+	    String msg = "BardResourceLoaderException: Exception in CID_SID Refresh. Nested exception reports cause.";
+	    BardResourceLoaderException brle = new BardResourceLoaderException(msg,e);
+	    throw(brle);
+	} 
+	return loaded;	
     }
     
     /**
@@ -43,7 +60,7 @@ public class BardResourceManager {
     public boolean runServices() {
 	boolean loaded = false;
 	for(BardResourceService service : services) {
-	    IBardExtResourceLoader loader = loaderFactory.getLoader(service, loaderProps);
+	    IBardExtResourceLoader loader = loaderFactory.getLoader(service);
 	    loaded = loader.load();	
 	}
 	return loaded;
@@ -56,16 +73,16 @@ public class BardResourceManager {
     }
     
     //loads properties
-    private void loadProperties(String propertyPath) {
-	loaderProps = new Properties();
-	try {
-	    loaderProps.load(new FileInputStream(propertyPath));
-	} catch (FileNotFoundException e) {
-	    e.printStackTrace();
-	} catch (IOException e) {
-	    e.printStackTrace();
-	}
-    }
+//    private void loadProperties(String propertyPath) {
+//	loaderProps = new Properties();
+//	try {
+//	    loaderProps.load(new FileInputStream(propertyPath));
+//	} catch (FileNotFoundException e) {
+//	    e.printStackTrace();
+//	} catch (IOException e) {
+//	    e.printStackTrace();
+//	}
+//    }
     
     private BardResourceService findService(String key) {
 	for(BardResourceService service : services) {
@@ -74,8 +91,14 @@ public class BardResourceManager {
 	}
 	return null;
     }
+
     
     public static void main(String [] args) {
+	
+	if(args == null || args.length < 1) {
+	    System.out.println("null args");
+	}
+	
 	String configPath = null;
 	String serviceFilePath = null;
 	String serviceKey = null;
@@ -105,10 +128,18 @@ public class BardResourceManager {
 		} else {
 		    configPath = args[i];
 		}		
+	    } else if (arg.equals("--service-key")) {
+		i++;
+		if(i > args.length-1) {
+		    argErr = true;
+		    break;
+		} else {
+		    serviceKey = args[i];
+		}
 	    }
 	}
 	
-	if(argErr && serviceFilePath != null && configPath != null) {
+	if(argErr || serviceFilePath == null || serviceKey == null) {
 	    System.err.println("ERROR Processing Resources, Date:"+new Date(System.currentTimeMillis()));
 	    System.err.println("ERROR Parsing Launch Arguments for BardResourceManager");
 	    System.out.println("ERROR Processing Resources, Date:"+new Date(System.currentTimeMillis()));
@@ -116,11 +147,15 @@ public class BardResourceManager {
 	    System.exit(1);
 	}
 	
-	BardResourceManager manager = new BardResourceManager(serviceFilePath, configPath);
+	BardResourceManager manager = new BardResourceManager(serviceFilePath);
 	if(runAllServices) {
 	    manager.runServices();
 	} else {
-	    manager.runService(args[2]);
+	    try {
+		manager.runService(serviceKey);
+	    } catch (Exception e) {	
+		e.printStackTrace();
+	    }
 	}
 	
     }

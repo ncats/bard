@@ -37,6 +37,8 @@ import javax.xml.bind.JAXBElement;
 
 import nu.xom.ParsingException;
 
+import org.w3c.dom.Node;
+
 import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
 
 /**
@@ -68,6 +70,15 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         // get the Project object here
         Project project = getResponse(url, resource);
         if (project == null) return;
+        
+        if(project.getProjectSteps() == null) {
+            log.info("$$$ null project steps");
+        } else {
+            log.info("$$$ have project steps!!!");
+            if(project.getProjectSteps().getProjectStep() != null) {
+            log.info("$$$ have step list, list size="+project.getProjectSteps().getProjectStep().size());
+            }
+        }
 
         String readyToXtract = project.getReadyForExtraction();
         String title = project.getProjectName();
@@ -480,6 +491,13 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
     void processExperiments(Project project, int pubchemAid) throws SQLException, IOException {
         List<ProjectExperiment> experiments = project.getProjectExperiments().getProjectExperiment();
+        
+        //We could update existing pe's by usint 'replace' over 'insert' BUT
+        //suppose some pe's are removed.
+        //Solution? - delete existing pe records for the incoming project
+        Statement stmt = conn.createStatement();
+        stmt.execute("delete from bard_project_experiment where bard_proj_id = "+bardProjId);
+        
         PreparedStatement pstProjExpt = conn.prepareStatement("insert into bard_project_experiment (bard_proj_id, bard_expt_id, pubchem_aid, expt_type, pubchem_summary_aid) values (?,?,?,?,?)");
         for (ProjectExperiment experiment : experiments) {
 
@@ -617,6 +635,11 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         PreparedStatement pstep = conn.prepareStatement("insert into project_step(bard_proj_id, step_id, prev_bard_expt_id, next_bard_expt_id, edge_name) " +
                 " values (?,?,?,?,?)");
 
+        //We're building project steps for the projects, we could update the project steps but we should
+        //delete and rebuild to eliminate links that might be missing.
+        Statement stmt = conn.createStatement();
+        stmt.execute("delete from project_step where bard_proj_id="+bardProjId);
+        
         //if there are no project steps or there are 0 project steps, trunter the empty annos for project steps
         if(project.getProjectSteps() == null || project.getProjectSteps().getProjectStep().size() == 0)
             return annos;  //empty annos
@@ -627,7 +650,15 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             Integer nextBardExptId = map.get(step.getNextProjectExperimentRef().intValue());
             Integer prevBardExptId = map.get(step.getPrecedingProjectExperimentRef().intValue());
             ElementNSImpl o = (ElementNSImpl) step.getEdgeName();
-            String ename = o.getFirstChild().getNodeValue();
+            //have to deal with null edge names
+            String ename = null;
+            Node childNode = null;
+            if(o != null) {
+        	childNode = o.getFirstChild();
+        	if(childNode != null) {
+        	    ename = childNode.getNodeValue();
+        	}
+            }
 
             if (nextBardExptId == null || prevBardExptId == null) continue;
 
@@ -635,45 +666,52 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             pstep.setLong(2, stepId);
             pstep.setLong(3, prevBardExptId);
             pstep.setLong(4, nextBardExptId);
-            pstep.setString(5, ename);
+            //have to deal with possibly not having edge names
+            if(ename != null) {
+        	pstep.setString(5, ename);
+            } else {
+                pstep.setNull(5, java.sql.Types.VARCHAR);
+            }
             pstep.addBatch();
 
             // handle the annotation(s) for this step
             CAPDictionary dict = CAPConstants.getDictionary();
             Contexts contexts = step.getContexts();
-            List<ContextType> contextTypes = contexts.getContext();
-            for (ContextType contextType : contextTypes) {
-                int contextId = contextType.getId().intValue();
-                String contextName = contextType.getContextName();
+            //may not have contexts
+            if(contexts != null) {
+        	List<ContextType> contextTypes = contexts.getContext();
+        	for (ContextType contextType : contextTypes) {
+        	    int contextId = contextType.getId().intValue();
+        	    String contextName = contextType.getContextName();
 
-                ContextType.ContextItems contextItems = contextType.getContextItems();
-                for (ContextItemType contextItemType : contextItems.getContextItem()) {
+        	    ContextType.ContextItems contextItems = contextType.getContextItems();
+        	    for (ContextItemType contextItemType : contextItems.getContextItem()) {
 
-                    // dict id for the annotation key
-                    String key = null;
-                    AbstractContextItemType.AttributeId attr = contextItemType.getAttributeId();
-                    if (attr != null) {
-                        key = Util.getEntityIdFromUrl(attr.getLink().getHref());
-                    }
+        		// dict id for the annotation key
+        		String key = null;
+        		AbstractContextItemType.AttributeId attr = contextItemType.getAttributeId();
+        		if (attr != null) {
+        		    key = Util.getEntityIdFromUrl(attr.getLink().getHref());
+        		}
 
-                    // dict id for the annotation value
-                    String valueUrl = null;
-                    String value = null;
-                    AbstractContextItemType.ValueId vc = contextItemType.getValueId();
-                    if (vc != null) {
-                        value = Util.getEntityIdFromUrl(vc.getLink().getHref());
-                        valueUrl = dict.getNode(vc.getLabel()).getExternalUrl() + contextItemType.getExtValueId();
-                    }
-                    String valueDisplay = contextItemType.getValueDisplay();
-                    String related = String.valueOf(bardProjId);
+        		// dict id for the annotation value
+        		String valueUrl = null;
+        		String value = null;
+        		AbstractContextItemType.ValueId vc = contextItemType.getValueId();
+        		if (vc != null) {
+        		    value = Util.getEntityIdFromUrl(vc.getLink().getHref());
+        		    valueUrl = dict.getNode(vc.getLabel()).getExternalUrl() + contextItemType.getExtValueId();
+        		}
+        		String valueDisplay = contextItemType.getValueDisplay();
+        		String related = String.valueOf(bardProjId);
 
-                    annos.add(new CAPAnnotation(contextId, stepId, valueDisplay,
-                            contextName, key, value, contextItemType.getExtValueId(),
-                            "cap-context", valueUrl, contextItemType.getDisplayOrder(),
-                            "project-step", related));
-                }
+        		annos.add(new CAPAnnotation(contextId, stepId, valueDisplay,
+        			contextName, key, value, contextItemType.getExtValueId(),
+        			"cap-context", valueUrl, contextItemType.getDisplayOrder(),
+        			"project-step", related));
+        	    }
+        	}
             }
-
         }
         int[] rowsAdded = pstep.executeBatch();
         conn.commit();
