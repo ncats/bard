@@ -88,10 +88,10 @@ public class ScoreHandler extends CapResourceHandler {
             rs = confirm.executeQuery();
             while (rs.next()) {
                 String type = rs.getString("expt_type");
-                if (type.equals("confirmatory assay") ||
+                if (type != null && (type.equals("confirmatory assay") ||
                         type.equals("secondary assay") ||
                         type.equals("counter-screening assay") ||
-                        type.equals("alternative confirmatory assay")
+                        type.equals("alternative confirmatory assay"))
                         ) {
                     hasConfirmation = true;
                     break;
