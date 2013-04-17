@@ -4049,7 +4049,7 @@ public class DBUtils {
 
         // find assays
         pst = conn.prepareStatement
-            ("select a.bard_assay_id from bard_experiment a, bard_project_experiment b " +
+            ("select distinct a.bard_assay_id from bard_experiment a, bard_project_experiment b " +
              "where a.bard_expt_id=b.bard_expt_id and b.bard_proj_id = ?");
         try {
             List<Long> aids = new ArrayList<Long>();
