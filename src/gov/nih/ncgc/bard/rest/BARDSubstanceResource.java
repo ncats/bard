@@ -1,11 +1,13 @@
 package gov.nih.ncgc.bard.rest;
 
 
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.Substance;
+import chemaxon.struc.Molecule;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.sun.jersey.api.NotFoundException;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.search.MoleculeService;
@@ -13,34 +15,17 @@ import gov.nih.ncgc.util.MolRenderer;
 import gov.nih.ncgc.util.functional.Functional;
 import gov.nih.ncgc.util.functional.IApplyFunction;
 
-import java.awt.Color;
+import javax.imageio.ImageIO;
+import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.imageio.ImageIO;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import chemaxon.struc.Molecule;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.sun.jersey.api.NotFoundException;
 
 /**
  * Prototype of MLBD REST resources.
@@ -92,9 +77,13 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
             expandEntries = true;
 
         try {
-            if (countRequested)
-                response = Response.ok(String.valueOf(db.getEntityCount(Substance.class))).build();
-            else {
+            if (countRequested) {
+                if (filter != null && filter.contains("[active]"))
+                    response = Response.ok(String.valueOf(db.getSubstanceActiveCount())).build();
+                else if (filter != null && filter.contains("[test]"))
+                    response = Response.ok(String.valueOf(db.getSubstanceTestCount())).build();
+                else response = Response.ok(String.valueOf(db.getEntityCount(Substance.class))).build();
+            } else {
                 if ((top == -1)) { // top was not specified, so we start from the beginning
                     top = BARDConstants.MAX_COMPOUND_COUNT;
                 }
@@ -108,7 +97,11 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
                 if (skip + top <= db.getEntityCount(Substance.class))
                     linkString = BARDConstants.API_BASE + "/substances?skip=" + (skip + top) + "&top=" + top + "&" + expandClause + filterClause;
 
-                List<Substance> substances = db.searchForEntity(filter, skip, top, Substance.class);
+                List<Substance> substances;
+                if (filter != null && (filter.contains("[active]") || filter.contains("[tested]"))) {
+                    substances = db.searchForSubstances(filter, skip, top, false);
+                } else substances = db.searchForEntity(filter, skip, top, Substance.class);
+
                 if (expandEntries) {
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(substances, linkString);
                     response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
