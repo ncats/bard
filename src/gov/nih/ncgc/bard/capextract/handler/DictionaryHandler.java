@@ -1,6 +1,10 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import gov.nih.ncgc.bard.capextract.*;
+import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
+import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Dictionary;
 import gov.nih.ncgc.bard.capextract.jaxb.Element;
 

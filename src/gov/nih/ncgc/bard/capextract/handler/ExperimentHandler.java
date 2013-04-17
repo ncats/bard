@@ -4,6 +4,7 @@ import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.ScoreHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
@@ -11,8 +12,6 @@ import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
 import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
-import gov.nih.ncgc.bard.capextract.*;
-import gov.nih.ncgc.bard.capextract.jaxb.*;
 import gov.nih.ncgc.bard.tools.Util;
 
 import java.io.IOException;

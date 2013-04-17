@@ -1,7 +1,7 @@
 package gov.nih.ncgc.bard.resourcemgr.extresource.pubchem;
 
 import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
-import gov.nih.ncgc.bard.resourcemgr.extresource.BardResourceFetch;
+import gov.nih.ncgc.bard.resourcemgr.util.BardResourceFetch;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -485,7 +485,7 @@ public class BardCompoundPubchemExtrasLoader {
 		checkCIDSIDMatchPS.setLong(2, cid);
 		checkCIDSIDMatchPS.setLong(3, sid);
 		if(checkCIDSIDMatchPS.executeQuery().next()) {
-			match = true;
+		    match = true;
 		}
 		return match;
 	}

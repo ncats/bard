@@ -3,8 +3,6 @@ package gov.nih.ncgc.bard.resourcemgr.extresource.ontology;
 import java.io.Serializable;
 import java.util.Vector;
 
-import javax.swing.tree.DefaultMutableTreeNode;
-
 public class OntologyNode implements Comparable, Serializable {
 	
 	private Object key;

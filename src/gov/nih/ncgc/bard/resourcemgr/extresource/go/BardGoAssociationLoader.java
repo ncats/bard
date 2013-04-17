@@ -1,7 +1,7 @@
 package gov.nih.ncgc.bard.resourcemgr.extresource.go;
 
 import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
-import gov.nih.ncgc.bard.resourcemgr.extresource.BardResourceFetch;
+import gov.nih.ncgc.bard.resourcemgr.util.BardResourceFetch;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -9,7 +9,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;

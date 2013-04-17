@@ -1,13 +1,13 @@
 package gov.nih.ncgc.bard.resourcemgr;
 
-import gov.nih.ncgc.bard.resourcemgr.extresource.BardResourceFetch;
 import gov.nih.ncgc.bard.resourcemgr.extresource.go.BardGoAssociationLoader;
 import gov.nih.ncgc.bard.resourcemgr.extresource.kegg.BardKeggLoader;
 import gov.nih.ncgc.bard.resourcemgr.extresource.pubchem.BardCompoundPubchemExtrasLoader;
 import gov.nih.ncgc.bard.resourcemgr.extresource.pubchem.BardSubstanceLoader;
-import gov.nih.ncgc.bard.resourcemgr.extresource.pubchem.MLBDCompoundLoader;
+import gov.nih.ncgc.bard.resourcemgr.extresource.pubchem.PubchemCompoundLoader;
 import gov.nih.ncgc.bard.resourcemgr.extresource.uniprot.BardUniprotProteinTargetLoader;
 import gov.nih.ncgc.bard.resourcemgr.precomp.BardCompoundTestStatusUpdater;
+import gov.nih.ncgc.bard.resourcemgr.util.BardResourceFetch;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -109,7 +109,7 @@ public class BardDBManager {
 
 		//start update
 		dbLogId = BardDBUpdateLogger.logStart("Update command= "+command);	
-		MLBDCompoundLoader compoundLoader = new MLBDCompoundLoader ();
+		PubchemCompoundLoader compoundLoader = new PubchemCompoundLoader ();
 		newCmpdCnt = compoundLoader.batchReplaceCompounds(managerProps);
 		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished Compound Update.  New Compound Cnt ="+newCmpdCnt);
 	    } else {
@@ -122,7 +122,7 @@ public class BardDBManager {
 	    haveFiles = fetch.fetchLatestCompoundResources(managerProps, COMPOUND_WEEKLY);
 	    if(haveFiles) {
 		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch");
-		MLBDCompoundLoader compoundLoader = new MLBDCompoundLoader ();
+		PubchemCompoundLoader compoundLoader = new PubchemCompoundLoader ();
 		//start update
 		dbLogId = BardDBUpdateLogger.logStart("Update command= "+command);	
 		newCmpdCnt = compoundLoader.batchReplaceCompounds(managerProps);
@@ -139,7 +139,7 @@ public class BardDBManager {
 		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch");
 
 		dbLogId = BardDBUpdateLogger.logStart("Update command= "+command);	
-		MLBDCompoundLoader compoundLoader = new MLBDCompoundLoader ();
+		PubchemCompoundLoader compoundLoader = new PubchemCompoundLoader ();
 		newCmpdCnt = compoundLoader.batchReplaceCompounds(managerProps);
 		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished Compound Update.  New Compound Cnt ="+newCmpdCnt);
 	    } else {
@@ -181,7 +181,7 @@ public class BardDBManager {
 		//start update
 		dbLogId = BardDBUpdateLogger.logStart("Update command= "+command+" (updating creation date)");					
 
-		MLBDCompoundLoader compoundLoader = new MLBDCompoundLoader();
+		PubchemCompoundLoader compoundLoader = new PubchemCompoundLoader();
 		compoundLoader.updateCompoundCreateDate(managerProps);
 		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished Create Date Updates");
 	    }
@@ -195,7 +195,7 @@ public class BardDBManager {
 		    BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch= "+args.get(2));
 		    //start update
 		    dbLogId = BardDBUpdateLogger.logStart("Update command= "+command+" FTP Dir= "+args.get(2));					
-		    MLBDCompoundLoader compoundLoader = new MLBDCompoundLoader ();
+		    PubchemCompoundLoader compoundLoader = new PubchemCompoundLoader ();
 		    newCmpdCnt = compoundLoader.batchReplaceCompounds(managerProps);
 		    BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished Specific Compound Update ("+args.get(2)+" New Compound Cnt ="+newCmpdCnt);
 		}				
@@ -336,7 +336,7 @@ public class BardDBManager {
 	} else if (command.equals(COMPOUND_RANK_UPDATE_COMMAND)) {
 
 	    dbLogId = BardDBUpdateLogger.logStart("Begin Update Command= "+command);
-	    MLBDCompoundLoader loader = new MLBDCompoundLoader();
+	    PubchemCompoundLoader loader = new PubchemCompoundLoader();
 	    if(loader.updateCompoundRank(managerProps))
 		BardDBUpdateLogger.logEnd(dbLogId,  0, "Finished Compound Rank Update");
 	    else

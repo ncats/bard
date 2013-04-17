@@ -93,7 +93,7 @@ public class BardDBUpdateLogger {
 	public static long logEnd(long logId, int status, String eventComment, String dbURL) {
 		try {
 			Timestamp now = new Timestamp(System.currentTimeMillis());			
-			Connection conn = BardDBUtil.connect();
+			Connection conn = BardDBUtil.connect(dbURL);
 			PreparedStatement ps = conn.prepareStatement("update update_history_log set end_time = ?, status = ?, event_comment=? where log_id=?");
 			ps.setTimestamp(1, now);
 			ps.setInt(2, status);			

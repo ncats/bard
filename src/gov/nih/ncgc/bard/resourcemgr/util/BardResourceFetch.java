@@ -1,4 +1,4 @@
-package gov.nih.ncgc.bard.resourcemgr.extresource;
+package gov.nih.ncgc.bard.resourcemgr.util;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -56,14 +56,15 @@ public class BardResourceFetch {
 		ftpbean.ftpConnect(server, user, pw);
 		ftpbean.setDirectory(pathToSourceDir);
 		FtpListResult list = ftpbean.getDirectoryContent();
+		String fileName = "";
 		while (list.next() ) {
-			//if(!ftpbean.getReplyMessage().startsWith("2"))
-			//	transfer = false;
+		    fileName = list.getName();
+		    ftpbean.getBinaryFile(fileName, dest);
 		}
 		ftpbean.close();
 		return transfer;		
 	}
-	
+		
 	public String fetchLatestUpdateResources(String server, String user, String pw, String pathToSourceDir, String dest) throws IOException, FtpException {
 		String resource = null;
 		FtpBean ftpbean = new FtpBean();

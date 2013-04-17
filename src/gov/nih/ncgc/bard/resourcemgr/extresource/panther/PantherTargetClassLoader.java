@@ -3,7 +3,6 @@ package gov.nih.ncgc.bard.resourcemgr.extresource.panther;
 import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.Connection;
@@ -17,8 +16,9 @@ import java.util.logging.Logger;
 public class PantherTargetClassLoader {
 
     Logger logger = Logger.getLogger(PantherTargetClassLoader.class.getName());
-    
     private Connection conn;
+    
+    
     
     public boolean loadPantherClassInfo(Properties loaderProps) throws ClassNotFoundException, SQLException, IOException {
 	
