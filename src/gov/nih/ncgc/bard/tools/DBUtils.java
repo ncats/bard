@@ -4413,7 +4413,18 @@ public class DBUtils {
         return n;
     }
 
-    public List<Compound> searchForCompounds(String filter, int skip, int top) throws SQLException {
+    /**
+     * Return compounds based on a query.
+     *
+     * @param filter The filter, currently indicating active or tested compounds
+     * @param skip Number of results to skip
+     * @param top Number of results to return
+     * @param hasAnno if <code>true</code> only return compounds that have annotations, otherwise
+     *                return all compounds satisfying the query
+     * @return a list of {@link Compound} objects
+     * @throws SQLException
+     */
+    public List<Compound> searchForCompounds(String filter, int skip, int top, boolean hasAnno) throws SQLException {
         List<Compound> ret = new ArrayList<Compound>();
         String limitClause = generateLimitClause(skip, top);
         String sql = "select distinct cid from bard_experiment_data order by cid " + limitClause;
@@ -4434,7 +4445,15 @@ public class DBUtils {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql);
         ResultSet rs = pst.executeQuery();
-        while (rs.next()) ret.addAll(getCompoundsByCid(rs.getLong(1)));
+        while (rs.next()) {
+            if (!hasAnno) ret.addAll(getCompoundsByCid(rs.getLong(1)));
+            else {
+                List<Compound> cs = getCompoundsByCid(rs.getLong(1));
+                for (Compound c : cs) {
+                    if (getCompoundAnnotations(c.getCid()).get("anno_key").length > 0) ret.add(c);
+                }
+            }
+        }
         pst.close();
 
         cache.put(new Element(sql, ret));

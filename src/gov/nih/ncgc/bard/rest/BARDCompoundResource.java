@@ -1,11 +1,11 @@
 package gov.nih.ncgc.bard.rest;
 
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.Project;
+import chemaxon.struc.Molecule;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.sun.jersey.api.NotFoundException;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.OrderedSearchResultHandler;
@@ -17,41 +17,22 @@ import gov.nih.ncgc.util.MolRenderer;
 import gov.nih.ncgc.util.functional.Functional;
 import gov.nih.ncgc.util.functional.IApplyFunction;
 
-import java.awt.Color;
+import javax.imageio.ImageIO;
+import javax.ws.rs.*;
+import javax.ws.rs.core.EntityTag;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import javax.imageio.ImageIO;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.EntityTag;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import chemaxon.struc.Molecule;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.sun.jersey.api.NotFoundException;
 
 /**
  * Prototype of MLBD REST resources.
@@ -123,7 +104,8 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
                            @QueryParam("type") String type,
                            @QueryParam("cutoff") Double cutoff,
-                           @QueryParam("rankBy") String rankBy) throws SQLException, IOException {
+                           @QueryParam("rankBy") String rankBy,
+                           @QueryParam("annot") String annot) throws SQLException, IOException {
         DBUtils db = new DBUtils();
         Response response = null;
         Long start, end;
@@ -179,7 +161,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             // examine the filter argument to see if we should do a structure search
             if (filter.contains("[structure]")) {
                 filter = filter.trim().replace("[structure]", "");
-                response = doStructureSearch(filter, type, top, skip, cutoff, rankBy, db, expandEntries);
+                response = doStructureSearch(filter, type, top, skip, cutoff, rankBy, db, expandEntries, annot);
             } else if (filter.contains("[tested]") || filter.contains("[active]")) {
                 if (countRequested && filter.contains("[tested]")) response = Response.ok(String.valueOf(db.getCompoundTestCount())).build();
                 else if (countRequested && filter.contains("[active]")) response = Response.ok(String.valueOf(db.getCompoundActiveCount())).build();
@@ -191,11 +173,15 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                     String expandClause = "expand=false";
                     if (expandEntries) expandClause = "expand=true";
 
+                    String annotString = "annot=false";
+                    if (annotString != null) annotString = "annot=" + annot;
+
                     String linkString = null;
                     if (skip + top <= db.getCompoundTestCount())
-                        linkString = BARDConstants.API_BASE + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause + "&filter=[tested]";
+                        linkString = BARDConstants.API_BASE + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause + "&" + annotString + "&filter=[tested]";
 
-                    List<Compound> compounds = db.searchForCompounds(filter, skip, top);
+
+                    List<Compound> compounds = db.searchForCompounds(filter, skip, top, annot != null && annot.toLowerCase().equals("true"));
                     if (expandEntries) {
                         BardLinkedEntity linkedEntity = new BardLinkedEntity(compounds, linkString);
                         response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
@@ -212,7 +198,8 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         return response;
     }
 
-    private Response doStructureSearch(String query, String type, int top, int skip, Double cutoff, String rankBy, DBUtils db, boolean expandEntries) throws SQLException, IOException {
+    private Response doStructureSearch(String query, String type, int top, int skip, Double cutoff, String rankBy,
+                                       DBUtils db, boolean expandEntries, String annot) throws SQLException, IOException {
 
         Response response;
         SearchService2 search = null;
@@ -281,7 +268,12 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
                 if (cidstr.equals("")) continue;
                 Long cid = Long.parseLong(cidstr);
-                cids.add(cid);
+
+                // see if we should keep the cid, based on absence/presence of annotations
+                if (annot != null && annot.toLowerCase().equals("true")) {
+                    if (db.getCompoundAnnotations(cid).get("anno_key").length > 0) cids.add(cid);
+                } else cids.add(cid);
+
                 if (hl != null) {
                     highlights.put(cid, hl);
                 }

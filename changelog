@@ -76,5 +76,12 @@ v14 released
 v15 released
 
 03/19/13      Added stage ref fields to project step JSON
+03/20/13      POST to http://bard.nih.gov/api/straw/substances/cid with a form parameter called cids, which should be a CSV string of CIDs for fast CID->SID conversion
+              Updated CAP dict resource (/cap/dictionary) to include ontology links
 03/27/13      Updated JSON response from /accession/{acc}/classification/{source}
               Added POST resource to get classifications for multiple targets at one go (/accession//classification/{source})
+
+v16 released
+
+04/02/13      Added query parameter to /compounds to filter results by absence/presence of annotations. Example http://bard.nih.gov/api/straw/compounds?filter=NCCCCC%5Bstructure%5D&type=sim&cutoff=0.6&annot=true
+	      If annot=true, response only includes compounds that have annotations, other wise returns all compounds. Currently, no filter/check is applied to the annotations themselves
