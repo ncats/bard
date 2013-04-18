@@ -85,3 +85,5 @@ v16 released
 
 04/02/13      Added query parameter to /compounds to filter results by absence/presence of annotations. Example http://bard.nih.gov/api/straw/compounds?filter=NCCCCC%5Bstructure%5D&type=sim&cutoff=0.6&annot=true
 	      If annot=true, response only includes compounds that have annotations, other wise returns all compounds. Currently, no filter/check is applied to the annotations themselves
+04/17/13      responses from /etags now contain the etag id in the response header
+              Added support for tested/active filters on substances
