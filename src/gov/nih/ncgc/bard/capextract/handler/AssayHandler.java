@@ -1,34 +1,15 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import gov.nih.ncgc.bard.capextract.CAPAnnotation;
-import gov.nih.ncgc.bard.capextract.CAPConstants;
-import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
-import gov.nih.ncgc.bard.capextract.CAPUtil;
-import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.Assay;
-import gov.nih.ncgc.bard.capextract.jaxb.AssayContexType;
-import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
-import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.capextract.*;
+import gov.nih.ncgc.bard.capextract.jaxb.*;
 import gov.nih.ncgc.bard.tools.Util;
-
-import java.io.IOException;
-import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import nu.xom.ParsingException;
 
 import javax.xml.bind.JAXBElement;
-
-import nu.xom.ParsingException;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.sql.*;
+import java.util.*;
 
 /**
  * Process CAP <code>Assay</code> elements.
@@ -489,5 +470,63 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         }
     }
 
+
+    Object extractBiology(List<AssayContexType> contexts) {
+        if (contexts == null || contexts.size() == 0) return null;
+
+        for (AssayContexType context : contexts) {
+            if (context.getAssayContextItems() == null) continue;
+
+            // lets see if this is a biology context
+            boolean isBiologyContext = false;
+            for (AssayContextItemType contextItem : context.getAssayContextItems().getAssayContextItem()) {
+                AbstractContextItemType.AttributeId attrid = contextItem.getAttributeId();
+                String dictId = Util.getEntityIdFromUrl(attrid.getLink().getHref());
+                if (dictId != null && dictId.equals("541")) {
+                    isBiologyContext = true;
+                    break;
+                }
+            }
+            if (!isBiologyContext) continue;
+
+            /* ok, this is a biology context. Lets examine all the assayContextItems and see if they
+               contain any ext refs. Depending on the valueId of the biology context this can indicate
+               a nucleotide, peptide or biological process. It
+                 (if it is a biological process then:)
+                    GO biological process term (1419)
+                    NCBI BioSystems term (885)
+                 (if it is not a biological process then:)
+                    NCBI accession number (1795)
+                    gene Entrez GI (880)
+                    GenBank ID (881)
+                    protein Entrez GI (882)
+                    REGID (883)
+                    UniProt accession number (1398)
+                    GO ID  (1504) (this is going to be renamed "GO gene product ID")
+            */
+            List<Integer> targetDictIds = Arrays.asList(new Integer[]{
+                    1419, 885, 1795, 880, 881, 882, 883, 1398, 1504
+            });
+            for (AssayContextItemType contextItem : context.getAssayContextItems().getAssayContextItem()) {
+                AbstractContextItemType.AttributeId attrid = contextItem.getAttributeId();
+                String dictId = Util.getEntityIdFromUrl(attrid.getLink().getHref());
+                if (Util.isNumber(dictId) && targetDictIds.contains(Integer.parseInt(dictId))) {
+                   // collect different ext refs
+                }
+            }
+
+//            String contextName = context.getContextName();
+//            int contextId = context.getAssayContextId().intValue();
+//            // some special handling for targets
+//            if (contextName.equals("target")) {
+//                for (AssayContextItemType contextItem : context.getAssayContextItems().getAssayContextItem()) {
+//                    AbstractContextItemType.AttributeId attr = contextItem.getAttributeId();
+//                    if (attr != null && attr.getLabel().equals("gene")) geneIds.add(contextItem.getExtValueId());
+//                    else if (attr != null && attr.getLabel().equals("protein")) gis.add(contextItem.getExtValueId());
+//                }
+//            }
+        }
+        return null;
+    }
 
 }
