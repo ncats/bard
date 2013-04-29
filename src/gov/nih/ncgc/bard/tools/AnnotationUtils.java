@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.tools;
 
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -31,7 +32,11 @@ public class AnnotationUtils {
             String key = anno.key;
             String value = anno.value;
             if (key != null && Util.isNumber(key)) key = dict.getNode(new BigInteger(key)).getLabel();
-            if (value != null && Util.isNumber(value)) value = dict.getNode(new BigInteger(value)).getLabel();
+            if (value != null && Util.isNumber(value)) {
+                CAPDictionaryElement node = dict.getNode(new BigInteger(value));
+                if (node != null) value = dict.getNode(new BigInteger(value)).getLabel();
+                else value = null;
+            }
             if (annoKeys.contains(key) && value != null) {
                 anno.key = key;
                 anno.value = value;
