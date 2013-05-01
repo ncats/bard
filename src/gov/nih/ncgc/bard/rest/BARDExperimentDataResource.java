@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.FitModel;
@@ -10,35 +13,17 @@ import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
-
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * Prototype of MLBD REST resources.
@@ -228,24 +213,19 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
         // not sorted) list of experiment data ids
         if (edids != null && edids.size() > 0) {
 
-            // we have *all* edids from the expts or assays specified. If skip and top are
-            // given we extract the relevant subset. This is currently broken as we should
-            // extract the subset after the sort and filter stage applied to expt data
-            // entities
-            if (skip == -1) skip = 0;
-            if (top > 0) {
-                List<String> tmp = new ArrayList<String>();
-                int ttop = top;
-                if (ttop > edids.size()) ttop = edids.size();
-                for (int i = skip; i < skip+ttop; i++) tmp.add(edids.get(i));
-                edids = tmp;
-            }
-
             logger.info("Will work with " + edids.size() + " edids");
 
-            if (countRequested) {
-                return Response.ok(String.valueOf(edids.size()), MediaType.TEXT_PLAIN).build();
-            }
+            // we first pull in all edids - this is required in the presence of top/skip
+            // since if we apply top/skip to the edid list, it's possible that the remaining
+            // edids will not resolve to actual data. Changing the top/skip will include an
+            // edid(s) that do resolve to valid data. This behavior is confusing (especially so
+            // when the query started with CIDs which would resolve to multiple SIDs).
+            //
+            // As a result even though this is not good for performance, we pull back results
+            // and then apply top/skip. One way to improve performance is to save the full list
+            // to cache - as a result paging after the first query (on the same query params)
+            // should only pull from cache
+
 
             // group the edids by experiment since the db method
             // assumes all SIDs are from a given experiment
@@ -268,9 +248,27 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
                 edlist.addAll(db.getExperimentDataByDataId(map.get(eid)));
             }
 
-            // we should do sort on edlist at this point
+            // TODO we should do sort on edlist at this point
 
+            // we have *all* edids from the expts or assays specified. If skip and top are
+            // given we extract the relevant subset. This is currently broken as we should
+            // extract the subset after the sort and filter stage applied to expt data
+            // entities
+
+            if (skip == -1) skip = 0;
+            if (top > 0) {
+                List<ExperimentData> tmp = new ArrayList<ExperimentData>();
+                int ttop = top;
+                if (ttop > edlist.size()) ttop = edlist.size();
+                for (int i = skip; i < skip+ttop; i++) tmp.add(edlist.get(i));
+                edlist = tmp;
+            }
+
+            if (countRequested) {
+                return Response.ok(String.valueOf(edlist.size()), MediaType.TEXT_PLAIN).build();
+            }
         }
+
         db.closeConnection();
         if (edlist.size() == 0)
             return Response.status(404).entity("No data available for ids: " + ids).type(MediaType.TEXT_PLAIN).build();
