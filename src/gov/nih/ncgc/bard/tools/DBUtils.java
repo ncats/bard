@@ -2270,8 +2270,10 @@ public class DBUtils {
         List<String> l1 = new ArrayList<String>();
         List<String> l2 = new ArrayList<String>();
         for (CAPAnnotation capannot : capannots) {
-            if (capannot.key != null && Util.isNumber(capannot.key)) l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
-            if (capannot.value != null && Util.isNumber(capannot.value)) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
+            if (capannot.key != null && Util.isNumber(capannot.key) && dict.getNode(new BigInteger(capannot.key)) != null)
+                l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
+            if (capannot.value != null && Util.isNumber(capannot.value) && dict.getNode(new BigInteger(capannot.value)) != null)
+                l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
             else l2.add(capannot.display);
         }
         a.setAk_dict_label(l1);
