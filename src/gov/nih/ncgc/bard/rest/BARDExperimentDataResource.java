@@ -250,17 +250,21 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
 
             // TODO we should do sort on edlist at this point
 
-            // we have *all* edids from the expts or assays specified. If skip and top are
-            // given we extract the relevant subset. This is currently broken as we should
-            // extract the subset after the sort and filter stage applied to expt data
-            // entities
-
             if (skip == -1) skip = 0;
             if (top > 0) {
                 List<ExperimentData> tmp = new ArrayList<ExperimentData>();
-                int ttop = top;
-                if (ttop > edlist.size()) ttop = edlist.size();
-                for (int i = skip; i < skip+ttop; i++) tmp.add(edlist.get(i));
+
+                // if we have N results and are told to skip N, we won't return any
+                // otherwise lets skip and take the top
+                if (edlist.size() - skip > 0) {
+                    int ttop = top;
+                    if (ttop > edlist.size()) ttop = edlist.size();
+
+                    int end = skip + ttop;
+                    if (end > edlist.size()) end = edlist.size();
+
+                    for (int i = skip; i < end; i++) tmp.add(edlist.get(i));
+                }
                 edlist = tmp;
             }
 
@@ -336,7 +340,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
     private List<String> getEdidFromExperiments(String[] ids, String[] eida) {
         List<String> edids = new ArrayList<String>();
         for (String sid : ids) {
-            for (String eid : eida) edids.add(eid + "." + sid.trim());
+            for (String eid : eida) edids.add(eid.trim() + "." + sid.trim());
         }
         return edids;
     }
