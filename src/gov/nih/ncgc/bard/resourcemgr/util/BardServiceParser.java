@@ -81,6 +81,7 @@ public class BardServiceParser {
 	String [] toks = resourceSpec.split("]");
 
 	if(toks.length < 8) {
+	    System.out.println("External resource has fewer than 8 tokens");
 	    return null;    
 	}
 	

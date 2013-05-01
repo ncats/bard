@@ -35,7 +35,8 @@ public class BardResourceService {
 	ZIP,
 	TAR_ZIP,
 	BZ2,
-	SEVEN_ZIP
+	SEVEN_ZIP,
+	VARIOUS
     }
 
     public BardResourceService() { 

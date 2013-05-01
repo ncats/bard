@@ -20,8 +20,8 @@ public class CAPResultMeasure {
     private Integer resultTypeId;
     private String resultType;
     private Double valueNum;
-    private Double minValue;
-    private Double maxValue;
+    private Double valueMin;
+    private Double valueMax;
     private Long resultId;  
     private String valueDisplay;
     private String qualifier;
@@ -98,19 +98,19 @@ public class CAPResultMeasure {
         this.statsModifierId = statsModifierId;
     }
 
-    public Double getMinValue() {
-        return minValue;
+    public Double getValueMin() {
+        return valueMin;
     }
 
-    public void setMinValue(Double minValue) {
-        this.minValue = minValue;
+    public void setValueMin(Double valueMax) {
+        this.valueMin = valueMax;
     }
 
-    public Double getMaxValue() {
-        return maxValue;
+    public Double getValueMax() {
+        return valueMax;
     }
 
-    public void setMaxValue(Double maxValue) {
-        this.maxValue = maxValue;
+    public void setValueMax(Double valueMax) {
+        this.valueMax = valueMax;
     }
 }

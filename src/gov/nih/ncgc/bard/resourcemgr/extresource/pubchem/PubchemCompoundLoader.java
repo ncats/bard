@@ -29,6 +29,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.logging.Logger;
@@ -46,7 +47,9 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 
     private String SERVICE_KEY_FULL_LOAD = "COMPOUND-REFRESH-FULL";
     private String SERVICE_KEY_DAILY_LOAD = "COMPOUND-REFRESH-DAILY";
-    private String SERVICE_KEY_SPECIFIC_LOAD = "COMPOUND-REFRESH-SPECIFIC";
+    private String SERVICE_KEY_SPECIFIC_LOAD = "COMPOUND-REFRESH-SPECIFIC-DIR";
+
+    private int MAX_RINGs_FOR_FP_COMP = 75;
     
     public final String cidKey = "PUBCHEM_COMPOUND_CID";
     public final String iupacNameKey = "PUBCHEM_IUPAC_NAME";
@@ -55,6 +58,7 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
     public final String pubchemIsoSmilesKey = "PUBCHEM_OPENEYE_ISO_SMILES";
     public final String pubchemMwKey = "PUBCHEM_MOLECULAR_WEIGHT";
     public final String pubchemMonoisoMwKey = "PUBCHEM_MONOISOTOPIC_WEIGHT";
+    
 
     //compound property keys and corresponding column types
     private Vector <String> propertyKeys;
@@ -79,6 +83,7 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
     private String sqlMolfileReplace = "replace into compound_molfile (cid, molfile_mol) values (?,?)";
     private String sqlCompoundPropReplace = "replace into compound_props values (";
     private String sqlCompoundFpReplace = "replace into compound_fp values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    private String sqlTempCompoundFpReplace = "replace into temp_compound_fp values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     private String updateCompoundDate = "update compound set creation = ? where cid = ?";
 
@@ -86,7 +91,7 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 
     //prepared statements
     private PreparedStatement insertCompoundPS, insertCompoundPropsPS, insertMolfilePS, insertCompoundFpPS;
-    private PreparedStatement replaceCompoundPS, replaceCompoundPropsPS, replaceMolfilePS, replaceCompoundFpPS;
+    private PreparedStatement replaceCompoundPS, replaceCompoundPropsPS, replaceMolfilePS, replaceCompoundFpPS, replaceTempCompoundFpPS;
 
     //connection and processing global variables
     private String dbURL, driver, user, pw;
@@ -118,6 +123,8 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
     private int [] fpArr;
     private int fpIndex;
     private String val;
+    
+    int heavyAtomCount = 0;
 	
     public PubchemCompoundLoader() { }
 
@@ -129,34 +136,63 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 	path = service.getLocalResPath();
 	tempPath = path + "/temp/";
 	
+	log.info("STARTING COMPOUND LOAD");
 	//need to fetch all resources under a given URL
 	//resource fetch is pretty specfic for this load so it's handled within the loader
+	boolean haveFiles = false;
 	try {
-	    fetchResources();
+	    haveFiles = fetchResources();
 	} catch (IOException e) {
 	    e.printStackTrace();
 	} catch (FtpException e) {
 	    e.printStackTrace();
 	}
 	
-	//kick off the batch loading process
-	this.batchReplaceCompounds();
+	if(!haveFiles) {
+	    log.info("FAILED TO UPDATE RESOURCE FILES: ABORT");
+	    return false;
+	}
 	
-	return false;
+	//kick off the batch loading process
+	String commandKey = service.getServiceKey();
+	boolean loaded = false;
+	if(commandKey.contains(SERVICE_KEY_FULL_LOAD)) {
+	    //full load into temp tables.
+	    batchLoadCompounds(service.getLocalResPath(), service.getDbURL());
+	    loaded = true;
+	} else {
+	    batchReplaceCompounds();
+	    loaded = true;
+	}
+	
+	return loaded;
     }
 
-    private void fetchResources() throws IOException, FtpException {
+    private boolean fetchResources() throws IOException, FtpException {
+	boolean haveFiles = false;
 	//evaluate the kind of load
 	String commandKey = service.getServiceKey();
 	FtpBean ftp = new FtpBean(); 
 
 	ArrayList <BardExternalResource> resources = service.getExtResources();	
 	if(resources == null || resources.size() < 1)
-	    return;
+	    return false;
 
 	BardExternalResource resource = resources.get(0);
 	String dest = service.getLocalResPath();
 
+	
+	//clear dest directory
+	File destDir = new File(dest);
+	String [] files = destDir.list();
+	File file;
+	for(String fileName : files) {
+	    file = new File(destDir+"/"+fileName);
+	    if(file.isFile()) {
+		file.delete();
+	    }
+	}
+	
 	//connect
 	ftp.ftpConnect(resource.getResourceServer(), resource.getResourceUserName(), resource.getResourcePassword());
 
@@ -167,6 +203,7 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 	    while (list.next() ) {
 		ftp.getBinaryFile(list.getName(), dest+"/"+list.getName());
 	    }
+	    haveFiles = true;
 	} else if(commandKey.contains(SERVICE_KEY_DAILY_LOAD)) {
 	    //fetch today's latest resources
 	    ftp.setDirectory(resource.getResourcePath());
@@ -187,16 +224,22 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 	    while (list.next() ) {
 		ftp.getBinaryFile(list.getName(), dest+"/"+list.getName());
 	    }
+	    haveFiles = true;
 	} else if(commandKey.contains(SERVICE_KEY_SPECIFIC_LOAD)) {
+	
+	    log.info("SPECIFIC COMPOUND LOAD FETCHING FILES");
 	    //fetch all resources within the external resource directory
 	    ftp.setDirectory(resource.getResourcePath());
 	    FtpListResult list = ftp.getDirectoryContent();		
 	    while (list.next() ) {
 		ftp.getBinaryFile(list.getName(), dest+"/"+list.getName());
 	    }
+	    haveFiles=true;
 	}	
 	ftp.close();
+	return haveFiles;
     }
+    
 
     @Override
     public String getLoadStatusReport() {
@@ -234,7 +277,7 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 	    //iterate over file batches
 	    for(Vector<String> files: fileBatches) {
 		copyAndUnzipFilesToTemp(files);
-		loadCompounds();
+		loadCompounds(files);
 		this.deleteFilesInTemp();				
 	    }
 
@@ -242,6 +285,11 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 	    conn.commit();
 	    conn.close();
 	    logger.info("closed connection");
+	    
+	    //fp generation might not be complete for compounds for many rings.
+	    //large compounds are excluded with heavy atom count > 100.
+	    //this method evaluates the number of rings and evaluates those with fewer than maxRings
+	    updateFPValuesForLargeCompoundsPassingRingCount(dbURL, true, 75);
 
 	} catch (FileNotFoundException e) {
 	    // TODO Auto-generated catch block
@@ -552,14 +600,15 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 	replaceCompoundPropsPS = conn.prepareStatement(sqlCompoundPropReplace);	
     }
 
-    public void loadCompounds() throws SQLException {
+    public void loadCompounds(Vector<String> files) throws SQLException {
 
 	directory = new File(tempPath);
 
-	fileArr = directory.list();
+	//fileArr = directory.list();
 
-	int fileCount = 1;
-	for(String fileName : fileArr) {
+	int fileCount = 0;
+	for(String fileName : files) {
+	    fileName = fileName.replace(".gz", "");
 	    if(fileName.endsWith(".sdf")) {
 		loadCompound(tempPath+fileName);
 		fileCount++;
@@ -667,6 +716,7 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 	    mi = new MolImporter (is);
 	    
 	    for (mol = new Molecule (); mi.read(mol); ) {	
+		//log.info("Loading molecule (load count):" + molCount);
 		molCount++;
 		fpArr = null;
 		insertFP = false;
@@ -751,25 +801,46 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 		    insertCompoundPS.setNull(7, java.sql.Types.FLOAT);
 		}
 
-
-		//Insert the compoundFP
-		fpArr = molFpFactory.generate(mol); 
-		fpIndex = 2;
+		heavyAtomCount = 0;
+		if(mol.getProperty("PUBCHEM_HEAVY_ATOM_COUNT") != null) {
+		    try {
+			heavyAtomCount = Integer.parseInt(mol.getProperty("PUBCHEM_HEAVY_ATOM_COUNT"));
+		    } catch (NumberFormatException nfe) {
+			log.info("Can't get heavy atom count for cid="+cid);
+			heavyAtomCount = 0;
+		    }
+		}
 		
-		mh.setMolecule(mol); 
-		mh.aromatize(); //aromatize BEFORE fingerprinting
-		fpArr = mh.generateFingerprintInInts(16,2,6);
+		if(heavyAtomCount < 100) {
+		    //Insert the compoundFP
+		    fpArr = molFpFactory.generate(mol); 
+		    fpIndex = 2;
 
-		if(fpArr != null && insert) {
+		    mh.setMolecule(mol); 
+		    mh.aromatize(); //aromatize BEFORE fingerprinting
+		    fpArr = mh.generateFingerprintInInts(16,2,6);
 
-		    if(fpArr.length == 16)
-			insertFP = true;
+		    if(fpArr != null && insert) {
 
-		    this.insertCompoundFpPS.setLong(1, cid);
+			if(fpArr.length == 16)
+			    insertFP = true;
 
-		    for(int fp : fpArr) {
-			this.insertCompoundFpPS.setLong(fpIndex, convertToUnsignedInt(fp));
-			fpIndex++;
+			this.insertCompoundFpPS.setLong(1, cid);
+
+			for(int fp : fpArr) {
+			    this.insertCompoundFpPS.setLong(fpIndex, convertToUnsignedInt(fp));
+			    fpIndex++;
+			}
+		    }
+		} else {
+		    //if too big, set to zero, log the CID, come back to compute this one based on molfile.
+		    //in cleanup round
+		    log.info("No Fingerprint Computed for CID="+cid+" Heavy atom count="+heavyAtomCount);
+		   
+		    insertFP = true;
+		    insertCompoundFpPS.setLong(1, cid);
+		    for(int i = 0; i < 16; i++) {
+			insertCompoundFpPS.setLong(i+2, convertToUnsignedInt(0));
 		    }
 		}
 
@@ -788,24 +859,23 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 		}
 
 		//check for commit
-		if(molCount % 1000 == 0) {
+		if(molCount % 100 == 0) {
 		    insertCompoundPS.executeBatch();
 		    insertCompoundPropsPS.executeBatch();
-		    insertCompoundFpPS.executeBatch();
 		    insertMolfilePS.executeBatch();
+		    insertCompoundFpPS.executeBatch();
 		    conn.commit();
 		    if(molCount % 100000 == 0) {
 			logger.info("Mol Commit Total ="+molCount);
 		    }
 		}
-
 	    }
 	    
 	    //execute and commit the end of the file
 	    insertCompoundPS.executeBatch();
 	    insertCompoundPropsPS.executeBatch();
-	    insertCompoundFpPS.executeBatch();
 	    insertMolfilePS.executeBatch();
+	    insertCompoundFpPS.executeBatch();
 	    conn.commit();
 
 	    is.close();
@@ -1083,7 +1153,10 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
     private Vector <Vector<String>> partitionFiles(String path) throws FileNotFoundException {
 	File dir = new File(path);
 	String [] files = dir.list();
-
+	//sort the arrays
+	Arrays.sort(files);
+	
+	
 	Vector <Vector<String>> fileBatches = new Vector <Vector<String>> ();
 
 	Vector <String> fileVector = new Vector <String>();
@@ -1321,12 +1394,330 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 	}
     }
 
+    public void updateFPValuesForLargeCompoundsPassingRingCount(String dbURL, boolean loadIntoTemp, int maxRings) {
+	
+	try {
+	    
+	    conn = BardDBUtil.connect(dbURL);
+	    conn.setAutoCommit(false);
+	    
+	    Statement stmt = conn.createStatement();
+	    stmt.setFetchSize(Integer.MIN_VALUE);
+	    ArrayList <Long> cidList = new ArrayList<Long>();
+	    String updateMsg = "Collecting compounds without fp costructed due to molecule size. Max Rings: ";
+	    if(maxRings > 0) {
+		updateMsg += maxRings+" (based on INPUT RING LIMIT)";
+	    } else {
+		updateMsg += this.MAX_RINGs_FOR_FP_COMP+" (based on DEFAULT RING LIMIT)";
+	    }
+	    
+	    log.info(updateMsg);
+	    
+	   
+	    //set table names based on whether it's a temp load or not.
+	    String compoundMolfileTableName = "compound_molfile";
+	    String compoundFpTableName = "compound_fp";	   	    
+	    if(loadIntoTemp) {
+		compoundMolfileTableName = "temp_compound_molfile";
+		compoundFpTableName = "temp_compound_fp";		
+	    }
+
+	    //just grab the compounds with zero for fp, just check some entries, not all.
+	    ResultSet rs = stmt.executeQuery("select cid from "+compoundFpTableName+" where " +
+		    "fp1=0 and fp2=0 and fp4=0 and fp8=0 and fp12=0 and fp15=0");
+
+	    while(rs.next()) {
+		cidList.add(rs.getLong(1));
+	    }
+	    rs.close();
+	    
+	    log.info("Total CID count without Fp = "+cidList.size());
+	    log.info("Starting SSSR evaluation to build list of fp candidates");
+	    
+	    String molFile;
+	    Molecule mol;
+	    MolHandler mh = new MolHandler();
+	    MolImporter mi = new MolImporter();
+	    molFpFactory = MolFpFactory.getInstance(16, 2, 6);
+	    int rings;
+
+    	    int [] bins = new int[6];
+	    for(int i = 0; i < 6; i++) {
+		bins[i]=0;
+	    }
+	
+	    Integer cnt;
+
+	    ArrayList <Long> cidsToProcess = new ArrayList<Long>();
+	    for(long cid : cidList) {
+		
+		rs = stmt.executeQuery("select molfile_mol from "+compoundMolfileTableName+" where cid = "+cid);
+		
+		if(rs.next()) {
+		    mol = MolImporter.importMol(rs.getString(1));
+		    rings = mol.getEdgeCount() - mol.getAtomCount() + 1;
+
+		    //if max rings is set to a resonable value use it, 
+		    if(maxRings > 0) {
+			if(rings <= maxRings) {
+			    cidsToProcess.add(cid);
+			}
+		    } else { // else update the rings based on default value
+			if(rings <= MAX_RINGs_FOR_FP_COMP) {
+			    cidsToProcess.add(cid);
+			}
+		    }
+		}		
+		rs.close();
+	    }
+
+	    //release the cid list
+	    cidList = null;
+	    log.info("Finished SSSR evaluation to build list of fp candidates. CID for Fp count="+cidsToProcess.size());
+	    log.info("Start FP Generation");
+	    int [] fpArr;
+	    long start, finished;
+	    long molCnt = 0;
+	    
+	    //prepare fp insert
+	    
+	    replaceTempCompoundFpPS = conn.prepareStatement(sqlTempCompoundFpReplace);
+
+	    //make a new non-streaming stmt.
+	    stmt = conn.createStatement();
+	    
+	    for(long cid : cidsToProcess) {
+		
+		rs = stmt.executeQuery("select molfile_mol from "+compoundMolfileTableName+" where cid = "+cid);
+		
+		if(rs.next()) {
+		    start = System.currentTimeMillis();
+		    mol = MolImporter.importMol(rs.getString(1));
+		    fpArr = molFpFactory.generate(mol);		    
+		    finished = System.currentTimeMillis();
+		    molCnt++;
+		    
+		    if( (finished - start) > 900000) {
+			log.info("Fingerprint required > 15min. to complete, cid="+cid+" time="+((finished-start)/1000f/60f)+" min.");
+		    }
+		  
+		    replaceTempCompoundFpPS.setLong(1, cid);
+		    fpIndex = 2;
+		    for(int fp : fpArr) {
+			replaceTempCompoundFpPS.setLong(fpIndex, convertToUnsignedInt(fp));
+			fpIndex++;
+		    } 
+		    
+		    //execute the update, most time spent generating fp
+		    replaceTempCompoundFpPS.executeUpdate();
+		    conn.commit();
+		    
+		    if(molCnt % 1000 == 0) {
+			log.info("Processing large compound fp, processed count: "+molCnt+" of "+cidsToProcess.size()+" compounds");
+		    }
+		}
+	    }
+	    
+	    conn.commit();
+	    conn.close();
+
+	    log.info("Finished fp large molecule cleanup");
+	    
+	} catch (ClassNotFoundException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	} catch (SQLException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	} catch (MolFormatException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	}
+    }
+    
+    /**
+     * A utility method to add cids from source db to dest db.
+     * @param sourceDBURL
+     * @param destDBURL
+     * @return
+     */
+    public long synchronizeCompoundBetweenServers(String sourceDBURL, String destDBURL) {
+	long updateCnt = 0;
+		
+	log.info("start bohr to maxwell sync");
+	
+	try {
+	    Connection sourceConn = BardDBUtil.connect(sourceDBURL);
+	    Connection destConn = BardDBUtil.connect(destDBURL);
+	    destConn.setAutoCommit(true);
+
+	    Statement destStmt = destConn.createStatement();
+	    destStmt.setFetchSize(Integer.MIN_VALUE);
+	    
+	    ResultSet rs = destStmt.executeQuery("select cid from compound");
+	    long cid;
+
+	    ResultSet rsSource;
+	    HashSet <Long> destCidList = new HashSet <Long>();
+	 //   HashSet <Long> sourceCidList2 = new HashSet <Long>();
+	 //   HashSet <Long> sourceCidList3 = new HashSet <Long>();
+
+	    ArrayList <Long> sourceCidList = new ArrayList <Long>();
+	    
+	    long cmpcnt = 0;
+	    while (rs.next()) {
+		cmpcnt++;
+
+		cid = rs.getLong(1);
+		if(cid != 0) {
+		    destCidList.add(cid);			
+		}
+		
+		if(cmpcnt % 1000000 == 0) {
+		    log.info("Compound interogation count="+cmpcnt);
+		}
+	    }
+	    
+	    rs.close();
+	    
+	    log.info("Dest cid list size ="+destCidList.size());
+	    
+	    Statement stmt = sourceConn.createStatement();
+	    stmt.setFetchSize(Integer.MIN_VALUE);
+	    rsSource = stmt.executeQuery("select cid from compound");
+	    
+	    cmpcnt = 0;
+	    while (rsSource.next()) {
+		cmpcnt++;
+
+		cid = rsSource.getLong(1);
+
+		if(!destCidList.contains(cid))
+		    sourceCidList.add(cid);
+
+
+		if(cmpcnt % 1000000 == 0) {
+		    log.info("Compound dest interogation count="+cmpcnt);
+		}
+	    }
+	    
+	    
+	    log.info("new cid count = "+sourceCidList.size());
+	    destCidList = null;	    
+	    rsSource.close();
+	    
+	    //We have the list of cids to copy over to maxwell
+	     
+	    
+	    String sqlCompoundInsert = "replace into compound (cid, formula, iupac_name, can_smiles, iso_smiles, mw, mw_monoiso)" +
+		    "values (?,?,?,?,?,?,?)";
+	    String sqlMolfileInsert = "replace into compound_molfile values (?,?)";
+	    String sqlCompoundPropInsert = "replace into compound_props values (";
+	    String sqlCompoundFpInsert = "replace into compound_fp values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+	    for(int i = 0; i < 34 ; i++) {
+		sqlCompoundPropInsert += "?,";
+	    }
+	    sqlCompoundPropInsert = sqlCompoundPropInsert.substring(0, sqlCompoundPropInsert.length()-1);
+	    sqlCompoundPropInsert += ")";
+	    
+	    PreparedStatement compoundPS = destConn.prepareStatement(sqlCompoundInsert);
+	    PreparedStatement molfilePS = destConn.prepareStatement(sqlMolfileInsert);
+	    PreparedStatement propsPS = destConn.prepareStatement(sqlCompoundPropInsert);
+	    PreparedStatement fpPS = destConn.prepareStatement(sqlCompoundFpInsert);
+	    	    
+	    PreparedStatement compoundQuery = sourceConn.prepareStatement("select * from compound where cid = ?");
+	    PreparedStatement molfileQuery = sourceConn.prepareStatement("select * from compound_molfile where cid = ?");
+	    PreparedStatement propsQuery = sourceConn.prepareStatement("select * from compound_props where pubchem_compound_cid = ?");
+	    PreparedStatement fpQuery = sourceConn.prepareStatement("select * from compound_fp where cid = ?");
+	    
+	    ResultSet queryRS;
+	    cmpcnt = 0;
+	    for(long missingCid : sourceCidList) {
+		cmpcnt++;
+		//compound
+		compoundQuery.setLong(1, missingCid);
+		queryRS = compoundQuery.executeQuery();
+		if(queryRS.next()) {
+		    //(cid, formula, iupac_name, can_smiles, iso_smiles, mw, mw_monoiso)
+		    compoundPS.setLong(1, queryRS.getLong("cid"));
+		    compoundPS.setString(2, queryRS.getString("formula"));		    
+		    compoundPS.setString(3, queryRS.getString("iupac_name"));
+		    compoundPS.setString(4, queryRS.getString("can_smiles"));
+		    compoundPS.setString(5, queryRS.getString("iso_smiles"));
+		    compoundPS.setDouble(6, queryRS.getDouble("mw"));
+		    compoundPS.setDouble(7, queryRS.getDouble("mw_monoiso"));
+		    compoundPS.execute();
+		}
+		
+		//molfile
+		molfileQuery.setLong(1, missingCid);		
+		queryRS = molfileQuery.executeQuery();
+		if(queryRS.next()) {
+		    molfilePS.setLong(1, missingCid);
+		    molfilePS.setString(2, queryRS.getString(2));
+		    molfilePS.execute();
+		}
+		    
+		//props
+		propsQuery.setLong(1, missingCid);
+		queryRS = propsQuery.executeQuery();
+		if(queryRS.next()) {
+		    propsPS.setLong(1, missingCid);
+		    for(int i = 2 ; i < 35 ; i++) {
+			propsPS.setString(i, queryRS.getString(i));
+		    }
+		    propsPS.execute();
+		}
+		
+		
+		
+		//fp
+		fpQuery.setLong(1, missingCid);
+		queryRS = fpQuery.executeQuery();
+		if(queryRS.next()) {
+		    fpPS.setLong(1, missingCid);
+		    
+		    for(int i = 2; i < 18; i++) {
+			fpPS.setLong(i, queryRS.getLong(i));
+		    }
+		    
+		    fpPS.execute();
+		}		
+	    
+		if(cmpcnt % 10000 == 0) {
+		    log.info("Insert/Sync compound count ="+cmpcnt);
+		}
+	    }
+	    
+	    
+	    
+	    sourceConn.close();
+	    destConn.close();
+	    
+	} catch (ClassNotFoundException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	} catch (SQLException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	}
+	
+	
+	return updateCnt;	
+    }
+
+    
     public static void main(String [] args) {
 
 	PubchemCompoundLoader loader = new PubchemCompoundLoader();
 	//loader.dumpPubchemXLOGP3("/ifs/prod/braistedjc/db_scripts/pubchem_compound", "/ifs/prod/braistedjc/db_scripts/conf/cid_xlogp3_tmp.txt");
 
-	loader.batchLoadCompounds("/ifs/prod/bard/resource_mgr/bard-scratch/Compound/", "jdbc:mysql://bohr.ncats.nih.gov:3306/bard3?zeroDateTimeBehavior=convertToNull");
+	
+	//loader.synchronizeCompoundBetweenServers("jdbc:mysql://bohr.ncats.nih.gov:3306/bard3?zeroDateTimeBehavior=convertToNull", "jdbc:mysql://maxwell.ncats.nih.gov:3306/bard3?zeroDateTimeBehavior=convertToNull");
+	
+	//	loader.updateFPValuesForLargeCompoundsPassingRingCount("jdbc:mysql://bohr.ncats.nih.gov:3306/bard3?zeroDateTimeBehavior=convertToNull", true, 75);
+//	loader.batchLoadCompounds("/ifs/prod/bard/resource_mgr/bard-scratch/Compound/", "jdbc:mysql://bohr.ncats.nih.gov:3306/bard3?zeroDateTimeBehavior=convertToNull");
 	
 	////		if(args.length != 3) {
 	////			logger.warning("Need paramters: path=<path_to_sdf_files> url=<database_url>  driver=<driver_name>");

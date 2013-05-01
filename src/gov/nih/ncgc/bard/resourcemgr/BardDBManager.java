@@ -3,7 +3,7 @@ package gov.nih.ncgc.bard.resourcemgr;
 import gov.nih.ncgc.bard.resourcemgr.extresource.go.BardGoAssociationLoader;
 import gov.nih.ncgc.bard.resourcemgr.extresource.kegg.BardKeggLoader;
 import gov.nih.ncgc.bard.resourcemgr.extresource.pubchem.BardCompoundPubchemExtrasLoader;
-import gov.nih.ncgc.bard.resourcemgr.extresource.pubchem.BardSubstanceLoader;
+import gov.nih.ncgc.bard.resourcemgr.extresource.pubchem.PubchemSubstanceLoader;
 import gov.nih.ncgc.bard.resourcemgr.extresource.pubchem.PubchemCompoundLoader;
 import gov.nih.ncgc.bard.resourcemgr.extresource.uniprot.BardUniprotProteinTargetLoader;
 import gov.nih.ncgc.bard.resourcemgr.precomp.BardCompoundTestStatusUpdater;
@@ -287,7 +287,7 @@ public class BardDBManager {
 	    if(haveFiles) {
 		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch");
 		dbLogId = BardDBUpdateLogger.logStart("Update command= "+command);	
-		BardSubstanceLoader loader = new BardSubstanceLoader();
+		PubchemSubstanceLoader loader = new PubchemSubstanceLoader();
 		newCmpdCnt = loader.batchUpdateSubstances(managerProps);
 		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished Substance Update.  New Substance Cnt ="+newCmpdCnt);
 	    } else {
@@ -303,7 +303,7 @@ public class BardDBManager {
 		    BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch= "+args.get(2));
 		    //start update
 		    dbLogId = BardDBUpdateLogger.logStart("Update command= "+command+" FTP Dir= "+args.get(2));					
-		    BardSubstanceLoader loader = new BardSubstanceLoader ();
+		    PubchemSubstanceLoader loader = new PubchemSubstanceLoader ();
 		    newCmpdCnt = loader.batchUpdateSubstances(managerProps);
 		    BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished Specific Update ("+args.get(2)+" New Substance Cnt ="+newCmpdCnt);
 		}				
