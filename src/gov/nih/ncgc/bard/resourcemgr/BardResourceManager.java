@@ -40,12 +40,14 @@ public class BardResourceManager {
 		loaded = loader.load();	
 		loaded = true;
 		BardDBUpdateLogger.logEnd(logId, 0, loader.getLoadStatusReport(), service.getDbURL());
+		//remove ref to loader.
+		loader = null;
 	    }
 	} catch (Exception e) {
 	    if(logId != -1 && service != null) {
 		BardDBUpdateLogger.logEnd(logId, 0, "Error/Exception during "+service.getServiceName(), service.getDbURL());
 	    }
-	    String msg = "BardResourceLoaderException: Exception in CID_SID Refresh. Nested exception reports cause.";
+	    String msg = "BardResourceLoaderException: "+service.getServiceKey()+". Nested exception reports cause.";
 	    BardResourceLoaderException brle = new BardResourceLoaderException(msg,e);
 	    throw(brle);
 	} 
@@ -147,6 +149,8 @@ public class BardResourceManager {
 	    System.exit(1);
 	}
 	
+	System.out.println("\n\nService Key"+serviceKey);
+	
 	BardResourceManager manager = new BardResourceManager(serviceFilePath);
 	if(runAllServices) {
 	    manager.runServices();
@@ -157,6 +161,6 @@ public class BardResourceManager {
 		e.printStackTrace();
 	    }
 	}
-	
+	System.exit(0);
     }
 }

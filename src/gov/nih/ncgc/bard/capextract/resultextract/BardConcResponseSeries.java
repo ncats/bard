@@ -105,7 +105,6 @@ public class BardConcResponseSeries {
 	//if ec50 is the parent node, then set the hill parameter by taking log(ec50) 
 	
 	if(parentElement.getValue() != null && concRespParams.getLogEc50() == null && xx50ParameterV.contains(parentElement.getDictElemId())) {
-	   String parentEc50Str = parentElement.getValue();
 	   Double logEc50;
 	   
 	   try {	       
