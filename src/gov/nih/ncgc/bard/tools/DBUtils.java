@@ -1,26 +1,26 @@
 package gov.nih.ncgc.bard.tools;
 
+import chemaxon.formats.MolFormatException;
+import chemaxon.formats.MolImporter;
+import chemaxon.struc.Molecule;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.ETag;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.PantherClassification;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.ProjectStep;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
-import gov.nih.ncgc.bard.entity.Publication;
-import gov.nih.ncgc.bard.entity.Substance;
-import gov.nih.ncgc.bard.entity.TargetClassification;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.search.Facet;
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -28,42 +28,8 @@ import java.io.Reader;
 import java.math.BigInteger;
 import java.security.Principal;
 import java.security.SecureRandom;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-
-import javax.sql.DataSource;
-
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Element;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import chemaxon.formats.MolFormatException;
-import chemaxon.formats.MolImporter;
-import chemaxon.struc.Molecule;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.sql.*;
+import java.util.*;
 
 
 
@@ -4083,7 +4049,7 @@ public class DBUtils {
 
         // find assays
         pst = conn.prepareStatement
-            ("select a.bard_assay_id from bard_experiment a, bard_project_experiment b " +
+            ("select distinct a.bard_assay_id from bard_experiment a, bard_project_experiment b " +
              "where a.bard_expt_id=b.bard_expt_id and b.bard_proj_id = ?");
         try {
             List<Long> aids = new ArrayList<Long>();
@@ -4413,6 +4379,26 @@ public class DBUtils {
         return n;
     }
 
+    public int getSubstanceTestCount() throws SQLException {
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data");
+        ResultSet rs = pst.executeQuery();
+        rs.next();
+        int n = rs.getInt(1);
+        pst.close();
+        return n;
+    }
+
+    public int getSubstanceActiveCount() throws SQLException {
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data where outcome = 2");
+        ResultSet rs = pst.executeQuery();
+        rs.next();
+        int n = rs.getInt(1);
+        pst.close();
+        return n;
+    }
+
     /**
      * Return compounds based on a query.
      *
@@ -4453,6 +4439,49 @@ public class DBUtils {
                     if (getCompoundAnnotations(c.getCid()).get("anno_key").length > 0) ret.add(c);
                 }
             }
+        }
+        pst.close();
+
+        cache.put(new Element(sql, ret));
+
+        return ret;
+    }
+
+
+    /**
+     * Get substances based on query string.
+     *
+     * @param filter the query string. Currently can be "tested" or "active", with the
+     *               default being "tested"
+     * @param skip records to skip
+     * @param top number of records to return
+     * @param hasAnno ignored, since we don't deal with substance annotations
+     * @return
+     * @throws SQLException
+     */
+    public List<Substance> searchForSubstances(String filter, int skip, int top, boolean hasAnno) throws SQLException {
+        List<Substance> ret = new ArrayList<Substance>();
+        String limitClause = generateLimitClause(skip, top);
+        String sql = "select distinct sid from bard_experiment_data order by sid " + limitClause;
+        if (filter != null && filter.contains("active"))
+            sql = "select distinct sid from bard_experiment_data where outcome = 2 order by sid " + limitClause;
+
+        Cache cache = getCache("SearchForSubstanceCache");
+        try {
+            List<Substance> value = getCacheValue(cache, sql);
+            if (value != null) {
+                return value;
+            }
+        } catch (ClassCastException ex) {
+        }
+
+        log.info("## SQL: " + sql);
+
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement(sql);
+        ResultSet rs = pst.executeQuery();
+        while (rs.next()) {
+            ret.add(getSubstanceBySid(rs.getLong(1)));
         }
         pst.close();
 
