@@ -1730,12 +1730,14 @@ public class DBUtils {
             String sep = "";
             for (String edid : notcached) {
                 String[] toks = edid.split("\\.");
+                if (toks.length != 2) continue;
                 bardExptId = Long.parseLong(toks[0]);
                 Long sid = Long.parseLong(toks[1]);
                 sb.append(sep).append(sid);
                 sep = ",";
             }
             sb.append(")");
+            if (sb.toString().equals("()")) return ret;
 
 //            String sql = "select a.*, b.*, c.*, d.bard_proj_id from bard_experiment_data a, bard_experiment_result b, bard_experiment c, bard_project_experiment d where d.bard_expt_id = " + bardExptId + " and a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id";
             String sql = "select      a . *, b . *, c . *, d.cap_assay_id as real_cap_assay_id from     bard_experiment_data a left join bard_experiment_result b on a.expt_data_id = b.expt_data_id left join bard_experiment c on a.bard_expt_id = c.bard_expt_id left join bard_assay d on c.bard_assay_id = d.bard_assay_id where a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString();
