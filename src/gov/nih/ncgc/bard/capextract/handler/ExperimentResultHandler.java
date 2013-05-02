@@ -130,9 +130,10 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    
 	    //here we need to determine the response class by polling a collection of input responses from CAP
 	    //use the BufferedReader to iterate, then reset the BR for processing
-	    Integer responseClass = determineResultClass(capExptId, br);
+	    BardExptDataResponse sampleResponse = determineResultClass(capExptId, br);
 	    //now pass the experiment level response class on to the response factory when initializing
-	    resultFactory.initialize(ids.get("bardExptId"), capExptId, ids.get("bardAssayId"), ids.get("capAssayId"), projIds, fetchContexts(capExptId), responseClass);
+	    resultFactory.initialize(ids.get("bardExptId"), capExptId, ids.get("bardAssayId"), ids.get("capAssayId"), projIds, fetchContexts(capExptId),
+		    sampleResponse.getResponseType(), sampleResponse.getExptScreeningConc(), sampleResponse.getExptConcUnit());
 	    
 	    
 	    br = new BufferedReader(new FileReader(stageFile));
@@ -238,7 +239,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	}	
     }
 
-    private Integer determineResultClass(Long capExptId, BufferedReader bufferedReader) throws IOException {
+    private BardExptDataResponse determineResultClass(Long capExptId, BufferedReader bufferedReader) throws IOException {
 	//set to unclassified first
 	Integer resultType = new Integer(BardExptDataResponse.ResponseClass.UNCLASS.ordinal());
 
@@ -262,6 +263,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	CAPExperimentResult capResult;
 	BardExptDataResponse response;
 	int procCnt = 0;
+	BardExptDataResponse maxResponse = null;
 	while((capData = bufferedReader.readLine()) != null) {
 
 	    //break if hit the sample limit
@@ -275,7 +277,8 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 		procCnt++;
 		
 		//need to initialize factory to make a new response object to pass out
-		resultFactory.initialize(bed, ced, bad, cad, pids, contexts, BardExptDataResponse.ResponseClass.UNDEF.ordinal());
+		resultFactory.initialize(bed, ced, bad, cad, pids, contexts, BardExptDataResponse.ResponseClass.UNDEF.ordinal(),
+			null, null);
 		
 		capResult = mapper.readValue(capData, CAPExperimentResult.class);
 		
@@ -296,7 +299,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	if(respList.size() > 0) {
 	    log.info("Sampling "+ respList.size()+ " responses to determine responseClass for capExptId"+capExptId);
 	    int maxSize = 0;
-	    BardExptDataResponse maxResponse = respList.get(0);
+	    maxResponse = respList.get(0);
 	    for(int i = 0; i < respSizeList.size(); i++) {
 		if(respSizeList.get(i) > maxSize) {
 		    maxSize = respSizeList.get(i);
@@ -309,7 +312,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    log.info("PROBLEM Trying to sample response class: NO responses available to determine responseClass for capExptId"+capExptId);
 	}
 	
-	return resultType;
+	return maxResponse;
     }
     
     private void loadDataServingTables(long capExptId, long bardExptId) throws SQLException, JsonParseException, JsonMappingException, IOException {

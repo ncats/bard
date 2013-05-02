@@ -3,6 +3,8 @@ package gov.nih.ncgc.bard.capextract.resultextract;
 import java.util.ArrayList;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 /**
  * This class is used to format the bard experiment data response JSON
@@ -43,6 +45,11 @@ public class BardExptDataResponse {
     private Double score;
     @JsonIgnore
     private Integer outcome;
+    //conc unit for experiment
+    @JsonInclude(Include.NON_NULL)
+    private Double exptScreeningConc;
+    @JsonInclude(Include.NON_NULL)
+    private String exptConcUnit;
     
     //Result sets for priority and other root elements, project ids
     private ArrayList <BardResultType> priorityElements;
@@ -192,6 +199,22 @@ public class BardExptDataResponse {
 
     public void setOutcome(Integer outcome) {
         this.outcome = outcome;
+    }
+
+    public Double getExptScreeningConc() {
+        return exptScreeningConc;
+    }
+
+    public void setExptScreeningConc(Double exptScreeningConc) {
+        this.exptScreeningConc = exptScreeningConc;
+    }
+
+    public String getExptConcUnit() {
+        return exptConcUnit;
+    }
+
+    public void setExptConcUnit(String exptConcUnit) {
+        this.exptConcUnit = exptConcUnit;
     }
 
     public void addProjectPair(Long bardProjId, Long capProjId) {

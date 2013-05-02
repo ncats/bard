@@ -19,10 +19,13 @@ import gov.nih.ncgc.bard.capextract.handler.ResultHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Projects;
 
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.slf4j.Logger;
@@ -49,7 +52,12 @@ import org.slf4j.LoggerFactory;
  */
 public class CAPExtractor {
     private CapResourceHandlerRegistry registry;
-
+    private Logger log;
+    
+    public CAPExtractor() {
+        log = LoggerFactory.getLogger(this.getClass());
+    }
+    
     public <T> int getRelatedCount(Vector<T> vec) {
         int count = 0;
         if (vec == null) return count;
@@ -111,20 +119,73 @@ public class CAPExtractor {
         //        registry.setHandler(CAPConstants.CapResource.RESULTS, new ResultsHandler());
     }
 
+    public boolean evaluateAndSetLoadLockState(String lockFilePath, boolean lock) throws IOException {
+	boolean load = false;
+	log.info("Checking and setting load lock file: "+lockFilePath);
+	Properties loadProps = new Properties();
+	FileReader fr = new FileReader(lockFilePath);
+	loadProps.load(fr);
+	fr.close();
+	if(loadProps.getProperty("load.state").equals("IDLE")) {
+	    //if idle and want to set the lock, set state to LOADING
+	    if(lock) {
+		loadProps.setProperty("load.state", "LOADING");
+		FileWriter writer = new FileWriter(lockFilePath);
+		loadProps.store(writer, "Load State");
+		writer.close();
+		load = true;
+		log.info("STARTING LOAD. Setting load state to LOADING.");
+	    }
+	} else {
+	    //load state is LOADING
+
+	    //if trying to lock, return false to indicate existing load holds the lock
+	    if(lock) {
+		load = false;
+		log.info("ABORTING LOAD, another load process is in progress.");
+	    } else {
+		//if not locking, then the intention is to unlock, set state back to IDLE
+		loadProps.setProperty("load.state", "IDLE");
+		FileWriter writer = new FileWriter(lockFilePath);
+		loadProps.store(writer, "Load State");
+		writer.close();
+		load = true;
+		log.info("FINISHED LOAD, setting load state to IDLE.");
+	    }
+	}
+	
+	return load;
+    }
 
     public static void main(String[] args) throws Exception {
-        CAPExtractor c = new CAPExtractor();
 
-        // before running the extractor, lets set our handlers
-        c.setHandlers();
+	CAPExtractor c = new CAPExtractor();
 
-        // let's just peek at what's available
-//        c.poll();
+	// make sure we have a load state lock file path, or exit
+	if(args.length == 0) {
+	    System.err.println("LOAD Terminatd: Process requires a load state lock file path to determine if a load is in progress.");
+	    System.err.println("USAGE: java -cp <lib-path> -Xmx<mem-alloc> -DCAP_API_KEY=<api-key> -DBARD_SCRATCH_DIR=<scratch-dir-path> -DBARD_DB_URL=<db-url> gov.nih.ncgc.bard.capextract.CAPExtractor <load-state-file-path>");
+	    System.err.println("The load state file is a text properties file with a single property load.state:<IDLE|LOADING>");
+	    System.exit(1);
+	}
 
-        // lets start pulling
-        c.run();
+	// check the load state and begin load
+	try {
+	    // returns true if state was IDLE and the lock is set and state set to LOADING, Ready to load
+	    if(c.evaluateAndSetLoadLockState(args[0], true)) {
+		// before running the extractor, lets set our handlers
+		c.setHandlers();
+		// lets start pulling
+		c.run();	    
+		// set the load state back to IDLE at the end of the load
+		c.evaluateAndSetLoadLockState(args[0], false);
+	    } 
+	} catch (Exception e) {
+	    // on any terminal error set load state to IDLE
+	    c.evaluateAndSetLoadLockState(args[0], false);
+	    e.printStackTrace();
+	}
 
-//        c.test();
     }
 
 

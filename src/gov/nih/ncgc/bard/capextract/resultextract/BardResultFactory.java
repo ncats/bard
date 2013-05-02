@@ -4,6 +4,7 @@ import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
 import gov.nih.ncgc.bard.capextract.jaxb.ContextType.ContextItems;
 import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.pcparser.Constants;
 
 import java.util.ArrayList;
@@ -43,6 +44,8 @@ public class BardResultFactory {
 
     // Some experiment contexts capture information about the measures. e.g. single point test concentration is global.
     private Contexts exptContexts;
+
+    private String exptConcUnit = null;
     
     /**
      * Default Constructor
@@ -85,7 +88,9 @@ public class BardResultFactory {
     
     
     public void initialize(Long bardExptId, Long capExptId, Long bardAssayId, Long capAssayId,
-	    ArrayList <ArrayList<Long>> projectIdList, Contexts contexts, Integer responseType) {
+	    ArrayList <ArrayList<Long>> projectIdList, Contexts contexts, Integer responseType,
+	    Double exptScreeningConc, String exptScreeningConcUnit) {
+	
 	response = new BardExptDataResponse();
 	response.setResponseType(responseType);
 	
@@ -94,6 +99,9 @@ public class BardResultFactory {
 	response.setCapExptId(capExptId);
 	response.setCapAssayId(capAssayId);
 	
+	response.setExptConcUnit(exptScreeningConcUnit);
+	response.setExptScreeningConc(exptScreeningConc);
+	
 	for (ArrayList<Long> projIds :projectIdList) {
 	    if(projIds.size() == 2) {
 		response.addProjectPair(projIds.get(0), projIds.get(1));
@@ -101,7 +109,9 @@ public class BardResultFactory {
 		response.addProjectPair(projIds.get(0), null);
 	    }
 	}
-		
+	
+	
+	
 	resultList = new ArrayList <BardResultType>();
 	
 	//provide context for the experiment
@@ -256,20 +266,23 @@ public class BardResultFactory {
 	
 	//concentrations array should have test concentrations
 	//if not * check for experiment context for screening concentration(s)
+	Double concCnt = -1d;
 	if(concentrations.size() == 0) {
-	    resolveConcFromExperimentContext(concentrations);
+	    concCnt = resolveConcFromExperimentContext(concentrations);
 	}
 	
 	//check for single point, one test concentration, have efficacy
 	if(!haveType) {
-	    if(concentrations.size() == 1) {
+	    if(concentrations.size() == 1 || concCnt == 1) {
 		//check for efficacy in root elements
 		for(BardResultType result : response.getRootElements()) {
 		    if(result.getDictElemId() != null && this.efficacyDataElemV.contains(result.getDictElemId())) {
-			if(result.getTestConc() == null) {
-			    result.setTestConc(concentrations.iterator().next());
-			    result.setTestConcUnit("uM");
-			}
+
+			//don't set test conc, just report global expt values
+//			if(result.getTestConc() == null && ) {
+//			    result.setTestConc(response.getExptScreeningConc());
+//			    result.setTestConcUnit(response.getExptConcUnit());
+//			}
 			response.setResponseType(BardExptDataResponse.ResponseClass.SP.ordinal());
 			haveType = true;
 		    }
@@ -311,22 +324,92 @@ public class BardResultFactory {
     /*
      * Deeply nested info... single point results tend to have the single concentration value
      * set at the experiment level.
+     * 
+     * Even if we can't find a concentration, we look for a 650 element which is a concentration count.
      */
-    private void resolveConcFromExperimentContext(HashSet <Double> concentrations) {
+    private Double resolveConcFromExperimentContext(HashSet <Double> concentrations) {
+	Double concCnt = null;
+	Link link = null;
+	String href;
+	Integer linkId;
+	Integer concLinkId;
+	String concUnit = null;
+	//try to add the concentration for this one
 	if(exptContexts != null)  {
 	    for(ContextType item : exptContexts.getContext()) {
 		ContextItems ci = item.getContextItems();
 		if(ci != null) {
 		    for(ContextItemType type : ci.getContextItem()) {
-			if(type.getAttributeId().getLabel().equals("screening concentration")) {
+			if(type.getAttributeId().getLabel().contains("screening concentration")) {
 			    if(type.getValueNum() != null) {
 				concentrations.add(type.getValueNum());
+				link = type.getAttributeId().getLink();
+				if(link != null) {
+				    href = link.getHref();
+				    concLinkId = this.getLinkId(href);
+				    // 1950 = W/V (mg/ml)
+				    // 971 = molar (uM)
+				    // 1948 = %/mass (%)
+				    // 1949 = %/vol (%)
+				    // 1943 = screening conc no units known
+				    if(concLinkId != null) {
+					if(concLinkId == 971) {
+					    concUnit = "uM";
+					} else if(concLinkId == 1950) {
+					    concUnit = "mg/ml";
+					} else if(concLinkId == 1949) {
+					    concUnit = "% (vol.)";
+					} else if(concLinkId == 1948) {
+					    concUnit = "% (mass)";
+					} else if(concLinkId == 1943) {
+					    concUnit = "Unspecified";
+					}					
+				    }
+				}
 			    }			    
+			} else if(concCnt == null) {
+			    link = type.getAttributeId().getLink();
+			    if(link != null) {
+				href = link.getHref();
+				if(href != null) {
+				    linkId = getLinkId(href);
+				    if(linkId != null) {
+					if(linkId == 650) {
+					    concCnt = type.getValueNum();
+					}
+				    }
+				}
+			    }
 			}
 		    }
 		}
 	    }
 	}
+	
+	//if there is one screening concentration, set the experiment level info
+	if(concentrations.size() == 1) {
+	    response.setExptScreeningConc(concentrations.iterator().next());
+	    response.setExptConcUnit(concUnit);
+	}
+	
+	return concCnt;
+    }
+    
+    private Integer getLinkId(String href) {
+	if(href == null) {
+	    return null;
+	}
+	Integer id = null;
+	String [] toks = href.split("/");
+	String idStr;
+	if(toks.length > 2) {
+	    try {
+		id = Integer.parseInt(toks[toks.length-1]);
+	    } catch (NumberFormatException nfe) {
+		return null;
+	    }
+	}	
+	return id;
     }
     
     /*
