@@ -1730,12 +1730,14 @@ public class DBUtils {
             String sep = "";
             for (String edid : notcached) {
                 String[] toks = edid.split("\\.");
+                if (toks.length != 2) continue;
                 bardExptId = Long.parseLong(toks[0]);
                 Long sid = Long.parseLong(toks[1]);
                 sb.append(sep).append(sid);
                 sep = ",";
             }
             sb.append(")");
+            if (sb.toString().equals("()")) return ret;
 
 //            String sql = "select a.*, b.*, c.*, d.bard_proj_id from bard_experiment_data a, bard_experiment_result b, bard_experiment c, bard_project_experiment d where d.bard_expt_id = " + bardExptId + " and a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id";
             String sql = "select      a . *, b . *, c . *, d.cap_assay_id as real_cap_assay_id from     bard_experiment_data a left join bard_experiment_result b on a.expt_data_id = b.expt_data_id left join bard_experiment c on a.bard_expt_id = c.bard_expt_id left join bard_assay d on c.bard_assay_id = d.bard_assay_id where a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString();
@@ -2270,8 +2272,10 @@ public class DBUtils {
         List<String> l1 = new ArrayList<String>();
         List<String> l2 = new ArrayList<String>();
         for (CAPAnnotation capannot : capannots) {
-            if (capannot.key != null && Util.isNumber(capannot.key)) l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
-            if (capannot.value != null && Util.isNumber(capannot.value)) l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
+            if (capannot.key != null && Util.isNumber(capannot.key) && dict.getNode(new BigInteger(capannot.key)) != null)
+                l1.add(dict.getNode(new BigInteger(capannot.key)).getLabel());
+            if (capannot.value != null && Util.isNumber(capannot.value) && dict.getNode(new BigInteger(capannot.value)) != null)
+                l2.add(dict.getNode(new BigInteger(capannot.value)).getLabel());
             else l2.add(capannot.display);
         }
         a.setAk_dict_label(l1);
