@@ -619,7 +619,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    }
 	    rs.close();
 	    
-	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples_max_20130501.txt)"));	    
+	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples_max_20130503.txt)"));	    
 	    PreparedStatement ps = conn.prepareStatement("select b.cap_expt_id, a.json_response, a.sid from bard_experiment_result a, bard_experiment b " +
 	    		" where a.bard_expt_id=b.bard_expt_id and a.bard_expt_id = ? limit 1");	    
 	    int progress = 0;

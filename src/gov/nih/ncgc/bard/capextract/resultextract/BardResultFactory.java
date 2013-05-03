@@ -299,7 +299,7 @@ public class BardResultFactory {
 	
 	//check for single point, one test concentration, have efficacy
 	if(!haveType) {
-	    if(concentrations.size() == 1 || concCnt == 1) {
+	    if(concentrations.size() == 1 || (concCnt !=null && concCnt == 1)) {
 		//check for efficacy in root elements
 		for(BardResultType result : response.getRootElements()) {
 		    if(result.getDictElemId() != null && this.efficacyDataElemV.contains(result.getDictElemId())) {
