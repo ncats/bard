@@ -47,6 +47,9 @@ public class BardResultFactory {
 
     private String exptConcUnit = null;
     
+    private Integer attrId;
+    private boolean haveConcAttr;
+
     /**
      * Default Constructor
      */
@@ -213,11 +216,34 @@ public class BardResultFactory {
     
     private void processContextItem(CAPMeasureContextItem item, BardResultType bardResult) {
 	//context items either lead to children OR if 971's we have to grab the test conc.
-
-	if(item.getAttributeId() != null && item.getAttributeId() == 971) {
-	    bardResult.setTestConc(item.getValueNum()); 
-	    bardResult.setTestConcUnit("uM");
-	} else {
+	attrId = item.getAttributeId();
+	haveConcAttr = false;
+	//if it's a concentration attribute, add the value and base unit as fields of the result
+	//rather than children.
+	if(attrId != null) {
+	    if(attrId == 971) {
+		bardResult.setTestConc(item.getValueNum()); 
+		bardResult.setTestConcUnit("uM");
+		haveConcAttr = true;
+	    } else if(attrId == 1950) {
+		bardResult.setTestConc(item.getValueNum()); 
+		bardResult.setTestConcUnit("mg/ml");
+		haveConcAttr = true;
+	    } else if(attrId == 1949) {
+		bardResult.setTestConc(item.getValueNum()); 
+		bardResult.setTestConcUnit("% (vol.)");
+		haveConcAttr = true;
+	    } else if(attrId == 1948) {
+		bardResult.setTestConc(item.getValueNum()); 
+		bardResult.setTestConcUnit("% (mass)");
+		haveConcAttr = true;
+	    } else if(attrId == 1943) {
+		bardResult.setTestConc(item.getValueNum()); 
+		haveConcAttr = true;
+	    }	 	    
+	} 
+	//if it's not a concentration, add it as a child
+	if(!haveConcAttr) {
 	    bardResult.addChildResult(buildResultTypeFromContextItem(item));
 	}
     }
