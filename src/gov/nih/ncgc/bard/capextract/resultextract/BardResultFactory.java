@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Vector;
 
+import org.eclipse.jetty.util.log.Log;
+
 /**
  * This class builds BardResultType starting with a variety of input formats.
  * CapResultCapsule being one type to convert.
@@ -299,20 +301,26 @@ public class BardResultFactory {
 	
 	//check for single point, one test concentration, have efficacy
 	if(!haveType) {
-	    if(concentrations.size() == 1 || (concCnt !=null && concCnt == 1)) {
+	    if(concentrations.size() == 1 || (concCnt != null && concCnt == 1)) {
 		//check for efficacy in root elements
 		for(BardResultType result : response.getRootElements()) {
-		    if(result.getDictElemId() != null && this.efficacyDataElemV.contains(result.getDictElemId())) {
-
-			//don't set test conc, just report global expt values
-//			if(result.getTestConc() == null && ) {
-//			    result.setTestConc(response.getExptScreeningConc());
-//			    result.setTestConcUnit(response.getExptConcUnit());
-//			}
-			response.setResponseType(BardExptDataResponse.ResponseClass.SP.ordinal());
-			haveType = true;
-		    }
-		}		
+		    if(result.getDictElemId() != null) {
+			//if we have an efficacy, and one point, definate SP
+			if(this.xx50DataElemV.contains(result.getDictElemId())) {
+			    //only one conc but a root is an XX50, CR_NO_SER
+			    //System.out.println("Set to CR_NO_SER" + " sid="+response.getSid()+" size="+response.getRootElements().size());
+			    response.setResponseType(BardExptDataResponse.ResponseClass.CR_NO_SER.ordinal());
+			    haveType = true;
+			} else if(!haveType && this.efficacyDataElemV.contains(result.getDictElemId())) {
+			    response.setResponseType(BardExptDataResponse.ResponseClass.SP.ordinal());
+			    haveType = true;
+			} else if(!haveType) {
+			    //System.out.println("Set to UNCLASS"+ " sid="+response.getSid()+" size="+response.getRootElements().size());
+			    //unclass is fall through
+			    response.setResponseType(BardExptDataResponse.ResponseClass.UNCLASS.ordinal());
+			}			
+		    }	 
+		}
 	    } else if(concentrations.size() > 1 || concentrations.size() == 0) {
 		//have more than one concentration but no structure 
 		//the ec50 doesn't have concentration points as children
@@ -341,6 +349,7 @@ public class BardResultFactory {
 		
 	    } else {
 		//fall through type = UNCLASS (2)
+		//System.out.println("unclass fall through");
 		response.setResponseType(BardExptDataResponse.ResponseClass.UNCLASS.ordinal());
 	    }
 	}
