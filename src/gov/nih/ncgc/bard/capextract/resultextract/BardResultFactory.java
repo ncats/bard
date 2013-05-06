@@ -11,8 +11,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Vector;
 
-import org.eclipse.jetty.util.log.Log;
-
 /**
  * This class builds BardResultType starting with a variety of input formats.
  * CapResultCapsule being one type to convert.
