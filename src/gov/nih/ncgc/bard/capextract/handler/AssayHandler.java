@@ -2,14 +2,19 @@ package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.*;
 import gov.nih.ncgc.bard.capextract.jaxb.*;
+import gov.nih.ncgc.bard.entity.Biology;
 import gov.nih.ncgc.bard.tools.Util;
 import nu.xom.ParsingException;
 
 import javax.xml.bind.JAXBElement;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.math.BigInteger;
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Process CAP <code>Assay</code> elements.
@@ -63,7 +68,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 
         // get the Assay object here
         Assay assay = getResponse(url, resource);
-        
+
         //JB: Assays that aren't 'Ready' will not be exposed by bard export
         //if (!assay.getReadyForExtraction().equals("Ready")) return;
 
@@ -370,110 +375,95 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                     pstAssayAnnot.addBatch();
                 }
 
-            int[] updateCounts = pstAssayAnnot.executeBatch();
-            conn.commit();
-            pstAssayAnnot.close();
+                int[] updateCounts = pstAssayAnnot.executeBatch();
+                conn.commit();
+                pstAssayAnnot.close();
 
-            // insert documents if need be
-            PreparedStatement pstPub = conn.prepareStatement("select * from assay_pub where bard_assay_id = ?");
-            PreparedStatement pstPubLink = conn.prepareStatement("insert into assay_pub (bard_assay_id, pmid) values (?,?)");
-            for (CAPAnnotation anno : annos) {
-                if (anno.source.equals("cap-doc")) {
-                    String docType = anno.contextRef;
-                    String docContent = anno.value;
-                    if (docType.equals("Paper") && docContent.startsWith("http://www.ncbi.nlm.nih.gov/pubmed")) {
-                        String pmid = Util.getEntityIdFromUrl(docContent);
-                        boolean insstatus = CAPUtil.insertPublication(conn, pmid);
-                        if (insstatus) log.info("Inserted Pubmed publication " + pmid);
+                // insert documents if need be
+                PreparedStatement pstPub = conn.prepareStatement("select * from assay_pub where bard_assay_id = ?");
+                PreparedStatement pstPubLink = conn.prepareStatement("insert into assay_pub (bard_assay_id, pmid) values (?,?)");
+                for (CAPAnnotation anno : annos) {
+                    if (anno.source.equals("cap-doc")) {
+                        String docType = anno.contextRef;
+                        String docContent = anno.value;
+                        if (docType.equals("Paper") && docContent.startsWith("http://www.ncbi.nlm.nih.gov/pubmed")) {
+                            String pmid = Util.getEntityIdFromUrl(docContent);
+                            boolean insstatus = CAPUtil.insertPublication(conn, pmid);
+                            if (insstatus) log.info("Inserted Pubmed publication " + pmid);
 
-                        // see if we should make a link in assay_pub
-                        pstPub.setInt(1, bardAssayId);
-                        ResultSet prs = pstPub.executeQuery();
-                        boolean linkExists = false;
-                        while (prs.next()) linkExists = true;
-                        pstPub.clearParameters();
+                            // see if we should make a link in assay_pub
+                            pstPub.setInt(1, bardAssayId);
+                            ResultSet prs = pstPub.executeQuery();
+                            boolean linkExists = false;
+                            while (prs.next()) linkExists = true;
+                            pstPub.clearParameters();
 
-                        if (!linkExists) {
-                            pstPubLink.setInt(1, bardAssayId);
-                            pstPubLink.setInt(2, Integer.parseInt(pmid));
-                            pstPubLink.execute();
-                            pstPubLink.addBatch();
+                            if (!linkExists) {
+                                pstPubLink.setInt(1, bardAssayId);
+                                pstPubLink.setInt(2, Integer.parseInt(pmid));
+                                pstPubLink.execute();
+                                pstPubLink.addBatch();
+                            }
                         }
                     }
                 }
-            }
-            pstPubLink.executeBatch();
-            conn.commit();
-            pstPubLink.close();
-            pstPub.close();
-            log.info("Inserted " + updateCounts.length + " annotations for CAP aid " + capAssayId);
-
-                // add in targets - get unique set of Uniprot accessions
-                rs.close();
-                Set<Target> accs = new HashSet<Target>();
-                PreparedStatement pstTarget = conn.prepareStatement("select accession from protein_target where gene_id = ?");
-                for (String geneid : geneIds) {
-                    pstTarget.setInt(1, Integer.parseInt(geneid));
-                    rs = pstTarget.executeQuery();
-                    String acc = null;
-                    while (rs.next()) acc = rs.getString(1);
-                    if (acc != null) accs.add(new Target(geneid, acc));
-                    pstTarget.clearParameters();
-                }
-                rs.close();
-                pstTarget.close();
-                pstTarget = conn.prepareStatement("select distinct a.uniprot_acc, b.gene_id from uniprot_map a, protein_target b where acc_type = 'GI' and a.uniprot_acc = b.accession and acc = ?");
-                for (String gi : gis) {
-                    pstTarget.setString(1, gi);
-                    rs = pstTarget.executeQuery();
-                    String acc = null;
-                    Integer geneid = null;
-                    while (rs.next()) {
-                        acc = rs.getString(1);
-                        geneid = rs.getInt(2);
-                        accs.add(new Target(geneid.toString(), acc));
-                    }
-                    rs.close();
-                    pstTarget.clearParameters();
-                }
-                pstTarget.close();
-                // insert the target acc's
-                pstTarget = conn.prepareStatement("insert into assay_target (bard_assay_id, aid, accession, gene_id) values (?,?,?,?)");
-                for (Target t : accs) {
-                    pstTarget.setInt(1, bardAssayId);
-                    pstTarget.setInt(2, capAssayId.intValue());
-                    pstTarget.setString(3, t.uniprot);
-                    pstTarget.setInt(4, Integer.parseInt(t.geneid));
-                    try {
-                        pstAssay.executeUpdate();
-                    } catch (com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException e) {}
-                }
+                pstPubLink.executeBatch();
                 conn.commit();
+                pstPubLink.close();
+                pstPub.close();
+                log.info("Inserted " + updateCounts.length + " annotations for CAP aid " + capAssayId);
+                rs.close();
+
+                // get Biology information and load it into the bard_biology table
+                List<BiologyInfo> bi = extractBiology(assay.getAssayContexts().getAssayContext());
+                PreparedStatement pstTarget =
+                        conn.prepareStatement("insert into bard_biology (biology, biology_dict_id, biology_dict_label, description, entity, entity_id, ext_id, ext_ref)");
+                for (BiologyInfo abi : bi) {
+                    String biology = Biology.BiologyType.GENE.getBiologyTypeFromDictId(abi.dictId).toString();
+                    pstTarget.setString(1, biology);
+                    pstTarget.setInt(2, abi.dictId);
+                    pstTarget.setString(3, abi.dictLabel);
+                    pstTarget.setString(4, abi.description);
+                    pstTarget.setString(5, "assay");
+                    pstTarget.setInt(6, bardAssayId);
+                    pstTarget.setString(7, abi.extId);
+                    pstTarget.setString(8, abi.extRef);
+                    try {
+                        pstTarget.executeUpdate();
+                    } catch (com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException e) {
+                    }
+                    pstTarget.clearParameters();
+                }
                 pstTarget.close();
-                log.info("Inserted "+accs.size()+" target entries for BARD assay id = "+bardAssayId);
+                log.info("Inserted " + bi.size() + " biology entries for BARD assay id = " + bardAssayId);
 
             }
 
             // now insert the experiment
             ExperimentHandler exptHandler = new ExperimentHandler();
             for (String exptUrl : exptUrls) {
-                log.info("Loading linked experiment (CAP id = "+Util.getEntityIdFromUrl(exptUrl)+")");
+                log.info("Loading linked experiment (CAP id = " + Util.getEntityIdFromUrl(exptUrl) + ")");
                 exptHandler.process(exptUrl, CAPConstants.CapResource.EXPERIMENT);
             }
 
-            log.info("Completed processing of ASSAY (CAP id = "+assay.getAssayId()+", bard id = "+bardAssayId+")");
+            log.info("Completed processing of ASSAY (CAP id = " + assay.getAssayId() + ", bard id = " + bardAssayId + ")");
         } catch (SQLException e) {
             e.printStackTrace();
             log.error("Error inserting annotations for CAP aid " + capAssayId + "\n" + e.getMessage());
         } catch (ParsingException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
     }
 
 
-    Object extractBiology(List<AssayContexType> contexts) {
+    List<BiologyInfo> extractBiology(List<AssayContexType> contexts) throws ClassNotFoundException, IOException, SQLException {
+        CAPDictionary dict = getCAPDictionary();
+
         if (contexts == null || contexts.size() == 0) return null;
 
+        List<BiologyInfo> bioInfo = new ArrayList<BiologyInfo>();
         for (AssayContexType context : contexts) {
             if (context.getAssayContextItems() == null) continue;
 
@@ -511,22 +501,51 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 AbstractContextItemType.AttributeId attrid = contextItem.getAttributeId();
                 String dictId = Util.getEntityIdFromUrl(attrid.getLink().getHref());
                 if (Util.isNumber(dictId) && targetDictIds.contains(Integer.parseInt(dictId))) {
-                   // collect different ext refs
+
+                    String dictLabel = dict.getNode(dictId).getLabel();
+                    String extId = contextItem.getExtValueId();
+                    String description = contextItem.getValueDisplay();
+                    BiologyInfo bi = new BiologyInfo(dictLabel, Integer.parseInt(dictId), extId, null, description);
+                    bioInfo.add(bi);
                 }
             }
 
-//            String contextName = context.getContextName();
-//            int contextId = context.getAssayContextId().intValue();
-//            // some special handling for targets
-//            if (contextName.equals("target")) {
-//                for (AssayContextItemType contextItem : context.getAssayContextItems().getAssayContextItem()) {
-//                    AbstractContextItemType.AttributeId attr = contextItem.getAttributeId();
-//                    if (attr != null && attr.getLabel().equals("gene")) geneIds.add(contextItem.getExtValueId());
-//                    else if (attr != null && attr.getLabel().equals("protein")) gis.add(contextItem.getExtValueId());
-//                }
-//            }
         }
-        return null;
+        return bioInfo;
+    }
+
+    class BiologyInfo {
+        String dictLabel, extId, extRef, description;
+        Integer dictId;
+
+        BiologyInfo(String dictLabel, Integer dictId, String extId, String extRef, String description) {
+            this.dictLabel = dictLabel;
+            this.extId = extId;
+            this.extRef = extRef;
+            this.description = description;
+            this.dictId = dictId;
+        }
+    }
+
+    private CAPDictionary getCAPDictionary()
+            throws SQLException, IOException, ClassNotFoundException {
+        Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+        PreparedStatement pst = conn.prepareStatement("select dict, ins_date from cap_dict_obj order by ins_date desc");
+        try {
+            ResultSet rs = pst.executeQuery();
+            rs.next();
+            byte[] buf = rs.getBytes(1);
+            log.info("Retrived CAP dictionary blob with ins_date = " + rs.getDate(2));
+            ObjectInputStream objectIn = null;
+            if (buf != null)
+                objectIn = new ObjectInputStream(new ByteArrayInputStream(buf));
+            Object o = objectIn.readObject();
+            rs.close();
+            if (!(o instanceof CAPDictionary)) return null;
+            return (CAPDictionary) o;
+        } finally {
+            pst.close();
+        }
     }
 
 }

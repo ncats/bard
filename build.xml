@@ -80,7 +80,7 @@
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
                debug="yes" target="1.6"
-               includes="**/capextract/**, **/tools/LogConfig*">
+               includes="**/capextract/**, **/tools/LogConfig*, **/entity/Biology*">
             <classpath refid="compile.classpath"/>
         </javac>
     </target>
