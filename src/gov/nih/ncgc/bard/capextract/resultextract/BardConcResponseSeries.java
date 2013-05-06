@@ -1,6 +1,6 @@
 package gov.nih.ncgc.bard.capextract.resultextract;
 
-import gov.nih.ncgc.bard.pcparser.resultmap.pcloader.CapTidResultTypeMapWorker;
+//import gov.nih.ncgc.bard.pcparser.resultmap.pcloader.CapTidResultTypeMapWorker;
 
 import java.util.ArrayList;
 import java.util.Vector;
@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 public class BardConcResponseSeries {
     
     @JsonIgnore
-    Logger logger = Logger.getLogger(CapTidResultTypeMapWorker.class.getName());
+    Logger logger = Logger.getLogger(BardConcResponseSeries.class.getName());
         
     @JsonInclude(Include.NON_NULL)
     private String responseUnit;
