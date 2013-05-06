@@ -151,7 +151,7 @@ public class Biology implements BardEntity {
      * @return The path to this resource
      */
     public String getResourcePath() {
-        return BARDConstants.API_BASE + "/biology/" + entity + "/" + entity_id;
+        return BARDConstants.API_BASE + "/biology/" + serial;
     }
 
     /**

@@ -159,7 +159,7 @@ public class DBUtils {
             put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
             put(Project.class, new Query(projectFields, "bard_proj_id", null, "bard_project"));
             put(ProteinTarget.class, new Query(targetFields, "accession", null, "protein_target"));
-            put(Biology.class, new Query(biologyFields, "serial", null, "biology"));
+            put(Biology.class, new Query(biologyFields, "serial", null, "bard_biology"));
             put(Experiment.class, new Query(experimentFields, "bard_expt_id", null, "bard_experiment"));
             put(Compound.class, new Query(compoundFields, "druglike desc, activity desc", "cid", "compound_rank"));
             put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
