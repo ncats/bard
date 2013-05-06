@@ -45,13 +45,13 @@ public class Biology implements BardEntity {
     Integer entity_id;
 
     String description, entity, extId, extRef, dictLabel;
-    Integer dictId;
+    Integer dictId, serial;
     Timestamp updated;
 
     public Biology() {
     }
 
-    public Biology(String description, String entity, String biology, String ext_ref, Integer entity_id, String ext_id, Timestamp updated) {
+    public Biology(String description, String entity, String biology, String ext_ref, Integer entity_id, String ext_id, Timestamp updated, Integer serial) {
         this.description = description;
         this.entity = entity;
         this.biology = biology;
@@ -59,6 +59,15 @@ public class Biology implements BardEntity {
         this.entity_id = entity_id;
         this.extId = ext_id;
         this.updated = updated;
+        this.serial = serial;
+    }
+
+    public Integer getSerial() {
+        return serial;
+    }
+
+    public void setSerial(Integer serial) {
+        this.serial = serial;
     }
 
     public String getDictLabel() {

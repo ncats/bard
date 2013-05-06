@@ -153,18 +153,20 @@ public class DBUtils {
         final List<String> assayFields = Arrays.asList("name", "description", "protocol", "comemnt", "source", "grant_no");
         final List<String> edFields = Arrays.asList();
         final List<String> etagFields = Arrays.asList("name", "type");
+        final List<String> biologyFields = Arrays.asList("ext_id", "description");
 
         fieldMap = new HashMap<Class, Query>() {{
-                put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
-                put(Project.class, new Query(projectFields, "bard_proj_id", null, "bard_project"));
-                put(ProteinTarget.class, new Query(targetFields, "accession", null, "protein_target"));
-                put(Experiment.class, new Query(experimentFields, "bard_expt_id", null, "bard_experiment"));
-                put(Compound.class, new Query(compoundFields, "druglike desc, activity desc", "cid", "compound_rank"));
-                put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
-                put(Assay.class, new Query(assayFields, "bard_assay_id", null, "bard_assay"));
-                put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "bard_experiment_data"));
-                put(ETag.class, new Query(etagFields, "etag_id", null, "etag", "status=1"));
-            }};
+            put(Publication.class, new Query(publicationFields, "pmid", null, "publication"));
+            put(Project.class, new Query(projectFields, "bard_proj_id", null, "bard_project"));
+            put(ProteinTarget.class, new Query(targetFields, "accession", null, "protein_target"));
+            put(Biology.class, new Query(biologyFields, "serial", null, "biology"));
+            put(Experiment.class, new Query(experimentFields, "bard_expt_id", null, "bard_experiment"));
+            put(Compound.class, new Query(compoundFields, "druglike desc, activity desc", "cid", "compound_rank"));
+            put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
+            put(Assay.class, new Query(assayFields, "bard_assay_id", null, "bard_assay"));
+            put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "bard_experiment_data"));
+            put(ETag.class, new Query(etagFields, "etag_id", null, "etag", "status=1"));
+        }};
 
 //        conn = getConnection();
     }
@@ -4583,6 +4585,7 @@ public class DBUtils {
             Object id = rs.getObject(queryParams.getIdField());
             Object entity = null;
             if (klass.equals(Publication.class)) entity = getPublicationByPmid((Long) id);
+            if (klass.equals(Biology.class)) entity = getBiologyBySerial((Long) id);
             else if (klass.equals(ProteinTarget.class)) entity = getProteinTargetByAccession((String) id);
             else if (klass.equals(Project.class)) entity = getProject((Long) id);
             else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
@@ -5420,6 +5423,63 @@ public class DBUtils {
         } finally {
             pst.close();
         }
+    }
+
+    public List<Biology> getBiologyBySerial(Long serial) throws SQLException {
+        if (conn == null) conn = getConnection();
+
+        PreparedStatement pst = conn.prepareStatement("select * from bard_biology where serial = ?");
+        pst.setLong(1, serial);
+        ResultSet rs = pst.executeQuery();
+        List<Biology> bios = new ArrayList<Biology>();
+        while (rs.next()) {
+            Biology bio = new Biology();
+            bio.setSerial(rs.getInt("serial"));
+            bio.setBiology(rs.getString("biology"));
+            bio.setDescription(rs.getString("description"));
+            bio.setDictId(rs.getInt("biology_dict_id"));
+            bio.setDictLabel(rs.getString("biology_dict_label"));
+            bio.setEntity(rs.getString("entity"));
+            bio.setEntity_id(rs.getInt("entity_id"));
+            bio.setExtId(rs.getString("ext_id"));
+            bio.setExtRef(rs.getString("ext_ref"));
+            bios.add(bio);
+        }
+        rs.close();
+        pst.close();
+        return bios;
+    }
+
+    public List<Biology> getBiologyByEntity(String entity, int entityId) throws SQLException {
+        if (conn == null) conn = getConnection();
+        Cache cache = getCache("BiologyCache");
+        try {
+            List<Biology> value = getCacheValue(cache, entity+"#"+entityId);
+            if (value != null) return value;
+        } catch (ClassCastException e) {
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select * from bard_biology where entity = ? and entity_id = ?");
+        pst.setString(1, entity);
+        pst.setInt(2, entityId);
+        ResultSet rs = pst.executeQuery();
+        List<Biology> bios = new ArrayList<Biology>();
+        while (rs.next()) {
+            Biology bio = new Biology();
+            bio.setSerial(rs.getInt("serial"));
+            bio.setBiology(rs.getString("biology"));
+            bio.setDescription(rs.getString("description"));
+            bio.setDictId(rs.getInt("biology_dict_id"));
+            bio.setDictLabel(rs.getString("biology_dict_label"));
+            bio.setEntity(entity);
+            bio.setEntity_id(entityId);
+            bio.setExtId(rs.getString("ext_id"));
+            bio.setExtRef(rs.getString("ext_ref"));
+            bios.add(bio);
+        }
+        rs.close();
+        pst.close();
+        return bios;
     }
 
     public static void main(String[] argv) throws Exception {
