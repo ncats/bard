@@ -1,12 +1,8 @@
 package gov.nih.ncgc.bard.rest;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Biology;
-import gov.nih.ncgc.bard.entity.TargetClassification;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -293,31 +289,4 @@ public class BARDBiologyResource extends BARDResource<Biology> {
             throw new WebApplicationException(e, 500);
         }
     }
-
-    @POST
-    @Path("/accession/classification/{source}")
-    @Consumes("application/x-www-form-urlencoded")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getClassificationsForAccessions(@PathParam("source") String source,
-                                                    @FormParam("accs") String accs) throws SQLException, IOException {
-
-        DBUtils db = new DBUtils();
-        String[] laccs = accs.split(",");
-
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode node = mapper.createObjectNode();
-
-        for (String acc : laccs) {
-            List<TargetClassification> classes = null;
-            if (source.toLowerCase().equals("panther")) {
-                classes = db.getPantherClassesForAccession(acc.trim());
-            }
-            JsonNode classNodes = mapper.valueToTree(classes);
-            node.put(acc, classNodes);
-        }
-        db.closeConnection();
-        String json = mapper.writeValueAsString(node);
-        return Response.ok(json).type(MediaType.APPLICATION_JSON_TYPE).build();
-    }
-
 }
