@@ -5425,6 +5425,31 @@ public class DBUtils {
         }
     }
 
+    public List<Biology> getBiologyByType(String typeName) throws SQLException {
+        if (conn == null) conn = getConnection();
+
+        PreparedStatement pst = conn.prepareStatement("select * from bard_biology where biology = ?");
+        pst.setString(1, typeName);
+        ResultSet rs = pst.executeQuery();
+        List<Biology> bios = new ArrayList<Biology>();
+        while (rs.next()) {
+            Biology bio = new Biology();
+            bio.setSerial(rs.getInt("serial"));
+            bio.setBiology(rs.getString("biology"));
+            bio.setDescription(rs.getString("description"));
+            bio.setDictId(rs.getInt("biology_dict_id"));
+            bio.setDictLabel(rs.getString("biology_dict_label"));
+            bio.setEntity(rs.getString("entity"));
+            bio.setEntity_id(rs.getInt("entity_id"));
+            bio.setExtId(rs.getString("ext_id"));
+            bio.setExtRef(rs.getString("ext_ref"));
+            bios.add(bio);
+        }
+        rs.close();
+        pst.close();
+        return bios;
+    }
+
     public List<Biology> getBiologyBySerial(Long serial) throws SQLException {
         if (conn == null) conn = getConnection();
 
@@ -5455,6 +5480,38 @@ public class DBUtils {
         Cache cache = getCache("BiologyCache");
         try {
             List<Biology> value = getCacheValue(cache, entity+"#"+entityId);
+            if (value != null) return value;
+        } catch (ClassCastException e) {
+        }
+
+        PreparedStatement pst = conn.prepareStatement("select * from bard_biology where entity = ? and entity_id = ?");
+        pst.setString(1, entity);
+        pst.setInt(2, entityId);
+        ResultSet rs = pst.executeQuery();
+        List<Biology> bios = new ArrayList<Biology>();
+        while (rs.next()) {
+            Biology bio = new Biology();
+            bio.setSerial(rs.getInt("serial"));
+            bio.setBiology(rs.getString("biology"));
+            bio.setDescription(rs.getString("description"));
+            bio.setDictId(rs.getInt("biology_dict_id"));
+            bio.setDictLabel(rs.getString("biology_dict_label"));
+            bio.setEntity(entity);
+            bio.setEntity_id(entityId);
+            bio.setExtId(rs.getString("ext_id"));
+            bio.setExtRef(rs.getString("ext_ref"));
+            bios.add(bio);
+        }
+        rs.close();
+        pst.close();
+        return bios;
+    }
+
+    public List<Biology> getBiologyByEntity(String entity, int entityId, String typeName) throws SQLException {
+        if (conn == null) conn = getConnection();
+        Cache cache = getCache("BiologyCache");
+        try {
+            List<Biology> value = getCacheValue(cache, entity + "#" + entityId + "#" + typeName);
             if (value != null) return value;
         } catch (ClassCastException e) {
         }

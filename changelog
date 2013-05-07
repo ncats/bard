@@ -88,3 +88,4 @@ v16 released
 04/17/13      responses from /etags now contain the etag id in the response header
               Added support for tested/active filters on substances
 05/06/13      Added new resource: /biology to represent generic target biology which can be gene, protein, process, pathway etc
+	      /biology Subresources include: /types, /types/{type}, /{entity}/{entityId}, /{entity}/{entityId}/{type}

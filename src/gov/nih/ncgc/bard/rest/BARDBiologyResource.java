@@ -123,6 +123,51 @@ public class BARDBiologyResource extends BARDResource<Biology> {
     }
 
     @GET
+    @Path("/types")
+    @Produces("application/json")
+    public Response getBiologyTypes() {
+        Biology.BiologyType[] types = Biology.BiologyType.values();
+        List<String> typeStrings = new ArrayList<String>();
+        for (Biology.BiologyType type : types) typeStrings.add(type.toString());
+        String json = null;
+        try {
+            json = Util.toJson(typeStrings);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+        return Response.ok(json).build();
+    }
+
+    @GET
+    @Path("/types/{typeName}")
+    @Produces("application/json")
+    public Response getBiologyByType(@PathParam("typeName") String typeName,
+                                     @QueryParam("expand") String expand) {
+        DBUtils db = new DBUtils();
+        try {
+            String json;
+            List<Biology> biologies = db.getBiologyByType(typeName);
+            db.closeConnection();
+            if (biologies.size() == 0)
+                throw new NotFoundException("No biology information for " + typeName);
+            if (countRequested) json = String.valueOf(biologies.size());
+            else if (expandEntries(expand)) {
+                json = Util.toJson(biologies);
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Biology bio : biologies)
+                    links.add(bio.getResourcePath());
+                json = Util.toJson(links);
+            }
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @GET
     @Path("/{entity}/{entityId}")
     @Produces("application/json")
     public Response getBiologyForEntity(@PathParam("entity") String entity,
@@ -152,6 +197,43 @@ public class BARDBiologyResource extends BARDResource<Biology> {
         }
     }
 
+    @GET
+    @Path("/{entity}/{entityId}/{typeName}")
+    @Produces("application/json")
+    public Response getBiologyForEntityAndType(@PathParam("entity") String entity,
+                                               @PathParam("entityId") int entityId,
+                                               @PathParam("typeName") String typeName,
+                                               @QueryParam("expand") String expand) {
+        DBUtils db = new DBUtils();
+        try {
+            String json;
+            List<Biology> biologies = db.getBiologyByEntity(entity, entityId);
+            db.closeConnection();
+            if (biologies.size() == 0)
+                throw new NotFoundException("No biology information for " + entity + " " + entityId);
+
+            List<Biology> tmp = new ArrayList<Biology>();
+            for (Biology bio : biologies) {
+                if (bio.getBiology().equals(typeName)) tmp.add(bio);
+            }
+            biologies = tmp;
+
+            if (countRequested) json = String.valueOf(biologies.size());
+            else if (expandEntries(expand)) {
+                json = Util.toJson(biologies);
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Biology bio : biologies)
+                    links.add(bio.getResourcePath());
+                json = Util.toJson(links);
+            }
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
 
     @POST
     @Path("/accession/classification/{source}")
