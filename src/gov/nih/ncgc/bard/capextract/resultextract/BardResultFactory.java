@@ -255,7 +255,7 @@ public class BardResultFactory {
 	bardResult.setDisplayName(contextItem.getAttribute());
 	bardResult.setValue((contextItem.getValueNum() != null) ? contextItem.getValueNum().toString() : contextItem.getValueDisplay());
 	bardResult.setDictElemId(contextItem.getAttributeId());
-	
+	bardResult.setExtValueId(contextItem.getExtValueId());
 	return bardResult;
     }
     
@@ -267,7 +267,7 @@ public class BardResultFactory {
 	result.setDisplayName(capResult.getResultType());
 	//set value as the numeric value, or if numeric value is null, set to display value 
 	result.setValue((capResult.getValueNum() != null) ? Double.toString(capResult.getValueNum()) : capResult.getValueDisplay());
-	//take care of qualifer
+	//take care of qualifier
 	dummyStr = capResult.getQualifier();
 	if(dummyStr != null && !dummyStr.equals("="))
 	    result.setQualifierValue(capResult.getQualifier());	
