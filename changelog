@@ -87,3 +87,4 @@ v16 released
 	      If annot=true, response only includes compounds that have annotations, other wise returns all compounds. Currently, no filter/check is applied to the annotations themselves
 04/17/13      responses from /etags now contain the etag id in the response header
               Added support for tested/active filters on substances
+05/06/13      Added new resource: /biology to represent generic target biology which can be gene, protein, process, pathway etc

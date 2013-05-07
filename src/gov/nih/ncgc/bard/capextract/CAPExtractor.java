@@ -3,21 +3,11 @@ package gov.nih.ncgc.bard.capextract;
 //import gov.nih.ncgc.bard.capextract.handler.AssayHandler;
 //import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
 
-import gov.nih.ncgc.bard.capextract.handler.AssayHandler;
-import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
-import gov.nih.ncgc.bard.capextract.handler.BardexportHandler;
-import gov.nih.ncgc.bard.capextract.handler.DictionaryHandler;
-import gov.nih.ncgc.bard.capextract.handler.ExperimentHandler;
-import gov.nih.ncgc.bard.capextract.handler.ExperimentResultHandler;
-import gov.nih.ncgc.bard.capextract.handler.ExperimentsHandler;
-import gov.nih.ncgc.bard.capextract.handler.ExternalReferenceHandler;
-import gov.nih.ncgc.bard.capextract.handler.ExternalSystemHandler;
-import gov.nih.ncgc.bard.capextract.handler.ProjectDocHandler;
-import gov.nih.ncgc.bard.capextract.handler.ProjectHandler;
-import gov.nih.ncgc.bard.capextract.handler.ProjectsHandler;
-import gov.nih.ncgc.bard.capextract.handler.ResultHandler;
+import gov.nih.ncgc.bard.capextract.handler.*;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Projects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -27,9 +17,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Example code to play with the Broad CAP Data Export API.
@@ -99,6 +86,10 @@ public class CAPExtractor {
             }
         }
     }
+
+    // To do a test for a specific assay id, first mark it as READY
+    // AssayHandler h = new AssayHandler();
+    // h.setExtractionStatus("Ready", "https://bard.broadinstitute.org/dataExport/api/assays/1587",CAPConstants.CapResource.ASSAY);
 
     public void setHandlers() {
         registry = CapResourceHandlerRegistry.getInstance();
