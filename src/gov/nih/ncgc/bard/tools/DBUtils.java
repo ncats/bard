@@ -5425,11 +5425,20 @@ public class DBUtils {
         }
     }
 
-    public List<Biology> getBiologyByType(String typeName) throws SQLException {
+    public List<Biology> getBiologyByType(String typeName, String extId) throws SQLException {
         if (conn == null) conn = getConnection();
 
-        PreparedStatement pst = conn.prepareStatement("select * from bard_biology where biology = ?");
-        pst.setString(1, typeName);
+        PreparedStatement pst;
+        if (extId == null) {
+            pst = conn.prepareStatement("select * from bard_biology where biology = ?");
+            pst.setString(1, typeName);
+        }
+        else {
+            pst = conn.prepareStatement("select * from bard_biology where biology = ? and ext_id = ?");
+            pst.setString(1, typeName);
+            pst.setString(2, extId);
+        }
+
         ResultSet rs = pst.executeQuery();
         List<Biology> bios = new ArrayList<Biology>();
         while (rs.next()) {
@@ -5448,6 +5457,9 @@ public class DBUtils {
         rs.close();
         pst.close();
         return bios;
+    }
+    public List<Biology> getBiologyByType(String typeName) throws SQLException {
+        return getBiologyByType(typeName, null);
     }
 
     public List<Biology> getBiologyBySerial(Long serial) throws SQLException {
