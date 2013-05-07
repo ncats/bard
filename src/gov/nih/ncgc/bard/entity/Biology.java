@@ -15,7 +15,7 @@ import java.sql.Timestamp;
  */
 public class Biology implements BardEntity {
     public static enum BiologyType {
-        GENE, PROTEIN, SEQUENCE, PROCESS, COMPONENT, FUNCTION, NCBI, GO, UNKNOWN;
+        GENE, PROTEIN, SEQUENCE, DISEASE, PATHWAY, PROCESS, COMPONENT, FUNCTION, NCBI, GO, UNKNOWN;
 
         public BiologyType getBiologyTypeFromDictId(int dictId) {
             switch (dictId) {
