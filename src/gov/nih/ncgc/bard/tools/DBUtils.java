@@ -5425,6 +5425,31 @@ public class DBUtils {
         }
     }
 
+    public List<Biology> getBiologyByDictId(String dictId) throws SQLException {
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst;
+        pst = conn.prepareStatement("select * from bard_biology where biology_dict_id = ?");
+        pst.setString(1, dictId);
+        ResultSet rs = pst.executeQuery();
+        List<Biology> bios = new ArrayList<Biology>();
+        while (rs.next()) {
+            Biology bio = new Biology();
+            bio.setSerial(rs.getInt("serial"));
+            bio.setBiology(rs.getString("biology"));
+            bio.setDescription(rs.getString("description"));
+            bio.setDictId(rs.getInt("biology_dict_id"));
+            bio.setDictLabel(rs.getString("biology_dict_label"));
+            bio.setEntity(rs.getString("entity"));
+            bio.setEntity_id(rs.getInt("entity_id"));
+            bio.setExtId(rs.getString("ext_id"));
+            bio.setExtRef(rs.getString("ext_ref"));
+            bios.add(bio);
+        }
+        rs.close();
+        pst.close();
+        return bios;
+    }
+
     public List<Biology> getBiologyByType(String typeName, String extId) throws SQLException {
         if (conn == null) conn = getConnection();
 
