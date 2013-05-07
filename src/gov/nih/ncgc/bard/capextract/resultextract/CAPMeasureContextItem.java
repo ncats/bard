@@ -12,6 +12,7 @@ public class CAPMeasureContextItem {
     private Integer attributeId;
     private String valueDisplay;
     private Double valueNum;
+    private String extValueId;
     private String qualifier;
     private Long itemId;
     
@@ -56,5 +57,11 @@ public class CAPMeasureContextItem {
     }
     public void setItemId(Long itemId) {
         this.itemId = itemId;
+    }
+    public String getExtValueId() {
+        return extValueId;
+    }
+    public void setExtValueId(String extValueId) {
+        this.extValueId = extValueId;
     }
 }

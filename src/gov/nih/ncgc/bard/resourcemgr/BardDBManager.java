@@ -17,6 +17,7 @@ import java.util.Vector;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 
+@Deprecated
 public class BardDBManager {
 
     private static Logger logger = Logger.getLogger(BardDBManager.class.getName());
@@ -280,34 +281,34 @@ public class BardDBManager {
 		logger.info("FAILED to update substance due to file retrieve error.");
 	    }
 	} else if (command.equals(SUBSTANCE_DAILY_UPDATE_COMMAND)) {
-	    dbLogId = BardDBUpdateLogger.logStart("Fetch Files for command= "+command);
-	    //fetch files
-	    BardResourceFetch fetch = new BardResourceFetch();
-	    haveFiles = fetch.fetchLatestSubstanceResources(managerProps, SUBSTANCE_DAILY);
-	    if(haveFiles) {
-		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch");
-		dbLogId = BardDBUpdateLogger.logStart("Update command= "+command);	
-		PubchemSubstanceLoader loader = new PubchemSubstanceLoader();
-		newCmpdCnt = loader.batchUpdateSubstances(managerProps);
-		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished Substance Update.  New Substance Cnt ="+newCmpdCnt);
-	    } else {
-		logger.info("FAILED to update substance due to file retrieve error.");
-	    }
+//	    dbLogId = BardDBUpdateLogger.logStart("Fetch Files for command= "+command);
+//	    //fetch files
+//	    BardResourceFetch fetch = new BardResourceFetch();
+//	    haveFiles = fetch.fetchLatestSubstanceResources(managerProps, SUBSTANCE_DAILY);
+//	    if(haveFiles) {
+//		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch");
+//		dbLogId = BardDBUpdateLogger.logStart("Update command= "+command);	
+//		PubchemSubstanceLoader loader = new PubchemSubstanceLoader();
+//		newCmpdCnt = loader.batchUpdateSubstances(managerProps);
+//		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished Substance Update.  New Substance Cnt ="+newCmpdCnt);
+//	    } else {
+//		logger.info("FAILED to update substance due to file retrieve error.");
+//	    }
 	} else if (command.equals(SUBSTANCE_SPECIFIC_FTP_RESOURCE_UPDATED_COMMAND)) {			
-	    if(args.size() > 2) {
-		dbLogId = BardDBUpdateLogger.logStart("Fetch Files for command= "+command+" FTP Dir= "+args.get(2));
-		BardResourceFetch fetch = new BardResourceFetch();
-		//the third argument is the ftp location of the resource
-		haveFiles = fetch.fetchSpecificSubstanceResources(managerProps, args.get(2));			
-		if(haveFiles) {
-		    BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch= "+args.get(2));
-		    //start update
-		    dbLogId = BardDBUpdateLogger.logStart("Update command= "+command+" FTP Dir= "+args.get(2));					
-		    PubchemSubstanceLoader loader = new PubchemSubstanceLoader ();
-		    newCmpdCnt = loader.batchUpdateSubstances(managerProps);
-		    BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished Specific Update ("+args.get(2)+" New Substance Cnt ="+newCmpdCnt);
-		}				
-	    }
+//	    if(args.size() > 2) {
+//		dbLogId = BardDBUpdateLogger.logStart("Fetch Files for command= "+command+" FTP Dir= "+args.get(2));
+//		BardResourceFetch fetch = new BardResourceFetch();
+//		//the third argument is the ftp location of the resource
+//		haveFiles = fetch.fetchSpecificSubstanceResources(managerProps, args.get(2));			
+//		if(haveFiles) {
+//		    BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch= "+args.get(2));
+//		    //start update
+//		    dbLogId = BardDBUpdateLogger.logStart("Update command= "+command+" FTP Dir= "+args.get(2));					
+//		    PubchemSubstanceLoader loader = new PubchemSubstanceLoader ();
+//		    newCmpdCnt = loader.batchUpdateSubstances(managerProps);
+//		    BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished Specific Update ("+args.get(2)+" New Substance Cnt ="+newCmpdCnt);
+//		}				
+//	    }
 	} else if (command.equals(COMPOUND_CID_SID_MAPPING_UPDATE_COMMAND)) {			
 
 	    dbLogId = BardDBUpdateLogger.logStart("Fetch Files for command= "+command);

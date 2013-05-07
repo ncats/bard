@@ -38,6 +38,7 @@ public class BardResultType {
     private Boolean isActiveConc;
     @JsonIgnore
     private Integer qualifierId;
+    private String extValueId;
     private String qualifierValue;
     private String readoutName;
     
@@ -277,6 +278,14 @@ public class BardResultType {
 
     public void setReadoutName(String readoutName) {
         this.readoutName = readoutName;
+    }
+    
+    public String getExtValueId() {
+        return extValueId;
+    }
+
+    public void setExtValueId(String extValueId) {
+        this.extValueId = extValueId;
     }
 
     public boolean haveChildren() {
