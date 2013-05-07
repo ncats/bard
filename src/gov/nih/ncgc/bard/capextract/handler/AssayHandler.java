@@ -357,28 +357,31 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             }
 
             // get Biology information and load it into the bard_biology table
-            List<BiologyInfo> bi = extractBiology(assay.getAssayContexts().getAssayContext());
-            PreparedStatement pstTarget =
-                    conn.prepareStatement("insert into bard_biology (biology, biology_dict_id, biology_dict_label, description, entity, entity_id, ext_id, ext_ref) " +
-                            " values (?,?,?,?,?,?,?,?)");
-            for (BiologyInfo abi : bi) {
-                String biology = Biology.BiologyType.GENE.getBiologyTypeFromDictId(abi.dictId).toString();
-                pstTarget.setString(1, biology);
-                pstTarget.setInt(2, abi.dictId);
-                pstTarget.setString(3, abi.dictLabel);
-                pstTarget.setString(4, abi.description);
-                pstTarget.setString(5, "assay");
-                pstTarget.setInt(6, bardAssayId);
-                pstTarget.setString(7, abi.extId);
-                pstTarget.setString(8, abi.extRef);
-                try {
-                    pstTarget.executeUpdate();
-                } catch (com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException e) {
+            Assay.AssayContexts assayContexts = assay.getAssayContexts();
+            if (assayContexts != null) {
+                List<BiologyInfo> bi = extractBiology(assayContexts.getAssayContext());
+                PreparedStatement pstTarget =
+                        conn.prepareStatement("insert into bard_biology (biology, biology_dict_id, biology_dict_label, description, entity, entity_id, ext_id, ext_ref) " +
+                                " values (?,?,?,?,?,?,?,?)");
+                for (BiologyInfo abi : bi) {
+                    String biology = Biology.BiologyType.GENE.getBiologyTypeFromDictId(abi.dictId).toString();
+                    pstTarget.setString(1, biology);
+                    pstTarget.setInt(2, abi.dictId);
+                    pstTarget.setString(3, abi.dictLabel);
+                    pstTarget.setString(4, abi.description);
+                    pstTarget.setString(5, "assay");
+                    pstTarget.setInt(6, bardAssayId);
+                    pstTarget.setString(7, abi.extId);
+                    pstTarget.setString(8, abi.extRef);
+                    try {
+                        pstTarget.executeUpdate();
+                    } catch (com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException e) {
+                    }
+                    pstTarget.clearParameters();
                 }
-                pstTarget.clearParameters();
+                pstTarget.close();
+                log.info("Inserted " + bi.size() + " biology entries for BARD assay id = " + bardAssayId);
             }
-            pstTarget.close();
-            log.info("Inserted " + bi.size() + " biology entries for BARD assay id = " + bardAssayId);
 
             // TODO this block implies we don't update annos/pubs etc for pre-existing assays
             if (!assayExists) {
