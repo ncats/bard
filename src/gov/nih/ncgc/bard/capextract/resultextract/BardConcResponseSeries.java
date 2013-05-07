@@ -1,7 +1,5 @@
 package gov.nih.ncgc.bard.capextract.resultextract;
 
-//import gov.nih.ncgc.bard.pcparser.resultmap.pcloader.CapTidResultTypeMapWorker;
-
 import java.util.ArrayList;
 import java.util.Vector;
 import java.util.logging.Logger;
