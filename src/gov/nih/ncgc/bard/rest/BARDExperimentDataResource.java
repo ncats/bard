@@ -196,9 +196,9 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
             // is specified in this case, I don't think we need to do any
             // filtering because we've already got a list of SIDs
             logger.info("SIDs specified along with experiments, assays or projects");
-            if (eids != null) edids = getEdidFromExperiments(ids.split(","), eids.split(","));
-            else if (aids != null) edids = getEdidFromAssays(ids.split(","), aids.split(","));
-            else if (pids != null) edids = getEdidFromProjects(ids.split(","), pids.split(","));
+            if (eids != null) edids = getEdidFromExperiments(ids.split(","), eids.split(","), skip, top, filter);
+            else if (aids != null) edids = getEdidFromAssays(ids.split(","), aids.split(","), skip, top, filter);
+            else if (pids != null) edids = getEdidFromProjects(ids.split(","), pids.split(","), skip, top, filter);
         } else if (eids != null || aids != null || pids != null) {
             logger.info("No SIDs specified. Will retrieve all from experiments, assays or projects");
             // no SID's specified. We have to pull relevant SID's from experiment, assays or projects
@@ -306,16 +306,13 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
         List<String> edids = new ArrayList<String>();
         DBUtils db = new DBUtils();
         for (String eid : eids) {
-            List<Long> sids = db.getExperimentSids(Long.parseLong(eid), -1, -1, false);
-            for (Long sid : sids) edids.add(eid + "." + sid);
-
-            // we should be filtering SID's here
+            edids.addAll(db.getExperimentDataIds(Long.parseLong(eid), skip, top, filter));
         }
         db.closeConnection();
         return edids;
     }
 
-    private List<String> getEdidFromProjects(String[] ids, String[] pids) throws SQLException {
+    private List<String> getEdidFromProjects(String[] ids, String[] pids, int skip, int top, String filter) throws SQLException {
         DBUtils db = new DBUtils();
         List<Long> eids = new ArrayList<Long>();
         for (String pid : pids) {
@@ -323,10 +320,10 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
             eids.addAll(project.getEids());
         }
         db.closeConnection();
-        return getEdidFromExperiments(ids, eids.toArray(new String[0]));
+        return getEdidFromExperiments(ids, eids.toArray(new String[0]), skip, top, filter);
     }
 
-    private List<String> getEdidFromAssays(String[] ids, String[] aids) throws SQLException {
+    private List<String> getEdidFromAssays(String[] ids, String[] aids, int skip, int top, String filter) throws SQLException {
         DBUtils db = new DBUtils();
         List<Long> eids = new ArrayList<Long>();
         for (String aid : aids) {
@@ -334,10 +331,10 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
             eids.addAll(assay.getExperiments());
         }
         db.closeConnection();
-        return getEdidFromExperiments(ids, eids.toArray(new String[0]));
+        return getEdidFromExperiments(ids, eids.toArray(new String[0]), skip, top, filter);
     }
 
-    private List<String> getEdidFromExperiments(String[] ids, String[] eida) {
+    private List<String> getEdidFromExperiments(String[] ids, String[] eida, int skip, int top, String filter) {
         List<String> edids = new ArrayList<String>();
         for (String sid : ids) {
             for (String eid : eida) edids.add(eid.trim() + "." + sid.trim());

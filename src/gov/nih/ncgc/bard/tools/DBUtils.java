@@ -14,6 +14,8 @@ import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.search.Facet;
+import gov.nih.ncgc.bard.search.SearchUtil;
+import gov.nih.ncgc.bard.search.SolrField;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
@@ -2882,11 +2884,11 @@ public class DBUtils {
      * @param bardExptId  The experiment id (AKA Pubchem AID for experiments taken from Pubchem)
      * @param skip how many records to skip
      * @param top  how many records to return
-     * @return
+     * @return   a list of experiment data ids
      * @throws SQLException
      */
-    public List<String> getExperimentDataIds
-    (Long bardExptId, int skip, int top, String filter) throws SQLException {
+    public List<String> getExperimentDataIds(Long bardExptId, int skip, int top, String filter)
+            throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
 
         String cacheKey = bardExptId + "#" + skip + "#" + top + "#" + filter;
@@ -2901,15 +2903,55 @@ public class DBUtils {
 
         String limitClause = generateLimitClause(skip, top);
 
+        // use result types for the experiment to create a list of SolrField
+        // objects so that we can reuse our search filter parsing code
+        List<ExperimentResultType> rtypes = getExperimentResultTypes(bardExptId);
+        List<SolrField> fields = new ArrayList<SolrField>();
+        for (ExperimentResultType rtype : rtypes) {
+            fields.add(new SolrField(rtype.getName(), "float"));
+        }
+        fields.add(new SolrField("outcome", "text"));
+
         String filterClause = "";
         if (filter != null) {
-            if (filter.toLowerCase().equals("active")) filterClause = " and outcome = 2 ";
-            else if (filter.toLowerCase().equals("inactive")) filterClause = " and outcome = 1 ";
+            Map<String, List<String>> fqs = SearchUtil.extractFilterQueries(filter, fields);
+            for (String fieldName : fqs.keySet()) {
+                List<String> vals = fqs.get(fieldName);
+                if (vals.size() == 0) continue;
+
+                // handle outcome specially
+                if (fieldName.equals("outcome") && vals.size() == 1) {
+                    if (vals.get(0).toLowerCase().contains("\"active\"")) filterClause += " and outcome = 2 ";
+                    else if (vals.get(0).toLowerCase().contains("\"inactive\"")) filterClause += " and outcome = 1 ";
+                } else {
+                    // now deal with individual result types
+                    filterClause += " and display_name = '" + fieldName + "'";
+                    if (!vals.get(0).contains("[")) filterClause += " and value = " + vals.get(0) + " ";
+                    else { // provided a range
+                        String[] toks = vals.get(0).replace("[", "").replace("]", "").split(" TO ");
+                        String lower = toks[0];
+                        String upper = toks[1];
+                        if (lower.equals("*") && !upper.equals("*")) filterClause += " and value <= " + upper + " ";
+                        else if (!lower.equals("*") && upper.equals("*"))
+                            filterClause += " and value >= " + lower + " ";
+                        else if (!lower.equals("*") && !upper.equals("*"))
+                            filterClause += " and value >= " + lower + " and value <= " + upper + " ";
+                    }
+                }
+            }
         }
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? "+
-                filterClause+" order by id " + limitClause);
+
+        // TODO we join exploded_results and bard_experiment_data and then apply limits - might be better to
+        // query exploded_results and bard_experiment_data in separate calls?
+        PreparedStatement pst = conn.prepareStatement("select distinct concat(cast(b.bard_expt_id as char), '.', cast(b.sid as char)) as id from " +
+                "exploded_results a, bard_experiment_data b " +
+                "where a.bard_expt_id = ? " +
+                filterClause +
+                "and a.expt_data_id = b.expt_data_id " +
+                " order by value " +
+                limitClause);
         try {
             pst.setLong(1, bardExptId);
             ResultSet rs = pst.executeQuery();
