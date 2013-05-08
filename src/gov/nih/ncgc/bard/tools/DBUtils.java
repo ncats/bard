@@ -2049,7 +2049,8 @@ public class DBUtils {
         try {
             if (rs.next()) {
                 Blob blob = rs.getBlob("expt_result_def");
-                json = new String(blob.getBytes(1, (int) blob.length()));
+                if (blob == null) json = "";
+                else json = new String(blob.getBytes(1, (int) blob.length()));
             }
             rs.close();
             cache.put(new Element (bardExptId, json));
