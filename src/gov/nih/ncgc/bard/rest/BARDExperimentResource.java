@@ -1,44 +1,28 @@
 package gov.nih.ncgc.bard.rest;
 
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.ExperimentData;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.Substance;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.util.functional.Functional;
 import gov.nih.ncgc.util.functional.IApplyFunction;
 
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * Prototype of MLBD REST resources.
@@ -49,7 +33,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Rajarshi Guha
  */
 @Path("/experiments")
-public class BARDExperimentResource extends BARDResource<Experiment> {
+public class    BARDExperimentResource extends BARDResource<Experiment> {
 
     public static final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
     static final String VERSION = "1.0";
@@ -622,4 +606,28 @@ public class BARDExperimentResource extends BARDResource<Experiment> {
         logger.info("Time to generate summary was " + duration + "s");
         return Response.ok(Util.toJson(s), MediaType.APPLICATION_JSON).build();
     }
+
+    @GET
+    @Path("/{eid}/resulttypes")
+    @Produces("application/json")
+    public Response getExperimentResultTypes(@PathParam("eid") Long eid,
+                                             @QueryParam("expand") String expand) {
+        DBUtils db = new DBUtils();
+        try {
+            List<ExperimentResultType> rtypes = db.getExperimentResultTypes(eid);
+            String json = null;
+            if (expandEntries(expand)) json = Util.toJson(rtypes);
+            else {
+                List<String> rtypeNames = new ArrayList<String>();
+                for (ExperimentResultType rtype : rtypes) rtypeNames.add(rtype.getName());
+                json = Util.toJson(rtypeNames);
+            }
+            return Response.ok(json).type(MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
 }

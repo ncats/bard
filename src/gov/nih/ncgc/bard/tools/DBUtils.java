@@ -3497,6 +3497,27 @@ public class DBUtils {
         return limitClause;
     }
 
+    public List<ExperimentResultType> getExperimentResultTypes(Long bardExptId) throws SQLException {
+        if (bardExptId == null || bardExptId < 0) return null;
+        PreparedStatement pst;
+        if (conn == null) conn = getConnection();
+        List<ExperimentResultType> ret = new ArrayList<ExperimentResultType>();
+
+        pst = conn.prepareStatement("select min(value), max(value), display_name, count(value) from exploded_results where bard_expt_id = ? group by display_name order by display_name");
+        pst.setLong(1, bardExptId);
+        ResultSet rs = pst.executeQuery();
+        while (rs.next()) {
+            ExperimentResultType rtype = new ExperimentResultType();
+            rtype.setName(rs.getString(3));
+            rtype.setMin(rs.getDouble(1));
+            rtype.setMax(rs.getDouble(2));
+            rtype.setNum(rs.getLong(4));
+            ret.add(rtype);
+        }
+        pst.close();
+        rs.close();
+        return ret;
+    }
     /**
      * Retrieve compounds associated with an experiment.
      *
