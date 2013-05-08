@@ -3539,6 +3539,20 @@ public class DBUtils {
         return limitClause;
     }
 
+    public List<Float[]> getExperimentResultTypeHistogram(Long bardExptId, String typeName) throws SQLException {
+        if (bardExptId == null || bardExptId < 0) return null;
+        PreparedStatement pst;
+        if (conn == null) conn = getConnection();
+        List<Float[]> ret = new ArrayList<Float[]>();
+        pst = conn.prepareStatement("select n, l, u from exploded_histograms where bard_expt_id = ? and display_name = ? order by l");
+        pst.setLong(1, bardExptId);
+        pst.setString(2, typeName);
+        ResultSet rs = pst.executeQuery();
+        while (rs.next()) ret.add(new Float[]{rs.getFloat("n"), rs.getFloat("l"), rs.getFloat("u")});
+        rs.close();
+        pst.close();
+        return ret;
+    }
     public List<ExperimentResultType> getExperimentResultTypes(Long bardExptId) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
         PreparedStatement pst;
@@ -3554,6 +3568,7 @@ public class DBUtils {
             rtype.setMin(rs.getDouble(1));
             rtype.setMax(rs.getDouble(2));
             rtype.setNum(rs.getLong(4));
+            rtype.setHistogram(getExperimentResultTypeHistogram(bardExptId, rtype.getName()));
             ret.add(rtype);
         }
         pst.close();

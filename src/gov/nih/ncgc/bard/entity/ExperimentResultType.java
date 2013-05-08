@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Rajarshi Guha
  */
@@ -7,8 +10,18 @@ public class ExperimentResultType implements BardEntity {
     String name;
     double max, min;
     long num;
+    List<Float[]> histogram;
 
     public ExperimentResultType() {
+        histogram = new ArrayList<Float[]>();
+    }
+
+    public List<Float[]> getHistogram() {
+        return histogram;
+    }
+
+    public void setHistogram(List<Float[]> histogram) {
+        this.histogram = histogram;
     }
 
     public ExperimentResultType(String name) {
