@@ -1,30 +1,23 @@
 package gov.nih.ncgc.bard.capextract;
 
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Vector;
-
 import nu.xom.Builder;
 import nu.xom.Document;
 import nu.xom.Nodes;
 import nu.xom.ParsingException;
-
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.impl.client.DefaultHttpClient;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.sql.*;
+import java.util.*;
 
 public class CAPUtil {
 
@@ -73,7 +66,7 @@ public class CAPUtil {
         }
         return conn;
     }
-    
+
 
     public static boolean insertPublication(Connection conn, String pmid) throws SQLException, IOException, ParsingException {
         // check to see if we already have a pub with this pmid
@@ -199,5 +192,25 @@ public class CAPUtil {
             }
         }
         return obj;
+    }
+
+    public static CAPDictionary getCAPDictionary()
+            throws SQLException, IOException, ClassNotFoundException {
+        Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+        PreparedStatement pst = conn.prepareStatement("select dict, ins_date from cap_dict_obj order by ins_date desc");
+        try {
+            ResultSet rs = pst.executeQuery();
+            rs.next();
+            byte[] buf = rs.getBytes(1);
+            ObjectInputStream objectIn = null;
+            if (buf != null)
+                objectIn = new ObjectInputStream(new ByteArrayInputStream(buf));
+            Object o = objectIn.readObject();
+            rs.close();
+            if (!(o instanceof CAPDictionary)) return null;
+            return (CAPDictionary) o;
+        } finally {
+            pst.close();
+        }
     }
 }

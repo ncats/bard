@@ -7,9 +7,7 @@ import gov.nih.ncgc.bard.tools.Util;
 import nu.xom.ParsingException;
 
 import javax.xml.bind.JAXBElement;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.math.BigInteger;
 import java.sql.*;
 import java.util.ArrayList;
@@ -364,7 +362,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                         conn.prepareStatement("insert into bard_biology (biology, biology_dict_id, biology_dict_label, description, entity, entity_id, ext_id, ext_ref) " +
                                 " values (?,?,?,?,?,?,?,?)");
                 for (BiologyInfo abi : bi) {
-                    String biology = Biology.BiologyType.GENE.getBiologyTypeFromDictId(abi.dictId).toString();
+                    String biology = Biology.BiologyType.getBiologyTypeFromDictId(abi.dictId).toString();
                     pstTarget.setString(1, biology);
                     pstTarget.setInt(2, abi.dictId);
                     pstTarget.setString(3, abi.dictLabel);
@@ -461,7 +459,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 
 
     List<BiologyInfo> extractBiology(List<AssayContexType> contexts) throws ClassNotFoundException, IOException, SQLException {
-        CAPDictionary dict = getCAPDictionary();
+        CAPDictionary dict = CAPUtil.getCAPDictionary();
 
         if (contexts == null || contexts.size() == 0) return null;
 
@@ -529,25 +527,6 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         }
     }
 
-    private CAPDictionary getCAPDictionary()
-            throws SQLException, IOException, ClassNotFoundException {
-        Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
-        PreparedStatement pst = conn.prepareStatement("select dict, ins_date from cap_dict_obj order by ins_date desc");
-        try {
-            ResultSet rs = pst.executeQuery();
-            rs.next();
-            byte[] buf = rs.getBytes(1);
-            log.info("Retrived CAP dictionary blob with ins_date = " + rs.getDate(2));
-            ObjectInputStream objectIn = null;
-            if (buf != null)
-                objectIn = new ObjectInputStream(new ByteArrayInputStream(buf));
-            Object o = objectIn.readObject();
-            rs.close();
-            if (!(o instanceof CAPDictionary)) return null;
-            return (CAPDictionary) o;
-        } finally {
-            pst.close();
-        }
-    }
+
 
 }
