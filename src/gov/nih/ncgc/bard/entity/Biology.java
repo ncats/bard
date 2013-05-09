@@ -15,9 +15,26 @@ import java.sql.Timestamp;
  */
 public class Biology implements BardEntity {
     public static enum BiologyType {
-        GENE, PROTEIN, SEQUENCE, DISEASE, PATHWAY, PROCESS, COMPONENT, FUNCTION, NCBI, GO, UNKNOWN;
+        GENE("GENE"), PROTEIN("PROTEIN"),
+        SEQUENCE("SEQUENCE"), DISEASE("SEQUENCE"),
+        PATHWAY("PATHWAY"), PROCESS("PROCESS"),
+        COMPONENT("COMPONENT"), FUNCTION("FUNCTION"), NCBI("NCBI"), GO("GO"),
+        UNKNOWN("UNKNOWN");
 
-        public BiologyType getBiologyTypeFromDictId(int dictId) {
+
+        private String typeString;
+        private BiologyType(String typeString) {
+            this.typeString = typeString;
+        }
+
+        public static BiologyType fromString(String typeString) {
+            for (BiologyType s : values() ){
+                if (s.typeString.equals(typeString)) return s;
+            }
+            return null;
+        }
+
+        public static BiologyType getBiologyTypeFromDictId(int dictId) {
             switch (dictId) {
                 case 1419:
                     return PROCESS;
@@ -39,7 +56,7 @@ public class Biology implements BardEntity {
     }
 
     @BARDJsonRequired
-    String biology;
+    BiologyType biology;
 
     @BARDJsonRequired
     Long entityId;
@@ -51,7 +68,7 @@ public class Biology implements BardEntity {
     public Biology() {
     }
 
-    public Biology(String description, String entity, String biology, String ext_ref, Long entity_id, String ext_id, Timestamp updated, Long serial) {
+    public Biology(String description, String entity, BiologyType biology, String ext_ref, Long entity_id, String ext_id, Timestamp updated, Long serial) {
         this.description = description;
         this.entity = entity;
         this.biology = biology;
@@ -102,11 +119,11 @@ public class Biology implements BardEntity {
         this.entity = entity;
     }
 
-    public String getBiology() {
+    public BiologyType getBiology() {
         return biology;
     }
 
-    public void setBiology(String biology) {
+    public void setBiology(BiologyType biology) {
         this.biology = biology;
     }
 

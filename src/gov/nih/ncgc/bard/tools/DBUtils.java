@@ -5515,7 +5515,7 @@ public class DBUtils {
         while (rs.next()) {
             Biology bio = new Biology();
             bio.setSerial(rs.getLong("serial"));
-            bio.setBiology(rs.getString("biology"));
+            bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
             bio.setDescription(rs.getString("description"));
             bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
@@ -5549,7 +5549,7 @@ public class DBUtils {
         while (rs.next()) {
             Biology bio = new Biology();
             bio.setSerial(rs.getLong("serial"));
-            bio.setBiology(rs.getString("biology"));
+            bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
             bio.setDescription(rs.getString("description"));
             bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
@@ -5577,7 +5577,7 @@ public class DBUtils {
         while (rs.next()) {
             Biology bio = new Biology();
             bio.setSerial(rs.getLong("serial"));
-            bio.setBiology(rs.getString("biology"));
+            bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
             bio.setDescription(rs.getString("description"));
             bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
@@ -5609,7 +5609,7 @@ public class DBUtils {
         while (rs.next()) {
             Biology bio = new Biology();
             bio.setSerial(rs.getLong("serial"));
-            bio.setBiology(rs.getString("biology"));
+            bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
             bio.setDescription(rs.getString("description"));
             bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
@@ -5641,7 +5641,7 @@ public class DBUtils {
         while (rs.next()) {
             Biology bio = new Biology();
             bio.setSerial(rs.getLong("serial"));
-            bio.setBiology(rs.getString("biology"));
+            bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
             bio.setDescription(rs.getString("description"));
             bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));

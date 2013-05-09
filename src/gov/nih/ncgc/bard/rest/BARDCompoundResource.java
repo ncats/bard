@@ -1258,7 +1258,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         for (Assay a : testedAssays) {
             List<Biology> bios = db.getBiologyByEntity("assay", a.getBardAssayId());
             for (Biology bio : bios) {
-                if (bio.getBiology().equals("PROTEIN") && bio.getDictId() == 1398) // Uniprot ID
+                if (bio.getBiology().equals(Biology.BiologyType.PROTEIN) && bio.getDictId() == 1398) // Uniprot ID
                     accs.add(bio.getExtId());
             }
         }
