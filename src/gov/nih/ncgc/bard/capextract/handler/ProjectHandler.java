@@ -1,45 +1,18 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import gov.nih.ncgc.bard.capextract.CAPAnnotation;
-import gov.nih.ncgc.bard.capextract.CAPConstants;
-import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
-import gov.nih.ncgc.bard.capextract.CAPUtil;
-import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
-import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
-import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
-import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
-import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
-import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
-import gov.nih.ncgc.bard.capextract.jaxb.Link;
-import gov.nih.ncgc.bard.capextract.jaxb.Project;
-import gov.nih.ncgc.bard.capextract.jaxb.ProjectExperiment;
-import gov.nih.ncgc.bard.capextract.jaxb.ProjectStep;
+import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
+import gov.nih.ncgc.bard.capextract.*;
+import gov.nih.ncgc.bard.capextract.jaxb.*;
+import gov.nih.ncgc.bard.entity.Biology;
 import gov.nih.ncgc.bard.tools.Util;
-
-import java.io.IOException;
-import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.xml.bind.JAXBElement;
-
 import nu.xom.ParsingException;
-
 import org.w3c.dom.Node;
 
-import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
+import javax.xml.bind.JAXBElement;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.sql.*;
+import java.util.*;
 
 /**
  * A one line summary.
@@ -231,6 +204,8 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         } catch (IOException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         } catch (ParsingException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (ClassNotFoundException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
     }
@@ -424,69 +399,75 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         return annos;
     }
 
-    void processTargets(Project project) throws SQLException {
-        List<String> gis = new ArrayList<String>();
-        List<String> geneIds = new ArrayList<String>();
+    void processTargets(Project project) throws SQLException, ClassNotFoundException, IOException {
+
+        // pull all biologies out
+        CAPDictionary dict = CAPUtil.getCAPDictionary();
+        List<BiologyInfo> bioInfo = new ArrayList<BiologyInfo>();
+
         Contexts contexts = project.getContexts();
+        if (contexts == null) return;
+
         List<ContextType> contextTypes = contexts.getContext();
+        if (contextTypes == null) return;
+
+        // Loop over all contexts
         for (ContextType contextType : contextTypes) {
             String contextName = contextType.getContextName();
-
             ContextType.ContextItems contextItems = contextType.getContextItems();
             if (contextItems == null) continue;
+
+            // is this a biology context?
+            boolean isBiologyContext = false;
             for (ContextItemType contextItemType : contextItems.getContextItem()) {
                 AbstractContextItemType.AttributeId attr = contextItemType.getAttributeId();
-                // do some special handling to pull out target
-                if (contextName.equals("target") && attr != null && attr.getLabel().contains("gene"))
-                    geneIds.add(contextItemType.getExtValueId());
-                else if (contextName.equals("target") && attr != null && attr.getLabel().contains("protein"))
-                    gis.add(contextItemType.getExtValueId());
+                String dictId = Util.getEntityIdFromUrl(attr.getLink().getHref());
+                if (dictId != null && dictId.equals("541")) {
+                    isBiologyContext = true;
+                    break;
+                }
+            }
+            if (!isBiologyContext) continue;
+
+            List<Integer> targetDictIds = Arrays.asList(new Integer[]{
+                    1419, 885, 1795, 880, 881, 882, 883, 1398, 1504
+            });
+            for (ContextItemType contextItemType : contextItems.getContextItem()) {
+                AbstractContextItemType.AttributeId attrid = contextItemType.getAttributeId();
+                String dictId = Util.getEntityIdFromUrl(attrid.getLink().getHref());
+                if (Util.isNumber(dictId) && targetDictIds.contains(Integer.parseInt(dictId))) {
+                    CAPDictionaryElement node = dict.getNode(new BigInteger(dictId));
+                    String dictLabel = node.getLabel();
+                    String extId = contextItemType.getExtValueId();
+                    String description = contextItemType.getValueDisplay();
+                    BiologyInfo bi = new BiologyInfo(dictLabel, Integer.parseInt(dictId), extId, null, description);
+                    bioInfo.add(bi);
+                }
             }
         }
 
-        // add in targets - get unique set of Uniprot accessions
-        Set<Target> accs = new HashSet<Target>();
-        PreparedStatement pstTarget = conn.prepareStatement("select accession from protein_target where gene_id = ?");
-        for (String geneid : geneIds) {
-            pstTarget.setInt(1, Integer.parseInt(geneid));
-            ResultSet rs = pstTarget.executeQuery();
-            String acc = null;
-            while (rs.next()) acc = rs.getString(1);
-            rs.close();
-            if (acc != null) accs.add(new Target(geneid, acc));
-            pstTarget.clearParameters();
-        }
-        pstTarget.close();
-        pstTarget = conn.prepareStatement("select distinct a.uniprot_acc, b.gene_id from uniprot_map a, protein_target b where acc_type = 'GI' and a.uniprot_acc = b.accession and acc = ?;");
-        for (String gi : gis) {
-            pstTarget.setString(1, gi);
-            ResultSet rs = pstTarget.executeQuery();
-            String acc = null;
-            Integer geneid = null;
-            while (rs.next()) {
-                acc = rs.getString(1);
-                geneid = rs.getInt(2);
-                accs.add(new Target(geneid.toString(), acc));
-            }
-            rs.close();
-            pstTarget.clearParameters();
-        }
-        pstTarget.close();
-        // insert the target acc's
-        pstTarget = conn.prepareStatement("insert into project_target (bard_proj_id, accession, gene_id) values (?,?,?)");
-        for (Target t : accs) {
-            pstTarget.setInt(1, bardProjId);
-            pstTarget.setString(2, t.uniprot);
-            pstTarget.setInt(3, Integer.parseInt(t.geneid));
+        // lets dump to db
+        PreparedStatement pstTarget =
+                conn.prepareStatement("insert into bard_biology (biology, biology_dict_id, biology_dict_label, description, entity, entity_id, ext_id, ext_ref) " +
+                        " values (?,?,?,?,?,?,?,?)");
+        for (BiologyInfo abi : bioInfo) {
+            String biology = Biology.BiologyType.getBiologyTypeFromDictId(abi.dictId).toString();
+            pstTarget.setString(1, biology);
+            pstTarget.setInt(2, abi.dictId);
+            pstTarget.setString(3, abi.dictLabel);
+            pstTarget.setString(4, abi.description);
+            pstTarget.setString(5, "project");
+            pstTarget.setInt(6, bardProjId);
+            pstTarget.setString(7, abi.extId);
+            pstTarget.setString(8, abi.extRef);
             try {
                 pstTarget.executeUpdate();
             } catch (com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException e) {
             }
             pstTarget.clearParameters();
         }
-        conn.commit();
         pstTarget.close();
-        log.info("Inserted " + accs.size() + " target entries for BARD project id = " + bardProjId);
+        log.info("Inserted " + bioInfo.size() + " target entries for BARD project id = " + bardProjId);
     }
 
     void processExperiments(Project project, int pubchemAid) throws SQLException, IOException {
@@ -718,6 +699,19 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         pstep.close();
         log.info("Added " + rowsAdded.length + " project steps for BARD project id " + bardProjId + " CAP project id " + project.getProjectId());
         return annos;
+    }
+
+    class BiologyInfo {
+        String dictLabel, extId, extRef, description;
+        Integer dictId;
+
+        BiologyInfo(String dictLabel, Integer dictId, String extId, String extRef, String description) {
+            this.dictLabel = dictLabel;
+            this.extId = extId;
+            this.extRef = extRef;
+            this.description = description;
+            this.dictId = dictId;
+        }
     }
 
 }
