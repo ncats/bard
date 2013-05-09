@@ -1,50 +1,28 @@
 package gov.nih.ncgc.bard.rest;
 
-import gov.nih.ncgc.bard.capextract.CAPAnnotation;
-import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
-import gov.nih.ncgc.bard.entity.Assay;
-import gov.nih.ncgc.bard.entity.BardLinkedEntity;
-import gov.nih.ncgc.bard.entity.Compound;
-import gov.nih.ncgc.bard.entity.Experiment;
-import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.entity.ProjectStep;
-import gov.nih.ncgc.bard.entity.ProteinTarget;
-import gov.nih.ncgc.bard.entity.Publication;
-import gov.nih.ncgc.bard.search.Facet;
-import gov.nih.ncgc.bard.tools.DBUtils;
-import gov.nih.ncgc.bard.tools.Util;
-
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.math.BigInteger;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
+import gov.nih.ncgc.bard.entity.*;
+import gov.nih.ncgc.bard.search.Facet;
+import gov.nih.ncgc.bard.tools.DBUtils;
+import gov.nih.ncgc.bard.tools.Util;
+
+import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.math.BigInteger;
+import java.sql.SQLException;
+import java.util.*;
 
 /**
  * Prototype of MLBD REST resources.
@@ -233,17 +211,13 @@ public class BARDProjectResource extends BARDResource<Project> {
         DBUtils db = new DBUtils();
         try {
             Project project = db.getProject(Long.valueOf(resourceId));
-            List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
-            if (project.getTargets() != null) {
-                for (ProteinTarget target : project.getTargets())
-                    targets.add(db.getProteinTargetByAccession(target.getAcc()));
-            }
+            List<Biology> targets = project.getTargets();
             String json;
             if (countRequested) json = Util.toJson(targets.size());
             else if (expandEntries) json = Util.toJson(targets);
             else {
                 List<String> links = new ArrayList<String>();
-                for (ProteinTarget pt : targets) links.add(pt.getResourcePath());
+                for (Biology pt : targets) links.add(pt.getResourcePath());
                 json = Util.toJson(links);
             }
             db.closeConnection();

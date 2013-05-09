@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
@@ -7,8 +8,6 @@ import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * A representation of a project.
@@ -66,7 +65,7 @@ public class Project implements BardEntity {
     List<Long> eids; // experiments
     List<Long> aids; // assays (using bard_assay_id)
     List<Long> publications;
-    List<ProteinTarget> targets;
+    List<Biology> targets;
 
     public float getScore() {
         return score;
@@ -240,11 +239,11 @@ public class Project implements BardEntity {
         this.publications = publications;
     }
 
-    public List<ProteinTarget> getTargets() {
+    public List<Biology> getTargets() {
         return targets;
     }
 
-    public void setTargets(List<ProteinTarget> targets) {
+    public void setTargets(List<Biology> targets) {
         this.targets = targets;
     }
 

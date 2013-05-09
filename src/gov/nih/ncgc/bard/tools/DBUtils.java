@@ -1188,11 +1188,11 @@ public class DBUtils {
                 //                }
 
                 // target facet
-                List<ProteinTarget> targets = getProjectTargets(bardProjectId);
-                for (ProteinTarget t : targets) {
-                    if (tcounts.containsKey(t.getName())) {
-                        tcounts.put(t.getName(), tcounts.get(t.getName()) + 1);
-                    } else tcounts.put(t.getName(), 1);
+                List<Biology> targets = getProjectTargets(bardProjectId);
+                for (Biology t : targets) {
+                    if (tcounts.containsKey(t.getDescription())) {
+                        tcounts.put(t.getDescription(), tcounts.get(t.getDescription()) + 1);
+                    } else tcounts.put(t.getDescription(), 1);
                 }
 
                 // disease facet
@@ -3765,49 +3765,24 @@ public class DBUtils {
     }
 
     /**
-     * Return a list of protein targets based on on a bard project id
+     * Return a list of target biologies based on on a bard project id
      *
      * @param bardProjectid
      * @return
      * @throws SQLException
      */
-    public List<ProteinTarget> getProjectTargets(Long bardProjectid)
-        throws SQLException {
-
-        Cache cache = getCache ("ProjectTargetsCache");
+    public List<Biology> getProjectTargets(Long bardProjectid)
+            throws SQLException {
+        Cache cache = getCache("ProjectTargetsCache");
         try {
-            List<ProteinTarget> value = getCacheValue (cache, bardProjectid);
+            List<Biology> value = getCacheValue(cache, bardProjectid);
             if (value != null) {
                 return value;
             }
+        } catch (ClassCastException ex) {
         }
-        catch (ClassCastException ex) {}
-
-        PreparedStatement pst2 = null;
-        ResultSet rs2 = null;
-        List<ProteinTarget> targets = new ArrayList<ProteinTarget>();
-        if (conn == null) conn = getConnection();
-        try {
-            pst2 = conn.prepareStatement("select a.* from protein_target a, project_target b where b.bard_proj_id = ? and a.gene_id = b.gene_id");
-            pst2.setLong(1, bardProjectid);
-            rs2 = pst2.executeQuery();
-
-            while (rs2.next()) {
-                ProteinTarget t = new ProteinTarget();
-                t.setDescription(rs2.getString("description"));
-                t.setGeneId(rs2.getLong("gene_id"));
-                t.setName(rs2.getString("name"));
-                t.setStatus(rs2.getString("uniprot_status"));
-                t.setAcc(rs2.getString("accession"));
-                t.setTaxId(rs2.getLong("taxid"));
-                targets.add(t);
-            }
-
-            cache.put(new Element (bardProjectid, targets));
-        } finally {
-            if (rs2 != null) rs2.close();
-            if (pst2 != null) pst2.close();
-        }
+        List<Biology> targets = getBiologyByEntity("project", bardProjectid);
+        cache.put(new Element(bardProjectid, targets));
         return targets;
     }
 
