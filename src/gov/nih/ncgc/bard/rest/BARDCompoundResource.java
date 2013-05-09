@@ -1177,11 +1177,15 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
     private Map<String, Integer> getTargetClassCount(List<String> acc, int level) throws SQLException {
         DBUtils db = new DBUtils();
-        List<String> tclasses = db.getChemblTargetClasses(acc, level);
+        List<String> tclasses = new ArrayList<String>(); //db.getChemblTargetClasses(acc, level);
+        for (String anAcc : acc) {
+            List<TargetClassification> pclasses = db.getPantherClassesForAccession(anAcc);
+            for (TargetClassification pclass : pclasses) tclasses.add(pclass.getName());
+        }
         Map<String, Integer> map = new HashMap<String, Integer>();
         for (String tclass : tclasses) {
             if (tclass == null) continue;
-            if (map.containsKey(tclass)) map.put(tclass, map.get(tclass)+1);
+            if (map.containsKey(tclass)) map.put(tclass, map.get(tclass) + 1);
             else map.put(tclass, 0);
         }
         db.closeConnection();
@@ -1250,16 +1254,29 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         s.put("hitExptdata", hitData);
 
         // get target class counts
-//        List<String> accs = new ArrayList<String>();
-//        for (Assay a : testedAssays) accs.addAll(a.getTargets());
-//        if (accs.size() > 0)
-//            s.put("testedTargetClasses", getTargetClassCount(accs, 1));
-//        else s.put("testedTargetClasses", null);
-//
-//        accs = new ArrayList<String>();
-//        for (Assay a : hitAssays) accs.addAll(a.getTargets());
-//        if (accs.size() > 0) s.put("hitTargetClasses", getTargetClassCount(accs, 1));
-//        else s.put("hitTargetClasses", null);
+        List<String> accs = new ArrayList<String>();
+        for (Assay a : testedAssays) {
+            List<Biology> bios = db.getBiologyByEntity("assay", a.getBardAssayId());
+            for (Biology bio : bios) {
+                if (bio.getBiology().equals("PROTEIN") && bio.getDictId() == 1398) // Uniprot ID
+                    accs.add(bio.getExtId());
+            }
+        }
+        if (accs.size() > 0)
+            s.put("testedTargetClasses", getTargetClassCount(accs, 1));
+        else s.put("testedTargetClasses", null);
+
+        accs = new ArrayList<String>();
+        for (Assay a : hitAssays) {
+            List<Biology> bios = db.getBiologyByEntity("assay", a.getBardAssayId());
+            for (Biology bio : bios) {
+                if (bio.getBiology().equals(Biology.BiologyType.PROTEIN) && bio.getDictId() == 1398) // Uniprot ID
+                    accs.add(bio.getExtId());
+            }
+        }
+        if (accs.size() > 0)
+            s.put("hitTargetClasses", getTargetClassCount(accs, 1));
+        else s.put("hitTargetClasses", null);
 
 
         if (expand != null && expand.trim().toLowerCase().equals("true")) {
