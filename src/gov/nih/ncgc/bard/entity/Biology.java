@@ -42,31 +42,31 @@ public class Biology implements BardEntity {
     String biology;
 
     @BARDJsonRequired
-    Integer entity_id;
+    Long entityId;
 
     String description, entity, extId, extRef, dictLabel;
-    Integer dictId, serial;
+    Long dictId, serial;
     Timestamp updated;
 
     public Biology() {
     }
 
-    public Biology(String description, String entity, String biology, String ext_ref, Integer entity_id, String ext_id, Timestamp updated, Integer serial) {
+    public Biology(String description, String entity, String biology, String ext_ref, Long entity_id, String ext_id, Timestamp updated, Long serial) {
         this.description = description;
         this.entity = entity;
         this.biology = biology;
         this.extRef = ext_ref;
-        this.entity_id = entity_id;
+        this.entityId = entity_id;
         this.extId = ext_id;
         this.updated = updated;
         this.serial = serial;
     }
 
-    public Integer getSerial() {
+    public Long getSerial() {
         return serial;
     }
 
-    public void setSerial(Integer serial) {
+    public void setSerial(Long serial) {
         this.serial = serial;
     }
 
@@ -78,11 +78,11 @@ public class Biology implements BardEntity {
         this.dictLabel = dictLabel;
     }
 
-    public Integer getDictId() {
+    public Long getDictId() {
         return dictId;
     }
 
-    public void setDictId(Integer dictId) {
+    public void setDictId(Long dictId) {
         this.dictId = dictId;
     }
 
@@ -118,12 +118,12 @@ public class Biology implements BardEntity {
         this.extRef = extRef;
     }
 
-    public Integer getEntity_id() {
-        return entity_id;
+    public Long getEntityId() {
+        return entityId;
     }
 
-    public void setEntity_id(Integer entity_id) {
-        this.entity_id = entity_id;
+    public void setEntityId(Long entity_id) {
+        this.entityId = entity_id;
     }
 
     public String getExtId() {

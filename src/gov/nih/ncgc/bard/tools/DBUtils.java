@@ -2250,9 +2250,10 @@ public class DBUtils {
         for (Publication pub : getAssayPublications(bardAssayId)) pmids.add(pub.getPubmedId());
         a.setDocuments(pmids);
 
-        List<String> acc = new ArrayList<String>();
-        for (ProteinTarget target : getAssayTargets(bardAssayId)) acc.add(target.getAcc());
-        a.setTargets(acc);
+        List<Biology> biologies = getBiologyByEntity("assay", (int) bardAssayId);
+        List<Long> bioSerials = new ArrayList<Long>();
+        for (Biology biology : biologies) bioSerials.add(biology.getSerial());
+        a.setTargets(bioSerials);
 
         List<Experiment> expts = getExperimentByAssayId(bardAssayId);
         List<Project> projs = getProjectByAssayId(bardAssayId);
@@ -5513,13 +5514,13 @@ public class DBUtils {
         List<Biology> bios = new ArrayList<Biology>();
         while (rs.next()) {
             Biology bio = new Biology();
-            bio.setSerial(rs.getInt("serial"));
+            bio.setSerial(rs.getLong("serial"));
             bio.setBiology(rs.getString("biology"));
             bio.setDescription(rs.getString("description"));
-            bio.setDictId(rs.getInt("biology_dict_id"));
+            bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
             bio.setEntity(rs.getString("entity"));
-            bio.setEntity_id(rs.getInt("entity_id"));
+            bio.setEntityId(rs.getLong("entity_id"));
             bio.setExtId(rs.getString("ext_id"));
             bio.setExtRef(rs.getString("ext_ref"));
             bios.add(bio);
@@ -5547,13 +5548,13 @@ public class DBUtils {
         List<Biology> bios = new ArrayList<Biology>();
         while (rs.next()) {
             Biology bio = new Biology();
-            bio.setSerial(rs.getInt("serial"));
+            bio.setSerial(rs.getLong("serial"));
             bio.setBiology(rs.getString("biology"));
             bio.setDescription(rs.getString("description"));
-            bio.setDictId(rs.getInt("biology_dict_id"));
+            bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
             bio.setEntity(rs.getString("entity"));
-            bio.setEntity_id(rs.getInt("entity_id"));
+            bio.setEntityId(rs.getLong("entity_id"));
             bio.setExtId(rs.getString("ext_id"));
             bio.setExtRef(rs.getString("ext_ref"));
             bios.add(bio);
@@ -5575,13 +5576,13 @@ public class DBUtils {
         List<Biology> bios = new ArrayList<Biology>();
         while (rs.next()) {
             Biology bio = new Biology();
-            bio.setSerial(rs.getInt("serial"));
+            bio.setSerial(rs.getLong("serial"));
             bio.setBiology(rs.getString("biology"));
             bio.setDescription(rs.getString("description"));
-            bio.setDictId(rs.getInt("biology_dict_id"));
+            bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
             bio.setEntity(rs.getString("entity"));
-            bio.setEntity_id(rs.getInt("entity_id"));
+            bio.setEntityId(rs.getLong("entity_id"));
             bio.setExtId(rs.getString("ext_id"));
             bio.setExtRef(rs.getString("ext_ref"));
             bios.add(bio);
@@ -5591,7 +5592,7 @@ public class DBUtils {
         return bios;
     }
 
-    public List<Biology> getBiologyByEntity(String entity, int entityId) throws SQLException {
+    public List<Biology> getBiologyByEntity(String entity, long entityId) throws SQLException {
         if (conn == null) conn = getConnection();
         Cache cache = getCache("BiologyCache");
         try {
@@ -5602,18 +5603,18 @@ public class DBUtils {
 
         PreparedStatement pst = conn.prepareStatement("select * from bard_biology where entity = ? and entity_id = ?");
         pst.setString(1, entity);
-        pst.setInt(2, entityId);
+        pst.setLong(2, entityId);
         ResultSet rs = pst.executeQuery();
         List<Biology> bios = new ArrayList<Biology>();
         while (rs.next()) {
             Biology bio = new Biology();
-            bio.setSerial(rs.getInt("serial"));
+            bio.setSerial(rs.getLong("serial"));
             bio.setBiology(rs.getString("biology"));
             bio.setDescription(rs.getString("description"));
-            bio.setDictId(rs.getInt("biology_dict_id"));
+            bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
             bio.setEntity(entity);
-            bio.setEntity_id(entityId);
+            bio.setEntityId(entityId);
             bio.setExtId(rs.getString("ext_id"));
             bio.setExtRef(rs.getString("ext_ref"));
             bios.add(bio);
@@ -5623,7 +5624,7 @@ public class DBUtils {
         return bios;
     }
 
-    public List<Biology> getBiologyByEntity(String entity, int entityId, String typeName) throws SQLException {
+    public List<Biology> getBiologyByEntity(String entity, long entityId, String typeName) throws SQLException {
         if (conn == null) conn = getConnection();
         Cache cache = getCache("BiologyCache");
         try {
@@ -5634,18 +5635,18 @@ public class DBUtils {
 
         PreparedStatement pst = conn.prepareStatement("select * from bard_biology where entity = ? and entity_id = ?");
         pst.setString(1, entity);
-        pst.setInt(2, entityId);
+        pst.setLong(2, entityId);
         ResultSet rs = pst.executeQuery();
         List<Biology> bios = new ArrayList<Biology>();
         while (rs.next()) {
             Biology bio = new Biology();
-            bio.setSerial(rs.getInt("serial"));
+            bio.setSerial(rs.getLong("serial"));
             bio.setBiology(rs.getString("biology"));
             bio.setDescription(rs.getString("description"));
-            bio.setDictId(rs.getInt("biology_dict_id"));
+            bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
             bio.setEntity(entity);
-            bio.setEntity_id(entityId);
+            bio.setEntityId(entityId);
             bio.setExtId(rs.getString("ext_id"));
             bio.setExtRef(rs.getString("ext_ref"));
             bios.add(bio);

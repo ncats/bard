@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
@@ -7,8 +8,6 @@ import java.sql.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * A representation of an assay.
@@ -28,7 +27,7 @@ public class Assay implements BardEntity {
     String assayType, assayStatus;
 
     List<Long> documents;
-    List<String> targets; // Uniprot accession
+    List<Long> targets;
     List<Long> experiments, projects; // experiments and projects
 
     Map<String, String> minimumAnnotations = new HashMap<String, String>();
@@ -242,11 +241,11 @@ public class Assay implements BardEntity {
         this.documents = documents;
     }
 
-    public List<String> getTargets() {
+    public List<Long> getTargets() {
         return targets;
     }
 
-    public void setTargets(List<String> targets) {
+    public void setTargets(List<Long> targets) {
         this.targets = targets;
     }
 

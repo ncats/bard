@@ -1,13 +1,13 @@
 package gov.nih.ncgc.bard.tools;
 
-import java.io.File;
-import java.io.FileInputStream;
-
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.xml.XmlConfiguration;
+
+import java.io.File;
+import java.io.FileInputStream;
 
 
 /**
@@ -42,7 +42,7 @@ import org.eclipse.jetty.xml.XmlConfiguration;
  * <p/>
  * </code>
  * where <code>jdbc/myidentifier</code> is the String you use when
- * lookup the JNDI resource (see {@link DBUtils.getConnection()}
+ * lookup the JNDI resource.
  *
  * @author Rajarshi Guha
  */
