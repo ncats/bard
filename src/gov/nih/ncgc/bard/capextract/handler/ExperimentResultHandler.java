@@ -3,6 +3,7 @@ package gov.nih.ncgc.bard.capextract.handler;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.ResultExploder;
 import gov.nih.ncgc.bard.capextract.SslHttpClient;
 import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
@@ -228,7 +229,12 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    conn.close();
 	    conn2.close();
 	    
-	    logger.info("Process time for expt "+capExptId+": "+(System.currentTimeMillis()-start));
+	    logger.info("Starting to explode data for BARD Experiment "+bardExptId);
+	    ResultExploder re = new ResultExploder();
+	    re.explodeResults(bardExptId);
+	    logger.info("Finished exploding data for BARD Experiment "+bardExptId);	    
+
+	    logger.info("Process time for CAP expt "+capExptId+" , BARD expt "+bardExptId+": "+(System.currentTimeMillis()-start));
 
 	} catch (FileNotFoundException e) {
 	    e.printStackTrace();
@@ -619,7 +625,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    }
 	    rs.close();
 	    
-	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples_max_201305032015.txt)"));	    
+	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples_max_20130509.txt)"));	    
 	    PreparedStatement ps = conn.prepareStatement("select b.cap_expt_id, a.json_response, a.sid from bard_experiment_result a, bard_experiment b " +
 	    		" where a.bard_expt_id=b.bard_expt_id and a.bard_expt_id = ? limit 1");	    
 	    int progress = 0;
