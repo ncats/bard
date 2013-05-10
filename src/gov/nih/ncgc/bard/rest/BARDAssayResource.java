@@ -104,6 +104,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
     @GET
+    @Produces("application/json")
     public Response getResources(@QueryParam("filter") String filter,
                                  @QueryParam("expand") String expand,
                                  @QueryParam("skip") Integer skip,
@@ -232,6 +233,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
     @GET
+    @Produces("application/json")
     @Path("/{aid}")
     public Response getResources(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         if (!Util.isNumber(resourceId)) throw new WebApplicationException(400);
@@ -267,6 +269,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
 
     @POST
     @Path("/")
+    @Produces("application/json")
     @Consumes("application/x-www-form-urlencoded")
     public Response getResources(@FormParam("ids") String aids, @QueryParam("expand") String expand) {
         if (aids == null)
@@ -387,6 +390,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
 
     @POST
     @Path("/annotations")
+    @Produces("application/json")
     @Consumes("application/x-www-form-urlencoded")
     public Response getMultipleAnnotations(@FormParam("aids") String aids,
                                            @QueryParam("filter") String filter, @QueryParam("expand") String expand)
@@ -415,6 +419,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
     @GET
+    @Produces("application/json")
     @Path("/{aid}/annotations")
     public Response getAnnotations(@PathParam("aid") Long resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
         DBUtils db = new DBUtils();
@@ -444,6 +449,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
     @GET
+    @Produces("application/json")
     @Path("/{aid}/targets")
     public Response getAssayTargets(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         if (!Util.isNumber(resourceId)) throw new WebApplicationException(400);
@@ -485,6 +491,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
     @GET
+    @Produces("application/json")
     @Path("/{aid}/documents")
     public Response getAssayPublications(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         if (!Util.isNumber(resourceId)) throw new WebApplicationException(400);
@@ -552,6 +559,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
     @GET
+    @Produces("application/json")
     @Path("/{aid}/experiments")
     public Response getAssayExperiments(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         if (!Util.isNumber(resourceId)) throw new WebApplicationException(400);
@@ -591,6 +599,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
     @GET
+    @Produces("application/json")
     @Path("/{aid}/compounds")
     public Response getAssayCompounds(@PathParam("aid") String resourceId,
                                       @QueryParam("filter") String filter,
@@ -666,6 +675,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
     @GET
+    @Produces("application/json")
     @Path("/{aid}/substances")
     public Response getAssaySubstances(@PathParam("aid") String resourceId,
                                        @QueryParam("filter") String filter,
@@ -742,6 +752,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
 
 
     @GET
+    @Produces("application/json")
     @Path("/{aid}/experiments/{eid}")
     public Response getAssayExperiment(@PathParam("aid") String aid,
                                        @PathParam("eid") String eid,
@@ -795,6 +806,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
 
     @Override
     @GET
+    @Produces("application/json")
     @Path("/etag/{etag}")
     public Response getEntitiesByETag(@PathParam("etag") String resourceId,
                                       @QueryParam("filter") String filter,
@@ -824,6 +836,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
 
     @Override
     @GET
+    @Produces("application/json")
     @Path("/etag/{etag}/facets")
     public Response getFacets(@PathParam("etag") String resourceId) {
         DBUtils db = new DBUtils();
