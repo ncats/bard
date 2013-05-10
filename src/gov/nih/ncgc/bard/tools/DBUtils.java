@@ -5508,12 +5508,21 @@ public class DBUtils {
     public List<Biology> getBiologyByType(String typeName, String extId) throws SQLException {
         if (conn == null) conn = getConnection();
 
+        String cachKey = typeName;
+        if (extId != null) cachKey = cachKey + "#" + extId;
+        Cache cache = getCache("BiologyCache");
+        try {
+            List<Biology> value = getCacheValue(cache, cachKey);
+            if (value != null) return value;
+        } catch (ClassCastException e) {
+        }
+
+
         PreparedStatement pst;
         if (extId == null) {
             pst = conn.prepareStatement("select * from bard_biology where biology = ?");
             pst.setString(1, typeName);
-        }
-        else {
+        } else {
             pst = conn.prepareStatement("select * from bard_biology where biology = ? and ext_id = ?");
             pst.setString(1, typeName);
             pst.setString(2, extId);
@@ -5534,16 +5543,25 @@ public class DBUtils {
             bio.setExtRef(rs.getString("ext_ref"));
             bios.add(bio);
         }
+        cache.put(new Element(bios, cachKey));
         rs.close();
         pst.close();
         return bios;
     }
+
     public List<Biology> getBiologyByType(String typeName) throws SQLException {
         return getBiologyByType(typeName, null);
     }
 
     public List<Biology> getBiologyBySerial(Long serial) throws SQLException {
         if (conn == null) conn = getConnection();
+
+        Cache cache = getCache("BiologyCache");
+        try {
+            List<Biology> value = getCacheValue(cache, serial);
+            if (value != null) return value;
+        } catch (ClassCastException e) {
+        }
 
         PreparedStatement pst = conn.prepareStatement("select * from bard_biology where serial = ?");
         pst.setLong(1, serial);
@@ -5562,6 +5580,7 @@ public class DBUtils {
             bio.setExtRef(rs.getString("ext_ref"));
             bios.add(bio);
         }
+        cache.put(new Element (bios, serial));
         rs.close();
         pst.close();
         return bios;
@@ -5594,6 +5613,7 @@ public class DBUtils {
             bio.setExtRef(rs.getString("ext_ref"));
             bios.add(bio);
         }
+        cache.put(new Element (bios, entity+"#"+entityId));
         rs.close();
         pst.close();
         return bios;
@@ -5626,6 +5646,7 @@ public class DBUtils {
             bio.setExtRef(rs.getString("ext_ref"));
             bios.add(bio);
         }
+        cache.put(new Element (bios, entity + "#" + entityId + "#" + typeName));
         rs.close();
         pst.close();
         return bios;
