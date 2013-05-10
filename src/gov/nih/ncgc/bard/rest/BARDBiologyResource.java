@@ -113,11 +113,6 @@ public class BARDBiologyResource extends BARDResource<Biology> {
         }
     }
 
-    @Override
-    public Response getResources(@PathParam("name") String resourceId, String filter, String expand) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
-    }
-
     @GET
     @Path("/types")
     @Produces("application/json")
@@ -289,4 +284,66 @@ public class BARDBiologyResource extends BARDResource<Biology> {
             throw new WebApplicationException(e, 500);
         }
     }
+
+    @GET
+    @Path("/{bid}")
+    @Produces("application/json")
+    @Override
+    public Response getResources(@PathParam("bid") String resourceId,
+                                 @QueryParam("filter") String filter,
+                                 @QueryParam("expand") String expand) {
+        DBUtils db = new DBUtils();
+        try {
+            List<Biology> bios = db.getBiologyBySerial(Long.parseLong(resourceId));
+            String json;
+            if (countRequested) json = "1";
+            else if (expandEntries(expand)) {
+                json = Util.toJson(bios);
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Biology bio : bios)
+                    links.add(bio.getResourcePath());
+                json = Util.toJson(links);
+            }
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
+    @POST
+    @Path("/")
+    @Produces("application/json")
+    @Consumes("application/x-www-form-urlencoded")
+    public Response getResourcesByPost(@FormParam("bids") String bids,
+                                       @QueryParam("filter") String filter,
+                                       @QueryParam("expand") String expand) {
+        DBUtils db = new DBUtils();
+        try {
+            List<Biology> allBiologies = new ArrayList<Biology>();
+            for (String bid : bids.split(",")) {
+                bid = bid.trim();
+                List<Biology> bios = db.getBiologyBySerial(Long.parseLong(bid));
+                if (bios != null) allBiologies.addAll(bios);
+            }
+            String json;
+            if (countRequested) json = String.valueOf(allBiologies.size());
+            else if (expandEntries(expand)) {
+                json = Util.toJson(allBiologies);
+            } else {
+                List<String> links = new ArrayList<String>();
+                for (Biology bio : allBiologies)
+                    links.add(bio.getResourcePath());
+                json = Util.toJson(links);
+            }
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
+    }
+
 }

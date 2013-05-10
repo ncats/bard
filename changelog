@@ -92,3 +92,5 @@ v16 released
 05/08/13      Added /experiments/{eid}/resulttypes to list available result type names for a given experiment
               Added filter support to /experiments/{eid}/exptdata. As a result you can use Solr filter query syntax to filter experiment results based on outcome
               and result type.
+05/10/13      Added /biology/{bid} resource that supports GET and POST. For the latter, use the form parameter 'bids' to specify a command separated list of 
+              biology identifiers. Both versions of the resource return a list of biology entities
