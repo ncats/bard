@@ -7,6 +7,7 @@ import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
 import gov.nih.ncgc.bard.resourcemgr.BardExtResourceLoader;
 import gov.nih.ncgc.bard.resourcemgr.BardExternalResource;
 import gov.nih.ncgc.bard.resourcemgr.IBardExtResourceLoader;
+import gov.nih.ncgc.bard.resourcemgr.util.BardResourceFetch;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -91,26 +92,34 @@ public class PubchemSubstanceLoader extends BardExtResourceLoader implements IBa
     private String insertSubstanceSQL = "insert into temp_substance (sid, dep_regid, source_name, substance_url, patent_ids)" +
 	    " values (?,?,?,?,?)";
 
-    private String insertSynonymsSQL = "insert into temp_synonyms (id, type, syn) values (?,?,?)";
+    private String insertSynonymsSQL = "insert into synonyms (id, type, syn) values (?,?,?)";
 
     //sql statements these are schema specific, perhpas a constant's class could old static versions of these test fields
     private String replaceSubstanceSQL = "replace into substance (sid, dep_regid, source_name, substance_url, patent_ids)" +
 	    " values (?,?,?,?,?)";
-
+ 
+    private String updateSubstanceDatesSQL = "update substance set deposited=?, updated=? where sid=?";
+        
     private String replaceSynonymsSQL = "replace into synonyms (id, type, syn) values (?,?,?)";
 
     private String checkSynonymExistsSQL = "select id from synonyms where type = ? and id = ? and syn = ?";
 
     //prepared statements
-    private PreparedStatement insertSubstancePS, insertSynonymsPS, replaceSubstancePS, replaceSynonymsPS, checkSynonymExistsPS;
+    private PreparedStatement insertSubstancePS, insertSynonymsPS, replaceSubstancePS, replaceSynonymsPS, checkSynonymExistsPS,
+    		updateSubstanceDatePS;
 
     private String getSubstanceCountSQL = "select count(sid) from substance";
+    
+    private Statement stmt;
 
     //connection and processing global variables
     private String dbURL, driver, user, pw;
     private long molCount, synonymCount;
     private String path;
     private String tempPath;
+    
+    private BardExternalResource sdfResource;
+    private BardExternalResource extrasResource;
 
     public PubchemSubstanceLoader() {	}
 
@@ -133,25 +142,33 @@ public class PubchemSubstanceLoader extends BardExtResourceLoader implements IBa
 	tempPath = path + "/Substance/temp/";
 	log.info("SUBSTANCE SERVICE KEY= ["+service.getServiceKey()+"]");
 	
-//      try {
+	try {
 	    if(service.getServiceKey().contains("SUBSTANCE-REFRESH-FULL")) {
 		//fetchResources();
 		log.info("Entering Batch Load to Temp Tables");
-		batchLoadSubstances();
+		//batchLoadSubstances();
 	    } else {
 		log.info("Entering Batch Update to Substance and Synonym Tables");
 
-		//fetchResources();
+		fetchResources();
 		batchUpdateSubstances();
 	    }
-//	} 
-//	catch (IOException e) {
-//	    e.printStackTrace();
-//	    return false;
-//	} catch (FtpException e) {
-//	    e.printStackTrace();
-//	    return false;
-//	}
+	    
+	    //update substance dates
+	    updateSubstanceDates();
+	} 
+	catch (IOException e) {
+	    e.printStackTrace();
+	    return false;
+	} catch (FtpException e) {
+	    e.printStackTrace();
+	    return false;
+	} catch (ClassNotFoundException e) {
+	    e.printStackTrace();
+	} catch (SQLException e) {
+	    e.printStackTrace();
+	}
+	    
 
 	return loaded;
     }
@@ -173,8 +190,8 @@ public class PubchemSubstanceLoader extends BardExtResourceLoader implements IBa
 	if(resources == null || resources.size() < 2)
 	    return false;
 
-	BardExternalResource sdfResource = resources.get(0);
-	BardExternalResource extrasResource = resources.get(1);
+	sdfResource = resources.get(0);
+	extrasResource = resources.get(1);
 
 	//if sdf resource isn't and is extras, then swap order
 	if(!sdfResource.getResourceKey().equals("SUBSTANCE_SDF_GZ_FILES")) {
@@ -244,7 +261,6 @@ public class PubchemSubstanceLoader extends BardExtResourceLoader implements IBa
 	}	
 
 	//get extras
-	sdfResource = resources.get(1);
 	dest = service.getLocalResPath() + "/Substance-Extras/";
 	ftp.setDirectory(extrasResource.getResourcePath());
 	ftp.getBinaryFile("SID-Date.gz", dest+"SID-Date.gz");
@@ -258,6 +274,7 @@ public class PubchemSubstanceLoader extends BardExtResourceLoader implements IBa
 
 	long substanceCount = 0; 
 	long substanceUpdateCount = 0;
+	
 	try {
 
 	    parseSourceNames(path+"/Substance-Extras/Source-Names");
@@ -269,8 +286,10 @@ public class PubchemSubstanceLoader extends BardExtResourceLoader implements IBa
 	    substanceCount = getSubstanceCount();
 	    //prepare sql statements update/replace statement and exists query
 	    prepareSQLUpdateStatements();
+	    stmt = conn.createStatement();
+	    
 	    //make a vector of file name batches to process
-	    Vector <Vector<String>> fileBatches = partitionFiles(path+"/Subatance/");
+	    Vector <Vector<String>> fileBatches = partitionFiles(path+"/Substance/");
 
 	    //iterate over file batches
 	    for(Vector<String> files: fileBatches) {
@@ -400,7 +419,7 @@ public class PubchemSubstanceLoader extends BardExtResourceLoader implements IBa
 	    replaceSubstancePS = conn.prepareStatement(replaceSubstanceSQL);
 	    replaceSynonymsPS = conn.prepareStatement(replaceSynonymsSQL);
 	    checkSynonymExistsPS = conn.prepareStatement(checkSynonymExistsSQL);
-	    insertSynonymsPS = conn.prepareStatement(insertSynonymsSQL);
+	    insertSynonymsPS = conn.prepareStatement(insertSynonymsSQL);	    
 	} catch (SQLException e) {
 	    e.printStackTrace();
 	}
@@ -680,6 +699,10 @@ public class PubchemSubstanceLoader extends BardExtResourceLoader implements IBa
 
     private void updateSynonyms(long sid, String synStr) throws SQLException {
 	String [] toks = synStr.split("\n");
+	
+	//need to delete the synonyms first
+	stmt.execute("delete from synonyms where id ="+sid+" and type=0");
+	
 	for(String syn : toks) {
 	    synonymCount++;			
 	    this.insertSynonymsPS.setLong(1, sid);
@@ -831,58 +854,132 @@ public class PubchemSubstanceLoader extends BardExtResourceLoader implements IBa
 	return fileBatches;
     }
 
-    public void updateSubstanceDates() {
+    public boolean updateSubstanceDates() throws ClassNotFoundException, SQLException {
 
-	String s1 = "select sid, deposited, updated from temp_subst_dates";
-	String s2 = "update substance set deposited = ?, updated = ? where sid = ?";
+	log.info("Starting Update of Substance Dates");
 
-	connect();
+	boolean updated = false;
+	
+	conn = BardDBUtil.connect(service.getDbURL());
+	conn.setAutoCommit(false);
+	
+	Connection conn2 = BardDBUtil.connect(service.getDbURL());
+	
+	updateSubstanceDatePS = conn.prepareStatement(updateSubstanceDatesSQL);
+	
+	extrasResource.getFileName();
+	String extrasDirPath = service.getLocalResPath() + "/Substance-Extras/";
 
-	try {
-
-	    PreparedStatement selectPS = conn.prepareStatement(s1);
-	    selectPS.setFetchSize(Integer.MIN_VALUE);
-
-	    PreparedStatement updatePS = connUpdate.prepareStatement(s2);
-	    //updatePS.setFetchSize(Integer.MIN_VALUE);
-
-	    ResultSet rs = selectPS.executeQuery();
-
-	    long sid;
-	    Date deposited, updated;
-	    long updateCount = 0;
-	    long start = System.currentTimeMillis();
-
-	    while (rs.next()) {
-		updateCount++;
-
-		sid = rs.getLong(1);
-		deposited = rs.getDate(2);
-		updated = rs.getDate(3);
-
-		updatePS.setLong(3, sid);
-		updatePS.setDate(1, deposited);
-		updatePS.setDate(2, updated);
-
-		updatePS.addBatch();
-
-		if(updateCount % 10000 == 0) {
-		    updatePS.executeBatch();
-		    conn.commit();
-		    //	updatePS.clearBatch();
-		}
-
-		if(updateCount % 100000 == 0) {
-		    //conn.commit();
-		    System.out.println("count=" + updateCount + "  " + (System.currentTimeMillis()-start)/1000);
-		}
-	    }
-	    updatePS.executeUpdate();
-	    conn.commit();
-	} catch (SQLException e) {
-	    // TODO Auto-generated catch block
+	//gunzip the date file 
+	
+	log.info("Unzipping SID-Dates.gz");
+	try {	    
+	    BardResourceFetch.gunzipFile(extrasDirPath+"/SID-Date.gz", extrasDirPath+"/SID-Date");    
+	} catch (FileNotFoundException e) {
 	    e.printStackTrace();
-	}		
+	    log.info("SID-Date file not found in "+extrasDirPath);
+	    return false;
+	} catch (IOException e) {
+	    e.printStackTrace();
+	    log.info("SID-Date update failed. IOException on SID-Date file unzip.");
+	    return false;
+	}
+
+	log.info("Preparing temp_sid_date table.");
+	Statement stmt = conn2.createStatement();
+	stmt.execute("create table if not exists temp_sid_date (sid bigint(20), deposited date, updated date)");
+	stmt.execute("truncate temp_sid_date");
+	log.info("Loading data into temp_sid_date.");
+	stmt.execute("load data infile '"+extrasDirPath+"SID-Date' into table temp_sid_date");
+	log.info("Fisished data load into temp_sid_date / Starting update of substance.");
+	
+	stmt.setFetchSize(Integer.MIN_VALUE);
+	ResultSet rs = stmt.executeQuery("select * from temp_sid_date");
+	long sidCnt = 0;
+	while(rs.next()) {
+	    updateSubstanceDatePS.setDate(1, rs.getDate(2));
+	    updateSubstanceDatePS.setDate(2, rs.getDate(3));
+	    updateSubstanceDatePS.setLong(3, rs.getLong(1));
+	    updateSubstanceDatePS.addBatch();
+	    sidCnt++;
+	    
+	    if(sidCnt % 100 == 0) {
+		updateSubstanceDatePS.executeBatch();
+		conn.commit();
+	    }	    
+	    
+	    if(sidCnt % 1000000 == 0) {
+		log.info("SID Date update count = "+sidCnt);
+	    }
+	}
+		
+	updateSubstanceDatePS.executeBatch();
+	conn.commit();
+	
+	rs.close();
+	conn.close();
+	conn2.close();
+	updated = true;
+//	BufferedReader br = new BufferedReader(new FileReader(extrasDirPath+"SID-Date"));
+	
+	//br to read  OR load file into temp_subs_dates and query from table.
+	//load table might be faster for getting data into the db but requires a query/update.
+	//update statement, 110 million times?	
+	
+	
+	
+//	String s1 = "select sid, deposited, updated from temp_subst_dates";
+//	String s2 = "update substance set deposited = ?, updated = ? where sid = ?";
+//
+//	connect();
+//
+//	try {
+//
+//	    PreparedStatement selectPS = conn.prepareStatement(s1);
+//	    selectPS.setFetchSize(Integer.MIN_VALUE);
+//
+//	    PreparedStatement updatePS = connUpdate.prepareStatement(s2);
+//	    //updatePS.setFetchSize(Integer.MIN_VALUE);
+//
+//	    ResultSet rs = selectPS.executeQuery();
+//
+//	    long sid;
+//	    Date deposited, updated;
+//	    long updateCount = 0;
+//	    long start = System.currentTimeMillis();
+//
+//	    while (rs.next()) {
+//		updateCount++;
+//
+//		sid = rs.getLong(1);
+//		deposited = rs.getDate(2);
+//		updated = rs.getDate(3);
+//
+//		updatePS.setLong(3, sid);
+//		updatePS.setDate(1, deposited);
+//		updatePS.setDate(2, updated);
+//
+//		updatePS.addBatch();
+//
+//		if(updateCount % 10000 == 0) {
+//		    updatePS.executeBatch();
+//		    conn.commit();
+//		    //	updatePS.clearBatch();
+//		}
+//
+//		if(updateCount % 100000 == 0) {
+//		    //conn.commit();
+//		    System.out.println("count=" + updateCount + "  " + (System.currentTimeMillis()-start)/1000);
+//		}
+//	    }
+//	    updatePS.executeUpdate();
+//	    conn.commit();
+//	} catch (SQLException e) {
+//	    // TODO Auto-generated catch block
+//	    e.printStackTrace();
+//	}		
+	
+	return updated;
     }
 
     private long getSubstanceCount() throws SQLException {
