@@ -1196,7 +1196,7 @@ public class DBUtils {
                 }
 
                 // disease facet
-                PreparedStatement pst2 = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.bard_proj_id = ? and b.gene_id = c.gene_id");
+                PreparedStatement pst2 = conn.prepareStatement("\"select distinct b.* from  kegg_gene2disease b, bard_biology c where c.entity = 'project' and c.entity_id = ? and c.biology_dict_id = 880 and b.gene_id = c.ext_id\"");
                 pst2.setLong(1, bardProjectId);
                 ResultSet rs2 = pst2.executeQuery();
                 while (rs2.next()) {
@@ -4889,7 +4889,8 @@ public class DBUtils {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id");
         PreparedStatement gopst = conn.prepareStatement("select * from go_project where bard_proj_id = ? and implied = 0 order by go_type");
-        PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, project_target c where c.bard_proj_id = ? and b.gene_id = c.gene_id");
+        // ensure we select biologies that used Entrez Gene ID
+        PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, bard_biology c where c.entity = 'project' and c.entity_id = ? and c.biology_dict_id = 880 and b.gene_id = c.ext_id");
         try {
             pst.setLong(1, bardProjectId);
             ResultSet rs = pst.executeQuery();
