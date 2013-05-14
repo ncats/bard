@@ -3551,7 +3551,7 @@ public class DBUtils {
         if (bardExptId == null || bardExptId < 0) return null;
 
         String cacheKey = bardExptId + "#" + typeName;
-        Cache cache = getCache ("ExperimentSidsCache");
+        Cache cache = getCache ("ExperimentRTHistogramCache");
         try {
             List<Float[]> value = getCacheValue (cache, cacheKey);
             if (value != null) {
@@ -3578,7 +3578,7 @@ public class DBUtils {
         PreparedStatement pst;
 
         String cacheKey = String.valueOf(bardExptId);
-        Cache cache = getCache ("ExperimentSidsCache");
+        Cache cache = getCache ("ExperimentResultTypeCache");
         try {
             List<ExperimentResultType> value = getCacheValue (cache, cacheKey);
             if (value != null) {
