@@ -91,7 +91,7 @@ v16 released
 	      /biology Subresources include: /types, /types/{type}, /types/{type}/{extid}, /{entity}/{entityId}, /{entity}/{entityId}/{type}, /dict/{dictId}
 05/08/13      Added /experiments/{eid}/resulttypes to list available result type names for a given experiment
               Added filter support to /experiments/{eid}/exptdata. As a result you can use Solr filter query syntax to filter experiment results based on outcome
-              and result type.
+              and result type. Ordering of results can also be specified via fq(order:asc) or fq(order:desc) filter queries
 05/10/13      Added /biology/{bid} resource that supports GET and POST. For the latter, use the form parameter 'bids' to specify a command separated list of 
               biology identifiers. Both versions of the resource return a list of biology entities
 05/14/13      Removed a number of subresources from /target. See /targets/_info for the current set of subresources

@@ -2912,8 +2912,10 @@ public class DBUtils {
             fields.add(new SolrField(rtype.getName(), "float"));
         }
         fields.add(new SolrField("outcome", "text"));
+        fields.add(new SolrField("order", "text"));
 
         String filterClause = "";
+        String orderClause = "";
         if (filter != null) {
             Map<String, List<String>> fqs = SearchUtil.extractFilterQueries(filter, fields);
             for (String fieldName : fqs.keySet()) {
@@ -2924,6 +2926,11 @@ public class DBUtils {
                 if (fieldName.equals("outcome") && vals.size() == 1) {
                     if (vals.get(0).toLowerCase().contains("\"active\"")) filterClause += " and outcome = 2 ";
                     else if (vals.get(0).toLowerCase().contains("\"inactive\"")) filterClause += " and outcome = 1 ";
+                } else if (fieldName.equals("order") && vals.size() == 1) {
+                    String val= vals.get(0).toLowerCase();
+                    if (val.contains("\"asc")) orderClause = " order by value asc ";
+                    else if (val.contains("\"desc")) orderClause = " order by value desc ";
+                    else throw new SQLException("Invalid order specified. Must be asc or desc");
                 } else {
                     // now deal with individual result types
                     filterClause += " and display_name = '" + fieldName + "'";
@@ -2951,7 +2958,7 @@ public class DBUtils {
                 "where a.bard_expt_id = ? " +
                 filterClause +
                 "and a.expt_data_id = b.expt_data_id " +
-                " order by value " +
+                orderClause +
                 limitClause);
         try {
             pst.setLong(1, bardExptId);
