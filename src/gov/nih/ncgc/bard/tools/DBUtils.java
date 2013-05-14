@@ -3549,6 +3549,17 @@ public class DBUtils {
 
     public List<Float[]> getExperimentResultTypeHistogram(Long bardExptId, String typeName) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
+
+        String cacheKey = bardExptId + "#" + typeName;
+        Cache cache = getCache ("ExperimentSidsCache");
+        try {
+            List<Float[]> value = getCacheValue (cache, cacheKey);
+            if (value != null) {
+                return value;
+            }
+        }
+        catch (ClassCastException ex) {}
+
         PreparedStatement pst;
         if (conn == null) conn = getConnection();
         List<Float[]> ret = new ArrayList<Float[]>();
@@ -3559,11 +3570,23 @@ public class DBUtils {
         while (rs.next()) ret.add(new Float[]{rs.getFloat("n"), rs.getFloat("l"), rs.getFloat("u")});
         rs.close();
         pst.close();
+        cache.put(new Element(ret, cacheKey));
         return ret;
     }
     public List<ExperimentResultType> getExperimentResultTypes(Long bardExptId) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
         PreparedStatement pst;
+
+        String cacheKey = String.valueOf(bardExptId);
+        Cache cache = getCache ("ExperimentSidsCache");
+        try {
+            List<ExperimentResultType> value = getCacheValue (cache, cacheKey);
+            if (value != null) {
+                return value;
+            }
+        }
+        catch (ClassCastException ex) {}
+
         if (conn == null) conn = getConnection();
         List<ExperimentResultType> ret = new ArrayList<ExperimentResultType>();
 
@@ -3581,6 +3604,7 @@ public class DBUtils {
         }
         pst.close();
         rs.close();
+        cache.put(new Element(ret, cacheKey));
         return ret;
     }
     /**
