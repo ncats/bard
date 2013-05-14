@@ -1,6 +1,11 @@
 package gov.nih.ncgc.bard.rest;
 
-import gov.nih.ncgc.bard.entity.Assay;
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
@@ -8,32 +13,16 @@ import gov.nih.ncgc.bard.entity.TargetClassification;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.sun.jersey.api.NotFoundException;
 
 /**
  * Prototype of MLBD REST resources.
@@ -121,50 +110,9 @@ public class BARDTargetResource extends BARDResource<ProteinTarget> {
         }
     }
 
-    @GET
-    @Path("/accession/{acc}")
-    @Produces("application/json")
-    public Response getResources(@PathParam("acc") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
-        ProteinTarget p;
-        try {
-            String json;
-            if (countRequested) json = "1";
-            else {
-                p = db.getProteinTargetByAccession(resourceId);
-                db.closeConnection();
-                if (p.getAcc() == null) throw new WebApplicationException(404);
-                json = p.toJson();
-            }
-            return Response.ok(json, MediaType.APPLICATION_JSON).build();
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
-        }
-    }
-
-    @GET
-    @Path("/geneid/{id}")
-    @Produces("application/json")
-    public Response getByGeneid(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
-        ProteinTarget p;
-        String json;
-        try {
-            if (countRequested) json = "1";
-            else {
-                p = db.getProteinTargetByGeneid(Long.parseLong(resourceId));
-                db.closeConnection();
-                if (p.getAcc() == null) throw new WebApplicationException(404);
-                json = Util.toJson(p);
-            }
-            return Response.ok(json, MediaType.APPLICATION_JSON).build();
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
-        }
+    @Override
+    public Response getResources(@PathParam("name") String resourceId, String filter, String expand) {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     @GET
@@ -200,39 +148,6 @@ public class BARDTargetResource extends BARDResource<ProteinTarget> {
         } catch (JsonMappingException e) {
             throw new WebApplicationException(e, 500);
         } catch (JsonGenerationException e) {
-            throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
-        }
-    }
-
-    @GET
-    @Path("/accession/{acc}/assays")
-    public Response getExperimentsForTarget(@PathParam("acc") String acc,
-                                            @QueryParam("expand") String expand) {
-        boolean expandEntries = false;
-        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
-            expandEntries = true;
-
-        DBUtils db = new DBUtils();
-        List<Assay> assays;
-        try {
-            assays = db.getAssaysByTargetAccession(acc);
-            Response response;
-            if (countRequested) response = Response.ok(String.valueOf(assays.size()), MediaType.TEXT_PLAIN).build();
-            else if (expandEntries) {
-                String json = Util.toJson(assays);
-                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
-            } else {
-                List<String> links = new ArrayList<String>();
-                for (Assay assay : assays)
-                    links.add(assay.getResourcePath());
-                String json = Util.toJson(links);
-                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
-            }
-            db.closeConnection();
-            return response;
-        } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
@@ -305,40 +220,6 @@ public class BARDTargetResource extends BARDResource<ProteinTarget> {
             throw new NotFoundException("No protein targets for " + clsid + " in the " + source + " hierarchy");
         if (countRequested) return Response.ok(String.valueOf(targets.size())).type(MediaType.TEXT_PLAIN_TYPE).build();
         else return Response.ok(Util.toJson(targets)).type(MediaType.APPLICATION_JSON_TYPE).build();
-    }
-
-
-    @GET
-    @Path("/geneid/{geneid}/assays")
-    public Response getExperimentsForTargetByGeneid(@PathParam("geneid") Long geneid,
-                                                    @QueryParam("expand") String expand) {
-        boolean expandEntries = false;
-        if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
-            expandEntries = true;
-
-        DBUtils db = new DBUtils();
-        List<Assay> assays;
-        try {
-            assays = db.getAssaysByTargetGeneid(geneid);
-            Response response;
-            if (countRequested) response = Response.ok(String.valueOf(assays.size()), MediaType.TEXT_PLAIN).build();
-            else if (expandEntries) {
-                String json = Util.toJson(assays);
-                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
-            } else {
-                List<String> links = new ArrayList<String>();
-                for (Assay assay : assays)
-                    links.add(assay.getResourcePath());
-                String json = Util.toJson(links);
-                response = Response.ok(json, MediaType.APPLICATION_JSON).build();
-            }
-            db.closeConnection();
-            return response;
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
-        }
     }
 
 }
