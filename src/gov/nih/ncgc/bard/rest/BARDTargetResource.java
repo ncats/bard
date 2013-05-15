@@ -110,9 +110,27 @@ public class BARDTargetResource extends BARDResource<ProteinTarget> {
         }
     }
 
-    @Override
-    public Response getResources(@PathParam("name") String resourceId, String filter, String expand) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    @GET
+    @Path("/accession/{acc}")
+    @Produces("application/json")
+    public Response getResources(@PathParam("acc") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
+        DBUtils db = new DBUtils();
+        ProteinTarget p;
+        try {
+            String json;
+            if (countRequested) json = "1";
+            else {
+                p = db.getProteinTargetByAccession(resourceId);
+                db.closeConnection();
+                if (p.getAcc() == null) throw new WebApplicationException(404);
+                json = p.toJson();
+            }
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        }
     }
 
     @GET
