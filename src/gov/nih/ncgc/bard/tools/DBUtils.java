@@ -1163,6 +1163,8 @@ public class DBUtils {
         List<Facet> facets = new ArrayList<Facet>();
 
         ETag etag = getEtagByEtagId(etagId);
+        if (etag == null) throw new IllegalArgumentException(etagId+" does not exist");
+        if (etag.getType() == null) throw new IllegalArgumentException(etagId+" had a null type. Strange!");
         if (!etag.getType().equals("gov.nih.ncgc.bard.entity.Project"))
             throw new IllegalArgumentException("ETag " + etag + " is of type " + etag.getType());
 
@@ -1196,7 +1198,7 @@ public class DBUtils {
                 }
 
                 // disease facet
-                PreparedStatement pst2 = conn.prepareStatement("\"select distinct b.* from  kegg_gene2disease b, bard_biology c where c.entity = 'project' and c.entity_id = ? and c.biology_dict_id = 880 and b.gene_id = c.ext_id\"");
+                PreparedStatement pst2 = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, bard_biology c where c.entity = 'project' and c.entity_id = ? and c.biology_dict_id = 880 and b.gene_id = c.ext_id");
                 pst2.setLong(1, bardProjectId);
                 ResultSet rs2 = pst2.executeQuery();
                 while (rs2.next()) {
@@ -4573,6 +4575,17 @@ public class DBUtils {
         return n;
     }
 
+    private List<String> getCompoundAnnotationKeys() throws SQLException {
+        List<String> ret = new ArrayList<String>();
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select distinct anno_key from compound_annot order by anno_key");
+        ResultSet rs = pst.executeQuery();
+        while (rs.next()) ret.add(rs.getString(1));
+        rs.close();
+        pst.close();
+        return ret;
+    }
+
     /**
      * Return compounds based on a query.
      *
@@ -4585,8 +4598,50 @@ public class DBUtils {
      * @throws SQLException
      */
     public List<Compound> searchForCompounds(String filter, int skip, int top, boolean hasAnno) throws SQLException {
+
+        List<String> annokeys = getCompoundAnnotationKeys();
+        List<SolrField> fields = new ArrayList<SolrField>();
+        for (String annokey : annokeys) {
+            fields.add(new SolrField(annokey, "string"));
+        }
+        fields.add(new SolrField("annotation", "text"));
+        fields.add(new SolrField("active", "text"));
+        fields.add(new SolrField("order", "text"));
+
         List<Compound> ret = new ArrayList<Compound>();
         String limitClause = generateLimitClause(skip, top);
+
+//        Map<String, List<String>> fqs = SearchUtil.extractFilterQueries(filter, fields);
+//        for (String fieldName : fqs.keySet()) {
+//            List<String> vals = fqs.get(fieldName);
+//            if (vals.size() == 0) continue;
+//
+//            // handle outcome specially
+//            if (fieldName.equals("active") && vals.size() == 1) {
+//                if (vals.get(0).toLowerCase().contains("\"active\"")) filterClause += " and outcome = 2 ";
+//                else if (vals.get(0).toLowerCase().contains("\"inactive\"")) filterClause += " and outcome = 1 ";
+//            } else if (hasExplodedResults && fieldName.equals("order") && vals.size() == 1) {
+//                String val= vals.get(0).toLowerCase();
+//                if (val.contains("\"asc")) orderClause = " order by value asc ";
+//                else if (val.contains("\"desc")) orderClause = " order by value desc ";
+//                else throw new SQLException("Invalid order specified. Must be asc or desc");
+//            } else if (hasExplodedResults) {
+//                // now deal with individual result types
+//                filterClause += " and display_name = '" + fieldName + "'";
+//                if (!vals.get(0).contains("[")) filterClause += " and value = " + vals.get(0) + " ";
+//                else { // provided a range
+//                    String[] toks = vals.get(0).replace("[", "").replace("]", "").split(" TO ");
+//                    String lower = toks[0];
+//                    String upper = toks[1];
+//                    if (lower.equals("*") && !upper.equals("*")) filterClause += " and value <= " + upper + " ";
+//                    else if (!lower.equals("*") && upper.equals("*"))
+//                        filterClause += " and value >= " + lower + " ";
+//                    else if (!lower.equals("*") && !upper.equals("*"))
+//                        filterClause += " and value >= " + lower + " and value <= " + upper + " ";
+//                }
+//            }
+//        }
+
         String sql = "select distinct cid from bard_experiment_data order by cid " + limitClause;
         if (filter.contains("active"))
             sql = "select distinct cid from bard_experiment_data where outcome = 2 order by cid " + limitClause;
