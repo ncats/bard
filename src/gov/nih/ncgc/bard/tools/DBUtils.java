@@ -4611,6 +4611,8 @@ public class DBUtils {
         List<Compound> ret = new ArrayList<Compound>();
         String limitClause = generateLimitClause(skip, top);
 
+        boolean filterForActives = false;
+
 //        Map<String, List<String>> fqs = SearchUtil.extractFilterQueries(filter, fields);
 //        for (String fieldName : fqs.keySet()) {
 //            List<String> vals = fqs.get(fieldName);
@@ -4618,8 +4620,7 @@ public class DBUtils {
 //
 //            // handle outcome specially
 //            if (fieldName.equals("active") && vals.size() == 1) {
-//                if (vals.get(0).toLowerCase().contains("\"active\"")) filterClause += " and outcome = 2 ";
-//                else if (vals.get(0).toLowerCase().contains("\"inactive\"")) filterClause += " and outcome = 1 ";
+//                filterForActives = true;
 //            } else if (hasExplodedResults && fieldName.equals("order") && vals.size() == 1) {
 //                String val= vals.get(0).toLowerCase();
 //                if (val.contains("\"asc")) orderClause = " order by value asc ";
