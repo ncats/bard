@@ -1515,6 +1515,65 @@ public class DBUtils {
         }
     }
 
+    public Map<String, String[]> getFilteredCompoundAnnotations(Long cid, List<String> annoKeys) throws SQLException {
+        Cache cache = getCache ("CompoundAnnotationCache");
+        String cacheKey = "";
+        Collections.sort(annoKeys);
+        for (String annoKey : annoKeys) cacheKey += annoKey;
+        try {
+            Map<String, String[]> value = getCacheValue (cache, cacheKey);
+            if (value != null) {
+                return value;
+            }
+        }
+        catch (ClassCastException ex) {}
+
+        if (conn == null) conn = getConnection();
+
+
+        StringBuffer sb = new StringBuffer();
+        String delim = "";
+        for (String key : annoKeys) {
+            sb.append(delim).append("'").append(key).append("'");
+            delim = ",";
+        }
+        String filterClause;
+        if (annoKeys.size() >0) filterClause = " and annot_key in ("+sb.toString()+") ";
+        else filterClause = "";
+
+        PreparedStatement pst = conn.prepareStatement
+                ("select * from compound_annot where cid = ? "+filterClause);
+        try {
+            pst.setLong(1, cid);
+
+            List<String> keys = new ArrayList<String>();
+            List<String> vals = new ArrayList<String>();
+
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                String key = rs.getString("annot_key");
+                String val = rs.getString("val");
+                if (val != null) {
+                    keys.add(key);
+                    vals.add(val.trim());
+                }
+            }
+            rs.close();
+
+            Map<String, String[]> anno = new TreeMap<String, String[]>();
+            anno.put("anno_key", keys.toArray(new String[keys.size()]));
+            anno.put("anno_val", vals.toArray(new String[vals.size()]));
+
+            cache.put(new Element (cacheKey, anno));
+
+            return anno;
+        }
+        finally {
+            pst.close();
+        }
+
+    }
+
     public Map<String, String[]> getCompoundAnnotations
         (Long cid) throws SQLException {
 
