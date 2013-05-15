@@ -2961,21 +2961,35 @@ public class DBUtils {
         } catch (ClassCastException ex) {
         }
 
-        String limitClause = generateLimitClause(skip, top);
+        if (conn == null) conn = getConnection();
 
-        // use result types for the experiment to create a list of SolrField
-        // objects so that we can reuse our search filter parsing code
-        List<ExperimentResultType> rtypes = getExperimentResultTypes(bardExptId);
-        List<SolrField> fields = new ArrayList<SolrField>();
-        for (ExperimentResultType rtype : rtypes) {
-            fields.add(new SolrField(rtype.getName(), "float"));
-        }
-        fields.add(new SolrField("outcome", "text"));
-        fields.add(new SolrField("order", "text"));
+        // does the exploded results table have any numeric values for this expt id?
+        // if not we have to ignore some filter fields and avoid a simple join (and
+        // a left outer join is prohibitive on expts from primary screens)
+        PreparedStatement erpst = conn.prepareStatement("select * from exploded_results where bard_expt_id = ? limit 1");
+        erpst.setLong(1, bardExptId);
+        ResultSet errs = erpst.executeQuery();
+        boolean hasExplodedResults = false;
+        while (errs.next())  hasExplodedResults = true;
+        errs.close();
+        erpst.close();
+
+        String limitClause = generateLimitClause(skip, top);
 
         String filterClause = "";
         String orderClause = "";
         if (filter != null) {
+
+            // use result types for the experiment to create a list of SolrField
+            // objects so that we can reuse our search filter parsing code
+            List<ExperimentResultType> rtypes = getExperimentResultTypes(bardExptId);
+            List<SolrField> fields = new ArrayList<SolrField>();
+            for (ExperimentResultType rtype : rtypes) {
+                fields.add(new SolrField(rtype.getName(), "float"));
+            }
+            fields.add(new SolrField("outcome", "text"));
+            fields.add(new SolrField("order", "text"));
+
             Map<String, List<String>> fqs = SearchUtil.extractFilterQueries(filter, fields);
             for (String fieldName : fqs.keySet()) {
                 List<String> vals = fqs.get(fieldName);
@@ -2985,12 +2999,12 @@ public class DBUtils {
                 if (fieldName.equals("outcome") && vals.size() == 1) {
                     if (vals.get(0).toLowerCase().contains("\"active\"")) filterClause += " and outcome = 2 ";
                     else if (vals.get(0).toLowerCase().contains("\"inactive\"")) filterClause += " and outcome = 1 ";
-                } else if (fieldName.equals("order") && vals.size() == 1) {
+                } else if (hasExplodedResults && fieldName.equals("order") && vals.size() == 1) {
                     String val= vals.get(0).toLowerCase();
                     if (val.contains("\"asc")) orderClause = " order by value asc ";
                     else if (val.contains("\"desc")) orderClause = " order by value desc ";
                     else throw new SQLException("Invalid order specified. Must be asc or desc");
-                } else {
+                } else if (hasExplodedResults) {
                     // now deal with individual result types
                     filterClause += " and display_name = '" + fieldName + "'";
                     if (!vals.get(0).contains("[")) filterClause += " and value = " + vals.get(0) + " ";
@@ -3008,17 +3022,26 @@ public class DBUtils {
             }
         }
 
-        if (conn == null) conn = getConnection();
-
         // TODO we join exploded_results and bard_experiment_data and then apply limits - might be better to
         // query exploded_results and bard_experiment_data in separate calls?
-        PreparedStatement pst = conn.prepareStatement("select distinct concat(cast(b.bard_expt_id as char), '.', cast(b.sid as char)) as id from " +
-                "exploded_results a, bard_experiment_data b " +
-                "where a.bard_expt_id = ? " +
-                filterClause +
-                "and a.expt_data_id = b.expt_data_id " +
-                orderClause +
-                limitClause);
+        PreparedStatement pst;
+
+        if (hasExplodedResults) {
+            pst = conn.prepareStatement("select distinct concat(cast(b.bard_expt_id as char), '.', cast(b.sid as char)) as id from " +
+                    "exploded_results a, bard_experiment_data b " +
+                    "where a.bard_expt_id = ? " +
+                    filterClause +
+                    "and a.expt_data_id = b.expt_data_id " +
+                    orderClause +
+                    limitClause);
+        } else {
+            pst = conn.prepareStatement("select distinct concat(cast(b.bard_expt_id as char), '.', cast(b.sid as char)) as id from " +
+                    "bard_experiment_data b " +
+                    "where b.bard_expt_id = ? " +
+                    filterClause +
+                    limitClause);
+        }
+
         try {
             pst.setLong(1, bardExptId);
             ResultSet rs = pst.executeQuery();
