@@ -1190,9 +1190,9 @@ public class DBUtils {
                 // target facet
                 List<Biology> targets = getProjectTargets(bardProjectId);
                 for (Biology t : targets) {
-                    if (tcounts.containsKey(t.getDescription())) {
-                        tcounts.put(t.getDescription(), tcounts.get(t.getDescription()) + 1);
-                    } else tcounts.put(t.getDescription(), 1);
+                    if (tcounts.containsKey(t.getName())) {
+                        tcounts.put(t.getName(), tcounts.get(t.getName()) + 1);
+                    } else tcounts.put(t.getName(), 1);
                 }
 
                 // disease facet
@@ -5582,7 +5582,7 @@ public class DBUtils {
             Biology bio = new Biology();
             bio.setSerial(rs.getLong("serial"));
             bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
-            bio.setDescription(rs.getString("description"));
+            bio.setName(rs.getString("description"));
             bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
             bio.setEntity(rs.getString("entity"));
@@ -5625,7 +5625,7 @@ public class DBUtils {
             Biology bio = new Biology();
             bio.setSerial(rs.getLong("serial"));
             bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
-            bio.setDescription(rs.getString("description"));
+            bio.setName(rs.getString("description"));
             bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
             bio.setEntity(rs.getString("entity"));
@@ -5662,7 +5662,7 @@ public class DBUtils {
             Biology bio = new Biology();
             bio.setSerial(rs.getLong("serial"));
             bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
-            bio.setDescription(rs.getString("description"));
+            bio.setName(rs.getString("description"));
             bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
             bio.setEntity(rs.getString("entity"));
@@ -5695,7 +5695,7 @@ public class DBUtils {
             Biology bio = new Biology();
             bio.setSerial(rs.getLong("serial"));
             bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
-            bio.setDescription(rs.getString("description"));
+            bio.setName(rs.getString("description"));
             bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
             bio.setEntity(entity);
@@ -5728,7 +5728,7 @@ public class DBUtils {
             Biology bio = new Biology();
             bio.setSerial(rs.getLong("serial"));
             bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
-            bio.setDescription(rs.getString("description"));
+            bio.setName(rs.getString("description"));
             bio.setDictId(rs.getLong("biology_dict_id"));
             bio.setDictLabel(rs.getString("biology_dict_label"));
             bio.setEntity(entity);

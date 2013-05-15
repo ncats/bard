@@ -95,3 +95,7 @@ v16 released
 05/10/13      Added /biology/{bid} resource that supports GET and POST. For the latter, use the form parameter 'bids' to specify a command separated list of 
               biology identifiers. Both versions of the resource return a list of biology entities
 05/14/13      Removed a number of subresources from /target. See /targets/_info for the current set of subresources
+
+v17 released
+
+05/15/13      Renamed 'description' in /biology entities to 'name'

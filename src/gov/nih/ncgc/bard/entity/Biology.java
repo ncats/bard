@@ -8,7 +8,7 @@ import java.sql.Timestamp;
 /**
  * A representation of a target.
  * <p/>
- * This is a generic description of a target and allows one to represent genes, proteins, pathways
+ * This is a generic name of a target and allows one to represent genes, proteins, pathways
  * processes and so on as targets for a given entity.
  *
  * @author Rajarshi Guha
@@ -61,15 +61,15 @@ public class Biology implements BardEntity {
     @BARDJsonRequired
     Long entityId;
 
-    String description, entity, extId, extRef, dictLabel;
+    String name, entity, extId, extRef, dictLabel;
     Long dictId, serial;
     Timestamp updated;
 
     public Biology() {
     }
 
-    public Biology(String description, String entity, BiologyType biology, String ext_ref, Long entity_id, String ext_id, Timestamp updated, Long serial) {
-        this.description = description;
+    public Biology(String name, String entity, BiologyType biology, String ext_ref, Long entity_id, String ext_id, Timestamp updated, Long serial) {
+        this.name = name;
         this.entity = entity;
         this.biology = biology;
         this.extRef = ext_ref;
@@ -103,12 +103,12 @@ public class Biology implements BardEntity {
         this.dictId = dictId;
     }
 
-    public String getDescription() {
-        return description;
+    public String getName() {
+        return name;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getEntity() {
