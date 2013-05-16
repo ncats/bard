@@ -250,6 +250,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                     }
                 }
 
+                System.out.println(valueDisplay+" "+key+" "+valueUrl);
                 annos.add(new CAPAnnotation(contextId, assay.getAssayId().intValue(), valueDisplay, contextName, key, value, extValueId, "cap-context", valueUrl, displayOrder, "assay", related));
 
             }
@@ -357,6 +358,13 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             // get Biology information and load it into the bard_biology table
             Assay.AssayContexts assayContexts = assay.getAssayContexts();
             if (assayContexts != null) {
+                // first delete all biology data for this assay
+                PreparedStatement deletePst = conn.prepareStatement("delete from bard_biology where entity = 'assay' and entity_id = ?");
+                deletePst.setLong(1, bardAssayId);
+                deletePst.executeUpdate();
+                conn.commit();
+                deletePst.close();
+                // now load in the new stuff
                 List<BiologyInfo> bi = extractBiology(assayContexts.getAssayContext());
                 PreparedStatement pstTarget =
                         conn.prepareStatement("insert into bard_biology (biology, biology_dict_id, biology_dict_label, description, entity, entity_id, ext_id, ext_ref) " +
@@ -381,28 +389,34 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 log.info("Inserted " + bi.size() + " biology entries for BARD assay id = " + bardAssayId);
             }
 
-            // TODO this block implies we don't update annos/pubs etc for pre-existing assays
+            // Delete pre-existing annotations
+            PreparedStatement deletePst = conn.prepareStatement("delete from cap_annotation where entity_id = ?");
+            deletePst.setLong(1, bardAssayId);
+            deletePst.executeUpdate();
+            conn.commit();
+            deletePst.close();
+            // Load in the new ones
+            PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'assay',?,?,?,?,?,?,?,?,?,?)");
+            for (CAPAnnotation anno : annos) {
+                pstAssayAnnot.setString(1, anno.source);
+                pstAssayAnnot.setInt(2, bardAssayId);
+                pstAssayAnnot.setInt(3, anno.id);
+                pstAssayAnnot.setString(4, anno.key);
+                pstAssayAnnot.setString(5, anno.value);
+                pstAssayAnnot.setString(6, anno.extValueId); // anno_value_text
+                pstAssayAnnot.setString(7, anno.display);
+                pstAssayAnnot.setString(8, anno.contextRef); // context_name
+                pstAssayAnnot.setString(9, anno.related); // put into related field
+                pstAssayAnnot.setString(10, anno.url);
+                pstAssayAnnot.setInt(11, anno.displayOrder);
+                pstAssayAnnot.addBatch();
+            }
+            int[] updateCounts = pstAssayAnnot.executeBatch();
+            conn.commit();
+            pstAssayAnnot.close();
+
+            // TODO this block implies we don't update pubs etc for pre-existing assays
             if (!assayExists) {
-                PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'assay',?,?,?,?,?,?,?,?,?,?)");
-                for (CAPAnnotation anno : annos) {
-                    pstAssayAnnot.setString(1, anno.source);
-                    pstAssayAnnot.setInt(2, bardAssayId);
-                    pstAssayAnnot.setInt(3, anno.id);
-                    pstAssayAnnot.setString(4, anno.key);
-                    pstAssayAnnot.setString(5, anno.value);
-                    pstAssayAnnot.setString(6, anno.extValueId); // anno_value_text
-                    pstAssayAnnot.setString(7, anno.display);
-                    pstAssayAnnot.setString(8, anno.contextRef); // context_name
-                    pstAssayAnnot.setString(9, anno.related); // put into related field
-                    pstAssayAnnot.setString(10, anno.url);
-                    pstAssayAnnot.setInt(11, anno.displayOrder);
-                    pstAssayAnnot.addBatch();
-                }
-
-                int[] updateCounts = pstAssayAnnot.executeBatch();
-                conn.commit();
-                pstAssayAnnot.close();
-
                 // insert documents if need be
                 PreparedStatement pstPub = conn.prepareStatement("select * from assay_pub where bard_assay_id = ?");
                 PreparedStatement pstPubLink = conn.prepareStatement("insert into assay_pub (bard_assay_id, pmid) values (?,?)");
