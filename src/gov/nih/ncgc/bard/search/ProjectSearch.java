@@ -2,15 +2,6 @@ package gov.nih.ncgc.bard.search;
 
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.tools.DBUtils;
-
-import java.net.MalformedURLException;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -20,6 +11,10 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.MalformedURLException;
+import java.sql.SQLException;
+import java.util.*;
 
 /**
  * Full text search for project entities.
@@ -32,7 +27,7 @@ public class ProjectSearch extends SolrSearch {
 
     Logger log;
 
-    String[] facetNames = {"num_expt", "target_name", "kegg_disease_cat"};
+    String[] facetNames = {"num_expt", "biology", "target_name", "kegg_disease_cat", "class_name"};
 
     public ProjectSearch(String query, String coreName) {
         super(query);
@@ -62,6 +57,8 @@ public class ProjectSearch extends SolrSearch {
 
         sq.addFacetField("target_name");
         sq.addFacetField("kegg_disease_cat");
+        sq.addFacetField("biology");
+        sq.addFacetField("class_name");
 
         response = solr.query(sq);
         List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_PROJECT_DOC, HL_FIELD);

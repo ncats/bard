@@ -99,3 +99,4 @@ v16 released
 v17 released
 
 05/15/13      Renamed 'description' in /biology entities to 'name'
+05/18/13      Updated project search resource to include facets for biology and panther class name
