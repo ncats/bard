@@ -1,15 +1,31 @@
 package gov.nih.ncgc.bard.capextract.resultextract;
 
+import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
 import gov.nih.ncgc.bard.capextract.jaxb.ContextType.ContextItems;
 import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.pcparser.Constants;
+import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
+import gov.nih.ncgc.bard.tools.DBUtils;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.math.BigInteger;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.Vector;
+
+import net.sf.ehcache.Element;
 
 /**
  * This class builds BardResultType starting with a variety of input formats.
@@ -27,9 +43,9 @@ public class BardResultFactory {
     // Element categories, these help to identify key element ids
     private Vector <Integer> highPriorityDataElemV;
     private Vector <Integer> lowPriorityDataElemV;
-    private Vector <Integer> xx50DataElemV;
     private Vector <Integer> curveFitParameterElemV;
     private Vector <Integer> logXx50ParameterElemV;
+    private Vector <Integer> potencyDataElemV;
     private Vector <Integer> efficacyDataElemV;
 
     // The returned response object, class level to prevent building multiple references.
@@ -49,6 +65,8 @@ public class BardResultFactory {
     
     private Integer attrId;
     private boolean haveConcAttr;
+    
+    private CAPDictionary dictionary;
 
     /**
      * Default Constructor
@@ -62,6 +80,9 @@ public class BardResultFactory {
      * Heuristics are require to identify the result format (SP, CR)
      */
     private void initPriorityVectors() {
+	dictionary = null;
+	boolean haveDictionary = fetchLatestDictionaryFromWarehouse(CAPConstants.getBardDBJDBCUrl());
+	
 	highPriorityDataElemV = new Vector <Integer>();
 	for(Integer elem : Constants.HIGH_PRIORITY_DICT_ELEM) {
 	    highPriorityDataElemV.add(elem);
@@ -71,10 +92,7 @@ public class BardResultFactory {
 	for(Integer elem : Constants.LOW_PRIORITY_DATA_ELEM) {
 	    lowPriorityDataElemV.add(elem);
 	}
-	xx50DataElemV = new Vector <Integer>();
-	for(Integer elem : Constants.XX50_DICT_ELEM) {
-	    xx50DataElemV.add(elem);
-	}
+	
 	curveFitParameterElemV = new Vector <Integer>();
 	for(Integer elem : Constants.FIT_PARAM_DICT_ELEM) {
 	    curveFitParameterElemV.add(elem);
@@ -83,9 +101,19 @@ public class BardResultFactory {
 	for(Integer elem : Constants.LOG_XX50_DICT_ELEM) {
 	    logXx50ParameterElemV.add(elem);
 	}
-	efficacyDataElemV = new Vector <Integer>();
-	for(Integer elem : Constants.EFFICACY_PERCENT_MEASURES) {
-	    efficacyDataElemV.add(elem);
+
+	if(haveDictionary && dictionary != null) {
+	    potencyDataElemV = getPotencyElements();
+	    efficacyDataElemV = getEfficacyElements();
+	} else { //get them from constants if we don't have a dictionary
+	    potencyDataElemV = new Vector <Integer>();
+	    for(Integer elem : Constants.XX50_DICT_ELEM) {
+		potencyDataElemV.add(elem);
+	    }
+	    efficacyDataElemV = new Vector <Integer>();
+	    for(Integer elem : Constants.EFFICACY_PERCENT_MEASURES) {
+		efficacyDataElemV.add(elem);
+	    }
 	}
     }
     
@@ -131,48 +159,53 @@ public class BardResultFactory {
 	response.getRootElements().clear();
 	//clear the result list
 	resultList.clear();
-	
+
 	//the primary ids in the response are constant, no change there
 
 	//set the sid for the response
 	response.setSid(result.getSid());
-	
+
 	//build the basic response structure, note that this also builds the simple list of results 
 	buildBasicResponseFromCapResult(result);
-	
+
 	// Typically the result type is determined during initialization
 	// If it's set to UNDEF, it signals that we should determine it on the first response
 	if(processCnt == 0 && this.response.getResponseType() == BardExptDataResponse.ResponseClass.UNDEF.ordinal()) {
 	    evaluateResponseType();
 	}
-	
+
 	//refine the structure in case of CR_SER, collapse to c/r objecs
 	//this iterates over list to find cr root nodes, then collapses data nodes to cr objectx
 	if(response.getResponseType() == 1) {
 	    createConcResponseObjects();
 	}
-	
+
 	//separate priority elements
 	ArrayList <BardResultType> priElems = new ArrayList <BardResultType>();
 	for(BardResultType resultElem : response.getRootElements()) {
 	    if(resultElem.getDictElemId() != null) { 
-		    if(this.highPriorityDataElemV.contains(resultElem.getDictElemId())) {
+		if(this.highPriorityDataElemV.contains(resultElem.getDictElemId())) {
+		    priElems.add(resultElem);
+		} else if(response.getResponseType() == 0
+			&& this.efficacyDataElemV.contains(resultElem.getDictElemId())) {
+		    priElems.add(resultElem);
+		} else if(response.getResponseType() == BardExptDataResponse.ResponseClass.CR_SER.ordinal()
+			|| response.getResponseType() == BardExptDataResponse.ResponseClass.CR_NO_SER.ordinal()) {
+		    if(this.potencyDataElemV.contains(resultElem.getDictElemId())) {
 			priElems.add(resultElem);
-		    } else if(response.getResponseType() == 0
-			    && this.efficacyDataElemV.contains(resultElem.getDictElemId())) {
-			priElems.add(resultElem);
-		    }
+		    }			
+		}			
 	    }
 	}
-	
+
 	response.getPriorityElements().addAll(priElems);
 	response.getRootElements().removeAll(priElems);
-	
+
 	//set core result values outcome, score, and potency
 	setCoreResultValues();
-	
+
 	processCnt++;
-	
+
 	return response;
     }
     
@@ -304,7 +337,7 @@ public class BardResultFactory {
 		for(BardResultType result : response.getRootElements()) {
 		    if(result.getDictElemId() != null) {
 			//if we have an efficacy, and one point, definate SP
-			if(this.xx50DataElemV.contains(result.getDictElemId())) {
+			if(this.potencyDataElemV.contains(result.getDictElemId())) {
 			    //only one conc but a root is an XX50, CR_NO_SER
 			    //System.out.println("Set to CR_NO_SER" + " sid="+response.getSid()+" size="+response.getRootElements().size());
 			    response.setResponseType(BardExptDataResponse.ResponseClass.CR_NO_SER.ordinal());
@@ -327,7 +360,7 @@ public class BardResultFactory {
 		//if we have an AC50 we have CR_NO_SER, going to permit no concentrations
 		//have XX50
 		for(BardResultType result : response.getRootElements()) {
-		    if(result.getDictElemId() != null && this.xx50DataElemV.contains(result.getDictElemId())) {
+		    if(result.getDictElemId() != null && this.potencyDataElemV.contains(result.getDictElemId())) {
 			response.setResponseType(BardExptDataResponse.ResponseClass.CR_NO_SER.ordinal());
 			haveType = true;
 			haveXX50 = true;
@@ -515,7 +548,7 @@ public class BardResultFactory {
 		
 		//get the parameters
 		try {
-		    series.reconcileParameters(logXx50ParameterElemV, xx50DataElemV);
+		    series.reconcileParameters(logXx50ParameterElemV, potencyDataElemV);
 		} catch (Exception e) {
 		    e.printStackTrace();
 		}		
@@ -546,7 +579,7 @@ public class BardResultFactory {
 	    dictId = tempBardResult.getDictElemId();
 
 	    if(dictId != null) {		
-		if(!havePotency && xx50DataElemV.contains(tempBardResult.getDictElemId())) {
+		if(!havePotency && potencyDataElemV.contains(tempBardResult.getDictElemId())) {
 		    havePotency = true;
 		    try {
 			if(tempBardResult.getValue() != null) {
@@ -596,5 +629,95 @@ public class BardResultFactory {
     public ArrayList<BardResultType> getResultList() {
         return resultList;
     }   
+    
+    public Vector <Integer> getPotencyElements() {
+	Vector <Integer> potElemV = new Vector<Integer>();
+	Set <CAPDictionaryElement> children = dictionary.getChildren(BigInteger.valueOf(942l));
+	Set <CAPDictionaryElement> gchildren;
+	Set <CAPDictionaryElement> ggchildren;	
 
+	for(CAPDictionaryElement child : children) {
+	    gchildren = dictionary.getChildren(child.getElementId());
+	    if(gchildren != null) {
+		for(CAPDictionaryElement gchild: gchildren) {
+		    potElemV.add(new Integer(gchild.getElementId().intValue()));	  
+		    ggchildren = dictionary.getChildren(gchild.getLabel());
+		    if(ggchildren != null) {
+			for(CAPDictionaryElement ggchild: ggchildren) {
+			    potElemV.add(new Integer(ggchild.getElementId().intValue()));	  
+			}
+		    }
+		}
+	    }
+	}
+	return potElemV;
+    }
+    
+    /*
+     * Returns grandchildren and great grandchildren under 'response endpoint'
+     */
+    private Vector <Integer> getEfficacyElements() {
+	Vector <Integer> effElemV = new Vector<Integer>();
+	Set <CAPDictionaryElement> children = dictionary.getChildren(BigInteger.valueOf(972l));
+	Set <CAPDictionaryElement> gchildren;
+	Set <CAPDictionaryElement> ggchildren;	
+
+	for(CAPDictionaryElement child : children) {
+	    gchildren = dictionary.getChildren(child.getElementId());
+	    if(gchildren != null) {
+		for(CAPDictionaryElement gchild: gchildren) {
+		    effElemV.add(new Integer(gchild.getElementId().intValue()));	  
+		    ggchildren = dictionary.getChildren(gchild.getLabel());
+		    if(ggchildren != null) {
+			for(CAPDictionaryElement ggchild: ggchildren) {
+			    effElemV.add(new Integer(ggchild.getElementId().intValue()));	  
+			}
+		    }
+		}
+	    }
+	}
+	return effElemV;
+    }
+    
+    public boolean fetchLatestDictionaryFromWarehouse(String dbURL) {
+ 	boolean haveIt = false;
+ 	try { 	   
+ 	    dictionary = getCAPDictionary(dbURL);
+ 	    haveIt = true;
+ 	} catch (SQLException e) {
+ 	    e.printStackTrace();
+ 	    return false;
+ 	} catch (IOException e) {
+ 	    e.printStackTrace();
+ 	    return false;
+ 	} catch (ClassNotFoundException e) {
+ 	    e.printStackTrace();
+ 	    return false;
+ 	}
+ 	return haveIt;
+     }
+
+    public CAPDictionary getCAPDictionary(String dbURL)
+	    throws SQLException, IOException, ClassNotFoundException {
+
+	Connection conn = BardDBUtil.connect(dbURL);
+	PreparedStatement pst = conn.prepareStatement("select dict, ins_date from cap_dict_obj order by ins_date desc");
+	try {
+	    ResultSet rs = pst.executeQuery();
+	    rs.next();
+	    byte[] buf = rs.getBytes(1);
+	    ObjectInputStream objectIn = null;
+	    if (buf != null)
+		objectIn = new ObjectInputStream(new ByteArrayInputStream(buf));
+	    Object o = objectIn.readObject();
+	    rs.close();
+
+	    if (!(o instanceof CAPDictionary)) return null;
+
+	    return (CAPDictionary)o;
+	}
+	finally {
+	    pst.close();
+	}
+    }
 }

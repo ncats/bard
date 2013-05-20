@@ -144,17 +144,18 @@ public class PubchemSubstanceLoader extends BardExtResourceLoader implements IBa
 	
 	try {
 	    if(service.getServiceKey().contains("SUBSTANCE-REFRESH-FULL")) {
+		//Manage FULL load using this code. Relies on temp_* tables.
 		//fetchResources();
-		log.info("Entering Batch Load to Temp Tables");
+		//log.info("Entering Batch Load to Temp Tables");
 		//batchLoadSubstances();
 	    } else {
 		log.info("Entering Batch Update to Substance and Synonym Tables");
-
 		fetchResources();
 		batchUpdateSubstances();
 	    }
 	    
 	    //update substance dates
+	    log.info("Entering Substance Dates (deposited updated) update");
 	    updateSubstanceDates();
 	} 
 	catch (IOException e) {
