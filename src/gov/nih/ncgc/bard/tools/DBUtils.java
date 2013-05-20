@@ -4992,7 +4992,7 @@ public class DBUtils {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity_id = ?");
         PreparedStatement gopst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and implied = 0 order by go_type");
-        PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from bard_assay a, kegg_gene2disease b, assay_target c where a.bard_assay_id = ? and a.bard_assay_id = c.bard_assay_id and c.gene_id = b.gene_id");
+        PreparedStatement keggpst = conn.prepareStatement("select a.* from kegg_gene2disease a,  (select distinct um.acc as gene_id from bard_biology a, uniprot_map um  where a.entity = 'assay' and a.entity_id = ? and a.biology_dict_id = 1398 and um.uniprot_acc = a.ext_id and acc_type = 'GeneID' union select distinct ext_id as gene_id from bard_biology a  where a.entity = 'assay' and a.entity_id = ? and a.biology_dict_id = 880) t where t.gene_id = a.gene_id");
         try {
             pst.setLong(1, bardAssayId);
             ResultSet rs = pst.executeQuery();
@@ -5030,6 +5030,7 @@ public class DBUtils {
 
             // pull in KEGG disease annotations
             keggpst.setLong(1, bardAssayId);
+            keggpst.setLong(2, bardAssayId);
             rs = keggpst.executeQuery();
             annos.addAll(convertKeggToAnno(rs, "assay", bardAssayId.intValue()));
 
@@ -5059,7 +5060,7 @@ public class DBUtils {
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id");
         PreparedStatement gopst = conn.prepareStatement("select * from go_project where bard_proj_id = ? and implied = 0 order by go_type");
         // ensure we select biologies that used Entrez Gene ID
-        PreparedStatement keggpst = conn.prepareStatement("select distinct b.* from  kegg_gene2disease b, bard_biology c where c.entity = 'project' and c.entity_id = ? and c.biology_dict_id = 880 and b.gene_id = c.ext_id");
+        PreparedStatement keggpst = conn.prepareStatement("select a.* from kegg_gene2disease a,  (select distinct um.acc as gene_id from bard_biology a, uniprot_map um  where a.entity = 'project' and a.entity_id = ? and a.biology_dict_id = 1398 and um.uniprot_acc = a.ext_id and acc_type = 'GeneID' union select distinct ext_id as gene_id from bard_biology a  where a.entity = 'project' and a.entity_id = ? and a.biology_dict_id = 880) t where t.gene_id = a.gene_id");
         try {
             pst.setLong(1, bardProjectId);
             ResultSet rs = pst.executeQuery();
@@ -5093,6 +5094,7 @@ public class DBUtils {
 
             // deal with KEGG annotations
             keggpst.setLong(1, bardProjectId);
+            keggpst.setLong(2, bardProjectId);
             rs = keggpst.executeQuery();
             annos.addAll(convertKeggToAnno(rs, "project", bardProjectId.intValue()));
 
