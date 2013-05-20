@@ -4,19 +4,6 @@ import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.tools.DBUtils;
-
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -26,6 +13,11 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.sql.SQLException;
+import java.util.*;
 
 /**
  * Full text search for assay entities.
@@ -93,10 +85,12 @@ public class AssaySearch extends SolrSearch {
         sq.setFacet(true);
         sq.setFacetMinCount(1);
         sq.addFacetField("target_name");
+        sq.addFacetField("biology");
         sq.addFacetField("detection_method_type");
         sq.addFacetField("assay_mode");
         sq.addFacetField("assay_component_role");
         sq.addFacetField("kegg_disease_cat");
+        sq.addFacetField("class_name");
 
 
         QueryResponse response = solr.query(sq);
