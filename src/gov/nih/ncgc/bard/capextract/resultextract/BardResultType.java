@@ -33,6 +33,8 @@ public class BardResultType {
     private Double testConc;
     private String testConcUnit;
     private String value;
+    private Double valueMax;
+    private Double valueMin;
     private Boolean excludeDataPoint;
     @JsonIgnore
     private Boolean isActiveConc;
@@ -93,6 +95,8 @@ public class BardResultType {
 	result.setQualifierId(this.getQualifierId());
 	result.setQualifierValue(this.getQualifierValue());
 	result.setReadoutName(this.getReadoutName());
+	result.setValueMax(this.getValueMax());
+	result.setValueMin(this.getValueMin());
 	result.setValue(this.getValue());
 	return result;
     }
@@ -286,6 +290,22 @@ public class BardResultType {
 
     public void setExtValueId(String extValueId) {
         this.extValueId = extValueId;
+    }
+    
+    public Double getValueMax() {
+        return valueMax;
+    }
+
+    public void setValueMax(Double valueMax) {
+        this.valueMax = valueMax;
+    }
+
+    public Double getValueMin() {
+        return valueMin;
+    }
+
+    public void setValueMin(Double valueMin) {
+        this.valueMin = valueMin;
     }
 
     public boolean haveChildren() {

@@ -12,9 +12,13 @@ public class CAPMeasureContextItem {
     private Integer attributeId;
     private String valueDisplay;
     private Double valueNum;
+    private Double valueMax;
+    private Double valueMin;    
+    private Integer valueElementId;
     private String extValueId;
     private String qualifier;
     private Long itemId;
+   
     
     /**
      * Default constructor
@@ -64,4 +68,29 @@ public class CAPMeasureContextItem {
     public void setExtValueId(String extValueId) {
         this.extValueId = extValueId;
     }
+
+    public Double getValueMax() {
+        return valueMax;
+    }
+
+    public void setValueMax(Double valueMax) {
+        this.valueMax = valueMax;
+    }
+
+    public Double getValueMin() {
+        return valueMin;
+    }
+
+    public void setValueMin(Double valueMin) {
+        this.valueMin = valueMin;
+    }
+
+    public Integer getValueElementId() {
+        return valueElementId;
+    }
+
+    public void setValueElementId(Integer valueElementId) {
+        this.valueElementId = valueElementId;
+    }
+    
 }

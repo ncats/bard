@@ -344,35 +344,35 @@ public class BardDBManager {
 		BardDBUpdateLogger.logEnd(dbLogId,  1, "Compound Rank Update FAILED. Check log for exceptions or error messages.");				
 
 	} else if (command.equals(GO_ASSOCIATION_UPDATE_COMMAND)) {
-
-	    dbLogId = BardDBUpdateLogger.logStart("Fetch Files for command= "+command);
-	    BardResourceFetch fetch = new BardResourceFetch();
-	    haveFiles = fetch.fetchGOHTTPAssociationResources(managerProps);			
-
-	    if(haveFiles) {
-		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch");
-		//start update
-		dbLogId = BardDBUpdateLogger.logStart("Update command= "+command);					
-
-		BardGoAssociationLoader loader = new BardGoAssociationLoader();
-		updateCnt = loader.loadTempGoAssociation(managerProps);
-		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished GO Association Update, Update Cnt ="+updateCnt);			
-	    } else {
-		BardDBUpdateLogger.logEnd(dbLogId, 1, "ERROR: FAILED File Fetch for GO Association Update.");
-	    }			
+//
+//	    dbLogId = BardDBUpdateLogger.logStart("Fetch Files for command= "+command);
+//	    BardResourceFetch fetch = new BardResourceFetch();
+//	    haveFiles = fetch.fetchGOHTTPAssociationResources(managerProps);			
+//
+//	    if(haveFiles) {
+//		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch");
+//		//start update
+//		dbLogId = BardDBUpdateLogger.logStart("Update command= "+command);					
+//
+//		BardGoAssociationLoader loader = new BardGoAssociationLoader();
+//		updateCnt = loader.loadTempGoAssociation(managerProps);
+//		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished GO Association Update, Update Cnt ="+updateCnt);			
+//	    } else {
+//		BardDBUpdateLogger.logEnd(dbLogId, 1, "ERROR: FAILED File Fetch for GO Association Update.");
+//	    }			
 	} else if (command.equals(GO_ONTOLOGY_TERM_UPDATE_COMMAND)) {
-	    dbLogId = BardDBUpdateLogger.logStart("Fetch Files for command= "+command);
-	    BardResourceFetch fetch = new BardResourceFetch();
-	    haveFiles = fetch.fetchGOTermDBData(managerProps);			
-	    if(haveFiles) {
-		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch");
-		dbLogId = BardDBUpdateLogger.logStart("Update command= "+command);					
-		BardGoAssociationLoader loader = new BardGoAssociationLoader();
-		loader.updateGoTermTables(managerProps);
-		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished GO Term Database Update");				
-	    } else {
-		BardDBUpdateLogger.logEnd(dbLogId, 1, "ERROR: Failed File Fetch for GO Term Database Update.");				
-	    }
+//	    dbLogId = BardDBUpdateLogger.logStart("Fetch Files for command= "+command);
+//	    BardResourceFetch fetch = new BardResourceFetch();
+//	    haveFiles = fetch.fetchGOTermDBData(managerProps);			
+//	    if(haveFiles) {
+//		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch");
+//		dbLogId = BardDBUpdateLogger.logStart("Update command= "+command);					
+//		BardGoAssociationLoader loader = new BardGoAssociationLoader();
+//		loader.updateGoTermTables(managerProps);
+//		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished GO Term Database Update");				
+//	    } else {
+//		BardDBUpdateLogger.logEnd(dbLogId, 1, "ERROR: Failed File Fetch for GO Term Database Update.");				
+//	    }
 	} 
 
 	logger.info("DB Manager Completed: " + command + "\n ProcessID: [" + processID + "]");

@@ -210,6 +210,16 @@ public class BardDBUtil {
 		conn.close();
 	}
 
+	public static void cloneTableStructure(String sourceTable, String newTable, String dbURL) throws ClassNotFoundException, SQLException {
+		Connection conn = connect(dbURL);
+		Statement stmt = conn.createStatement();
+		String sql = "create table if not exists " + newTable + " like " + sourceTable;
+		stmt.execute(sql);
+		//truncate table data if it already existed
+		stmt.execute("truncate table "+newTable);
+		conn.close();
+	}
+	
 	public static void truncateTable(String table) throws ClassNotFoundException, SQLException {
 		Connection conn = connect();
 		Statement stmt = conn.createStatement();

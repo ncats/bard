@@ -34,9 +34,9 @@ public class GOQueryWorker {
 
     public GOQueryWorker() { }	
 
-    public void prepareStatements() {
+    public void prepareStatements(String dbURL) {
 	try {
-	    conn = BardDBUtil.connect(dbURL, driverName);
+	    conn = BardDBUtil.connect(dbURL);
 	    parentPS = conn.prepareStatement("select term1_id from go_term2term where term2_id = ?");
 	} catch (SQLException e) {
 	    // TODO Auto-generated catch block

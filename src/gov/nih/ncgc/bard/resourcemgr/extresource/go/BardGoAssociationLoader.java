@@ -71,16 +71,16 @@ public class BardGoAssociationLoader extends BardExtResourceLoader implements IB
 
 	long assocCnt = 0;
 	loadCnt = 0;
-	try {
 
+	try {
 	    conn = BardDBUtil.connect(service.getDbURL());
 	    conn.setAutoCommit(false);
 
 	    //get current table size
-	    assocCnt = BardDBUtil.getTableRowCount("go_association");
+	    assocCnt = BardDBUtil.getTableRowCount("go_association", service.getDbURL());
 
 	    //create temp table that is empty
-	    BardDBUtil.cloneTableStructure("go_association", "temp_go_association");
+	    BardDBUtil.cloneTableStructure("go_association", "temp_go_association", service.getDbURL());
 
 	    //need to load any fetched .gz files
 	    String baseGoDir = service.getLocalResPath();

@@ -10,7 +10,6 @@ import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.pcparser.Constants;
 import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
-import gov.nih.ncgc.bard.tools.DBUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -25,7 +24,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
 
-import net.sf.ehcache.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class builds BardResultType starting with a variety of input formats.
@@ -67,11 +67,12 @@ public class BardResultFactory {
     private boolean haveConcAttr;
     
     private CAPDictionary dictionary;
-
+    private Logger log;
     /**
      * Default Constructor
      */
     public BardResultFactory() {
+	log = LoggerFactory.getLogger(this.getClass());
 	initPriorityVectors();
     }
     
@@ -81,7 +82,7 @@ public class BardResultFactory {
      */
     private void initPriorityVectors() {
 	dictionary = null;
-	boolean haveDictionary = fetchLatestDictionaryFromWarehouse(CAPConstants.getBardDBJDBCUrl());
+	fetchLatestDictionaryFromWarehouse(CAPConstants.getBardDBJDBCUrl());
 	
 	highPriorityDataElemV = new Vector <Integer>();
 	for(Integer elem : Constants.HIGH_PRIORITY_DICT_ELEM) {
@@ -102,9 +103,11 @@ public class BardResultFactory {
 	    logXx50ParameterElemV.add(elem);
 	}
 
-	if(haveDictionary && dictionary != null) {
+	if(dictionary != null) {
+	    log.info("Have Dictionary. Retrieving potency and efficacy measures.");
 	    potencyDataElemV = getPotencyElements();
 	    efficacyDataElemV = getEfficacyElements();
+	    log.info("Have Dictionary. Retrieving potency and efficacy measures. potency cnt:"+potencyDataElemV.size()+" efficacy cnt:"+efficacyDataElemV.size());
 	} else { //get them from constants if we don't have a dictionary
 	    potencyDataElemV = new Vector <Integer>();
 	    for(Integer elem : Constants.XX50_DICT_ELEM) {
@@ -286,8 +289,10 @@ public class BardResultFactory {
 	bardResult.setDictElemId(contextItem.getAttributeId());
 	bardResult.setDisplayName(contextItem.getAttribute());
 	bardResult.setValue((contextItem.getValueNum() != null) ? contextItem.getValueNum().toString() : contextItem.getValueDisplay());
-	bardResult.setDictElemId(contextItem.getAttributeId());
 	bardResult.setExtValueId(contextItem.getExtValueId());
+	bardResult.setValueMin(contextItem.getValueMin());
+	bardResult.setValueMax(contextItem.getValueMax());	
+	bardResult.setQualifierValue(contextItem.getQualifier());
 	return bardResult;
     }
     

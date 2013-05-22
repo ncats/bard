@@ -11,6 +11,7 @@ import gov.nih.ncgc.bard.capextract.resultextract.BardExptDataResponse;
 import gov.nih.ncgc.bard.capextract.resultextract.BardResultFactory;
 import gov.nih.ncgc.bard.capextract.resultextract.BardResultType;
 import gov.nih.ncgc.bard.capextract.resultextract.CAPExperimentResult;
+import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -21,8 +22,11 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.Date;
@@ -616,7 +620,12 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
      */
     public void testResultTypes(String serverURL) {
 	try {
-	    conn = CAPUtil.connectToBARD(serverURL);
+	    try {
+		conn = BardDBUtil.connect(serverURL);
+	    } catch (ClassNotFoundException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	    }
 	    Statement stmt = conn.createStatement();
 	    ResultSet rs = stmt.executeQuery("select distinct(bard_expt_id) from bard_experiment");
 	    Vector <Long> v = new Vector<Long>();
@@ -624,34 +633,123 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 		v.add(rs.getLong(1));
 	    }
 	    rs.close();
+
+	    String activeSidSQL = "select sid from bard_experiment_data where (outcome = 2 or outcome = 5)" +
+		    " and bard_expt_id=";
+	    Vector <Long> totallyInactiveBeds = new Vector<Long>();
 	    
-	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples_max_20130509.txt)"));	    
-	    PreparedStatement ps = conn.prepareStatement("select b.cap_expt_id, a.json_response, a.sid from bard_experiment_result a, bard_experiment b " +
-	    		" where a.bard_expt_id=b.bard_expt_id and a.bard_expt_id = ? limit 1");	    
+	    String anySidSQL = "select sid from bard_experiment_data where bard_expt_id=";
+	    Hashtable <Long, Long> bidSidHash = new Hashtable <Long, Long>();
+	    int inactiveCnt = 0;
+	    for(long bed : v) {
+		rs = stmt.executeQuery(activeSidSQL+bed+" limit 1");
+		if(rs.next()) {
+		    bidSidHash.put(bed, rs.getLong(1));
+		    System.out.println("sid ="+rs.getLong(1));
+		} else {
+		    rs = stmt.executeQuery(anySidSQL+bed+" limit 1");
+		    if(rs.next()) {   
+			bidSidHash.put(bed, rs.getLong(1));
+			inactiveCnt++;
+		    } else {			
+			totallyInactiveBeds.add(bed);
+		    }
+		}
+	    }
+	    rs.close();
+	    
+	    System.out.println("No results for "+totallyInactiveBeds.size()+" experiments!");
+	    System.out.println("Experiment count with no actives ="+inactiveCnt);
+	    System.out.println("Number of bard expt ids="+v.size());
+
+	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples_max_20130522.txt"));	    
+	    PreparedStatement ps = conn.prepareStatement("select b.cap_expt_id, a.json_response, a.sid, b.pubchem_aid, a.json_data_array from bard_experiment_result a, bard_experiment b " +
+		    " where a.bard_expt_id=b.bard_expt_id and a.bard_expt_id = ? and a.sid = ? limit 1");	    
 	    int progress = 0;
 	    Blob response;
 	    BufferedReader in;
 	    String line;
 	    long aid;
 	    long sid;
+	    long cid;
+	    long pubchemAID;
+	    Long activeSID;
+	    int numWrites = 0;
+	    int capCnt;
+	    int pubchemTidCnt;
+	    BardExptDataResponse bardResponse;
 	    for(Long bid : v) {
 		ps.setLong(1, bid);
-		rs = ps.executeQuery();		
-		if(rs.next()) {
-		    progress++;
-		    aid = rs.getLong(1);
-		    response = rs.getBlob(2);
-		    sid = rs.getLong("sid");
-		    if(response != null) {
-			in = new BufferedReader(new InputStreamReader(response.getBinaryStream()));
-			while((line = in.readLine()) != null) {
-			    pw.println(bid+"\t"+sid+"\t"+line);			    
+		activeSID = bidSidHash.get(bid);
+		if(activeSID != null) {
+		    ps.setLong(2, activeSID);
+		    rs = ps.executeQuery();		
+		    if(rs.next()) {
+			progress++;
+			aid = rs.getLong(1);
+			response = rs.getBlob(2);
+			sid = rs.getLong("sid");
+			pubchemAID = rs.getLong(4);
+			String responseStr = "";
+			if(response != null) {
+			    in = new BufferedReader(new InputStreamReader(response.getBinaryStream()));
+			    pw.print(aid+"\t"+bid+"\t"+sid+"\t");
+			    pw.print("http://pubchem.ncbi.nlm.nih.gov/assay/assay.cgi?aid="+pubchemAID+"#aDefinitions\t");
+			    pw.print("http://bard.nih.gov/api/v17/exptdata/"+bid+"."+sid+"\t");
+			    numWrites++;
+			    while((line = in.readLine()) != null) {				
+				responseStr += line;
+			    }
+			    if(responseStr.contains("value\":\"Active"))
+				pw.print("Active\t");
+			    else
+				pw.print("(other than active)\t");
+			    //write bard response
+			    pw.print(responseStr+"\t");
+
+			    in.close();
+			} else {
+			    System.out.println("Null experiment response for expt: "+bid);
 			}
+			
+			
+			
+			//cap data
+			response = rs.getBlob(5);
+			responseStr = "";
+			if(response != null) {
+			    in = new BufferedReader(new InputStreamReader(response.getBinaryStream()));
+			    while((line = in.readLine()) != null) {
+				responseStr += line;				
+			    }
+			} else {
+			    System.out.println("Null CAP experiment response for expt: "+bid);
+			}
+			
+			capCnt = getCAPMeasureCount(responseStr);
+			pubchemTidCnt = this.getPubchemTIDCount(pubchemAID);
+			
+			pw.print(capCnt+"\t");
+			pw.print(pubchemTidCnt+"\t");
+			if(pubchemTidCnt > 0)
+			    pw.println((float)capCnt/(float)pubchemTidCnt);
+			else
+			    pw.println("\t");
+
+			//	responseStr = responseStr.replace("\n", "");
+			//end the line
+//	pw.println(responseStr);
+			
+			
+			
+			if(progress %100 == 0)
+			    System.out.println("Progress = "+progress);
 		    }
-		    if(progress %100 == 0)
-			System.out.println("Progress = "+progress);
+		} else {
+		    System.out.println("No SID for expt = "+bid);
 		}
-	    }	    
+	    }
+	    System.out.println("num writes="+numWrites);
 	    pw.flush();
 	    pw.close();
 	    conn.close();
@@ -660,6 +758,39 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
+    }
+    
+    public int getCAPMeasureCount(String capResponse) {
+	int mCnt = 0;
+	String key = "\"resultTypeId\":";
+	mCnt = capResponse.split(key).length-1;
+	return mCnt;
+    }
+    
+    public int getPubchemTIDCount(long aid) {
+	int tidCnt = 0;
+	String url = "http://pubchem.ncbi.nlm.nih.gov/rest/pug/assay/aid/"+aid+"/description/JSON";
+	
+	String data = "";
+	byte [] buff = new byte[1024];
+	try {
+	    URL pubchemURL = new URL(url);
+	    InputStream is = pubchemURL.openStream();
+	    
+	    while((is.read(buff)) > 0) {
+		data += new String(buff);
+	    }
+	    is.close();
+	    // System.out.println(data);
+	    tidCnt = data.split("\"tid\":").length-1;
+	} catch (MalformedURLException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	} catch (IOException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	}	
+	return tidCnt;
     }
     
     public void updateExperimentTestStats(String dbURL) {
@@ -690,6 +821,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
     public static void main(String [] args) {
 	ExperimentResultHandler worker = new ExperimentResultHandler();
 	long start = System.currentTimeMillis();
+	//worker.getPubchemTIDCount(2833);
 	worker.testResultTypes("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
 	
 	//worker.updateExperimentTestStats("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
