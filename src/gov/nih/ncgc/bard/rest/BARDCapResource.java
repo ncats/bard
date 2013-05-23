@@ -12,7 +12,9 @@ import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A resource to expose CAP information.
@@ -67,6 +69,69 @@ public class BARDCapResource implements IBARDResource {
             else elem = dict.getNode(dictId);
             if (elem == null) throw new NotFoundException("No CAP dictionary element for "+dictId);
             return Response.ok(Util.toJson(elem)).type(MediaType.APPLICATION_JSON_TYPE).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(Response.status(500).entity(e).build());
+        } catch (IOException e) {
+            throw new WebApplicationException(Response.status(500).entity(e).build());
+        } catch (ClassNotFoundException e) {
+            throw new WebApplicationException(Response.status(500).entity(e).build());
+        }
+    }
+
+    @GET
+    @Path("/dictionary/{id}/children")
+    public Response getDictElementChildren(@PathParam("id") String dictId) {
+        DBUtils db = new DBUtils();
+        try {
+            CAPDictionary dict = db.getCAPDictionary();
+            Set<CAPDictionaryElement> elem;
+            if (Util.isNumber(dictId)) elem = dict.getChildren(new BigInteger(dictId));
+            else elem = dict.getChildren(dictId);
+            return Response.ok(Util.toJson(elem)).type(MediaType.APPLICATION_JSON_TYPE).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(Response.status(500).entity(e).build());
+        } catch (IOException e) {
+            throw new WebApplicationException(Response.status(500).entity(e).build());
+        } catch (ClassNotFoundException e) {
+            throw new WebApplicationException(Response.status(500).entity(e).build());
+        }
+    }
+
+    @GET
+    @Path("/dictionary/{id}/parents")
+    public Response getDictElementParents(@PathParam("id") String dictId) {
+        DBUtils db = new DBUtils();
+        try {
+            CAPDictionary dict = db.getCAPDictionary();
+            Set<CAPDictionaryElement> elem;
+            if (Util.isNumber(dictId)) elem = dict.getParents(new BigInteger(dictId));
+            else elem = dict.getParents(dictId);
+            return Response.ok(Util.toJson(elem)).type(MediaType.APPLICATION_JSON_TYPE).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(Response.status(500).entity(e).build());
+        } catch (IOException e) {
+            throw new WebApplicationException(Response.status(500).entity(e).build());
+        } catch (ClassNotFoundException e) {
+            throw new WebApplicationException(Response.status(500).entity(e).build());
+        }
+    }
+
+    @GET
+    @Path("/dictionary/roots")
+    public Response getDictionaryRoots() {
+        DBUtils db = new DBUtils();
+        try {
+
+            // root elements are those elements without children
+            List<CAPDictionaryElement> rootElems = new ArrayList<CAPDictionaryElement>();
+
+            CAPDictionary dict = db.getCAPDictionary();
+            Set<CAPDictionaryElement> elems = dict.getNodes();
+            for (CAPDictionaryElement elem : elems) {
+                Set<CAPDictionaryElement> parents = dict.getParents(elem);
+                if (parents.size() == 0) rootElems.add(elem);
+            }
+            return Response.ok(Util.toJson(rootElems)).type(MediaType.APPLICATION_JSON_TYPE).build();
         } catch (SQLException e) {
             throw new WebApplicationException(Response.status(500).entity(e).build());
         } catch (IOException e) {
