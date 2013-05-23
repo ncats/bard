@@ -67,10 +67,10 @@ public class GOQueryWorker {
 
     public void populateGoAccNodeHash() throws SQLException {
 	goAccNodeHash = new Hashtable <String, GONode> ();
-	PreparedStatement ps = conn.prepareStatement("select go_acc from go_term");
+	PreparedStatement ps = conn.prepareStatement("select acc from go_term");
 	ResultSet rs = ps.executeQuery();
 	while(rs.next()) {
-	    goAccNodeHash.put(rs.getString(1), this.getNodeForGoAcc(rs.getString(1)));
+	    goAccNodeHash.put(rs.getString(1), getNodeForGoAcc(rs.getString(1)));
 	}
 	rs.close();
     }
@@ -516,7 +516,7 @@ public class GOQueryWorker {
 
 	try {
 
-	    PreparedStatement termQuery = conn.prepareStatement("select id, name, term_type, is_obsolete from go_term where go_acc = ?");
+	    PreparedStatement termQuery = conn.prepareStatement("select id, name, term_type, is_obsolete from go_term where acc = ?");
 
 	    termQuery.setString(1, goAcc);
 

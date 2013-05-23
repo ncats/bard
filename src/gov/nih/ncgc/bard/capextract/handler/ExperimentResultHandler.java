@@ -777,11 +777,12 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    URL pubchemURL = new URL(url);
 	    InputStream is = pubchemURL.openStream();
 	    
-	    while((is.read(buff)) > 0) {
+	    while((is.read(buff, 0, buff.length)) > 0) {
 		data += new String(buff);
 	    }
 	    is.close();
-	    // System.out.println(data);
+	    if(aid == 624024)
+		System.out.println(data);
 	    tidCnt = data.split("\"tid\":").length-1;
 	} catch (MalformedURLException e) {
 	    // TODO Auto-generated catch block

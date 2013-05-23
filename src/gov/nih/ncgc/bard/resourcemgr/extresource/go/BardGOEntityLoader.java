@@ -7,14 +7,12 @@ import gov.nih.ncgc.bard.resourcemgr.extresource.ontology.go.GONode;
 import gov.nih.ncgc.bard.resourcemgr.extresource.ontology.go.GOQueryWorker;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -34,6 +32,7 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
     private Connection conn;
     private String sqlSelectAccession = "select bard_assay_id, aid, accession from assay_target where accession is not null";
     private String sqlSelectAssayTargetFromBiology = "select entity_id, ext_id from bard_biology where biology_dict_id = 1398 and entity='assay'";
+    private String sqlSelectGOAssayTargetFromBiology = "select entity_id, ext_id from bard_biology where biology_dict_id = 1419 and entity='assay'";
 
     private String sqlInsertAssayGO = "insert into temp_go_assay (bard_assay_id, target_acc, current_acc, go_id, go_term, go_type, ev_code, implied, " +
 	    "go_assoc_db_ref, assoc_date)" +
@@ -54,6 +53,7 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
     private String sqlSelectProjectTargets = "select bard_proj_id, accession from project_target where accession is not null order by bard_proj_id asc";
 
     private String sqlSelectProjectTargetFromBiology = "select entity_id, ext_id from bard_biology where biology_dict_id = 1398 and entity='project'";
+    private String sqlSelectGOProjectTargetFromBiology = "select entity_id, ext_id from bard_biology where biology_dict_id = 1419 and entity='project'";
 
     private String sqlInsertProjectGO = "insert into temp_go_project (bard_proj_id, target_acc, current_acc, go_id, go_term, go_type, ev_code, implied, " +
 	    "go_assoc_db_ref, assoc_date)" +
@@ -71,25 +71,49 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 
     @Override
     public boolean load() {
+	boolean loaded = false;
 	log.info("In load() in BardGOEntityLoader. Reading service key.");
-	if(service.getServiceKey().contains("GO-ENTITY-REFRESH")) {
-	    log.info("Starting GO Entity Refresh, first go_assay, then go_project.");
-	    //refresh go_assay and go_project
-	    loadGOAssay();
-	    log.info("Finished GO_ASSAY.  Starting on GO_PROJECT.");
-	    //refresh go project
-	    loadGOProject();
-	    log.info("Finished GO_PROJECT. Finished Updates.");
+
+	try {
+	    conn = BardDBUtil.connect(service.getDbURL());
+	    conn.setAutoCommit(false);
+
+	    if(service.getServiceKey().contains("GO-ENTITY-REFRESH")) {
+		log.info("Starting GO Entity Refresh, first go_assay, then go_project.");
+		//refresh go_assay and go_project
+		loadGOAssay();
+		//load additional direct go from bard_biology
+		log.info("Starting GO Load from Biology");
+		loadGoAssayFromBiology();
+		log.info("Finished GO_ASSAY.  Starting on GO_PROJECT.");
+		//refresh go project
+		loadGOProject();
+		log.info("Finished GO_PROJECT Load from Protein targets.");
+		log.info("Starting GO PROJECT Load from Biology");
+		loadGoProjectFromBiology();
+		
+		BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_assay", "go_assay", 0.90, service.getDbURL());			
+		BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_project", "go_project", 0.90, service.getDbURL());			
+		loaded = true;
+	    }
+
+	    conn.close();
+	} catch (ClassNotFoundException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	} catch (SQLException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
 	}
-	return false;
+	return loaded;
     }
 
 
     public void loadGOAssay() {
 
 	try {
-	    conn = BardDBUtil.connect(service.getDbURL());
-	    conn.setAutoCommit(false);
+	    //conn = BardDBUtil.connect(service.getDbURL());
+	    //conn.setAutoCommit(false);
 	    log.info("Assay load connection established");
 
 	    //set up the tables
@@ -174,9 +198,7 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	    //prepare the worker
 	    worker.populateNodeHashes();
 
-
 	    Set <String> accKeys = accToBardIDHash.keySet();
-
 
 	    for(String accKey: accKeys) {
 		set.clear();
@@ -192,7 +214,7 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 		//get accessions nodes
 		set.addAll(worker.getGONodesForAccessionUsingHash(currAcc));
 		//set.addAll(worker.getGONodesForAccession(accKey));
-
+		
 		HashSet <GONode> newSet = new HashSet <GONode>();
 
 		//get accession's node's ancestors
@@ -223,40 +245,6 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 		}
 	    }
 
-	    //			
-	    //			for(long aid:aids) {
-	    //				accession = accV.get(aidAccCnt);
-	    //				set.clear();
-	    //				
-	    //				//get accessions nodes
-	    //				set.addAll(worker.getGONodesForAccession(accession));
-	    //
-	    //				HashSet <GONode> newSet = new HashSet <GONode>();
-	    //						
-	    //				//get accession's node's ancestors
-	    //				for(GONode node: set) {
-	    //					//go up the hierarchy to get implied for this accession
-	    //					Vector <GONode> nodes = worker.getPredNodes(node);		
-	    //
-	    //					for(GONode n: nodes) {
-	    //						//don't overwrite if it exists (primary), if doesn't exist, it's implied
-	    //						if(!set.contains(n)) {
-	    //							n.setImplied(true);
-	    //							n.setEvCode("GO_ANCESTOR_TERM");
-	    //							newSet.add(n);
-	    //						}
-	    //					}
-	    //				}
-	    //			
-	    //				
-	    //				newSet.addAll(set);
-	    //				
-	    //		//		logger.info("handling aid/accession="+aid+" "+accession);
-	    //				//process just the inserts for this one accession
-	    //				insertGOData(aid, accession, newSet);
-	    //				aidAccCnt++;
-	    //			}
-
 	    insertGOPS.executeBatch();
 	    conn.commit();
 
@@ -268,14 +256,88 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	    stmt.executeUpdate(sqlUpdateAssayGoDBRefAndDate);
 
 	    //swap tables
-	    BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_assay", "go_assay", 0.90, service.getDbURL());			
+	    //BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_assay", "go_assay", 0.90, service.getDbURL());			
 
-	    conn.close();
-	    logger.info("Done Load");
+	    //conn.close();
+	    log.info("Done Load");
 
 	} catch (SQLException sqle) {
 	    sqle.printStackTrace();
-	} catch (ClassNotFoundException e) {
+	}
+    }
+    
+    private void loadGoAssayFromBiology() {
+	try {	    
+	    log.info("Loading GO ASSAY from Biology GO");
+	    //conn = BardDBUtil.connect(service.getDbURL());
+	    //conn.setAutoCommit(false);
+	    Statement stmt = conn.createStatement();
+	    ResultSet rs = stmt.executeQuery(sqlSelectGOAssayTargetFromBiology);
+	    Hashtable <String, Vector<Long>> goToBardExptIdHash = new Hashtable<String, Vector<Long>>();
+	    long bardExptId;
+	    String goId;
+	    Vector <Long> bardExptIdV = new Vector<Long>();
+	    int goLength = 0;
+	    while(rs.next()) {
+		bardExptId = rs.getLong(1);
+		goId = rs.getString(2);
+	
+		if(!goId.startsWith("GO:")) {
+		    goLength = goId.length();
+		    for(int i = 0; i < 7-goLength;i++)
+			goId = "0"+goId;
+		    goId = "GO:"+goId;
+		}
+		
+		bardExptIdV = goToBardExptIdHash.get(goId);
+		if(bardExptIdV == null) {
+		    bardExptIdV = new Vector<Long>();
+		    bardExptIdV.add(bardExptId);
+		    goToBardExptIdHash.put(goId, bardExptIdV);
+		} else {
+		    bardExptIdV.add(bardExptId);
+		}
+	    }
+	    stmt.close();
+	    log.info("Have collected GO_IDs for all bard_expt_id in bard_biology.");
+	    insertGOPS = conn.prepareStatement(this.sqlInsertAssayGO);
+	    HashSet <GONode> primaryGoNodes = new HashSet<GONode>();
+	    Set <String> goIdSet = goToBardExptIdHash.keySet();
+
+	    GOQueryWorker worker = new GOQueryWorker();
+	    worker.prepareStatements(service.getDbURL());
+	    worker.populateNodeHashes();
+	    GONode node = new GONode();
+	    HashSet <GONode> impliedV = new HashSet<GONode>();
+	    for(String directGoId : goIdSet) {
+		worker.setAllNodeImplied(true);
+		log.info("Processing direct GO for go_id="+directGoId);
+		node = worker.getNodeForGoAcc(directGoId);	
+		if(node == null) {
+		    log.warning("GO BIOLOGY for assays update FAILED for CAP GO_ID (not a valid id)="+directGoId);
+		    continue;
+		}
+		node.setImplied(false);
+		
+		impliedV.addAll(worker.getPredNodesFromHash(node));
+		
+		for(GONode n : impliedV) {
+		    n.setEvCode("CAP_ANCESTOR_TERM");
+		}
+		node.setEvCode("CAP_DIRECT_TERM");
+		impliedV.add(node);		
+		bardExptIdV = goToBardExptIdHash.get(node.getGoAccession());
+		for(long beid : bardExptIdV) {
+		    insertGOData(beid, 0, "", "", impliedV);
+		}
+		insertGOPS.executeBatch();
+		conn.commit();
+		//swap tables
+		//BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_assay", "go_assay", 0.90, service.getDbURL());			
+		//conn.close();
+		log.info("Done Load");
+	    }	    
+	} catch (SQLException e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();
 	}
@@ -318,8 +380,8 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 
 	try {
 
-	    conn = BardDBUtil.connect(service.getDbURL());
-	    conn.setAutoCommit(false);
+	    //conn = BardDBUtil.connect(service.getDbURL());
+	   // conn.setAutoCommit(false);
 	    log.info("Project load connection established");
 
 	    //set up the tables
@@ -444,40 +506,6 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 
 	    }
 
-	    //			
-	    //			for(long aid:aids) {
-	    //				accession = accV.get(aidAccCnt);
-	    //				set.clear();
-	    //				
-	    //				//get accessions nodes
-	    //				set.addAll(worker.getGONodesForAccession(accession));
-	    //
-	    //				HashSet <GONode> newSet = new HashSet <GONode>();
-	    //						
-	    //				//get accession's node's ancestors
-	    //				for(GONode node: set) {
-	    //					//go up the hierarchy to get implied for this accession
-	    //					Vector <GONode> nodes = worker.getPredNodes(node);		
-	    //
-	    //					for(GONode n: nodes) {
-	    //						//don't overwrite if it exists (primary), if doesn't exist, it's implied
-	    //						if(!set.contains(n)) {
-	    //							n.setImplied(true);
-	    //							n.setEvCode("GO_ANCESTOR_TERM");
-	    //							newSet.add(n);
-	    //						}
-	    //					}
-	    //				}
-	    //			
-	    //				
-	    //				newSet.addAll(set);
-	    //				
-	    //		//		logger.info("handling aid/accession="+aid+" "+accession);
-	    //				//process just the inserts for this one accession
-	    //				insertGOData(aid, accession, newSet);
-	    //				aidAccCnt++;
-	    //			}
-
 	    insertGOPS.executeBatch();
 	    conn.commit();
 
@@ -491,18 +519,95 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	    stmt.executeUpdate(sqlUpdateProjectGoDBRefAndDate);
 
 	    //swap tables
-	    BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_project", "go_project", 0.90, service.getDbURL());
+	    //BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_project", "go_project", 0.90, service.getDbURL());
 
-	    conn.close();
+	    //conn.close();
 	    logger.info("Done Load");
 
 	} catch (SQLException sqle) {
 	    sqle.printStackTrace();
-	} catch (ClassNotFoundException e) {
+	}
+    }
+    
+    
+    private void loadGoProjectFromBiology() {
+	try {	    
+	    log.info("Loading GO PROJECT from Biology GO");
+//	    conn = BardDBUtil.connect(service.getDbURL());
+//	    conn.setAutoCommit(false);
+	    Statement stmt = conn.createStatement();
+	    ResultSet rs = stmt.executeQuery(sqlSelectGOProjectTargetFromBiology);
+	    Hashtable <String, Vector<Long>> goToBardExptIdHash = new Hashtable<String, Vector<Long>>();
+	    long bardExptId;
+	    String goId;
+	    Vector <Long> bardExptIdV = new Vector<Long>();
+	    int goLength = 0;
+	    while(rs.next()) {
+		bardExptId = rs.getLong(1);
+		goId = rs.getString(2);
+	
+		if(!goId.startsWith("GO:")) {
+		    goLength = goId.length();
+		    for(int i = 0; i < 7-goLength;i++)
+			goId = "0"+goId;
+		    goId = "GO:"+goId;
+		}
+		
+		bardExptIdV = goToBardExptIdHash.get(goId);
+		if(bardExptIdV == null) {
+		    bardExptIdV = new Vector<Long>();
+		    bardExptIdV.add(bardExptId);
+		    goToBardExptIdHash.put(goId, bardExptIdV);
+		} else {
+		    bardExptIdV.add(bardExptId);
+		}
+	    }
+	    stmt.close();
+	    log.info("Have collected GO_IDs for all bard_expt_id in bard_biology (go_project update).");
+	    insertGOPS = conn.prepareStatement(this.sqlInsertProjectGO);
+	    HashSet <GONode> primaryGoNodes = new HashSet<GONode>();
+	    Set <String> goIdSet = goToBardExptIdHash.keySet();
+
+	    GOQueryWorker worker = new GOQueryWorker();
+	    worker.prepareStatements(service.getDbURL());
+	    worker.populateNodeHashes();
+	    GONode node = new GONode();
+	    HashSet <GONode> impliedV = new HashSet<GONode>();
+	    for(String directGoId : goIdSet) {
+		worker.setAllNodeImplied(true);
+		log.info("Processing direct GO for go_id="+directGoId);
+		node = worker.getNodeForGoAcc(directGoId);	
+		if(node == null) {
+		    log.warning("GO BIOLOGY for projects update FAILED for CAP GO_ID (not a valid id)="+directGoId);
+		    continue;
+		}
+		node.setImplied(false);
+		
+		impliedV.addAll(worker.getPredNodesFromHash(node));
+		
+		for(GONode n : impliedV) {
+		    n.setEvCode("CAP_ANCESTOR_TERM");
+		}
+		node.setEvCode("CAP_DIRECT_TERM");
+		impliedV.add(node);		
+		bardExptIdV = goToBardExptIdHash.get(node.getGoAccession());
+		for(long beid : bardExptIdV) {
+		    insertGODataForProject(beid, "", "", impliedV);
+		}
+		insertGOPS.executeBatch();
+		conn.commit();
+		//swap tables
+//		BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_project", "go_project", 0.90, service.getDbURL());			
+//		conn.close();
+		log.info("Done Load");
+	    }	    
+	} catch (SQLException e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();
 	}
     }
+    
+    
 
     public void loadGOCompound() {
 
@@ -664,18 +769,6 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	}
     }
 
-
-    public Connection connect(String dbURL, String driverName) throws ClassNotFoundException {
-	Connection conn = null;
-	try {
-	    Class.forName(driverName);
-	    conn= DriverManager.getConnection(dbURL, "bard_manager", "bard_manager");
-	} catch (SQLException e) {
-	    // TODO Auto-generated catch block
-	    e.printStackTrace();
-	}
-	return conn;
-    }
 
 
     private void insertGOData(long bardAssayID, long assayID, String accession, String currAcc, Set <GONode> nodeSet) throws SQLException {
