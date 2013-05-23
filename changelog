@@ -100,3 +100,4 @@ v17 released
 
 05/15/13      Renamed 'description' in /biology entities to 'name'
 05/18/13      Updated assay and project search resource to include facets for biology and panther class name
+05/23/13      Added /cap/dictionary/{id} and /cap/_info subresources. {id} can be a numeric dictionary element ID or a dictionary element label

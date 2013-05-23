@@ -1,19 +1,18 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
-import java.io.IOException;
-import java.sql.SQLException;
-
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  * A resource to expose CAP information.
@@ -27,8 +26,16 @@ import javax.ws.rs.core.Response;
  */
 @Path("/cap")
 public class BARDCapResource implements IBARDResource {
+
+    @GET
+    @Produces("text/plain")
+    @Path("/_info")
     public String info() {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        StringBuilder msg = new StringBuilder("Provides access to CAP data and metadata\n\nAvailable resources:\n");
+        List<String> paths = Util.getResourcePaths(this.getClass());
+        for (String path : paths) msg.append(path).append("\n");
+        msg.append("/cap/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
+        return msg.toString();
     }
 
     @GET
@@ -47,7 +54,26 @@ public class BARDCapResource implements IBARDResource {
         } catch (ClassNotFoundException e) {
             throw new WebApplicationException(Response.status(500).entity(e).build());
         }
+    }
 
+    @GET
+    @Path("/dictionary/{id}")
+    public Response getDictElement(@PathParam("id") String dictId) {
+        DBUtils db = new DBUtils();
+        try {
+            CAPDictionary dict = db.getCAPDictionary();
+            CAPDictionaryElement elem;
+            if (Util.isNumber(dictId)) elem = dict.getNode(new BigInteger(dictId));
+            else elem = dict.getNode(dictId);
+            if (elem == null) throw new NotFoundException("No CAP dictionary element for "+dictId);
+            return Response.ok(Util.toJson(elem)).type(MediaType.APPLICATION_JSON_TYPE).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(Response.status(500).entity(e).build());
+        } catch (IOException e) {
+            throw new WebApplicationException(Response.status(500).entity(e).build());
+        } catch (ClassNotFoundException e) {
+            throw new WebApplicationException(Response.status(500).entity(e).build());
+        }
     }
 
     public Response getResources(@PathParam("name") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
