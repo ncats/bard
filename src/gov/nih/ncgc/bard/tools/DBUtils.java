@@ -533,8 +533,7 @@ public class DBUtils {
         scaffolds = new ArrayList<Scaffold>();
         if (conn == null) conn = getConnection ();
         PreparedStatement pstm = conn.prepareStatement
-            // we're assuming null is returned if activities = 0
-            ("select a.*,(actives/activities)*snr*log(10, instances) as scaf_score "
+            ("select distinct a.* "
              +"from bard2.compound_fragment_class a, "
              +"bard2.compound_fragment_instances b "
              +"where a.class_id = b.class_id and b.cid = ? "
@@ -542,17 +541,14 @@ public class DBUtils {
         try {
             pstm.setLong(1, cid);
             ResultSet rset = pstm.executeQuery();
-            Set<Long> unique = new HashSet<Long>();
             while (rset.next()) {
                 long scafId = rset.getLong("class_id");
-                if (!unique.contains(scafId)) {
-                    Scaffold scaf = new Scaffold (scafId);
-                    fillScaffold (rset, scaf);
-                    scaffolds.add(scaf);
-                    unique.add(scafId);
-                }
+                Scaffold scaf = new Scaffold (scafId);
+                fillScaffold (rset, scaf);
+                scaffolds.add(scaf);
             }
             rset.close();
+            cache.put(new Element (cid, scaffolds));
         }
         finally {
             pstm.close();
@@ -608,6 +604,7 @@ public class DBUtils {
                 }
             }
             rset.close();
+            cache.put(new Element (key, scaffolds));
         }
         finally {
             pstm.close();
@@ -628,11 +625,13 @@ public class DBUtils {
         List<Scaffold> scaffolds;
 
         Cache cache = getCache ("ScaffoldsByETagCache");
-        Element el = cache.get(etag);
+        Object key = etag+"::"+skip+"::"+top;
+
+        Element el = cache.get(key);
         if (el != null) {
             Timestamp ts = (Timestamp)info.get("accessed");
             if (ts.getTime() < el.getLastAccessTime()) {
-                scaffolds = getCacheValue (cache, etag);
+                scaffolds = getCacheValue (cache, key);
                 if (scaffolds != null)
                     return scaffolds;
             }
@@ -677,6 +676,7 @@ public class DBUtils {
                 // truncate it to fit the desired size
                 scaffolds = scaffolds.subList(0, top);
             }
+            cache.put(new Element (key, scaffolds));
 
             return scaffolds;
         } 
@@ -712,7 +712,8 @@ public class DBUtils {
         (Long id, int skip, int top) throws SQLException {
 
         Cache cache = getCache ("CompoundsByScafIdCache");
-        List<Compound> compounds = getCacheValue (cache, id);
+        Object key = id+"::"+skip+"::"+top;
+        List<Compound> compounds = getCacheValue (cache, key);
         if (compounds != null) {
             return compounds;
         }
@@ -724,8 +725,8 @@ public class DBUtils {
              +"bard2.compound_props b, "
              +"bard2.compound_fragment_instances c "
              +"where c.class_id = ? and "
-             +"b.pubchem_compound_cid = a.cid and "
-             +"a.cid = c.cid order by a.cid");
+             +"c.cid = b.pubchem_compound_cid and "
+             +"c.cid = a.cid order by c.cid");
 
         if (skip >= 0 && top > 0) {
             sql.append(" limit "+skip+","+Math.max(6, top));
@@ -739,23 +740,28 @@ public class DBUtils {
         pstm.setLong(1, id);
         try {
             ResultSet rs = pstm.executeQuery();
-            Set<Long> unique = new HashSet<Long>();
+            Map<Long, Compound> unique = new HashMap<Long, Compound>();
             while (rs.next()) {
                 long cid = rs.getLong("cid");
-                if (!unique.contains(cid)) {
-                    Compound c = new Compound();
+                String scaf = rs.getString("smiles");
+                Compound c = unique.get(cid);
+                if (c == null) {
+                    c = new Compound();
                     c.setCid(cid);
                     fillCompound (rs, c);
                     
-                    String scaf = rs.getString("smiles");
                     c.setHighlight(scaf);
-                    compounds.add(c);                
                     c.setNumAssay(getEntityCountByCid
                                   (c.getCid(), Assay.class));
                     c.setNumActiveAssay(getEntityCountByActiveCid
                                         (c.getCid(), Assay.class));
                     cache.put(new Element (cid, c));
-                    unique.add(cid);
+                    compounds.add(c);
+                    unique.put(cid, c);
+                }
+                else {
+                    // concatenate the scaffolds as highlights
+                    c.setHighlight(c.getHighlight()+"."+scaf);
                 }
             }
             rs.close();
@@ -764,6 +770,7 @@ public class DBUtils {
                 // truncate it to fit the desired size
                 compounds = compounds.subList(0, top);
             }
+            cache.put(new Element (key, compounds));
         }
         finally {
             pstm.close();

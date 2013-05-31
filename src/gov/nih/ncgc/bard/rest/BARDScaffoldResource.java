@@ -181,17 +181,20 @@ public class BARDScaffoldResource extends BARDResource<Scaffold> {
             MolHandler mh = new MolHandler ();
             for (Compound c : compounds) {
                 try {
-                    Molecule mol = molsrv.getMol(String.valueOf(c.getCid()));
+                    Molecule mol = molsrv.getMol(c.getCid());
                     if (mol != null) {
                         mol = mol.cloneMolecule();
                         mol.dearomatize();
                         mh.setMolecule(c.getHighlight());
                         Molecule scaf = mh.getMolecule();
-                        for (MolAtom a : scaf.getAtomArray()) {
-                            int map = a.getAtomMap();
-                            if (map > 0) {
-                                // highlight the scaffold within this molecule
-                                mol.getAtom(map-1).setAtomMap(map);
+                        for (Molecule frag : scaf.convertToFrags()) {
+                            for (MolAtom a : frag.getAtomArray()) {
+                                int map = a.getAtomMap();
+                                if (map > 0) {
+                                    // highlight the scaffold within this 
+                                    //   molecule
+                                    mol.getAtom(map-1).setAtomMap(map);
+                                }
                             }
                         }
                         // update the highlight with the 
