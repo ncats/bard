@@ -6,6 +6,7 @@ import chemaxon.struc.Molecule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.*;
@@ -2984,7 +2985,7 @@ public class DBUtils {
 
             // use result types for the experiment to create a list of SolrField
             // objects so that we can reuse our search filter parsing code
-            List<ExperimentResultType> rtypes = getExperimentResultTypes(bardExptId);
+            List<ExperimentResultType> rtypes = getExperimentResultTypes(bardExptId, null);
             List<SolrField> fields = new ArrayList<SolrField>();
             for (ExperimentResultType rtype : rtypes) {
                 fields.add(new SolrField(rtype.getName(), "float"));
@@ -3631,18 +3632,18 @@ public class DBUtils {
         return limitClause;
     }
 
-    public List<Float[]> getExperimentResultTypeHistogram(Long bardExptId, String typeName) throws SQLException {
+    public List<Float[]> getExperimentResultTypeHistogram(Long bardExptId, String typeName, Integer nbin) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
 
-        String cacheKey = bardExptId + "#" + typeName;
-        Cache cache = getCache ("ExperimentRTHistogramCache");
+        String cacheKey = bardExptId + "#" + typeName + "#" + nbin;
+        Cache cache = getCache("ExperimentRTHistogramCache");
         try {
-            List<Float[]> value = getCacheValue (cache, cacheKey);
+            List<Float[]> value = getCacheValue(cache, cacheKey);
             if (value != null) {
                 return value;
             }
+        } catch (ClassCastException ex) {
         }
-        catch (ClassCastException ex) {}
 
         PreparedStatement pst;
         if (conn == null) conn = getConnection();
@@ -3654,10 +3655,30 @@ public class DBUtils {
         while (rs.next()) ret.add(new Float[]{rs.getFloat("n"), rs.getFloat("l"), rs.getFloat("u")});
         rs.close();
         pst.close();
+
+        if (nbin != null && nbin < ret.size()) { // collapse bins
+            int chunkSize = (int) Math.ceil((double) ret.size() / nbin);
+            List<Float[]> collapsed = new ArrayList<Float[]>();
+            List<List<Float[]>> chunks = Lists.partition(ret, chunkSize);
+            for (List<Float[]> chunk : chunks) {
+                float count = 0;
+                float l, u;
+                l = chunk.get(0)[1];
+                u = chunk.get(chunk.size()-1)[2];
+                for (Float[] elem : chunk) count += elem[0];
+                collapsed.add(new Float[]{count, l, u});
+            }
+            ret = collapsed;
+        }
         cache.put(new Element(ret, cacheKey));
         return ret;
     }
-    public List<ExperimentResultType> getExperimentResultTypes(Long bardExptId) throws SQLException {
+
+    public List<Float[]> getExperimentResultTypeHistogram(Long bardExptId, String typeName) throws SQLException {
+        return getExperimentResultTypeHistogram(bardExptId, typeName, null);
+    }
+
+    public List<ExperimentResultType> getExperimentResultTypes(Long bardExptId, Integer collapse) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
         PreparedStatement pst;
 
@@ -3683,7 +3704,7 @@ public class DBUtils {
             rtype.setMin(rs.getDouble(1));
             rtype.setMax(rs.getDouble(2));
             rtype.setNum(rs.getLong(4));
-            rtype.setHistogram(getExperimentResultTypeHistogram(bardExptId, rtype.getName()));
+            rtype.setHistogram(getExperimentResultTypeHistogram(bardExptId, rtype.getName(), collapse));
             ret.add(rtype);
         }
         pst.close();

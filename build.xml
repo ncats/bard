@@ -153,6 +153,8 @@
               tofile="${bard.explode.dir}/WEB-INF/lib/jackson-annotations-2.1.4.jar"/>
         <copy file="${bard.lib}/jackson-databind-2.1.4.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/jackson-databind-2.1.4.jar"/>
+        <copy file="${bard.lib}/plugin/guava-14.0.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/guava-14.0.jar"/>
         <!--Move compiled classes into WEB-INF-->
         <copy todir="${bard.explode.dir}/WEB-INF/classes">
             <fileset dir="${bard.build}/" excludes="**/service/* **/plugin/* **/rest/*Plugin*"/>
