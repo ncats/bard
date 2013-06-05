@@ -5267,6 +5267,43 @@ public class DBUtils {
         }
     }
 
+    public <T> List<T> getRecentEntities(Class<T> entity, Integer n) throws SQLException {
+        if (n == null || n <= 0) n = 5;
+        String sql = null;
+        PreparedStatement pst;
+        String limitClause = " limit " + n;
+        if (entity.isAssignableFrom(Assay.class)) {
+            sql = "select bard_assay_id from bard_assay order by updated desc ";
+        } else if (entity.isAssignableFrom(Project.class)) {
+            sql = "select bard_proj_id from bard_project order by updated desc ";
+        } else if (entity.isAssignableFrom(Experiment.class)) {
+            sql = "select bard_expt_id  from bard_experiment order by updated desc";
+        } else if (entity.isAssignableFrom(Substance.class)) {
+            sql = "select sid from substance order by updated desc";
+        } else if (entity.isAssignableFrom(Biology.class)) {
+            sql = "select serial from bard_biology order by updated desc";
+        }
+        sql += limitClause;
+        if (conn == null) conn = getConnection();
+        pst = conn.prepareStatement(sql);
+        try {
+            ResultSet rs = pst.executeQuery();
+            List<T> ret = new ArrayList<T>();
+
+            while (rs.next()) {
+                if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Experiment.class)) ret.add((T) getExperimentByExptId(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Biology.class)) ret.add((T) getBiologyBySerial(rs.getLong(1)));
+            }
+            rs.close();
+            return ret;
+        } finally {
+            pst.close();
+        }
+    }
+
     public <T> List<T> getEntitiesByCid(Long cid, Class<T> entity, Integer skip, Integer top) throws SQLException {
         String sql = null;
         PreparedStatement pst;

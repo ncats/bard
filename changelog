@@ -103,3 +103,5 @@ v17 released
 05/23/13      Added /cap/dictionary/{id} and /cap/_info subresources. {id} can be a numeric dictionary element ID or a dictionary element label
 	      Added /cap/dictionary/{id}/children to identify child elements and /cap/dictionary/{id}/parents to identify parents
 	      Added /cap/dictionary/roots to identify root elements (ie elements with no parents)
+06/04/13      Updated /resultype subresource to allow caller to specify a number of bins to collapse the histograms to (use ?collapse=N)
+06/05/13      Added a /recent/{n} subresource to every entity to access N most recent entities. Available for assays, experiments, projects, biology, substances
