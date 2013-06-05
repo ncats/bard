@@ -785,8 +785,10 @@ public class DBUtils {
         int cnt = 0;
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
-            ("select a.*,count(*) as size from etag a, etag_data b "
-             + "where a.etag_id = ? and a.etag_id = b.etag_id");
+            ("select a.*,count(*) as size from etag a left join etag_data b "
+             +"on a.etag_id = b.etag_id where a.etag_id = ? "
+             +"group by a.etag_id");
+
         try {
             pst.setString(1, etag);
 
@@ -804,9 +806,11 @@ public class DBUtils {
             pst.close();
 
             if (name != null) {
-                pst = conn.prepareStatement("update etag set name = ?, modified = ? where etag_id = ?");
+                pst = conn.prepareStatement
+                    ("update etag set name = ?, modified = ? where etag_id = ?");
                 pst.setString(1, name);
-                pst.setTimestamp(2, new java.sql.Timestamp(new java.util.Date().getTime()));
+                pst.setTimestamp(2, new java.sql.Timestamp
+                                 (new java.util.Date().getTime()));
                 pst.setString(3, etag);
                 pst.executeUpdate();
                 pst.close();
