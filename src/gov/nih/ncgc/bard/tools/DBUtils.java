@@ -3699,15 +3699,20 @@ public class DBUtils {
         if (conn == null) conn = getConnection();
         List<ExperimentResultType> ret = new ArrayList<ExperimentResultType>();
 
-        pst = conn.prepareStatement("select min(value), max(value), display_name, count(value) from exploded_results where bard_expt_id = ? group by display_name order by display_name");
+        pst = conn.prepareStatement("select * from exploded_statistics where bard_expt_id = ?");
         pst.setLong(1, bardExptId);
         ResultSet rs = pst.executeQuery();
         while (rs.next()) {
             ExperimentResultType rtype = new ExperimentResultType();
-            rtype.setName(rs.getString(3));
-            rtype.setMin(rs.getDouble(1));
-            rtype.setMax(rs.getDouble(2));
-            rtype.setNum(rs.getLong(4));
+            rtype.setName(rs.getString("display_name"));
+            rtype.setMin(rs.getFloat("minval"));
+            rtype.setMax(rs.getFloat("maxval"));
+            rtype.setNum(rs.getLong("n"));
+            rtype.setMean(rs.getFloat("mean"));
+            rtype.setSd(rs.getFloat("sd"));
+            rtype.setQ1(rs.getFloat("q1"));
+            rtype.setQ2(rs.getFloat("q2"));
+            rtype.setQ3(rs.getFloat("q3"));
             rtype.setHistogram(getExperimentResultTypeHistogram(bardExptId, rtype.getName(), collapse));
             ret.add(rtype);
         }

@@ -105,3 +105,4 @@ v17 released
 	      Added /cap/dictionary/roots to identify root elements (ie elements with no parents)
 06/04/13      Updated /resultype subresource to allow caller to specify a number of bins to collapse the histograms to (use ?collapse=N)
 06/05/13      Added a /recent/{n} subresource to every entity to access N most recent entities. Available for assays, experiments, projects, biology, substances
+06/07/13      Added more statistics to resulttype summary
