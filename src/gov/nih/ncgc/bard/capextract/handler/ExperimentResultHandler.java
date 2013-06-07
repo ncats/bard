@@ -214,6 +214,9 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    ResultExploder re = new ResultExploder();
 	    re.explodeResults(bardExptId);
 	    logger.info("Finished exploding data for BARD Experiment "+bardExptId);
+        ResultStatistics rstats = new ResultStatistics();
+        rstats.generateStatistics(bardExptId);
+        logger.info("Evaluated statistics for BARD Experiment "+bardExptId);
         ResultHistogram rh = new ResultHistogram();
         rh.generateHistogram(bardExptId);
         logger.info("Generated histograms for BARD Experiment "+bardExptId);

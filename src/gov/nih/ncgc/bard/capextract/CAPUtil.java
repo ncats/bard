@@ -30,6 +30,17 @@ public class CAPUtil {
         }
     }
 
+    public static float sd(List<Float> values) {
+        float s = 0;
+        float mean = 0;
+        for (Float v : values) mean += v;
+        mean /= (float) values.size();
+
+        for (Float v : values) s += (v - mean) * (v - mean);
+        s /= (float) (values.size() - 1);
+        return (float) Math.sqrt(s);
+    }
+
     public static Connection connectToBARD() throws SQLException {
         Connection conn = null;
         try {

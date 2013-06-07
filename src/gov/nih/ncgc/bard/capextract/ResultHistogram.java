@@ -72,7 +72,7 @@ public class ResultHistogram {
         List<HBin> bins = new ArrayList<HBin>();
         if (values.size() < 3) return bins;
 
-        float sd = sd(values);
+        float sd = CAPUtil.sd(values);
         if (sd == 0) return bins;
 
         // currently we use Scotts method to get optimal bin width/bin count
@@ -114,18 +114,6 @@ public class ResultHistogram {
         }
 
         return cleanBins;
-    }
-
-
-    float sd(List<Float> values) {
-        float s = 0;
-        float mean = 0;
-        for (Float v : values) mean += v;
-        mean /= (float) values.size();
-
-        for (Float v : values) s += (v - mean) * (v - mean);
-        s /= (float) (values.size() - 1);
-        return (float) Math.sqrt(s);
     }
 
     class HBin {
