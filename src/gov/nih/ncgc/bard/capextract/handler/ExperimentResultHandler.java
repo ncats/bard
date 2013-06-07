@@ -1,10 +1,9 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import gov.nih.ncgc.bard.capextract.CAPConstants;
-import gov.nih.ncgc.bard.capextract.CAPUtil;
-import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.ResultExploder;
-import gov.nih.ncgc.bard.capextract.SslHttpClient;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.nih.ncgc.bard.capextract.*;
 import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
 import gov.nih.ncgc.bard.capextract.resultextract.BardExptDataResponse;
@@ -12,43 +11,21 @@ import gov.nih.ncgc.bard.capextract.resultextract.BardResultFactory;
 import gov.nih.ncgc.bard.capextract.resultextract.BardResultType;
 import gov.nih.ncgc.bard.capextract.resultextract.CAPExperimentResult;
 import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.Blob;
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Vector;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 /**
@@ -236,7 +213,10 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    logger.info("Starting to explode data for BARD Experiment "+bardExptId);
 	    ResultExploder re = new ResultExploder();
 	    re.explodeResults(bardExptId);
-	    logger.info("Finished exploding data for BARD Experiment "+bardExptId);	    
+	    logger.info("Finished exploding data for BARD Experiment "+bardExptId);
+        ResultHistogram rh = new ResultHistogram();
+        rh.generateHistogram(bardExptId);
+        logger.info("Generated histograms for BARD Experiment "+bardExptId);
 
 	    logger.info("Process time for CAP expt "+capExptId+" , BARD expt "+bardExptId+": "+(System.currentTimeMillis()-start));
 
