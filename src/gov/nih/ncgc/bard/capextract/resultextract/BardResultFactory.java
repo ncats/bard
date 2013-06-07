@@ -328,11 +328,21 @@ public class BardResultFactory {
 	    }
 	}
 	
+	//try to get concentrations from the results first, if we have the type we have the conc already from c/r
+	if(!haveType) {
+	    for(BardResultType result : resultList) {
+		if(result.getTestConc() != null) {
+		    concentrations.add(result.getTestConc());
+		}
+	    }
+	}
+	
 	//concentrations array should have test concentrations
 	//if not * check for experiment context for screening concentration(s)
 	Double concCnt = -1d;
 	if(concentrations.size() == 0) {
 	    concCnt = resolveConcFromExperimentContext(concentrations);
+	    
 	}
 	
 	//check for single point, one test concentration, have efficacy
@@ -373,7 +383,7 @@ public class BardResultFactory {
 		}
 		
 		//have multiple concentrations but tno AC50 in root, type = MULTCONC
-		if(concentrations.size() > 0 && !haveType && !haveXX50) {
+		if(concentrations.size() > 1 && !haveType && !haveXX50) {
 		    response.setResponseType(BardExptDataResponse.ResponseClass.MULCONC.ordinal());
 		    haveType = true;
 		}
@@ -666,8 +676,9 @@ public class BardResultFactory {
 	Set <CAPDictionaryElement> children = dictionary.getChildren(BigInteger.valueOf(972l));
 	Set <CAPDictionaryElement> gchildren;
 	Set <CAPDictionaryElement> ggchildren;	
-
+	
 	for(CAPDictionaryElement child : children) {
+	    effElemV.add(new Integer(child.getElementId().intValue()));
 	    gchildren = dictionary.getChildren(child.getElementId());
 	    if(gchildren != null) {
 		for(CAPDictionaryElement gchild: gchildren) {
