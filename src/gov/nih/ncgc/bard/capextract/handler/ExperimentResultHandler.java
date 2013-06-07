@@ -4,6 +4,8 @@ import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.ResultExploder;
+import gov.nih.ncgc.bard.capextract.ResultHistogram;
+import gov.nih.ncgc.bard.capextract.ResultStatistics;
 import gov.nih.ncgc.bard.capextract.SslHttpClient;
 import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
@@ -50,6 +52,7 @@ import org.apache.http.client.methods.HttpGet;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 /**
  * This class reads in cap experiment data and formats json responses based on 
@@ -236,7 +239,13 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    logger.info("Starting to explode data for BARD Experiment "+bardExptId);
 	    ResultExploder re = new ResultExploder();
 	    re.explodeResults(bardExptId);
-	    logger.info("Finished exploding data for BARD Experiment "+bardExptId);	    
+	    logger.info("Finished exploding data for BARD Experiment "+bardExptId);
+        ResultStatistics rstats = new ResultStatistics();
+        rstats.generateStatistics(bardExptId);
+        logger.info("Evaluated statistics for BARD Experiment "+bardExptId);
+        ResultHistogram rh = new ResultHistogram();
+        rh.generateHistogram(bardExptId);
+        logger.info("Generated histograms for BARD Experiment "+bardExptId);
 
 	    logger.info("Process time for CAP expt "+capExptId+" , BARD expt "+bardExptId+": "+(System.currentTimeMillis()-start));
 

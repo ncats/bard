@@ -30,7 +30,9 @@ public class AssaySearch extends SolrSearch {
 
     Logger log;
 
-    String[] facetNames = {"assay_component_role", "assay_mode", "assay_type", "Cell line", "detection_method_type", "target_name", "kegg_disease_cat"};
+    String[] facetNames = {"assay_component_role", "assay_mode", "assay_type",
+            "Cell line", "detection_method_type", "target_name", "kegg_disease_cat",
+            "biology", "class_name"};
 
     public AssaySearch(String query, String coreName) {
         super(query);

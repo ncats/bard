@@ -96,6 +96,10 @@ public class CAPDictionary implements Serializable {
         return children;
     }
 
+    public Set<CAPDictionaryElement> getParents(String label) {
+        return getParents(getNode(label));
+    }
+
     public Set<CAPDictionaryElement> getParents(BigInteger nodeId) {
         return getParents(getNode(nodeId));
     }

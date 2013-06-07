@@ -6,6 +6,7 @@ import chemaxon.struc.Molecule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.*;
@@ -784,8 +785,10 @@ public class DBUtils {
         int cnt = 0;
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
-            ("select a.*,count(*) as size from etag a, etag_data b "
-             + "where a.etag_id = ? and a.etag_id = b.etag_id");
+            ("select a.*,count(*) as size from etag a left join etag_data b "
+             +"on a.etag_id = b.etag_id where a.etag_id = ? "
+             +"group by a.etag_id");
+
         try {
             pst.setString(1, etag);
 
@@ -803,9 +806,11 @@ public class DBUtils {
             pst.close();
 
             if (name != null) {
-                pst = conn.prepareStatement("update etag set name = ?, modified = ? where etag_id = ?");
+                pst = conn.prepareStatement
+                    ("update etag set name = ?, modified = ? where etag_id = ?");
                 pst.setString(1, name);
-                pst.setTimestamp(2, new java.sql.Timestamp(new java.util.Date().getTime()));
+                pst.setTimestamp(2, new java.sql.Timestamp
+                                 (new java.util.Date().getTime()));
                 pst.setString(3, etag);
                 pst.executeUpdate();
                 pst.close();
@@ -2984,7 +2989,7 @@ public class DBUtils {
 
             // use result types for the experiment to create a list of SolrField
             // objects so that we can reuse our search filter parsing code
-            List<ExperimentResultType> rtypes = getExperimentResultTypes(bardExptId);
+            List<ExperimentResultType> rtypes = getExperimentResultTypes(bardExptId, null);
             List<SolrField> fields = new ArrayList<SolrField>();
             for (ExperimentResultType rtype : rtypes) {
                 fields.add(new SolrField(rtype.getName(), "float"));
@@ -3631,18 +3636,18 @@ public class DBUtils {
         return limitClause;
     }
 
-    public List<Float[]> getExperimentResultTypeHistogram(Long bardExptId, String typeName) throws SQLException {
+    public List<Float[]> getExperimentResultTypeHistogram(Long bardExptId, String typeName, Integer nbin) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
 
-        String cacheKey = bardExptId + "#" + typeName;
-        Cache cache = getCache ("ExperimentRTHistogramCache");
+        String cacheKey = bardExptId + "#" + typeName + "#" + nbin;
+        Cache cache = getCache("ExperimentRTHistogramCache");
         try {
-            List<Float[]> value = getCacheValue (cache, cacheKey);
+            List<Float[]> value = getCacheValue(cache, cacheKey);
             if (value != null) {
                 return value;
             }
+        } catch (ClassCastException ex) {
         }
-        catch (ClassCastException ex) {}
 
         PreparedStatement pst;
         if (conn == null) conn = getConnection();
@@ -3654,10 +3659,30 @@ public class DBUtils {
         while (rs.next()) ret.add(new Float[]{rs.getFloat("n"), rs.getFloat("l"), rs.getFloat("u")});
         rs.close();
         pst.close();
+
+        if (nbin != null && nbin < ret.size()) { // collapse bins
+            int chunkSize = (int) Math.ceil((double) ret.size() / nbin);
+            List<Float[]> collapsed = new ArrayList<Float[]>();
+            List<List<Float[]>> chunks = Lists.partition(ret, chunkSize);
+            for (List<Float[]> chunk : chunks) {
+                float count = 0;
+                float l, u;
+                l = chunk.get(0)[1];
+                u = chunk.get(chunk.size()-1)[2];
+                for (Float[] elem : chunk) count += elem[0];
+                collapsed.add(new Float[]{count, l, u});
+            }
+            ret = collapsed;
+        }
         cache.put(new Element(ret, cacheKey));
         return ret;
     }
-    public List<ExperimentResultType> getExperimentResultTypes(Long bardExptId) throws SQLException {
+
+    public List<Float[]> getExperimentResultTypeHistogram(Long bardExptId, String typeName) throws SQLException {
+        return getExperimentResultTypeHistogram(bardExptId, typeName, null);
+    }
+
+    public List<ExperimentResultType> getExperimentResultTypes(Long bardExptId, Integer collapse) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return null;
         PreparedStatement pst;
 
@@ -3674,16 +3699,21 @@ public class DBUtils {
         if (conn == null) conn = getConnection();
         List<ExperimentResultType> ret = new ArrayList<ExperimentResultType>();
 
-        pst = conn.prepareStatement("select min(value), max(value), display_name, count(value) from exploded_results where bard_expt_id = ? group by display_name order by display_name");
+        pst = conn.prepareStatement("select * from exploded_statistics where bard_expt_id = ?");
         pst.setLong(1, bardExptId);
         ResultSet rs = pst.executeQuery();
         while (rs.next()) {
             ExperimentResultType rtype = new ExperimentResultType();
-            rtype.setName(rs.getString(3));
-            rtype.setMin(rs.getDouble(1));
-            rtype.setMax(rs.getDouble(2));
-            rtype.setNum(rs.getLong(4));
-            rtype.setHistogram(getExperimentResultTypeHistogram(bardExptId, rtype.getName()));
+            rtype.setName(rs.getString("display_name"));
+            rtype.setMin(rs.getFloat("minval"));
+            rtype.setMax(rs.getFloat("maxval"));
+            rtype.setNum(rs.getLong("n"));
+            rtype.setMean(rs.getFloat("mean"));
+            rtype.setSd(rs.getFloat("sd"));
+            rtype.setQ1(rs.getFloat("q1"));
+            rtype.setQ2(rs.getFloat("q2"));
+            rtype.setQ3(rs.getFloat("q3"));
+            rtype.setHistogram(getExperimentResultTypeHistogram(bardExptId, rtype.getName(), collapse));
             ret.add(rtype);
         }
         pst.close();
@@ -5238,6 +5268,43 @@ public class DBUtils {
             return ret;
         }
         finally {
+            pst.close();
+        }
+    }
+
+    public <T> List<T> getRecentEntities(Class<T> entity, Integer n) throws SQLException {
+        if (n == null || n <= 0) n = 5;
+        String sql = null;
+        PreparedStatement pst;
+        String limitClause = " limit " + n;
+        if (entity.isAssignableFrom(Assay.class)) {
+            sql = "select bard_assay_id from bard_assay order by updated desc ";
+        } else if (entity.isAssignableFrom(Project.class)) {
+            sql = "select bard_proj_id from bard_project order by updated desc ";
+        } else if (entity.isAssignableFrom(Experiment.class)) {
+            sql = "select bard_expt_id  from bard_experiment order by updated desc";
+        } else if (entity.isAssignableFrom(Substance.class)) {
+            sql = "select sid from substance order by updated desc";
+        } else if (entity.isAssignableFrom(Biology.class)) {
+            sql = "select serial from bard_biology order by updated desc";
+        }
+        sql += limitClause;
+        if (conn == null) conn = getConnection();
+        pst = conn.prepareStatement(sql);
+        try {
+            ResultSet rs = pst.executeQuery();
+            List<T> ret = new ArrayList<T>();
+
+            while (rs.next()) {
+                if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Experiment.class)) ret.add((T) getExperimentByExptId(rs.getLong(1)));
+                else if (entity.isAssignableFrom(Biology.class)) ret.add((T) getBiologyBySerial(rs.getLong(1)));
+            }
+            rs.close();
+            return ret;
+        } finally {
             pst.close();
         }
     }

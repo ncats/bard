@@ -611,10 +611,11 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
     @Path("/{eid}/resulttypes")
     @Produces("application/json")
     public Response getExperimentResultTypes(@PathParam("eid") Long eid,
-                                             @QueryParam("expand") String expand) {
+                                             @QueryParam("expand") String expand,
+                                             @QueryParam("collapse") Integer collapse) {
         DBUtils db = new DBUtils();
         try {
-            List<ExperimentResultType> rtypes = db.getExperimentResultTypes(eid);
+            List<ExperimentResultType> rtypes = db.getExperimentResultTypes(eid, collapse);
             String json = null;
             if (expandEntries(expand)) json = Util.toJson(rtypes);
             else {
