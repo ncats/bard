@@ -21,6 +21,15 @@ import java.util.*;
 
 public class CAPUtil {
 
+    public static boolean isNumber(String s) {
+        try {
+            Float.parseFloat(s);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
     public static Connection connectToBARD() throws SQLException {
         Connection conn = null;
         try {

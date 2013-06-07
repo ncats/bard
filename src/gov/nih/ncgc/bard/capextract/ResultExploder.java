@@ -20,15 +20,6 @@ public class ResultExploder {
         log = LoggerFactory.getLogger(this.getClass());
     }
 
-    private boolean isNumber(String s) {
-        try {
-            Float.parseFloat(s);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
     public void explodeResults(Long bardExptId) throws SQLException, IOException {
         String tmpFileName = "exploded" + UUID.randomUUID() + ".csv";
 
@@ -62,7 +53,7 @@ public class ResultExploder {
                     String displayName = anode.get(i).get("displayName").textValue();
                     Double value = null;
                     JsonNode valueNode = anode.get(i).get("value");
-                    if (valueNode != null && isNumber(valueNode.textValue()))
+                    if (valueNode != null && CAPUtil.isNumber(valueNode.textValue()))
                         value = Double.parseDouble(valueNode.textValue());
                     if (value != null) {
                         nexplode++;
