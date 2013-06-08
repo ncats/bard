@@ -1,9 +1,12 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import gov.nih.ncgc.bard.capextract.*;
+import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
+import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.ResultExploder;
+import gov.nih.ncgc.bard.capextract.ResultHistogram;
+import gov.nih.ncgc.bard.capextract.ResultStatistics;
+import gov.nih.ncgc.bard.capextract.SslHttpClient;
 import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
 import gov.nih.ncgc.bard.capextract.resultextract.BardExptDataResponse;
@@ -11,21 +14,44 @@ import gov.nih.ncgc.bard.capextract.resultextract.BardResultFactory;
 import gov.nih.ncgc.bard.capextract.resultextract.BardResultType;
 import gov.nih.ncgc.bard.capextract.resultextract.CAPExperimentResult;
 import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
 
-import java.io.*;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Blob;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Vector;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 /**
@@ -77,7 +103,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    String stageFile = CAPConstants.getBardScratchDir()+"/result_load_cap_expt_"+capExptId+".txt";
 	    this.stageDataToFile(url, resource, capExptId, stageFile);
 
-	    logger.info("Data has be staged in file: "+stageFile);
+	    logger.info("Data is staged in file: "+stageFile);
 
 	    start = System.currentTimeMillis();
 
@@ -645,7 +671,10 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    System.out.println("Experiment count with no actives ="+inactiveCnt);
 	    System.out.println("Number of bard expt ids="+v.size());
 
-	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples_max_20130522.txt"));	    
+	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples_max_20130523.txt"));	    
+	    
+	    pw.println("RespClass\tCapExptId\tCapAssayId\tPubchemAID\tBardExptId\tsid\tisSIDActive?\tpubchem URL (Result Def)\tBARD REST URL\tBard JSON\tCAP Measure Cnt\tPubhem tid Cnt(+2)\tcapCnt/pubchemCnt");
+	    
 	    PreparedStatement ps = conn.prepareStatement("select b.cap_expt_id, a.json_response, a.sid, b.pubchem_aid, a.json_data_array from bard_experiment_result a, bard_experiment b " +
 		    " where a.bard_expt_id=b.bard_expt_id and a.bard_expt_id = ? and a.sid = ? limit 1");	    
 	    int progress = 0;
@@ -661,6 +690,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    int capCnt;
 	    int pubchemTidCnt;
 	    BardExptDataResponse bardResponse;
+	    ObjectMapper mapper = new ObjectMapper();
 	    for(Long bid : v) {
 		ps.setLong(1, bid);
 		activeSID = bidSidHash.get(bid);
@@ -676,17 +706,22 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 			String responseStr = "";
 			if(response != null) {
 			    in = new BufferedReader(new InputStreamReader(response.getBinaryStream()));
-			    pw.print(aid+"\t"+bid+"\t"+sid+"\t");
-			    pw.print("http://pubchem.ncbi.nlm.nih.gov/assay/assay.cgi?aid="+pubchemAID+"#aDefinitions\t");
-			    pw.print("http://bard.nih.gov/api/v17/exptdata/"+bid+"."+sid+"\t");
 			    numWrites++;
 			    while((line = in.readLine()) != null) {				
 				responseStr += line;
 			    }
+			    BardExptDataResponse r = mapper.readValue(responseStr, BardExptDataResponse.class);
+			    pw.print(r.getResponseClass()+"\t");
+			    pw.print(aid+"\t"+r.getCapAssayId()+"\t"+pubchemAID+"\t"+bid+"\t"+sid+"\t");
+			    
 			    if(responseStr.contains("value\":\"Active"))
 				pw.print("Active\t");
 			    else
-				pw.print("(other than active)\t");
+				pw.print("Not Active\t");
+			    
+			    pw.print("=hyperlink(\"http://pubchem.ncbi.nlm.nih.gov/assay/assay.cgi?aid="+pubchemAID+"#aDefinitions\")\t");
+			    pw.print("=hyperlink(\"http://bard.nih.gov/api/v17/exptdata/"+bid+"."+sid+"\")\t");
+			    
 			    //write bard response
 			    pw.print(responseStr+"\t");
 
@@ -694,9 +729,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 			} else {
 			    System.out.println("Null experiment response for expt: "+bid);
 			}
-			
-			
-			
+
 			//cap data
 			response = rs.getBlob(5);
 			responseStr = "";
@@ -710,12 +743,16 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 			}
 			
 			capCnt = getCAPMeasureCount(responseStr);
-			pubchemTidCnt = this.getPubchemTIDCount(pubchemAID);
+			
+			//adding 2 for pubchem outcome and score which are measures in cap
+			//so we're adding tid count + the 2 standard pubchem values
+			pubchemTidCnt = this.getPubchemTIDCount(pubchemAID) + 2;
 			
 			pw.print(capCnt+"\t");
 			pw.print(pubchemTidCnt+"\t");
+			DecimalFormat format = new DecimalFormat("0.000");
 			if(pubchemTidCnt > 0)
-			    pw.println((float)capCnt/(float)pubchemTidCnt);
+			    pw.println(format.format((float)capCnt/(float)pubchemTidCnt));
 			else
 			    pw.println("\t");
 
@@ -759,14 +796,17 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	try {
 	    URL pubchemURL = new URL(url);
 	    InputStream is = pubchemURL.openStream();
-	    
-	    while((is.read(buff, 0, buff.length)) > 0) {
-		data += new String(buff);
+	    BufferedReader br = new BufferedReader(new InputStreamReader(is));
+	    String line;
+	    while((line = br.readLine()) != null) {
+		data += line.trim();
 	    }
 	    is.close();
-	    if(aid == 624024)
-		System.out.println(data);
 	    tidCnt = data.split("\"tid\":").length-1;
+	    if(aid == 624024) {
+		//System.out.println(data);
+		System.out.println("tid cnt ="+tidCnt);
+	    }
 	} catch (MalformedURLException e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();
@@ -805,7 +845,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
     public static void main(String [] args) {
 	ExperimentResultHandler worker = new ExperimentResultHandler();
 	long start = System.currentTimeMillis();
-	//worker.getPubchemTIDCount(2833);
+	//worker.getPubchemTIDCount(624024);
 	worker.testResultTypes("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
 	
 	//worker.updateExperimentTestStats("jdbc:mysql://maxwell.ncats.nih.gov/bard3");

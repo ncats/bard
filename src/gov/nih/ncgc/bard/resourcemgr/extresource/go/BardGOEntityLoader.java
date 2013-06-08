@@ -29,9 +29,8 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
     static final private Logger logger = 
 	    Logger.getLogger(BardGOEntityLoader.class.getName());
 
-    private Connection conn;
-    private String sqlSelectAccession = "select bard_assay_id, aid, accession from assay_target where accession is not null";
     private String sqlSelectAssayTargetFromBiology = "select entity_id, ext_id from bard_biology where biology_dict_id = 1398 and entity='assay'";
+    
     private String sqlSelectGOAssayTargetFromBiology = "select entity_id, ext_id from bard_biology where biology_dict_id = 1419 and entity='assay'";
 
     private String sqlInsertAssayGO = "insert into temp_go_assay (bard_assay_id, target_acc, current_acc, go_id, go_term, go_type, ev_code, implied, " +
@@ -53,6 +52,7 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
     private String sqlSelectProjectTargets = "select bard_proj_id, accession from project_target where accession is not null order by bard_proj_id asc";
 
     private String sqlSelectProjectTargetFromBiology = "select entity_id, ext_id from bard_biology where biology_dict_id = 1398 and entity='project'";
+    
     private String sqlSelectGOProjectTargetFromBiology = "select entity_id, ext_id from bard_biology where biology_dict_id = 1419 and entity='project'";
 
     private String sqlInsertProjectGO = "insert into temp_go_project (bard_proj_id, target_acc, current_acc, go_id, go_term, go_type, ev_code, implied, " +
@@ -75,9 +75,6 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	log.info("In load() in BardGOEntityLoader. Reading service key.");
 
 	try {
-	    conn = BardDBUtil.connect(service.getDbURL());
-	    conn.setAutoCommit(false);
-
 	    if(service.getServiceKey().contains("GO-ENTITY-REFRESH")) {
 		log.info("Starting GO Entity Refresh, first go_assay, then go_project.");
 		//refresh go_assay and go_project
@@ -91,13 +88,11 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 		log.info("Finished GO_PROJECT Load from Protein targets.");
 		log.info("Starting GO PROJECT Load from Biology");
 		loadGoProjectFromBiology();
-		
+		//swap temp to production table
 		BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_assay", "go_assay", 0.90, service.getDbURL());			
 		BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_project", "go_project", 0.90, service.getDbURL());			
 		loaded = true;
 	    }
-
-	    conn.close();
 	} catch (ClassNotFoundException e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();
@@ -112,8 +107,8 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
     public void loadGOAssay() {
 
 	try {
-	    //conn = BardDBUtil.connect(service.getDbURL());
-	    //conn.setAutoCommit(false);
+	    Connection conn = BardDBUtil.connect(service.getDbURL());
+	    conn.setAutoCommit(false);
 	    log.info("Assay load connection established");
 
 	    //set up the tables
@@ -258,19 +253,21 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	    //swap tables
 	    //BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_assay", "go_assay", 0.90, service.getDbURL());			
 
-	    //conn.close();
+	    conn.close();
 	    log.info("Done Load");
 
 	} catch (SQLException sqle) {
 	    sqle.printStackTrace();
+	} catch (ClassNotFoundException e) {
+	    e.printStackTrace();
 	}
     }
     
     private void loadGoAssayFromBiology() {
 	try {	    
 	    log.info("Loading GO ASSAY from Biology GO");
-	    //conn = BardDBUtil.connect(service.getDbURL());
-	    //conn.setAutoCommit(false);
+	    Connection conn = BardDBUtil.connect(service.getDbURL());
+	    conn.setAutoCommit(false);
 	    Statement stmt = conn.createStatement();
 	    ResultSet rs = stmt.executeQuery(sqlSelectGOAssayTargetFromBiology);
 	    Hashtable <String, Vector<Long>> goToBardExptIdHash = new Hashtable<String, Vector<Long>>();
@@ -334,11 +331,12 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 		conn.commit();
 		//swap tables
 		//BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_assay", "go_assay", 0.90, service.getDbURL());			
-		//conn.close();
+		conn.close();
 		log.info("Done Load");
 	    }	    
 	} catch (SQLException e) {
-	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	} catch (ClassNotFoundException e) {
 	    e.printStackTrace();
 	}
     }
@@ -380,8 +378,8 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 
 	try {
 
-	    //conn = BardDBUtil.connect(service.getDbURL());
-	   // conn.setAutoCommit(false);
+	    Connection conn = BardDBUtil.connect(service.getDbURL());
+	    conn.setAutoCommit(false);
 	    log.info("Project load connection established");
 
 	    //set up the tables
@@ -521,11 +519,13 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	    //swap tables
 	    //BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_project", "go_project", 0.90, service.getDbURL());
 
-	    //conn.close();
+	    conn.close();
 	    logger.info("Done Load");
 
 	} catch (SQLException sqle) {
 	    sqle.printStackTrace();
+	} catch (ClassNotFoundException e) {
+	    e.printStackTrace();
 	}
     }
     
@@ -533,8 +533,8 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
     private void loadGoProjectFromBiology() {
 	try {	    
 	    log.info("Loading GO PROJECT from Biology GO");
-//	    conn = BardDBUtil.connect(service.getDbURL());
-//	    conn.setAutoCommit(false);
+	    Connection conn = BardDBUtil.connect(service.getDbURL());
+	    conn.setAutoCommit(false);
 	    Statement stmt = conn.createStatement();
 	    ResultSet rs = stmt.executeQuery(sqlSelectGOProjectTargetFromBiology);
 	    Hashtable <String, Vector<Long>> goToBardExptIdHash = new Hashtable<String, Vector<Long>>();
@@ -598,11 +598,12 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 		conn.commit();
 		//swap tables
 //		BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_project", "go_project", 0.90, service.getDbURL());			
-//		conn.close();
+		conn.close();
 		log.info("Done Load");
 	    }	    
 	} catch (SQLException e) {
-	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	} catch (ClassNotFoundException e) {
 	    e.printStackTrace();
 	}
     }
@@ -613,7 +614,7 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 
 	try {
 
-	    conn = BardDBUtil.connect(service.getDbURL());
+	    Connection conn = BardDBUtil.connect(service.getDbURL());
 	    conn.setAutoCommit(false);
 
 	    insertCnt = 0;
