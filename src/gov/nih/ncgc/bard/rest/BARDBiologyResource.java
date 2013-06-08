@@ -268,6 +268,8 @@ public class BARDBiologyResource extends BARDResource<Biology> {
             }
             biologies = tmp;
 
+            if (biologies.size() == 0) throw new NotFoundException();
+
             if (countRequested) json = String.valueOf(biologies.size());
             else if (expandEntries(expand)) {
                 json = Util.toJson(biologies);
@@ -296,6 +298,7 @@ public class BARDBiologyResource extends BARDResource<Biology> {
         try {
             if (resourceId != null && !Util.isNumber(resourceId)) throw new WebApplicationException(400);
             List<Biology> bios = db.getBiologyBySerial(Long.parseLong(resourceId));
+            if (bios.size() == 0) throw new NotFoundException();
             String json;
             if (countRequested) json = "1";
             else if (expandEntries(expand)) {
@@ -329,6 +332,7 @@ public class BARDBiologyResource extends BARDResource<Biology> {
                 List<Biology> bios = db.getBiologyBySerial(Long.parseLong(bid));
                 if (bios != null) allBiologies.addAll(bios);
             }
+            if (allBiologies.size() == 0) throw new NotFoundException();
             String json;
             if (countRequested) json = String.valueOf(allBiologies.size());
             else if (expandEntries(expand)) {
