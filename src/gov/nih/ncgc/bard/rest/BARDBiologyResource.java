@@ -294,7 +294,7 @@ public class BARDBiologyResource extends BARDResource<Biology> {
                                  @QueryParam("expand") String expand) {
         DBUtils db = new DBUtils();
         try {
-            if (!Util.isNumber(resourceId)) throw new WebApplicationException(400);
+            if (resourceId != null && !Util.isNumber(resourceId)) throw new WebApplicationException(400);
             List<Biology> bios = db.getBiologyBySerial(Long.parseLong(resourceId));
             String json;
             if (countRequested) json = "1";
