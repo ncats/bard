@@ -1,8 +1,8 @@
 package gov.nih.ncgc.bard.plugin;
 
-import java.io.IOException;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
 
 /**
  * Java representation of a plugin manifest.
@@ -173,7 +173,7 @@ public class PluginManifest {
         }
 
         /**
-         * The format of the argument - either a path argument or query argument.
+         * The format of the argument - either a path argument, query argument or form argument (for POST resources).
          * <p/>
          * Query arguments are specified in the form <code>?argname=argvalue</code>.
          *
@@ -191,9 +191,11 @@ public class PluginManifest {
          */
         public void setFormat(String format) {
             if (format.toLowerCase().equals("path") ||
-                    format.toLowerCase().equals("query"))
+                    format.toLowerCase().equals("query") ||
+                    format.toLowerCase().equals("form")
+                    )
                 this.format = format;
-            else throw new IllegalArgumentException("format must be path or query");
+            else throw new IllegalArgumentException("format must be path or query or form");
         }
     }
 
