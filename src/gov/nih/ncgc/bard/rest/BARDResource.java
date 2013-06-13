@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 
 /**
  * A base class for all REST resource class.
@@ -51,19 +53,35 @@ public abstract class BARDResource<T extends BardEntity>
     protected boolean countRequested;
     protected List<EntityTag> etagsRequested = new ArrayList<EntityTag>();
 
-    protected static boolean init = false;
+    protected static AtomicBoolean init = new AtomicBoolean (false);
 
     protected BARDResource () {
     }
 
     synchronized void init () {
-        if (!init) {
-            String ctx = servletContext.getInitParameter("datasource-context");
-            if (ctx != null) {
-                logger.info("## datasource context: "+ctx);
-                DBUtils.setDataSourceContext(ctx);
+        if (!init.get()) {
+            initResource ();
+            init.set(true);
+        }
+    }
+
+    void initResource () {
+        String value = servletContext.getInitParameter("datasource-selector");
+        logger.info("## datasource-selector: "+value);
+        if (value != null) {
+            String selector = servletContext.getInitParameter(value);
+            logger.info("## "+value+": "+selector);
+            if (selector != null) {
+                String[] sources = selector.split(",");
+                DBUtils.setDataSources(sources);
             }
-            init = true;
+        }
+        else {
+            String ctx = servletContext.getInitParameter("datasource-context");
+            logger.info("## datasource context: "+ctx);
+            if (ctx != null) {
+                DBUtils.setDataSources(ctx);
+            }
         }
     }
 

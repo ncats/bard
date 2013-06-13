@@ -87,14 +87,31 @@ public class BARDSearchResource implements IBARDResource {
     @PostConstruct
     protected void postConstruct() {
         if (!init) {
-            String ctx = servletContext.getInitParameter("datasource-context");
-            if (ctx != null) {
-                log.info("## datasource context: " + ctx);
-                DBUtils.setDataSourceContext(ctx);
-            }
+            initResource ();
             init = true;
         }
     }
+
+    void initResource () {
+        String value = servletContext.getInitParameter("datasource-selector");
+        log.info("## datasource-selector: "+value);
+        if (value != null) {
+            String selector = servletContext.getInitParameter(value);
+            log.info("## "+value+": "+selector);
+            if (selector != null) {
+                String[] sources = selector.split(",");
+                DBUtils.setDataSources(sources);
+            }
+        }
+        else {
+            String ctx = servletContext.getInitParameter("datasource-context");
+            log.info("## datasource context: "+ctx);
+            if (ctx != null) {
+                DBUtils.setDataSources(ctx);
+            }
+        }
+    }
+
 
     @GET
     @Produces("text/plain")
