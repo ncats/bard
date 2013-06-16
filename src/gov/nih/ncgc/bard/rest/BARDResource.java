@@ -72,7 +72,6 @@ public abstract class BARDResource<T extends BardEntity>
     protected void postConstruct() {
         init ();
 
-        jsonpMethodName = Util.jsonpRequested(headers);
         countRequested = Util.countRequested(headers);
         List<String> etags = headers.getRequestHeader(HttpHeaders.IF_MATCH);
         if (etags != null) {

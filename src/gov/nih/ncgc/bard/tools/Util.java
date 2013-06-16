@@ -12,7 +12,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MultivaluedMap;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -29,13 +28,6 @@ import java.util.List;
  * @author Rajarshi Guha
  */
 public class Util {
-
-    public static String jsonpRequested(HttpHeaders headers) {
-        MultivaluedMap<String, String> h = headers.getRequestHeaders();
-        if (h.containsKey(BARDConstants.REQUEST_HEADER_JSONP)) {
-            return h.get(BARDConstants.REQUEST_HEADER_JSONP).get(0);
-        } else return null;
-    }
 
     public static boolean countRequested(HttpHeaders headers) {
         return (headers.getRequestHeaders().containsKey(BARDConstants.REQUEST_HEADER_COUNT));
