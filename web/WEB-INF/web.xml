@@ -54,7 +54,7 @@
         </init-param>
         <init-param>
             <param-name>com.sun.jersey.spi.container.ContainerResponseFilters</param-name>
-            <param-value>paddy.jersey.cors.CORSFilter</param-value>
+            <param-value>gov.nih.ncgc.bard.rest.filter.CORSFilter</param-value>
         </init-param>
 
         <init-param>
