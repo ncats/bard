@@ -129,6 +129,13 @@ public class ResultHistogram {
 
     public static void main(String[] args) throws SQLException {
         ResultHistogram r = new ResultHistogram();
-        r.generateHistogram(1L);
+//        r.generateHistogram(1L);
+
+        Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+        PreparedStatement pst = conn.prepareStatement("select distinct bard_expt_id from exploded_results");
+        ResultSet rs = pst.executeQuery();
+        while (rs.next()) r.generateHistogram(rs.getLong(1));
+        conn.close();
+
     }
 }
