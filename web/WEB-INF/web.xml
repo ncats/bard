@@ -52,6 +52,10 @@
             <param-name>com.sun.jersey.spi.container.ContainerRequestFilters</param-name>
             <param-value>gov.nih.ncgc.bard.rest.filter.CountFilter</param-value>
         </init-param>
+        <init-param>
+            <param-name>com.sun.jersey.spi.container.ContainerResponseFilters</param-name>
+            <param-value>paddy.jersey.cors.CORSFilter</param-value>
+        </init-param>
 
         <init-param>
             <param-name>com.sun.jersey.config.property.packages</param-name>

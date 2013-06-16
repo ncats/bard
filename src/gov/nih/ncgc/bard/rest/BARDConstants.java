@@ -24,6 +24,7 @@ public class BARDConstants {
     public static final int MAX_DATA_COUNT = 500;
 
     public static final String REQUEST_HEADER_COUNT = "x-count-entities";
+    public static final String REQUEST_HEADER_JSONP = "x-jsonp-response";
 
     public static enum ExperimentClassification {
         primary,

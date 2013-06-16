@@ -49,6 +49,7 @@ public abstract class BARDResource<T extends BardEntity>
      * <code>true</code> if the request specified a count of entities rather than the entities themselves.
      */
     protected boolean countRequested;
+    protected String jsonpMethodName = null;
     protected List<EntityTag> etagsRequested = new ArrayList<EntityTag>();
 
     protected static boolean init = false;
@@ -71,6 +72,7 @@ public abstract class BARDResource<T extends BardEntity>
     protected void postConstruct() {
         init ();
 
+        jsonpMethodName = Util.jsonpRequested(headers);
         countRequested = Util.countRequested(headers);
         List<String> etags = headers.getRequestHeader(HttpHeaders.IF_MATCH);
         if (etags != null) {

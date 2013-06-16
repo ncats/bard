@@ -1,15 +1,14 @@
 package gov.nih.ncgc.bard.rest.filter;
 
-import gov.nih.ncgc.bard.rest.BARDConstants;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-
-import javax.ws.rs.core.MultivaluedMap;
-
 import com.sun.jersey.core.header.InBoundHeaders;
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerRequestFilter;
+import gov.nih.ncgc.bard.rest.BARDConstants;
+
+import javax.ws.rs.core.MultivaluedMap;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.List;
 
 /**
  * Processes a request to identify whether a count is desired or not.
@@ -32,8 +31,8 @@ public class CountFilter implements ContainerRequestFilter {
 
     public ContainerRequest filter(ContainerRequest request) {
         String path = request.getPath();
+        MultivaluedMap<String, String> headers = request.getRequestHeaders();
         if (path.endsWith("/_count")) { // make sure to strip out query params
-            MultivaluedMap<String, String> headers = request.getRequestHeaders();
             headers.add(BARDConstants.REQUEST_HEADER_COUNT, "true");
             request.setHeaders((InBoundHeaders) headers);
             String uriString = request.getRequestUri().toString().replace("/_count", "");
@@ -43,7 +42,15 @@ public class CountFilter implements ContainerRequestFilter {
             } catch (URISyntaxException e) {
                 e.printStackTrace();
             }
+        }
 
+        MultivaluedMap<String, String> queryParams = request.getQueryParameters();
+        if (queryParams.containsKey("callback")) {
+            List<String> vals = queryParams.get("callback");
+            if (vals.size() == 1) {
+                headers.add(BARDConstants.REQUEST_HEADER_JSONP, vals.get(0));
+                request.setHeaders((InBoundHeaders) headers);
+            }
         }
         return request;
     }
