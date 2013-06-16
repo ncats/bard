@@ -88,9 +88,9 @@ public class ResultHistogram {
 
         float lower = minval;
         for (int i = 1; i <= Math.floor(k); i++) {
-            HBin bin = new HBin(lower, lower + i * h, 0);
+            HBin bin = new HBin(lower, lower + h, 0);
             bins.add(bin);
-            lower += i * h;
+            lower += h;
         }
 
         for (Float v : values) {
@@ -129,6 +129,6 @@ public class ResultHistogram {
 
     public static void main(String[] args) throws SQLException {
         ResultHistogram r = new ResultHistogram();
-        r.generateHistogram(108L);
+        r.generateHistogram(1L);
     }
 }
