@@ -1208,9 +1208,9 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         List<ExperimentData> hitData = new ArrayList<ExperimentData>();
         int nhit = 0;
         List<String> hitExpts = new ArrayList<String>();
-        List<Assay> hitAssays = new ArrayList<Assay>();
+        Set<Assay> hitAssays = new HashSet<Assay>();
 
-        List<Assay> testedAssays = new ArrayList<Assay>();
+        Set<Assay> testedAssays = new HashSet<Assay>();
         List<Experiment> testedExperiments = new ArrayList<Experiment>();
 
         for (ExperimentData ed : data) {
