@@ -31,8 +31,11 @@ public class AssaySearch extends SolrSearch {
     Logger log;
 
     String[] facetNames = {"assay_component_role", "assay_mode", "assay_type",
-            "Cell line", "detection_method_type", "target_name", "kegg_disease_cat",
-            "biology", "class_name"};
+            "detection_method_type", "target_name", "kegg_disease_cat",
+            "biology", "class_name",
+            "target_name_process",
+            "target_name_protein",
+            "target_name_gene"};
 
     public AssaySearch(String query, String coreName) {
         super(query);
@@ -86,14 +89,7 @@ public class AssaySearch extends SolrSearch {
 
         sq.setFacet(true);
         sq.setFacetMinCount(1);
-        sq.addFacetField("target_name");
-        sq.addFacetField("biology");
-        sq.addFacetField("detection_method_type");
-        sq.addFacetField("assay_mode");
-        sq.addFacetField("assay_component_role");
-        sq.addFacetField("kegg_disease_cat");
-        sq.addFacetField("class_name");
-
+        for (String facetName : facetNames) sq.addFacetField(facetName);
 
         QueryResponse response = solr.query(sq);
         List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_ASSAY_DOC, HL_FIELD);
@@ -164,7 +160,7 @@ public class AssaySearch extends SolrSearch {
         Map<String, Float> scores = new LinkedHashMap<String, Float>(); // to maintain doc id ordering
 
         // first set up field match details & document scores
-        int size = Math.min(skip+top, docs.size());
+        int size = Math.min(skip + top, docs.size());
         for (int i = skip; i < size; i++) {
             SolrDocument doc = docs.get(i);
             String assayId = (String) doc.getFieldValue(PKEY_ASSAY_DOC);
@@ -187,7 +183,7 @@ public class AssaySearch extends SolrSearch {
             DBUtils db = new DBUtils();
             ret = new ArrayList();
             try {
-                for (int i = skip; i < size; i++)  {
+                for (int i = skip; i < size; i++) {
                     SolrDocument doc = docs.get(i);
                     String assayId = (String) doc.getFieldValue(PKEY_ASSAY_DOC);
                     ret.add(db.getAssayByAid(Long.parseLong(assayId)));
