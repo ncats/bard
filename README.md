@@ -3,8 +3,8 @@ BARD REST API
 
 This repository hosts the BARD REST API that provides query access to the backend BARD database. The API is
 designed using the [Jersey ](http://jersey.java.net/) framework and is meant to be hosted in an application 
-container. Currently, we have tested it in [Tomcat](http://tomcat.apache.org/) 6, but it should work in any other compliant application container
-([GlassFish](http://en.wikipedia.org/wiki/GlassFish), [Jetty](http://en.wikipedia.org/wiki/Jetty_(web_server)) etc.)
+container. Currently, we have tested it in [Tomcat](http://tomcat.apache.org/) 6 and ([GlassFish](http://en.wikipedia.org/wiki/GlassFish), 
+but it should work in any other compliant application container such as [Jetty](http://en.wikipedia.org/wiki/Jetty_(web_server)).
 
 Dependencies
 ------------
@@ -52,5 +52,5 @@ the global Tomcat classpath and then add the following entry to `config/context.
 Plugins
 -------
 
-The REST API also supports the concept of plugins - user contributed Java classes that appear as resources in the REST hierarchy. See
-[`plugins/`](https://github.com/ncatsdpiprobedev/bardplugins) for some examples. A more detailed description of how plugins should be written can be found [here](https://github.com/ncatsdpiprobedev/bard/wiki/Plugins). Plugins are built & deployed separately from the main BARD API. A proxy server in front of all BARD resources performs the appropriate redirection
+The REST API also supports the concept of plugins - user contributed Java classes that appear as resources in the REST hierarchy. See the 
+[plugin repository](https://github.com/ncatsdpiprobedev/bardplugins) for some examples. A more detailed description of how plugins should be written can be found [here](https://github.com/ncatsdpiprobedev/bard/wiki/Plugins). Plugins are built & deployed separately from the main BARD API. A proxy server in front of all BARD resources performs the appropriate redirection
