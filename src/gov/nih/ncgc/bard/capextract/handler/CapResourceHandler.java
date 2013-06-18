@@ -203,7 +203,6 @@ public abstract class CapResourceHandler {
 	    if (entityTable != null) {
 		Statement stmt = conn.createStatement();
 		String sql = "update "+entityTable+" set updated=now() where "+entityIdField+"="+bardEntityId;
-		System.out.println(sql);
 		stmt.execute(sql);
 		updated = (stmt.getUpdateCount() > 0);
 		if(updated) {
@@ -218,13 +217,5 @@ public abstract class CapResourceHandler {
 	    return updated;
 	}
 	return updated;
-    }
-    
-    public static void main(String [] args) {
-	ExperimentResultHandler handler = new ExperimentResultHandler();
-	System.out.println("Assay Update= "+handler.setEntityUpdateField(1l, CAPConstants.CapResource.ASSAY));
-	System.out.println("Experiment Update= "+handler.setEntityUpdateField(1l, CAPConstants.CapResource.EXPERIMENT));
-	System.out.println("Project Update= "+handler.setEntityUpdateField(1l, CAPConstants.CapResource.PROJECT));	
-    }
-    
+    }    
 }
