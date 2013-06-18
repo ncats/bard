@@ -339,7 +339,10 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             } else {
                 log.info("CAP assay id = " + capAssayId + " already exists in production as BARD assay id = " + bardAssayId + ". Updating");
                 assayExists = true;
-
+                
+                // set the updated field even if none of the core entity fields change.
+                setEntityUpdateField(bardAssayId, resource);
+                
                 pstAssay = conn.prepareStatement(
                         "update bard_assay set title=?, name=?, description=?, protocol=?, comment=?, designed_by=?, assay_type=?, status=? where bard_assay_id = ?");
                 pstAssay.setString(1, title);

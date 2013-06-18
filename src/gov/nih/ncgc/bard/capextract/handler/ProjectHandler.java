@@ -131,8 +131,12 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 pst.close();
                 log.info("Inserted CAP project id " + capProjectId + " as BARD project id " + bardProjId);
             } else {
-                projectExists = true;
+                projectExists = true;                
                 log.info("Will do an update for the CAP project id = " + project.getProjectId());
+
+                // set the updated field even if none of the core entity fields change.
+                setEntityUpdateField(bardProjId, CAPConstants.CapResource.PROJECT);
+             
                 pst = conn.prepareStatement("update bard_project set name=?, description=?, pubchem_aid=? where cap_proj_id = ?");
                 pst.setString(1, project.getProjectName());
                 pst.setString(2, project.getDescription());
