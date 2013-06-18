@@ -45,7 +45,6 @@ public class CAPUtil {
         Connection conn = null;
         try {
             Class.forName("com.mysql.jdbc.Driver").newInstance();
-//            conn = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov/bard2", "capbard", "bard");
             conn = DriverManager.getConnection("jdbc:mysql://bohr.ncats.nih.gov/bard3", "bard_manager", "bard_manager");
             conn.setAutoCommit(false);
         } catch (IllegalAccessException e) {
@@ -68,20 +67,19 @@ public class CAPUtil {
         Connection conn = null;
         try {
             Class.forName("com.mysql.jdbc.Driver").newInstance();
-//            conn = DriverManager.getConnection("jdbc:mysql://maxwell.nhgri.nih.gov/bard2", "capbard", "bard");
             conn = DriverManager.getConnection(serverURL, "bard_manager", "bard_manager");
             conn.setAutoCommit(false);
         } catch (IllegalAccessException e) {
-            System.out.println("Can't connect to db" + e.toString());
+            System.out.println("Can't connect to db " + e.toString());
             System.exit(-1);
         } catch (ClassNotFoundException e) {
-            System.out.println("Can't connect to db" + e.toString());
+            System.out.println("Can't connect to db " + e.toString());
             System.exit(-1);
         } catch (InstantiationException e) {
-            System.out.println("Can't connect to db" + e.toString());
+            System.out.println("Can't connect to db " + e.toString());
             System.exit(-1);
         } catch (SQLException e) {
-            System.out.println("Can't connect to db" + e.toString());
+            System.out.println("Can't connect to db " + e.toString());
             System.exit(-1);
         }
         return conn;

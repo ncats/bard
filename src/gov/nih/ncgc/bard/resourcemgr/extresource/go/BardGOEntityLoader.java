@@ -108,7 +108,7 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 
 	try {
 	    Connection conn = BardDBUtil.connect(service.getDbURL());
-	    conn.setAutoCommit(false);
+	    conn.setAutoCommit(true);
 	    log.info("Assay load connection established");
 
 	    //set up the tables
@@ -241,7 +241,6 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	    }
 
 	    insertGOPS.executeBatch();
-	    conn.commit();
 
 	    log.info("Finished Temp Load");
 
@@ -249,9 +248,6 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	    log.info("update association date and db ref in temp tables");
 	    stmt = conn.createStatement();
 	    stmt.executeUpdate(sqlUpdateAssayGoDBRefAndDate);
-
-	    //swap tables
-	    //BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_assay", "go_assay", 0.90, service.getDbURL());			
 
 	    conn.close();
 	    log.info("Done Load");
@@ -267,7 +263,7 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	try {	    
 	    log.info("Loading GO ASSAY from Biology GO");
 	    Connection conn = BardDBUtil.connect(service.getDbURL());
-	    conn.setAutoCommit(false);
+	    conn.setAutoCommit(true);
 	    Statement stmt = conn.createStatement();
 	    ResultSet rs = stmt.executeQuery(sqlSelectGOAssayTargetFromBiology);
 	    Hashtable <String, Vector<Long>> goToBardExptIdHash = new Hashtable<String, Vector<Long>>();
@@ -328,12 +324,10 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 		    insertGOData(beid, 0, "", "", impliedV);
 		}
 		insertGOPS.executeBatch();
-		conn.commit();
-		//swap tables
-		//BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_assay", "go_assay", 0.90, service.getDbURL());			
-		conn.close();
-		log.info("Done Load");
-	    }	    
+		impliedV.clear();
+	    }
+	    conn.close();
+	    log.info("Done Load");
 	} catch (SQLException e) {
 	    e.printStackTrace();
 	} catch (ClassNotFoundException e) {
@@ -379,7 +373,7 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	try {
 
 	    Connection conn = BardDBUtil.connect(service.getDbURL());
-	    conn.setAutoCommit(false);
+	    conn.setAutoCommit(true);
 	    log.info("Project load connection established");
 
 	    //set up the tables
@@ -505,8 +499,6 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	    }
 
 	    insertGOPS.executeBatch();
-	    conn.commit();
-
 
 	    log.info("Finished Temp Load");
 
@@ -534,7 +526,7 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	try {	    
 	    log.info("Loading GO PROJECT from Biology GO");
 	    Connection conn = BardDBUtil.connect(service.getDbURL());
-	    conn.setAutoCommit(false);
+	    conn.setAutoCommit(true);
 	    Statement stmt = conn.createStatement();
 	    ResultSet rs = stmt.executeQuery(sqlSelectGOProjectTargetFromBiology);
 	    Hashtable <String, Vector<Long>> goToBardExptIdHash = new Hashtable<String, Vector<Long>>();
@@ -595,12 +587,10 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 		    insertGODataForProject(beid, "", "", impliedV);
 		}
 		insertGOPS.executeBatch();
-		conn.commit();
-		//swap tables
-//		BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_go_project", "go_project", 0.90, service.getDbURL());			
-		conn.close();
-		log.info("Done Load");
+		impliedV.clear();
 	    }	    
+	    conn.close();
+	    log.info("Done Load");
 	} catch (SQLException e) {
 	    e.printStackTrace();
 	} catch (ClassNotFoundException e) {
@@ -615,7 +605,7 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	try {
 
 	    Connection conn = BardDBUtil.connect(service.getDbURL());
-	    conn.setAutoCommit(false);
+	    conn.setAutoCommit(true);
 
 	    insertCnt = 0;
 
@@ -796,15 +786,13 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	    this.insertGOPS.setNull(9, java.sql.Types.VARCHAR);
 	    this.insertGOPS.setNull(10, java.sql.Types.VARCHAR);
 
-	    this.insertGOPS.addBatch();
-
-	    if(insertCnt % 10 == 0) {
+	    this.insertGOPS.addBatch();			
+	    if(insertCnt % 20 == 0) {
 		insertGOPS.executeBatch();
 		insertGOPS.clearBatch();
-		conn.commit();
-		logger.info("Insert Count = "+insertCnt);
-	    }			
+	    }		
 	}
+	insertGOPS.executeBatch();
     }
 
 
@@ -830,16 +818,13 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	    this.insertGOPS.setInt(8, node.isImplied() ? 1 : 0);	
 	    this.insertGOPS.setNull(9, java.sql.Types.VARCHAR);
 	    this.insertGOPS.setNull(10, java.sql.Types.VARCHAR);
-
 	    this.insertGOPS.addBatch();
-
-	    if(insertCnt % 10 == 0) {
+	    if(insertCnt % 20 == 0) {
 		insertGOPS.executeBatch();
 		insertGOPS.clearBatch();
-		conn.commit();
-		logger.info("Insert Count = "+insertCnt);
-	    }			
+	    }		
 	}
+	insertGOPS.executeBatch();
     }
 
     private void insertGODataForCompound(long cid, String accession, Set <GONode> nodeSet) throws SQLException {

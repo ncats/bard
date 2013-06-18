@@ -213,6 +213,11 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             pstExpt.setFloat(9, (float) confLevel.intValue());
             if (doUpdate) pstExpt.setLong(10, bardExptId);
 
+            if(doUpdate) {
+                // set the updated field even if none of the core entity fields change.
+                setEntityUpdateField(bardExptId, resource);
+            }
+            
             pstExpt.executeUpdate();
 
             if (!doUpdate) { // get the bard id that we just inserted

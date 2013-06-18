@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.SslHttpClient;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 
@@ -8,6 +9,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Method;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Vector;
 
@@ -174,5 +178,53 @@ public abstract class CapResourceHandler {
 	return etag;
     }
     
+    
+    protected boolean setEntityUpdateField(long bardEntityId, CAPConstants.CapResource resource) {
+	boolean updated = false;
+	Connection conn = null;
+	try {
+	    //connect to db
+	    conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+	    conn.setAutoCommit(true);
+	    //determine entity table and entity id type based on resource
+	    String entityTable = null;
+	    String entityIdField = null;
+	    if (resource == CAPConstants.CapResource.ASSAY) {
+		entityTable = "bard_assay";
+		entityIdField = "bard_assay_id";
+	    } else if (resource == CAPConstants.CapResource.EXPERIMENT) {
+		entityTable = "bard_experiment";
+		entityIdField = "bard_expt_id";
+	    } else if (resource == CAPConstants.CapResource.PROJECT) {
+		entityTable = "bard_project";
+		entityIdField = "bard_proj_id";
+	    }
+	    //make sure we have an entity type we can handle
+	    if (entityTable != null) {
+		Statement stmt = conn.createStatement();
+		String sql = "update "+entityTable+" set updated=now() where "+entityIdField+"="+bardEntityId;
+		System.out.println(sql);
+		stmt.execute(sql);
+		updated = (stmt.getUpdateCount() > 0);
+		if(updated) {
+		    log.info("Updated the entity *updated* field for "+entityIdField+"="+bardEntityId);
+		} else {
+		    log.warn("Unable to update the entity *updated* field for "+entityIdField+"="+bardEntityId);
+		}
+	    }
+	    conn.close();	    
+	} catch (SQLException e) {
+	    e.printStackTrace();
+	    return updated;
+	}
+	return updated;
+    }
+    
+    public static void main(String [] args) {
+	ExperimentResultHandler handler = new ExperimentResultHandler();
+	System.out.println("Assay Update= "+handler.setEntityUpdateField(1l, CAPConstants.CapResource.ASSAY));
+	System.out.println("Experiment Update= "+handler.setEntityUpdateField(1l, CAPConstants.CapResource.EXPERIMENT));
+	System.out.println("Project Update= "+handler.setEntityUpdateField(1l, CAPConstants.CapResource.PROJECT));	
+    }
     
 }

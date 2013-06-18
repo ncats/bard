@@ -400,7 +400,7 @@ public class GOQueryWorker {
     }
 
     public Connection connect(String dbURL, String driverName) {
-	Connection conn = null;
+	conn = null;
 	try {
 	    Class.forName(driverName);
 	    conn= DriverManager.getConnection(dbURL, "bard_manager", "bard_manager");
@@ -683,15 +683,23 @@ public class GOQueryWorker {
     public static void main(String [] args) {
 	
 	GOQueryWorker worker = new GOQueryWorker();
-	//		GONode node = worker.createAndPopulateNodeFromID(5269);
-	//		Vector <GONode> nodes = worker.getPredNodes(node);
-	//		for(GONode n : nodes) {
-	//			System.out.println(n);
-	//		}
-	//		System.out.println(nodes.size());
-	GONode node = worker.buildRootAndChildren("GO:0006281");
+	worker.connect("jdbc:mysql://maxwell.ncats.nih.gov:3306/bard3", "com.mysql.jdbc.Driver");
+	worker.prepareStatements("jdbc:mysql://maxwell.ncats.nih.gov:3306/bard3");
+	
+	GONode node = worker.createAndPopulateNodeFromID(35212);
 
-	node.printTree(0);
+	System.out.println(node);
+	
+	Vector <GONode> nodes = worker.getPredNodes(node);
+
+
+	for(GONode n : nodes) {
+	    System.out.println(n);
+	}
+	System.out.println(nodes.size());
+	//GONode node = worker.buildRootAndChildren("GO:0006281");
+
+	//node.printTree(0);
 	//		worker.collectUniqueProductAcc(node);
 	//		
 	//		Vector <String> accV = worker.collectUniqueProductAcc(node);
