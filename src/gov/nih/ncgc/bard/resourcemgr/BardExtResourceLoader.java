@@ -42,7 +42,8 @@ public abstract class BardExtResourceLoader implements IBardExtResourceLoader {
 	if(protocol == BardResourceService.ResourceProtocolTypes.FTP.ordinal()) {
 	    BardResourceFetch retriever = new BardResourceFetch();
 	    try {
-		retriever.fetchFTPFileResource(server, uname, pw, extPath, localDir);		
+		retriever.fetchFTPFileResource(server, uname, pw, extPath, localDir);
+		fetched = true;
 	    } catch (IOException e) {
 		e.printStackTrace();
 	    } catch (FtpException e) {

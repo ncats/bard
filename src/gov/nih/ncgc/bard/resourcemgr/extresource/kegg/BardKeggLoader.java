@@ -1,6 +1,8 @@
 package gov.nih.ncgc.bard.resourcemgr.extresource.kegg;
 
 import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
+import gov.nih.ncgc.bard.resourcemgr.BardExtResourceLoader;
+import gov.nih.ncgc.bard.resourcemgr.IBardExtResourceLoader;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -13,7 +15,7 @@ import java.sql.Statement;
 import java.util.Vector;
 import java.util.logging.Logger;
 
-public class BardKeggLoader {
+public class BardKeggLoader extends BardExtResourceLoader implements IBardExtResourceLoader {
 
 
 	private final static Logger logger = Logger.getLogger(BardKeggLoader.class.getName());
@@ -23,21 +25,50 @@ public class BardKeggLoader {
 	private Connection conn;
 	private PreparedStatement insertKeggDiseasePS;
 	
+	
+	@Override
+	public boolean load() {	    
+	    boolean haveFile = fetchExternalResource();
+	    boolean loaded = false;
+	    if(haveFile) {
+		log.info("Fetched KEGG Medicus Gene to Disease Resource");
+		loadKeggDisease();
+		log.info("KEGG load is complete.");		
+		loaded = true;
+	    } else {
+		log.warning("Failed to retrieve external resource for KEGG disease");
+		log.warning("Service: "+service.getServiceKey());
+		log.warning("Check stdout log for service details.");
+	    }
+	    return loaded;
+	}
+
+
+	@Override
+	public String getLoadStatusReport() {
+	    // TODO Auto-generated method stub
+	    return null;
+	}
+	
+	
+	
 	/**
 	 * Maps kegg diseases to genes
 	 */
-	public long loadKeggDisease(String keggDiseaseFilePath) {
+	public long loadKeggDisease() {
 		
 		long tableSize = 0;
 		
 		try {
-			conn = BardDBUtil.connect();
+			conn = BardDBUtil.connect(service.getDbURL());
 			conn.setAutoCommit(false);
 		
-			tableSize = BardDBUtil.getTableRowCount("kegg_gene2disease");
+			String localKeggFilePath = service.getLocalResPath();
+			
+			tableSize = BardDBUtil.getTableRowCount("kegg_gene2disease", service.getDbURL());
 			
 			
-			File keggDiseaseFile = new File(keggDiseaseFilePath);
+			File keggDiseaseFile = new File(localKeggFilePath+"/disease");
 
 			if(!keggDiseaseFile.exists() || !keggDiseaseFile.isFile()) {
 				logger.warning("ERROR: KEGG Disease File is Not Found.");
@@ -54,9 +85,10 @@ public class BardKeggLoader {
 						
 			logger.info("TEMP KEGG DISEASE FILE LOADED");
 
-			//rename table from temp to prod
-			stmt.execute("drop table kegg_gene2disease");
-			stmt.execute("alter table temp_kegg_gene2disease rename to kegg_gene2disease");
+			//swap table if it passess the delta, new table is > 0.9 of the original
+			BardDBUtil.swapTempTableToProductionIfPassesSizeDelta(
+				"temp_kegg_gene2disease", "kegg_gene2disease", 0.9, service.getDbURL());
+
 			logger.info("RECREATED KEGG_GENE2DISEASE");
 
 			//table growth
@@ -397,5 +429,4 @@ public class BardKeggLoader {
 //		}
 		
 	}
-
 }
