@@ -129,8 +129,6 @@ public class BardResourceService {
 	System.out.println("LOCAL_RES_PATH:"+localResPath);
 	System.out.println("LOADER_CLASS:"+loaderClass);
 	System.out.println("DB_URL:"+dbURL);
-
-
     }
 
 }
