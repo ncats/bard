@@ -107,3 +107,6 @@ v17 released
 06/05/13      Added a /recent/{n} subresource to every entity to access N most recent entities. Available for assays, experiments, projects, biology, substances
 06/07/13      Added more statistics to resulttype summary
 06/16/13      API now supports CORS and JSONP
+06/17/13      Added new facet fields in assay search response (break down target name facets by biology)
+
+
