@@ -108,5 +108,5 @@ v17 released
 06/07/13      Added more statistics to resulttype summary
 06/16/13      API now supports CORS and JSONP
 06/17/13      Added new facet fields in assay search response (break down target name facets by biology)
-
+06/20/13      Added new facet field to assay search response (assay_status)
 
