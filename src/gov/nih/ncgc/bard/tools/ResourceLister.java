@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.tools;
 
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -7,10 +10,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
 
 /**
  * List available REST resources.
@@ -20,6 +19,11 @@ import javax.ws.rs.Path;
  * @author Rajarshi Guha
  */
 public class ResourceLister {
+    String apiVersion = "v17";
+
+    public ResourceLister(String apiVersion) {
+        this.apiVersion = apiVersion;
+    }
 
     List<Class> getClassesByPackage(String packageName) throws IOException, ClassNotFoundException {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -84,7 +88,7 @@ public class ResourceLister {
                     if (httpMethod == null) continue; // ignore a method with no GET/POST
                     String res = rootResource + "/" + subResource;
                     res = res.replace("//", "/");
-                    res = "http://bard.nih.gov/api/v13" + res;
+                    res = "http://bard.nih.gov/api/" + apiVersion + "/" + res;
                     System.out.println("curl -o /dev/null -sL -w \"%{http_code} %{url_effective} %{time_total} %{size_download}\\\\n\"  -X " + httpMethod + " " + res);
                     n++;
                 }
@@ -96,7 +100,7 @@ public class ResourceLister {
     }
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
-        ResourceLister rl = new ResourceLister();
+        ResourceLister rl = new ResourceLister("v17");
         rl.run();
     }
 }
