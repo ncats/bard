@@ -35,7 +35,8 @@ public class AssaySearch extends SolrSearch {
             "biology", "class_name",
             "target_name_process",
             "target_name_protein",
-            "target_name_gene"};
+            "target_name_gene",
+            "assay_status"};
 
     public AssaySearch(String query, String coreName) {
         super(query);
