@@ -3236,7 +3236,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select a.*, b.cid, c.iso_smiles from substance a, cid_sid b, compound c where a.sid = ? and a.sid = b.sid and b.rel_type = 1 and c.cid = b.cid");
+        PreparedStatement pst = conn.prepareStatement("select  a . *, b.cid, c.iso_smiles from substance a  left join cid_sid b on a.sid = b.sid  left join compound c on c.cid = b.cid where a.sid = ?");
         try {
             pst.setLong(1, sid);
             ResultSet rs = pst.executeQuery();
@@ -5257,10 +5257,11 @@ public class DBUtils {
             ResultSet rs = pst.executeQuery();
             List<T> ret = new ArrayList<T>();
             while (rs.next()) {
-                if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(rs.getLong(1)));
-                else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(rs.getLong(1)));
-                else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(rs.getLong(1)));
-                else if (entity.isAssignableFrom(Experiment.class)) ret.add((T) getExperimentByExptId(rs.getLong(1)));
+                Long id = rs.getLong(1);
+                if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(id));
+                else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(id));
+                else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(id));
+                else if (entity.isAssignableFrom(Experiment.class)) ret.add((T) getExperimentByExptId(id));
                 else if (entity.isAssignableFrom(ExperimentData.class)) ret.add((T) getExperimentDataByDataId(rs.getString(1)));
             }
             rs.close();
@@ -5296,11 +5297,12 @@ public class DBUtils {
             List<T> ret = new ArrayList<T>();
 
             while (rs.next()) {
-                if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(rs.getLong(1)));
-                else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(rs.getLong(1)));
-                else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(rs.getLong(1)));
-                else if (entity.isAssignableFrom(Experiment.class)) ret.add((T) getExperimentByExptId(rs.getLong(1)));
-                else if (entity.isAssignableFrom(Biology.class)) ret.add((T) getBiologyBySerial(rs.getLong(1)).get(0));
+                Long id = rs.getLong(1);
+                if (entity.isAssignableFrom(Assay.class)) ret.add((T) getAssayByAid(id));
+                else if (entity.isAssignableFrom(Project.class)) ret.add((T) getProject(id));
+                else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(id));
+                else if (entity.isAssignableFrom(Experiment.class)) ret.add((T) getExperimentByExptId(id));
+                else if (entity.isAssignableFrom(Biology.class)) ret.add((T) getBiologyBySerial(id).get(0));
             }
             rs.close();
             return ret;
