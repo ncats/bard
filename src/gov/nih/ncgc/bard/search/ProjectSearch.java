@@ -14,7 +14,11 @@ import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Full text search for project entities.
@@ -27,8 +31,6 @@ public class ProjectSearch extends SolrSearch {
 
     Logger log;
 
-    String[] facetNames = {"num_expt", "biology", "target_name", "kegg_disease_cat", "class_name"};
-
     public ProjectSearch(String query, String coreName) {
         super(query);
         CORE_NAME = coreName;
@@ -36,6 +38,7 @@ public class ProjectSearch extends SolrSearch {
     }
 
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
+        facets = new ArrayList<Facet>();
         results = new SearchResult();
 
         SolrServer solr = null;
@@ -44,78 +47,62 @@ public class ProjectSearch extends SolrSearch {
         QueryResponse response = null;
 
         SolrQuery sq = new SolrQuery(query);
-//        sq = setHighlighting(sq, filter == null ? HL_FIELD : HL_FIELD);
         sq = setFilterQueries(sq, filter);
         sq.setShowDebugInfo(true);
         sq.setRows(10000);
         sq.setFacet(true);
 
-        sq.addFacetQuery("num_expt:[* TO 1]");
-        sq.addFacetQuery("num_expt:[1 TO 5]");
-        sq.addFacetQuery("num_expt:[5 TO 10]");
-        sq.addFacetQuery("num_expt:[10 TO *]");
-
-        sq.addFacetField("target_name");
-        sq.addFacetField("kegg_disease_cat");
-        sq.addFacetField("biology");
-        sq.addFacetField("class_name");
-
         response = solr.query(sq);
         List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_PROJECT_DOC, HL_FIELD);
 
-        // get facet counts
+        // field facets
         long start = System.currentTimeMillis();
-        facets = new ArrayList<Facet>();
-        for (String f : facetNames) facets.add(new Facet(f));
-
-        // non-range facets
-        for (Facet aFacet : facets) {
-            FacetField targetFacet = response.getFacetField(aFacet.getFacetName());
-            if (targetFacet == null) continue;
-            List<FacetField.Count> fcounts = targetFacet.getValues();
-            if (fcounts != null) {
-                for (FacetField.Count fcount : fcounts) {
-                    if (fcount.getCount() > 0) aFacet.counts.put(fcount.getName(), (int) fcount.getCount());
-                }
+        List<FacetField> solrf = response.getFacetFields();
+        for (FacetField f : solrf) {
+            Facet bardFacet = new Facet(f.getName());
+            List<FacetField.Count> values = f.getValues();
+            if (values != null) {
+                for (FacetField.Count value : values) bardFacet.counts.put(value.getName(), (int) value.getCount());
             }
+            facets.add(bardFacet);
         }
 
         // range facets
-        Map<String, Integer> solrf = response.getFacetQuery();
-        if (solrf != null) {
-            for (Facet f : facets) {
-                for (String key : solrf.keySet()) {
-                    if (key.startsWith(f.getFacetName())) {
-                        f.counts.put(key.replace(f.getFacetName() + ":", ""), solrf.get(key));
-                    }
+        Map<String, Integer> solrfq = response.getFacetQuery();
+        Map<String, Facet> tmpFacets = new HashMap<String, Facet>();
+        if (solrfq != null) {
+            for (String solrFacetName : solrfq.keySet()) {
+                Integer facetCount = solrfq.get(solrFacetName);
+                String facetTitle = solrFacetName.split(":")[0];
+                String facetlabel = solrFacetName.split(":")[1];
+                if (tmpFacets.containsKey(facetTitle)) {
+                    Facet bardFacet = tmpFacets.get(facetTitle);
+                    bardFacet.counts.put(facetlabel, facetCount);
+                } else {
+                    Facet bardFacet = new Facet(facetTitle);
+                    bardFacet.counts.put(facetlabel, facetCount);
+                    tmpFacets.put(facetTitle, bardFacet);
                 }
             }
         }
-
-        // TODO in the future facet on project annotations
-        List<Long> projIds = new ArrayList<Long>();
-        for (SolrDocument doc : docs) {
-            projIds.add(Long.parseLong((String) doc.getFieldValue(PKEY_PROJECT_DOC)));
-//            Collection<Object> keys = doc.getFieldValues("ak_dict_label");
-//            Collection<Object> values = doc.getFieldValues("av_dict_label");
-//            if (keys == null || values == null) continue;
-//            if (keys.size() != values.size())
-//                log.error("for assay_id = " + doc.getFieldValue("assay_id") + " keys had " + keys.size() + " elements and values had " + values.size() + " elements");
-//
-//            List<Object> keyList = new ArrayList<Object>(keys);
-//            List<Object> valueList = new ArrayList<Object>(values);
-//            for (Facet facet : facets) {
-//                for (int i = 0; i < keyList.size(); i++) {
-//                    if (keyList.get(i).equals(facet.getFacetName()))
-//                        if (i < valueList.size()) {
-//                            facet.addFacetValue((String) valueList.get(i));
-//                        }
-//                }
-//            }
-
-        }
+        for (Facet f : tmpFacets.values())
+            facets.add(f);
         long end = System.currentTimeMillis();
         log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
+
+	List<Long> projIds = new ArrayList<Long>();
+        for (SolrDocument doc : docs) {
+            Object id = doc.getFirstValue(PKEY_PROJECT_DOC);
+            try {
+                long aid = Long.parseLong(id.toString());
+                if (aid > 0l) {
+                    projIds.add(aid);
+                }
+            } catch (Exception ex) {
+                log.warn("Bogus bardProjid " + id);
+            }
+	}
+
 
         SearchMeta meta = new SearchMeta();
         meta.setNhit(response.getResults().getNumFound());

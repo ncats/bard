@@ -1,7 +1,5 @@
 package gov.nih.ncgc.bard.search;
 
-import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.entity.Assay;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -14,10 +12,13 @@ import org.apache.solr.common.SolrDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Full text search for assay entities.
@@ -30,54 +31,21 @@ public class AssaySearch extends SolrSearch {
 
     Logger log;
 
-    String[] facetNames = {"assay_component_role", "assay_mode", "assay_type",
-            "detection_method_type", "target_name", "kegg_disease_cat",
-            "biology", "class_name",
-            "target_name_process",
-            "target_name_protein",
-            "target_name_gene",
-            "assay_status"};
-
     public AssaySearch(String query, String coreName) {
         super(query);
 
         CORE_NAME = coreName;
         log = LoggerFactory.getLogger(this.getClass());
-
-        // since we currently facte on dictionary terms, lets pre-populate the facet
-        // values with the children of the terms, setting their counts to 0
-        facets = new ArrayList<Facet>();
         DBUtils db = new DBUtils();
-        CAPDictionary dict = null;
         try {
-            dict = db.getCAPDictionary();
             db.closeConnection();
         } catch (SQLException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
-
-        if (dict != null) {
-            log.info("Got CAP dictionary with " + dict.getNodes().size() + " elements");
-            for (String name : facetNames) {
-                Set<CAPDictionaryElement> childs = dict.getChildren(name);
-                if (childs == null) childs = new HashSet<CAPDictionaryElement>();
-                Map<String, Integer> counts = new HashMap<String, Integer>();
-                for (CAPDictionaryElement child : childs) {
-                    counts.put(child.getLabel(), 0);
-                }
-
-                Facet f = new Facet(name);
-                f.setCounts(counts);
-                facets.add(f);
-            }
-        } else log.error("CAP dictionary was null. Strange!");
     }
 
     public void run(boolean detailed, String filter, Integer top, Integer skip) throws MalformedURLException, SolrServerException {
+        facets = new ArrayList<Facet>();
         results = new SearchResult();
 
         SolrServer solr = new CommonsHttpSolrServer
@@ -90,7 +58,6 @@ public class AssaySearch extends SolrSearch {
 
         sq.setFacet(true);
         sq.setFacetMinCount(1);
-        for (String facetName : facetNames) sq.addFacetField(facetName);
 
         QueryResponse response = solr.query(sq);
         List<SolrDocument> docs = getHighlightedDocuments(response, PKEY_ASSAY_DOC, HL_FIELD);
@@ -98,20 +65,21 @@ public class AssaySearch extends SolrSearch {
         // get facet counts
         long start = System.currentTimeMillis();
 
-        // first pull in direct facet counts via Solr
-        for (Facet aFacet : facets) {
-            FacetField targetFacet = response.getFacetField(aFacet.getFacetName());
-            if (targetFacet == null) continue;
-            List<FacetField.Count> fcounts = targetFacet.getValues();
-            if (fcounts != null) {
-                for (FacetField.Count fcount : fcounts) {
-                    aFacet.counts.put(fcount.getName(), (int) fcount.getCount());
-                }
+        // pull in field facets
+        List<FacetField> solrf = response.getFacetFields();
+        for (FacetField f : solrf) {
+            Facet bardFacet = new Facet(f.getName());
+            List<FacetField.Count> values = f.getValues();
+            if (values != null) {
+                for (FacetField.Count value : values) bardFacet.counts.put(value.getName(), (int) value.getCount());
             }
+            facets.add(bardFacet);
         }
+        long end = System.currentTimeMillis();
+        log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
+
 
         List<Long> aids = new ArrayList<Long>();
-        // now process annotations to get remaining facet counts
         for (SolrDocument doc : docs) {
             Object id = doc.getFieldValue(PKEY_ASSAY_DOC);
             try {
@@ -122,23 +90,8 @@ public class AssaySearch extends SolrSearch {
             } catch (Exception ex) {
                 log.warn("Bogus bardAssayid " + id);
             }
-
-            Collection<Object> keys = doc.getFieldValues("ak_dict_label");
-            Collection<Object> values = doc.getFieldValues("av_dict_label");
-            if (keys == null || values == null) continue;
-            List<Object> keyList = new ArrayList<Object>(keys);
-            List<Object> valueList = new ArrayList<Object>(values);
-            for (Facet facet : facets) {
-                for (int i = 0; i < keyList.size(); i++) {
-                    if (keyList.get(i).equals(facet.getFacetName()))
-                        if (i < valueList.size()) {
-                            facet.addFacetValue((String) valueList.get(i));
-                        }
-                }
-            }
         }
-        long end = System.currentTimeMillis();
-        log.info("Facet summary calculated in " + (end - start) / 1000.0 + "s");
+
 
         SearchMeta meta = new SearchMeta();
         meta.setNhit(response.getResults().getNumFound());
