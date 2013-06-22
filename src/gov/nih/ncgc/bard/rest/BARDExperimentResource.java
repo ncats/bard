@@ -1,13 +1,17 @@
 package gov.nih.ncgc.bard.rest;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import gov.nih.ncgc.bard.capextract.CAPAnnotation;
-import gov.nih.ncgc.bard.entity.*;
+import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
+import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.entity.ExperimentResultType;
+import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.util.functional.Functional;
@@ -15,14 +19,20 @@ import gov.nih.ncgc.util.functional.IApplyFunction;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -633,36 +643,6 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
             throw new WebApplicationException(e, 500);
-        }
-    }
-
-    @GET
-    @Produces("application/json")
-    @Path("/{eid}/annotations")
-    public Response getAnnotations(@PathParam("eid") Long eid, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
-        DBUtils db = new DBUtils();
-        List<CAPAnnotation> a;
-        try {
-            a = db.getExperimentAnnotations(eid);
-            if (a == null) throw new WebApplicationException(404);
-            JsonNode topLevel = getAnnotationJson(a);
-            ObjectMapper mapper = new ObjectMapper();
-            Writer writer = new StringWriter();
-            JsonFactory fac = new JsonFactory();
-            JsonGenerator jsg = fac.createJsonGenerator(writer);
-            mapper.writeTree(jsg, topLevel);
-            String json = writer.toString();
-            return Response.ok(json, MediaType.APPLICATION_JSON).build();
-        } catch (SQLException e) {
-            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
-        } catch (IOException e) {
-            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
-        } finally {
-            try {
-                db.closeConnection();
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-            }
         }
     }
 }
