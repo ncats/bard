@@ -1,9 +1,12 @@
 package gov.nih.ncgc.bard.rest;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.entity.*;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
@@ -18,6 +21,8 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -631,4 +636,33 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
         }
     }
 
+    @GET
+    @Produces("application/json")
+    @Path("/{eid}/annotations")
+    public Response getAnnotations(@PathParam("eid") Long eid, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
+        DBUtils db = new DBUtils();
+        List<CAPAnnotation> a;
+        try {
+            a = db.getExperimentAnnotations(eid);
+            if (a == null) throw new WebApplicationException(404);
+            JsonNode topLevel = getAnnotationJson(a);
+            ObjectMapper mapper = new ObjectMapper();
+            Writer writer = new StringWriter();
+            JsonFactory fac = new JsonFactory();
+            JsonGenerator jsg = fac.createJsonGenerator(writer);
+            mapper.writeTree(jsg, topLevel);
+            String json = writer.toString();
+            return Response.ok(json, MediaType.APPLICATION_JSON).build();
+        } catch (SQLException e) {
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
+        } catch (IOException e) {
+            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
+        } finally {
+            try {
+                db.closeConnection();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
 }
