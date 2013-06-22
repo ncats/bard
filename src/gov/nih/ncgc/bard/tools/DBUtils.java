@@ -9,7 +9,21 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
-import gov.nih.ncgc.bard.entity.*;
+import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardEntity;
+import gov.nih.ncgc.bard.entity.Biology;
+import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.ETag;
+import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.entity.ExperimentResultType;
+import gov.nih.ncgc.bard.entity.PantherClassification;
+import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.entity.ProjectStep;
+import gov.nih.ncgc.bard.entity.ProteinTarget;
+import gov.nih.ncgc.bard.entity.Publication;
+import gov.nih.ncgc.bard.entity.Substance;
+import gov.nih.ncgc.bard.entity.TargetClassification;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
@@ -31,8 +45,26 @@ import java.io.Reader;
 import java.math.BigInteger;
 import java.security.Principal;
 import java.security.SecureRandom;
-import java.sql.*;
-import java.util.*;
+import java.sql.Blob;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 
 
@@ -5020,7 +5052,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity_id = ?");
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity = 'assay' and a.entity_id = ?");
         PreparedStatement gopst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and implied = 0 order by go_type");
         PreparedStatement keggpst = conn.prepareStatement("select a.* from kegg_gene2disease a,  (select distinct um.acc as gene_id from bard_biology a, uniprot_map um  where a.entity = 'assay' and a.entity_id = ? and a.biology_dict_id = 1398 and um.uniprot_acc = a.ext_id and acc_type = 'GeneID' union select distinct ext_id as gene_id from bard_biology a  where a.entity = 'assay' and a.entity_id = ? and a.biology_dict_id = 880) t where t.gene_id = a.gene_id");
         try {
@@ -5071,6 +5103,56 @@ public class DBUtils {
             pst.close();
             gopst.close();
             keggpst.close();
+        }
+    }
+
+    public List<CAPAnnotation> getExperimentAnnotations(Long bardExptId) throws SQLException {
+        Cache cache = getCache ("ExperimentAnnotationsCache");
+        try {
+            List<CAPAnnotation> value = getCacheValue
+                    (cache, bardExptId);
+            if (value != null) {
+                return value;
+            }
+        }
+        catch (ClassCastException ex) {}
+
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity = 'experiment' and a.entity_id = ?");
+        try {
+            pst.setLong(1, bardExptId);
+            ResultSet rs = pst.executeQuery();
+            List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+            while (rs.next()) {
+                String anno_id = rs.getString("anno_id");
+                String anno_key = rs.getString("anno_key");
+                String anno_value = rs.getString("anno_value");
+                String anno_display = rs.getString("anno_display");
+                String anno_value_text = rs.getString("anno_value_text");
+                int displayOrder = rs.getInt("display_order");
+                String source = rs.getString("source");
+                String entity = rs.getString("entity");
+                String url = rs.getString("url");
+                String contextName = rs.getString("context_name");
+
+                String related = rs.getString("related");
+                String extValueId = null;
+                if (related != null && !related.trim().equals("")) {
+                    String[] toks = related.split("\\|");
+                    if (toks.length == 2) extValueId = toks[1];
+                }
+                if (extValueId == null && anno_value_text != null) extValueId = anno_value_text;
+
+                // TODO Updated the related annotations field to support grouping
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, contextName, anno_key, anno_value, extValueId, source, url, displayOrder, entity, related);
+                annos.add(anno);
+            }
+            rs.close();
+            cache.put(new Element (bardExptId, annos));
+            return annos;
+        }
+        finally {
+            pst.close();
         }
     }
 
