@@ -1,8 +1,23 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
 import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
-import gov.nih.ncgc.bard.capextract.*;
-import gov.nih.ncgc.bard.capextract.jaxb.*;
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
+import gov.nih.ncgc.bard.capextract.CapResourceHandlerRegistry;
+import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
+import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
+import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
+import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.capextract.jaxb.Project;
+import gov.nih.ncgc.bard.capextract.jaxb.ProjectExperiment;
+import gov.nih.ncgc.bard.capextract.jaxb.ProjectStep;
 import gov.nih.ncgc.bard.entity.Biology;
 import gov.nih.ncgc.bard.tools.Util;
 import nu.xom.ParsingException;
@@ -11,8 +26,16 @@ import org.w3c.dom.Node;
 import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A one line summary.
@@ -355,6 +378,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         for (ContextType contextType : contextTypes) {
             int contextId = contextType.getId().intValue();
             String contextName = contextType.getContextName();
+            String contextGroup = contextType.getContextGroup();
 
             ContextType.ContextItems contextItems = contextType.getContextItems();
             if (contextItems == null) {
@@ -397,7 +421,9 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 // hack so that CID gets displayed rather than IUPAC name due to weird inconsistency in CAP annotations
                 if (attr != null && attr.getLabel().contains("CID") && extValueId != null) valueDisplay = extValueId;
 
-                annos.add(new CAPAnnotation(contextId, bardProjId, valueDisplay, contextName, key, value, contextItemType.getExtValueId(), "cap-context", valueUrl, contextItemType.getDisplayOrder(), "project", related));
+                annos.add(new CAPAnnotation(contextId, bardProjId, valueDisplay, contextName, key, value,
+                        contextItemType.getExtValueId(), "cap-context", valueUrl,
+                        contextItemType.getDisplayOrder(), "project", related, contextGroup));
             }
         }
         return annos;
@@ -559,7 +585,8 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 }
 
                 // add annotation for document back to project
-                annos.add(new CAPAnnotation(docId, bardProjId, docName, docType, "doc", docContent, docContent, "cap-doc", link.getHref(), 0, "project", null));
+                annos.add(new CAPAnnotation(docId, bardProjId, docName, docType, "doc", docContent,
+                        docContent, "cap-doc", link.getHref(), 0, "project", null, null));
 
                 // see if we can insert a PubMed paper
                 if (docType.equals("Paper") && docContent.startsWith("http://www.ncbi.nlm.nih.gov/pubmed")) {
@@ -668,6 +695,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         	for (ContextType contextType : contextTypes) {
         	    int contextId = contextType.getId().intValue();
         	    String contextName = contextType.getContextName();
+                String contextGroup = contextType.getContextGroup();
 
         	    ContextType.ContextItems contextItems = contextType.getContextItems();
         	    for (ContextItemType contextItemType : contextItems.getContextItem()) {
@@ -693,7 +721,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         		annos.add(new CAPAnnotation(contextId, stepId, valueDisplay,
         			contextName, key, value, contextItemType.getExtValueId(),
         			"cap-context", valueUrl, contextItemType.getDisplayOrder(),
-        			"project-step", related));
+        			"project-step", related, contextGroup));
         	    }
         	}
             }

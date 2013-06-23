@@ -166,6 +166,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             for (ContextType context : contexts.getContext()) {
                 BigInteger contextId = context.getId();
                 String contextName = context.getContextName();
+                String contextGroup = context.getContextGroup();
                 for (ContextItemType contextItem : context.getContextItems().getContextItem()) {
                     String valueDisplay = contextItem.getValueDisplay();
                     int displayOrder = contextItem.getDisplayOrder();
@@ -180,7 +181,9 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
                     AbstractContextItemType.ValueId vc = contextItem.getValueId();
                     if (vc != null) value = Util.getEntityIdFromUrl(vc.getLink().getHref());
 
-                    annos.add(new CAPAnnotation(contextId.intValue(), expt.getExperimentId().intValue(), valueDisplay, contextName, key, value, null, "cap-context", null, displayOrder, "experiment", null));
+                    annos.add(new CAPAnnotation(contextId.intValue(), expt.getExperimentId().intValue(),
+                            valueDisplay, contextName, key, value,
+                            null, "cap-context", null, displayOrder, "experiment", null, contextGroup));
                 }
             }
         }
