@@ -4980,7 +4980,7 @@ public class DBUtils {
                     "keggdiseaseid", diseaseId,
                     diseaseId, "KEGG",
                     url, -1, entity,
-                    diseaseCat);
+                    diseaseCat, null);
             annos.add(anno);
         }
         return annos;
@@ -5020,7 +5020,7 @@ public class DBUtils {
                     "goid", goid,
                     goid, "GO",
                     "http://amigo.geneontology.org/cgi-bin/amigo/term_details?term=" + goid, -1, entity,
-                    related);
+                    related, null);
             annos.add(anno);
         }
         return annos;
@@ -5070,6 +5070,7 @@ public class DBUtils {
                 String entity = rs.getString("entity");
                 String url = rs.getString("url");
                 String contextName = rs.getString("context_name");
+                String contextGroup = rs.getString("context_group");
 
                 String related = rs.getString("related");
                 String extValueId = null;
@@ -5080,7 +5081,9 @@ public class DBUtils {
                 if (extValueId == null && anno_value_text != null) extValueId = anno_value_text;
 
                 // TODO Updated the related annotations field to support grouping
-                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, contextName, anno_key, anno_value, extValueId, source, url, displayOrder, entity, related);
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null,
+                        anno_display, contextName, anno_key, anno_value,
+                        extValueId, source, url, displayOrder, entity, related, contextGroup);
                 annos.add(anno);
             }
             rs.close();
@@ -5134,6 +5137,7 @@ public class DBUtils {
                 String entity = rs.getString("entity");
                 String url = rs.getString("url");
                 String contextName = rs.getString("context_name");
+                String contextGroup = rs.getString("context_group");
 
                 String related = rs.getString("related");
                 String extValueId = null;
@@ -5144,7 +5148,9 @@ public class DBUtils {
                 if (extValueId == null && anno_value_text != null) extValueId = anno_value_text;
 
                 // TODO Updated the related annotations field to support grouping
-                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, contextName, anno_key, anno_value, extValueId, source, url, displayOrder, entity, related);
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null,
+                        anno_display, contextName, anno_key, anno_value,
+                        extValueId, source, url, displayOrder, entity, related, contextGroup);
                 annos.add(anno);
             }
             rs.close();
@@ -5186,6 +5192,7 @@ public class DBUtils {
                 int displayOrder = rs.getInt("display_order");
                 String entity = rs.getString("entity");
                 String contextRef = rs.getString("context_name");
+                String contextGroup = rs.getString("context_group");
                 String url = rs.getString("url");
 
                 String related = rs.getString("related");
@@ -5194,7 +5201,9 @@ public class DBUtils {
                     String[] toks = related.split("\\|");
                     if (toks.length == 2) extValueId = toks[1];
                 }
-                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, contextRef, anno_key, anno_value, extValueId, source, url, displayOrder, entity, related);
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null,
+                        anno_display, contextRef, anno_key, anno_value,
+                        extValueId, source, url, displayOrder, entity, related, contextGroup);
                 annos.add(anno);
             }
             rs.close();
@@ -5725,6 +5734,7 @@ public class DBUtils {
                 String source = rs.getString("source");
                 String entity = rs.getString("entity");
                 String contextName = rs.getString("context_name");
+                String contextGroup = rs.getString("context_group");
 
                 String related = rs.getString("related");
                 String extValueId = null;
@@ -5735,7 +5745,8 @@ public class DBUtils {
 
                 // TODO Updated the related annotations field to support grouping
                 CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), projectStepId.intValue(),
-                        anno_display, contextName, anno_key, anno_value, extValueId, source, null, displayOrder, entity, related);
+                        anno_display, contextName, anno_key, anno_value,
+                        extValueId, source, null, displayOrder, entity, related,contextGroup);
                 annos.add(anno);
             }
             rs.close();

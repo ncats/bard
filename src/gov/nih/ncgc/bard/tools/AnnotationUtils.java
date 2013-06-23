@@ -105,6 +105,7 @@ public class AnnotationUtils {
             ObjectNode n = mapper.createObjectNode();
             n.put("id", comps.get(0).id);
             n.put("name", comps.get(0).contextRef);
+            n.put("group", comps.get(0).contextGroup);
             n.put("comps", arrayNode);
 
             if (comps.get(0).source.equals("cap-doc")) docNode.add(n);
