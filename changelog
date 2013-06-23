@@ -112,3 +112,4 @@ v17 released
 06/22/13      Added new facet field to assay search response (assay_format)
               Added /experiments/{eid}/annotations to get experiment annotations
 	      Cleaned up assay annotation resource to only serve assay annotations
+	      Exposed context_group name in annotations 
