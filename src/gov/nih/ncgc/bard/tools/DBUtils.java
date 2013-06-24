@@ -2230,6 +2230,7 @@ public class DBUtils {
         e.setHasProbe(rs.getBoolean("have_probe"));
         e.setPubchemAid(rs.getLong("pubchem_aid"));
         e.setConfidenceLevel(rs.getFloat("confidence_level"));
+        e.setStatus(rs.getString("status"));
 
         e.setActiveCompounds(getExperimentCidCount(e.getBardExptId(), true));
 

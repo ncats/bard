@@ -113,3 +113,4 @@ v17 released
               Added /experiments/{eid}/annotations to get experiment annotations
 	      Cleaned up assay annotation resource to only serve assay annotations
 	      Exposed context_group name in annotations 
+06/24/13      Added the status field to the JSON response for /experiments
