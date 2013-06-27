@@ -15,6 +15,7 @@ import java.sql.Timestamp;
  */
 public class Biology implements BardEntity {
     public static enum BiologyType {
+        AASUBSTITUTION("AASUBSTITUTION"),
         GENE("GENE"), PROTEIN("PROTEIN"),
         SEQUENCE("SEQUENCE"), DISEASE("SEQUENCE"),
         PATHWAY("PATHWAY"), PROCESS("PROCESS"),
@@ -23,12 +24,13 @@ public class Biology implements BardEntity {
 
 
         private String typeString;
+
         private BiologyType(String typeString) {
             this.typeString = typeString;
         }
 
         public static BiologyType fromString(String typeString) {
-            for (BiologyType s : values() ){
+            for (BiologyType s : values()) {
                 if (s.typeString.equals(typeString)) return s;
             }
             return null;
@@ -36,6 +38,9 @@ public class Biology implements BardEntity {
 
         public static BiologyType getBiologyTypeFromDictId(int dictId) {
             switch (dictId) {
+                case 525:
+                case 507:
+                    return AASUBSTITUTION;
                 case 1419:
                     return PROCESS;
                 case 885:
