@@ -532,7 +532,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                     GO ID  (1504) (this is going to be renamed "GO gene product ID")
             */
             List<Integer> targetDictIds = Arrays.asList(new Integer[]{
-                    1419, 885, 1795, 880, 881, 882, 883, 1398, 1504
+                    525, 507, 1419, 885, 1795, 880, 881, 882, 883, 1398, 1504
             });
             for (AssayContextItemType contextItem : context.getAssayContextItems().getAssayContextItem()) {
                 AbstractContextItemType.AttributeId attrid = contextItem.getAttributeId();

@@ -457,10 +457,11 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                     break;
                 }
             }
+            isBiologyContext = isBiologyContext || contextName.equals("biology");
             if (!isBiologyContext) continue;
 
             List<Integer> targetDictIds = Arrays.asList(new Integer[]{
-                    1419, 885, 1795, 880, 881, 882, 883, 1398, 1504
+                    525, 507, 1419, 885, 1795, 880, 881, 882, 883, 1398, 1504
             });
             for (ContextItemType contextItemType : contextItems.getContextItem()) {
                 AbstractContextItemType.AttributeId attrid = contextItemType.getAttributeId();
@@ -475,6 +476,12 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 }
             }
         }
+
+        // delete pre-existing biology for this id
+        PreparedStatement pst = conn.prepareStatement("delete from bard_biology where entity = 'project' and entity_id = ?");
+        pst.setInt(1, bardProjId);
+        pst.executeUpdate();
+        pst.close();
 
         // lets dump to db
         PreparedStatement pstTarget =
