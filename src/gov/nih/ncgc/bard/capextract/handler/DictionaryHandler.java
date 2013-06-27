@@ -49,10 +49,10 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
         try {
             conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
 
-            pst = conn.prepareStatement("delete fom cap_dict_obj");
+            pst = conn.prepareStatement("delete from cap_dict_obj");
             pst.executeUpdate();
             pst.close();
-            pst = conn.prepareStatement("delete fom cap_dict_elem");
+            pst = conn.prepareStatement("delete from cap_dict_elem");
             pst.executeUpdate();
             pst.close();
 
@@ -115,6 +115,12 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
         for (Dictionary.ElementHierarchies.ElementHierarchy h : hierarchies) {
             String relType = h.getRelationshipType();
             BigInteger childId = getElementId(h.getChildElement().getLink().getHref());
+            h.getChildElement().getLink().getHref();
+            
+            //don't reset the extraction status so it perists at CAP.
+            //set the extraction status to complete.
+            //setExtractionStatus("Complete", h.getChildElement().getLink().getHref(), CAPConstants.CapResource.ELEMENT);
+            
             CAPDictionaryElement childElem = dict.getNode(childId);
 
             // there may be an element with no parent

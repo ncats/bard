@@ -70,9 +70,18 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 
         BigInteger exptID = expt.getExperimentId();
         BigInteger confLevel = expt.getConfidenceLevel();
-
+        String status = expt.getStatus();
+        String extractionStatus = expt.getReadyForExtraction();
+        
         log.info("Processing CAP experiment " + exptID + " " + url);
-
+        log.info("Cap experiment = "+exptID + " status ="+status);
+        log.info("Cap experiment = "+exptID + " extraction status ="+extractionStatus);
+        
+        //check the EXTRACTION status, if can't determine readyForExtraction, or it's 'Not Ready', don't load.
+        if(extractionStatus == null || extractionStatus.equals("Not Ready")) {
+            log.warn("Aborting Load!!! Cap experiment = "+exptID + " extraction status ="+extractionStatus);
+        }
+        
         // lets do a first check to see if we have this experiment already
         int localBardExptId = -1;
         boolean doUpdate = false;
@@ -191,18 +200,17 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         // ready to load in the data
         try {
 
-
             Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
-
+            String pubchemAidStr = null;
             PreparedStatement pstExpt;
             if (localBardExptId == -1) {
                 pstExpt = conn.prepareStatement(
-                        "insert into bard_experiment (bard_assay_id, cap_expt_id, category, classification, description, pubchem_aid, type, name, confidence_level) values(?,?,?,?,?,?,?,?,?)",
+                        "insert into bard_experiment (bard_assay_id, cap_expt_id, category, classification, description, pubchem_aid, type, name, confidence_level, status) values(?,?,?,?,?,?,?,?,?,?)",
                         Statement.RETURN_GENERATED_KEYS);
                 log.info("Inserting CAP experiment id " + expt.getExperimentId() + " as BARD experiment id " + localBardExptId);
             } else {
                 pstExpt = conn.prepareStatement(
-                        "update bard_experiment set bard_assay_id=?, cap_expt_id=?, category=?, classification=?, description=?, pubchem_aid=?, type=?, name=?, confidence_level=? where bard_expt_id = ?");
+                        "update bard_experiment set bard_assay_id=?, cap_expt_id=?, category=?, classification=?, description=?, pubchem_aid=?, type=?, name=?, confidence_level=?, status=? where bard_expt_id = ?");
                 log.info("Updating CAP experiment id " + expt.getExperimentId());
             }
             pstExpt.setInt(1, _CAP_ExptID_AssayID_lookup.get(exptID));
@@ -210,11 +218,16 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             pstExpt.setInt(3, -1);
             pstExpt.setInt(4, -1);
             pstExpt.setString(5, expt.getDescription());
-            pstExpt.setInt(6, Integer.parseInt(_CAP_ExptID_PubChemAID_lookup.get(exptID)));
+            pubchemAidStr = _CAP_ExptID_PubChemAID_lookup.get(exptID);
+            if(pubchemAidStr != null)
+        	pstExpt.setInt(6, Integer.parseInt(pubchemAidStr));
+            else
+        	pstExpt.setInt(6, -1);
             pstExpt.setInt(7, -1);
             pstExpt.setString(8, expt.getExperimentName());
             pstExpt.setFloat(9, (float) confLevel.intValue());
-            if (doUpdate) pstExpt.setLong(10, bardExptId);
+            pstExpt.setString(10, status);
+            if (doUpdate) pstExpt.setLong(11, bardExptId);
 
             if(doUpdate) {
                 // set the updated field even if none of the core entity fields change.
