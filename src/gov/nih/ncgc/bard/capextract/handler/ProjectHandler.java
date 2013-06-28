@@ -311,18 +311,17 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                     pst.setLong(2, bardProjId);
                     pst.setLong(3, cid);
                     pst.executeUpdate();
-                    log.info("Updated probe-project link for BARD project id " + bardProjId + " and probe id " + mlid);
+                    log.info("Updated probe-project link for BARD project id " + bardProjId + " and probe id " + mlid + " CID " + cid);
                 } else {
                     pst = conn.prepareStatement("insert into project_probe (bard_proj_id, cid, sid, probe_id, bard_expt_id) values (?,?,null,?, -1)");
                     pst.setLong(1, bardProjId);
                     pst.setLong(2, cid);
                     pst.setString(3, mlid);
                     try {
-                        int n = pst.executeUpdate();
-                        System.out.println("n = " + n);
+                        pst.executeUpdate();
                     } catch (com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException e) {
                     }
-                    log.info("Made probe-project link for BARD project id " + bardProjId + " and probe id " + mlid);
+                    log.info("Made probe-project link for BARD project id " + bardProjId + " and probe id " + mlid + " CID " + cid);
                 }
                 pst.close();
 
