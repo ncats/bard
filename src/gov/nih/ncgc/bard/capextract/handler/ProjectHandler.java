@@ -239,10 +239,10 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
     void updateProbeLinks(List<CAPAnnotation> annos, Long bardProjId) {
 
-        // we'll use project targets later on, to annotate probes with targets
+        // we look at biology for this project and just pull out protein targets
         List<String> targetAccs = new ArrayList<String>();
         try {
-            PreparedStatement targetPst = conn.prepareStatement("select accession from project_target where bard_proj_id = ?");
+            PreparedStatement targetPst = conn.prepareStatement("select ext_id from bard_biology where entity = 'project' and biology_dict_id = 1398 and entity_id = ?");
             targetPst.setLong(1, bardProjId);
             ResultSet rs = targetPst.executeQuery();
             while (rs.next()) targetAccs.add(rs.getString(1));
@@ -256,20 +256,22 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         Map<Integer, List<CAPAnnotation>> annoGroups = groupAnnotationsByAnnoId(annos);
         for (Integer annoId : annoGroups.keySet()) {
             List<CAPAnnotation> grp = annoGroups.get(annoId);
-            if (!grp.get(0).contextRef.equals("probe")) continue;
+
+            // probes are reported as part of a biology context
+            if (!grp.get(0).contextRef.equals("biology")) continue;
 
             Long cid = null, sid = null;
             String mlid = null, mlidurl = null;
 
             // pull out cid,sid,mlid for this probe context
             for (CAPAnnotation anno : grp) {
-                if (Util.isNumber(anno.key) && anno.extValueId != null) {
+                if (Util.isNumber(anno.key) && anno.display != null) {
                     if (dict.getNode(new BigInteger(anno.key)).getLabel().toLowerCase().contains("pubchem cid"))
                         cid = Long.parseLong(anno.extValueId);
                     else if (dict.getNode(new BigInteger(anno.key)).getLabel().toLowerCase().contains("pubchem sid")) {
                         sid = Long.parseLong(anno.extValueId.split(" ")[0]);  // wtf does CAP list 2 SID's separate by a space (eg CAP project 303)??
-                    } else if (dict.getNode(new BigInteger(anno.key)).getLabel().toLowerCase().contains("probe identifier")) {
-                        mlid = anno.extValueId;
+                    } else if (dict.getNode(new BigInteger(anno.key)).getLabel().toLowerCase().contains("probe report")) {
+                        mlid = anno.display;
                         mlidurl = anno.url;
                     }
                 }
@@ -294,10 +296,9 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                     continue;
                 }
 
-                pst = conn.prepareStatement("select * from project_probe where bard_proj_id = ? and cid = ? and sid = ?");
+                pst = conn.prepareStatement("select * from project_probe where bard_proj_id = ? and cid = ?");
                 pst.setLong(1, bardProjId);
                 pst.setLong(2, cid);
-                pst.setLong(3, sid);
                 ResultSet rs = pst.executeQuery();
                 boolean linkExists = false;
                 while (rs.next()) linkExists = true;
@@ -305,19 +306,17 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 pst.close();
 
                 if (linkExists) {
-                    pst = conn.prepareStatement("update project_probe set probe_id = ? where bard_proj_id = ? and cid = ? and sid = ?");
+                    pst = conn.prepareStatement("update project_probe set probe_id = ? where bard_proj_id = ? and cid = ?");
                     pst.setString(1, mlid);
                     pst.setLong(2, bardProjId);
                     pst.setLong(3, cid);
-                    pst.setLong(4, sid);
                     pst.executeUpdate();
                     log.info("Updated probe-project link for BARD project id " + bardProjId + " and probe id " + mlid);
                 } else {
-                    pst = conn.prepareStatement("insert into project_probe (bard_proj_id, cid, sid, probe_id, bard_expt_id) values (?,?,?,?, -1)");
+                    pst = conn.prepareStatement("insert into project_probe (bard_proj_id, cid, sid, probe_id, bard_expt_id) values (?,?,null,?, -1)");
                     pst.setLong(1, bardProjId);
                     pst.setLong(2, cid);
-                    pst.setLong(3, sid);
-                    pst.setString(4, mlid);
+                    pst.setString(3, mlid);
                     try {
                         pst.executeUpdate();
                     } catch (com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException e){}
