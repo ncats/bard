@@ -326,7 +326,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 pst.close();
 
                 // next we update the compound table
-                pst = conn.prepareStatement("update compound set compound_class = 'ML Probe', probe_id = ?, url = ? where cid = ?");
+                pst = conn.prepareStatement("update compound set compound_class = 'ML Probe', probe_id = ?, url = ?, updated = now() where cid = ?");
                 pst.setString(1, mlid);
                 pst.setString(2, mlidurl);
                 pst.setLong(3, cid);
