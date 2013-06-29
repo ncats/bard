@@ -1,12 +1,5 @@
 package gov.nih.ncgc.bard.tools;
 
-import chemaxon.formats.MolFormatException;
-import chemaxon.formats.MolImporter;
-import chemaxon.struc.Molecule;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.Lists;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
@@ -31,13 +24,7 @@ import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.search.SearchUtil;
 import gov.nih.ncgc.bard.search.SolrField;
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Element;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -47,6 +34,7 @@ import java.security.Principal;
 import java.security.SecureRandom;
 import java.sql.Blob;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -65,6 +53,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+
+import javax.sql.DataSource;
+
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Element;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import chemaxon.formats.MolFormatException;
+import chemaxon.formats.MolImporter;
+import chemaxon.struc.Molecule;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
 
 
 
@@ -112,6 +118,9 @@ public class DBUtils {
         }
         return cache;
     }
+    
+    //handling update stats
+    static Timestamp bardGlobalUpdateDate;
 
     static private String datasourceContext = "jdbc/bardman3";
     static public void setDataSourceContext (String context) {
