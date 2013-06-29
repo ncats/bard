@@ -141,8 +141,8 @@ public class DBUtils {
 	// we want to be careful about starting threads
 	
 	// we want to only initialize AND start a new thread if we are NOT already initialized
-	// if the cache prefix list is null or empty
-	if(flushCachePrefixNames == null || flushCachePrefixNames.size() == 0) {
+	// if the cache prefix list is null
+	if(flushCachePrefixNames == null) {
 	    flushCachePrefixNames = new Vector<String>();
 	    String [] cachePrefixes = cachePrefixListCSV.split(",");
 	
