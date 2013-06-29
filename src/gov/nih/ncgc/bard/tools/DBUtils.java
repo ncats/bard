@@ -143,9 +143,14 @@ public class DBUtils {
 	// we want to only initialize AND start a new thread if we are NOT already initialized
 	// if the cache prefix list is null
 	if(flushCachePrefixNames == null) {
+	    
+	    //set the cache polling interval
+	    cachePollingIntervalSec = cacheFlustCheckIntervalSeconds;
+	    
+	    //make the list of cache prefixes
 	    flushCachePrefixNames = new Vector<String>();
 	    String [] cachePrefixes = cachePrefixListCSV.split(",");
-	
+	    
 	    // only need to start thread to monitor if we have cache names
 	    if(cachePrefixes.length > 0) {
 		flushCachePrefixNames.clear();
@@ -187,6 +192,9 @@ public class DBUtils {
 	}
     }
     
+    /**
+     * Cache flush manager that implements runnable and calls a method to check and flush caches
+     */
     class CacheFlushManager implements Runnable {
 	
 	public CacheFlushManager() { }
@@ -206,6 +214,7 @@ public class DBUtils {
 	}
     }
     
+ 
     
     static private String datasourceContext = "jdbc/bardman3";
     static public void setDataSourceContext (String context) {
