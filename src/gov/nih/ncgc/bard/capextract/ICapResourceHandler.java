@@ -25,4 +25,6 @@ public interface ICapResourceHandler {
     // retrieves objects (handles http 206 response), but does not push results into DB
     public <T> Vector<T> poll(String url, CAPConstants.CapResource resource) throws IOException;
     public <T> Vector<T> poll(String url, CAPConstants.CapResource resource, boolean skipPartial) throws IOException;
+    // supports public method to have a handler update the bard global update flag
+    public boolean updateGlobalBardUpdateTime();
 }

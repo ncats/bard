@@ -6,6 +6,7 @@ package gov.nih.ncgc.bard.capextract;
 import gov.nih.ncgc.bard.capextract.handler.AssayHandler;
 import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
 import gov.nih.ncgc.bard.capextract.handler.BardexportHandler;
+import gov.nih.ncgc.bard.capextract.handler.CapResourceHandler;
 import gov.nih.ncgc.bard.capextract.handler.DictionaryHandler;
 import gov.nih.ncgc.bard.capextract.handler.ExperimentHandler;
 import gov.nih.ncgc.bard.capextract.handler.ExperimentResultHandler;
@@ -18,8 +19,6 @@ import gov.nih.ncgc.bard.capextract.handler.ProjectsHandler;
 import gov.nih.ncgc.bard.capextract.handler.ResultHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Projects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -29,6 +28,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Example code to play with the Broad CAP Data Export API.
@@ -76,7 +78,11 @@ public class CAPExtractor {
     }
 
     public void run() throws IOException, NoSuchAlgorithmException {
-        registry.getHandler(CAPConstants.CapResource.BARDEXPORT).process(CAPConstants.CAP_ROOT, CAPConstants.CapResource.BARDEXPORT);
+        ICapResourceHandler bardExportHandler = registry.getHandler(CAPConstants.CapResource.BARDEXPORT);
+        //process all entities under the root
+        bardExportHandler.process(CAPConstants.CAP_ROOT, CAPConstants.CapResource.BARDEXPORT);
+        //set global bard update time
+        bardExportHandler.updateGlobalBardUpdateTime();
     }
 
     public void poll() throws IOException {
@@ -159,7 +165,12 @@ public class CAPExtractor {
 	
 	return load;
     }
-
+    
+    public void updateGlobalBardUpdateTime() {
+        ICapResourceHandler bardExportHandler = registry.getHandler(CAPConstants.CapResource.BARDEXPORT);
+        bardExportHandler.updateGlobalBardUpdateTime();
+    }
+    
     public static void main(String[] args) throws Exception {
 
 	CAPExtractor c = new CAPExtractor();
@@ -180,11 +191,13 @@ public class CAPExtractor {
 		// before running the extractor, lets set our handlers
 		c.setHandlers();
 		// lets start pulling
-		c.run();	    
+		c.run();	
 		// set the load state back to IDLE at the end of the load
 		c.evaluateAndSetLoadLockState(args[0], false);
 	    } 
 	} catch (Exception e) {
+	    //need to set the global update time in the DB IF we fall out of the load wit error/exception!
+	    c.updateGlobalBardUpdateTime();
 	    // on any terminal error set load state to IDLE
 	    c.evaluateAndSetLoadLockState(args[0], false);
 	    e.printStackTrace();

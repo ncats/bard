@@ -217,5 +217,25 @@ public abstract class CapResourceHandler {
 	    return updated;
 	}
 	return updated;
-    }    
+    }
+    
+    public boolean updateGlobalBardUpdateTime() {	
+	Connection conn;
+	boolean updated = false;
+	try {
+	    conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+	    conn.setAutoCommit(true);
+	    Statement stmt = conn.createStatement();
+	    stmt.execute("update bard_update_time set updated = now()");
+	    stmt.close();
+	    conn.close();
+	    updated = true;
+	    log.info("BARD Global Update Time has been Updated in table bard_update_time.");
+	} catch(SQLException e) {
+	    e.printStackTrace();
+	    return updated;
+	}
+	return updated;
+    }
+
 }
