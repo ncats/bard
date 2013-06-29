@@ -127,13 +127,13 @@ public class DBUtils {
     static Timestamp currentBardGlobalUpdateDate;
     // cache prefix name list
     static Vector <String> flushCachePrefixNames = null;
-    // frequence of cache checks
+    // frequency of cache checks
     static long cachePollingIntervalSec = 120;
     
     /**
-     * Intializes the list of cache prefixes to manage and check frequency
+     * Initializes the list of cache prefixes to manage and check frequency
      * 
-     * @param cachePrefixListCSV comma delimiteed list of cache prefixes;
+     * @param cachePrefixListCSV comma delimited list of cache prefixes;
      * @param cacheFlustCheckIntervalSeconds seconds between polling the cache state
      */
     static void initializeManagedCaches(String cachePrefixListCSV, long cacheFlustCheckIntervalSeconds) {
@@ -169,10 +169,13 @@ public class DBUtils {
 	    Connection conn = getConnection();
 	    Statement stmt = conn.createStatement();
 	    ResultSet rs = stmt.executeQuery("select updated from bard_update_time");
-	    if(rs.next()) {
+	    if(rs.next()) {		
 		Timestamp ts = rs.getTimestamp(1);
+		// if the timestamp has changed, set the new timestamp and flush managed cache
 		if(!ts.equals(DBUtils.currentBardGlobalUpdateDate)) {
+		    //set the current update timestamp
 		    DBUtils.currentBardGlobalUpdateDate = ts;
+		    // call the method to flush caches
 		    DBUtils.flushManagedCaches();
 		    log.info("Flushed DBUtils managed caches");
 		}
