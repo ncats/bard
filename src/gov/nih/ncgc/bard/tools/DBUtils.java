@@ -34,7 +34,6 @@ import java.security.Principal;
 import java.security.SecureRandom;
 import java.sql.Blob;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -53,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.Vector;
 
 import javax.sql.DataSource;
 
@@ -119,9 +119,94 @@ public class DBUtils {
         return cache;
     }
     
-    //handling update stats
-    static Timestamp bardGlobalUpdateDate;
+    
+    /*******
+     * Cache Flush Handling
+     */
+    // current bard global update timesstatmp
+    static Timestamp currentBardGlobalUpdateDate;
+    // cache prefix name list
+    static Vector <String> flushCachePrefixNames = null;
+    // frequence of cache checks
+    static long cachePollingIntervalSec = 120;
+    
+    /**
+     * Intializes the list of cache prefixes to manage and check frequency
+     * 
+     * @param cachePrefixListCSV comma delimiteed list of cache prefixes;
+     * @param cacheFlustCheckIntervalSeconds seconds between polling the cache state
+     */
+    static void initializeManagedCaches(String cachePrefixListCSV, long cacheFlustCheckIntervalSeconds) {
 
+	// we want to be careful about starting threads
+	
+	// we want to only initialize AND start a new thread if we are NOT already initialized
+	// if the cache prefix list is null or empty
+	if(flushCachePrefixNames == null || flushCachePrefixNames.size() == 0) {
+	    flushCachePrefixNames = new Vector<String>();
+	    String [] cachePrefixes = cachePrefixListCSV.split(",");
+	
+	    // only need to start thread to monitor if we have cache names
+	    if(cachePrefixes.length > 0) {
+		flushCachePrefixNames.clear();
+		for(String cachePrefix : cachePrefixes)
+		    flushCachePrefixNames.add(cachePrefix.trim());
+		//start cache manager, instantiate to refer to the non-static inner class CacheFlushManager.
+		DBUtils utils = new DBUtils();
+		Thread t = new Thread(utils.new CacheFlushManager());
+		t.start();
+	    }
+	}
+    }
+    
+    private void checkCacheFlushState() {
+	try {
+	    Connection conn = getConnection();
+	    Statement stmt = conn.createStatement();
+	    ResultSet rs = stmt.executeQuery("select updated from bard_update_time");
+	    if(rs.next()) {
+		Timestamp ts = rs.getTimestamp(1);
+		if(!ts.equals(DBUtils.currentBardGlobalUpdateDate)) {
+		    DBUtils.currentBardGlobalUpdateDate = ts;
+		    DBUtils.flushManagedCaches();
+		    log.info("Flushed DBUtils managed caches");
+		}
+	    }
+	} catch (SQLException e) {
+	    e.printStackTrace();
+	}
+    }
+    
+    /**
+     * Flushes managed caches
+     */
+    static void flushManagedCaches() {
+	if(flushCachePrefixNames != null) {
+	    for(String cachePrefix : flushCachePrefixNames)
+		cacheManager.clearAllStartingWith(cachePrefix);
+	}
+    }
+    
+    class CacheFlushManager implements Runnable {
+	
+	public CacheFlushManager() { }
+	
+	@Override
+	public void run() {
+	    while(true) {
+		try {
+		    //sleep some interval of milliseconds
+		    Thread.sleep(cachePollingIntervalSec * 1000);
+		    //check cache state and DB update state, flush if needed.
+		    checkCacheFlushState();
+		} catch (InterruptedException e) {
+		    e.printStackTrace();
+		}
+	    }
+	}
+    }
+    
+    
     static private String datasourceContext = "jdbc/bardman3";
     static public void setDataSourceContext (String context) {
         if (context == null) {
