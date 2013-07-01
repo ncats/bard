@@ -100,7 +100,9 @@ public class DBUtils {
 
     static final int MAX_CACHE_SIZE = 10000;
     static final CacheManager cacheManager = CacheManager.getInstance();
-
+    static CacheFlushManager cacheFlushManager;
+    static String cacheConnContext = null;
+    
     static synchronized Cache getCache (String name) {
         String cacheName = CACHE_PREFIX+"::"+name;
 
@@ -128,96 +130,38 @@ public class DBUtils {
     // cache prefix name list
     static Vector <String> flushCachePrefixNames = null;
     // frequency of cache checks
-    static long cachePollingIntervalSec = 120;
-    
+
+
     /**
      * Initializes the list of cache prefixes to manage and check frequency
      * 
      * @param cachePrefixListCSV comma delimited list of cache prefixes;
      * @param cacheFlustCheckIntervalSeconds seconds between polling the cache state
      */
-    static void initializeManagedCaches(String cachePrefixListCSV, long cacheFlustCheckIntervalSeconds) {
+    static public void initializeManagedCaches(String cachePrefixListCSV, long cacheFlustCheckIntervalSeconds, String cacheConnDataSource) {
 
-	// we want to be careful about starting threads
+	//set the cache data source, the manager will use this connection
+	cacheConnContext = cacheConnDataSource;
 	
 	// we want to only initialize AND start a new thread if we are NOT already initialized
 	// if the cache prefix list is null
 	if(flushCachePrefixNames == null) {
 	    
-	    //set the cache polling interval
-	    cachePollingIntervalSec = cacheFlustCheckIntervalSeconds;
+	    cacheFlushManager = new CacheFlushManager(CacheManager.getInstance(), cacheConnContext);
 	    
 	    //make the list of cache prefixes
 	    flushCachePrefixNames = new Vector<String>();
 	    String [] cachePrefixes = cachePrefixListCSV.split(",");
 	    
-	    // only need to start thread to monitor if we have cache names
-	    if(cachePrefixes.length > 0) {
-		flushCachePrefixNames.clear();
-		for(String cachePrefix : cachePrefixes)
-		    flushCachePrefixNames.add(cachePrefix.trim());
-		//start cache manager, instantiate to refer to the non-static inner class CacheFlushManager.
-		DBUtils utils = new DBUtils();
-		Thread t = new Thread(utils.new CacheFlushManager());
-		t.start();
+	    for(String cachePrefix : cachePrefixes) {
+		flushCachePrefixNames.add(cachePrefix.trim());
 	    }
+	  
+	    //put the cache under management control		
+	    cacheFlushManager.manage(flushCachePrefixNames, cacheFlustCheckIntervalSeconds);
 	}
     }
     
-    private void checkCacheFlushState() {
-	try {
-	    Connection conn = getConnection();
-	    Statement stmt = conn.createStatement();
-	    ResultSet rs = stmt.executeQuery("select updated from bard_update_time");
-	    if(rs.next()) {		
-		Timestamp ts = rs.getTimestamp(1);
-		// if the timestamp has changed, set the new timestamp and flush managed cache
-		if(!ts.equals(DBUtils.currentBardGlobalUpdateDate)) {
-		    //set the current update timestamp
-		    DBUtils.currentBardGlobalUpdateDate = ts;
-		    // call the method to flush caches
-		    DBUtils.flushManagedCaches();
-		    log.info("Flushed DBUtils managed caches");
-		}
-	    }
-	} catch (SQLException e) {
-	    e.printStackTrace();
-	}
-    }
-    
-    /**
-     * Flushes managed caches
-     */
-    static void flushManagedCaches() {
-	if(flushCachePrefixNames != null) {
-	    for(String cachePrefix : flushCachePrefixNames)
-		cacheManager.clearAllStartingWith(cachePrefix);
-	}
-    }
-    
-    /**
-     * Cache flush manager that implements runnable and calls a method to check and flush caches
-     */
-    class CacheFlushManager implements Runnable {
-	
-	public CacheFlushManager() { }
-	
-	@Override
-	public void run() {
-	    while(true) {
-		try {
-		    //sleep some interval of milliseconds
-		    Thread.sleep(cachePollingIntervalSec * 1000);
-		    //check cache state and DB update state, flush if needed.
-		    checkCacheFlushState();
-		} catch (InterruptedException e) {
-		    e.printStackTrace();
-		}
-	    }
-	}
-    }
-    
- 
     
     static private String datasourceContext = "jdbc/bardman3";
     static public void setDataSourceContext (String context) {

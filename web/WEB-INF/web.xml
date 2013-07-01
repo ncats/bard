@@ -43,6 +43,21 @@
         <param-value>jdbc/bardman3</param-value>
     </context-param>
 
+    <context-param>
+    <param-name>cacheconn-context</param-name>
+        <param-value>jdbc/cacheconn</param-value>
+    </context-param>
+
+    <context-param>
+        <param-name>cache-management-cache-prefix-list</param-name>
+        <param-value>Assay,Experiment,Project,Biology,CompoundAnnotationCache,Ent,Panther,Probe,Protein,Pub,SearchAssay,SearchForEnt,SearchForExpt,Targets</param-value>
+    </context-param>
+
+    <context-param>
+        <param-name>cache-management-check-interval-seconds</param-name>
+        <param-value>30</param-value>
+    </context-param>
+
     <servlet>
         <description>BARD REST Services</description>
         <display-name>BARD REST Web Services</display-name>
