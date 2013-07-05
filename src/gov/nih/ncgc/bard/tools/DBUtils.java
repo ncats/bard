@@ -1,12 +1,5 @@
 package gov.nih.ncgc.bard.tools;
 
-import chemaxon.formats.MolFormatException;
-import chemaxon.formats.MolImporter;
-import chemaxon.struc.Molecule;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.Lists;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
@@ -31,13 +24,7 @@ import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.search.SearchUtil;
 import gov.nih.ncgc.bard.search.SolrField;
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Element;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -65,6 +52,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.Vector;
+
+import javax.sql.DataSource;
+
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Element;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import chemaxon.formats.MolFormatException;
+import chemaxon.formats.MolImporter;
+import chemaxon.struc.Molecule;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
+import com.hazelcast.client.ClientConfig;
+import com.hazelcast.client.HazelcastClient;
 
 
 
@@ -112,7 +120,32 @@ public class DBUtils {
         }
         return cache;
     }
+    
+    private HazelcastClient cacheClient;
+    public static Vector <String> managedCachePrefixList;
 
+    public void initializeCache(String managedCacheList, String cacheClusterList) {
+	managedCachePrefixList = new Vector <String> ();
+	String [] prefixArr = managedCacheList.split(",");
+	for(String prefix : prefixArr) {
+	    managedCachePrefixList.add(prefix.trim());
+	}
+	ClientConfig config = new ClientConfig();
+	String [] clusterArr = cacheClusterList.split(",");	
+	for(String clusterMember : clusterArr) {
+	    config.addAddress(clusterMember.split(","));
+	}
+	HazelcastClient cacheClient = HazelcastClient.newHazelcastClient(config);
+    }
+    
+    public Map <T, T> getCacheMap(String cacheName) {
+	Map map = cacheClient.getMap(cacheName);
+	if(map == null) {
+	    map = new Map<K,V>();
+	}
+	return map;
+    }
+    
     static private String datasourceContext = "jdbc/bardman3";
     static public void setDataSourceContext (String context) {
         if (context == null) {

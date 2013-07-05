@@ -352,8 +352,6 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-
-
         }
     }
 

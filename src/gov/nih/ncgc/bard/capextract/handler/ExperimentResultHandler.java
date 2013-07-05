@@ -671,7 +671,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    System.out.println("Experiment count with no actives ="+inactiveCnt);
 	    System.out.println("Number of bard expt ids="+v.size());
 
-	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples_max_20130523.txt"));	    
+	    PrintWriter pw = new PrintWriter(new FileWriter("C:/Users/braistedjc/Desktop/json_response_samples_max_20130703.txt"));	    
 	    
 	    pw.println("RespClass\tCapExptId\tCapAssayId\tPubchemAID\tBardExptId\tsid\tisSIDActive?\tpubchem URL (Result Def)\tBARD REST URL\tBard JSON\tCAP Measure Cnt\tPubhem tid Cnt(+2)\tcapCnt/pubchemCnt");
 	    
