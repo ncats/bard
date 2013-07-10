@@ -4641,7 +4641,7 @@ public class DBUtils {
     private List<String> getCompoundAnnotationKeys() throws SQLException {
         List<String> ret = new ArrayList<String>();
         if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select distinct anno_key from compound_annot order by anno_key");
+        PreparedStatement pst = conn.prepareStatement("select distinct annot_key from compound_annot order by annot_key");
         ResultSet rs = pst.executeQuery();
         while (rs.next()) ret.add(rs.getString(1));
         rs.close();
