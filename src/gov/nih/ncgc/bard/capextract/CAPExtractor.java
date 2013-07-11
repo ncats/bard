@@ -3,7 +3,13 @@ package gov.nih.ncgc.bard.capextract;
 //import gov.nih.ncgc.bard.capextract.handler.AssayHandler;
 //import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
 
-import gov.nih.ncgc.bard.capextract.handler.*;
+import gov.nih.ncgc.bard.capextract.handler.AssayHandler;
+import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
+import gov.nih.ncgc.bard.capextract.handler.BardexportHandler;
+import gov.nih.ncgc.bard.capextract.handler.DictionaryHandler;
+import gov.nih.ncgc.bard.capextract.handler.ExternalReferenceHandler;
+import gov.nih.ncgc.bard.capextract.handler.ProjectHandler;
+import gov.nih.ncgc.bard.capextract.handler.ProjectsHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Projects;
 import org.slf4j.Logger;
@@ -92,20 +98,23 @@ public class CAPExtractor {
     // h.setExtractionStatus("Ready", "https://bard.broadinstitute.org/dataExport/api/assays/1587",CAPConstants.CapResource.ASSAY);
 
     public void setHandlers() {
+        AssayHandler h = new AssayHandler();
+        h.setExtractionStatus("Ready", "https://bard.broadinstitute.org/dataExport/api/assays/4463",CAPConstants.CapResource.ASSAY);
+
         registry = CapResourceHandlerRegistry.getInstance();
-        registry.setHandler(CAPConstants.CapResource.PROJECTS, new ProjectsHandler());
-        registry.setHandler(CAPConstants.CapResource.PROJECT, new ProjectHandler());
-        registry.setHandler(CAPConstants.CapResource.PROJECTDOC, new ProjectDocHandler());
+//        registry.setHandler(CAPConstants.CapResource.PROJECTS, new ProjectsHandler());
+//        registry.setHandler(CAPConstants.CapResource.PROJECT, new ProjectHandler());
+//        registry.setHandler(CAPConstants.CapResource.PROJECTDOC, new ProjectDocHandler());
         registry.setHandler(CAPConstants.CapResource.ASSAYS, new AssaysHandler());
         registry.setHandler(CAPConstants.CapResource.ASSAY, new AssayHandler());
-        registry.setHandler(CAPConstants.CapResource.EXPERIMENTS, new ExperimentsHandler());
-        registry.setHandler(CAPConstants.CapResource.EXPERIMENT, new ExperimentHandler());
-        registry.setHandler(CAPConstants.CapResource.RESULT, new ResultHandler());
+//        registry.setHandler(CAPConstants.CapResource.EXPERIMENTS, new ExperimentsHandler());
+//        registry.setHandler(CAPConstants.CapResource.EXPERIMENT, new ExperimentHandler());
+//        registry.setHandler(CAPConstants.CapResource.RESULT, new ResultHandler());
         registry.setHandler(CAPConstants.CapResource.BARDEXPORT, new BardexportHandler());
         registry.setHandler(CAPConstants.CapResource.DICTIONARY, new DictionaryHandler());
         registry.setHandler(CAPConstants.CapResource.EXTREF, new ExternalReferenceHandler());
-        registry.setHandler(CAPConstants.CapResource.EXTSYS, new ExternalSystemHandler());
-        registry.setHandler(CAPConstants.CapResource.RESULT_JSON, new ExperimentResultHandler());
+//        registry.setHandler(CAPConstants.CapResource.EXTSYS, new ExternalSystemHandler());
+//        registry.setHandler(CAPConstants.CapResource.RESULT_JSON, new ExperimentResultHandler());
 
         //        registry.setHandler(CAPConstants.CapResource.RESULTS, new ResultsHandler());
     }
@@ -153,27 +162,28 @@ public class CAPExtractor {
 	CAPExtractor c = new CAPExtractor();
 
 	// make sure we have a load state lock file path, or exit
-	if(args.length == 0) {
-	    System.err.println("LOAD Terminatd: Process requires a load state lock file path to determine if a load is in progress.");
-	    System.err.println("USAGE: java -cp <lib-path> -Xmx<mem-alloc> -DCAP_API_KEY=<api-key> -DBARD_SCRATCH_DIR=<scratch-dir-path> -DBARD_DB_URL=<db-url> gov.nih.ncgc.bard.capextract.CAPExtractor <load-state-file-path>");
-	    System.err.println("The load state file is a text properties file with a single property load.state:<IDLE|LOADING>");
-	    System.exit(1);
-	}
+//	if(args.length == 0) {
+//	    System.err.println("LOAD Terminatd: Process requires a load state lock file path to determine if a load is in progress.");
+//	    System.err.println("USAGE: java -cp <lib-path> -Xmx<mem-alloc> -DCAP_API_KEY=<api-key> -DBARD_SCRATCH_DIR=<scratch-dir-path> -DBARD_DB_URL=<db-url> gov.nih.ncgc.bard.capextract.CAPExtractor <load-state-file-path>");
+//	    System.err.println("The load state file is a text properties file with a single property load.state:<IDLE|LOADING>");
+//	    System.exit(1);
+//	}
 
 	// check the load state and begin load
 	try {
 	    // returns true if state was IDLE and the lock is set and state set to LOADING, Ready to load
+
 	    if(c.evaluateAndSetLoadLockState(args[0], true)) {
 		// before running the extractor, lets set our handlers
 		c.setHandlers();
 		// lets start pulling
 		c.run();	    
 		// set the load state back to IDLE at the end of the load
-		c.evaluateAndSetLoadLockState(args[0], false);
+//		c.evaluateAndSetLoadLockState(args[0], false);
 	    } 
 	} catch (Exception e) {
 	    // on any terminal error set load state to IDLE
-	    c.evaluateAndSetLoadLockState(args[0], false);
+//	    c.evaluateAndSetLoadLockState(args[0], false);
 	    e.printStackTrace();
 	}
 
