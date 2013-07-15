@@ -18,7 +18,7 @@ public class BardExptDataResponse {
 	SP,
 	CR_SER,
 	UNCLASS,
-	MULCONC,
+	MULTCONC,
 	CR_NO_SER,
 	UNDEF;
     }

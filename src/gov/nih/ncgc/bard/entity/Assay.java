@@ -1,20 +1,22 @@
 package gov.nih.ncgc.bard.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
+import java.io.Serializable;
 import java.sql.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * A representation of an assay.
  *
  * @author Rajarshi Guha
  */
-public class Assay implements BardEntity {
+public class Assay implements BardEntity, Serializable {
 
     @BARDJsonRequired
     Long bardAssayId;
@@ -329,4 +331,22 @@ public class Assay implements BardEntity {
     public void setResourcePath(String resourcePath) {
         //To change body of implemented methods use File | Settings | File Templates.
     }
+
+    public void setCategory(int category) {
+        this.category = category;
+    }
+
+    public void setSummary(int summary) {
+        this.summary = summary;
+    }
+
+//    public void readData(DataInput arg0) throws IOException {
+//	this.name = arg0.toString();
+//    }
+//
+//    public void writeData(DataOutput arg0) throws IOException {
+//	arg0.writeChars(name);
+//    }
+    
+    
 }

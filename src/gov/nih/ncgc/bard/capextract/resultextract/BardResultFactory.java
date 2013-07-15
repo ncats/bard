@@ -143,9 +143,7 @@ public class BardResultFactory {
 		response.addProjectPair(projIds.get(0), null);
 	    }
 	}
-	
-	
-	
+		
 	resultList = new ArrayList <BardResultType>();
 	
 	//provide context for the experiment
@@ -307,7 +305,9 @@ public class BardResultFactory {
 	//take care of qualifier
 	dummyStr = capResult.getQualifier();
 	if(dummyStr != null && !dummyStr.equals("="))
-	    result.setQualifierValue(capResult.getQualifier());	
+	    result.setQualifierValue(capResult.getQualifier());
+	//set stats modifier id
+	result.setStatsModifierId(capResult.getStatsModifierId());
 	return result;
     }
     
@@ -384,7 +384,7 @@ public class BardResultFactory {
 		
 		//have multiple concentrations but tno AC50 in root, type = MULTCONC
 		if(concentrations.size() > 1 && !haveType && !haveXX50) {
-		    response.setResponseType(BardExptDataResponse.ResponseClass.MULCONC.ordinal());
+		    response.setResponseType(BardExptDataResponse.ResponseClass.MULTCONC.ordinal());
 		    haveType = true;
 		}
 		

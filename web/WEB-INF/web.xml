@@ -37,11 +37,17 @@
         <param-value>/core-experiment-v14/</param-value>
     </context-param>
 
-
     <context-param>
         <param-name>datasource-context</param-name>
         <param-value>jdbc/bardman3</param-value>
     </context-param>
+
+    <context-param>
+        <param-name>hazelcast-cluster-list-context</param-name>
+       <!-- <param-value>10.134.20.33,10.134.20.95</param-value> -->
+        <param-value>10.134.20.207</param-value>
+    </context-param>
+
 
     <servlet>
         <description>BARD REST Services</description>

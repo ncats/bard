@@ -42,6 +42,7 @@ public class BardResultType {
     private Integer qualifierId;
     private String extValueId;
     private String qualifierValue;
+    private Integer statsModifierId;
     private String readoutName;
     
     //holds potential CR curve
@@ -98,6 +99,7 @@ public class BardResultType {
 	result.setValueMax(this.getValueMax());
 	result.setValueMin(this.getValueMin());
 	result.setValue(this.getValue());
+	result.setStatsModifierId(this.getStatsModifierId());
 	return result;
     }
     
@@ -306,6 +308,14 @@ public class BardResultType {
 
     public void setValueMin(Double valueMin) {
         this.valueMin = valueMin;
+    }
+
+    public Integer getStatsModifierId() {
+        return statsModifierId;
+    }
+
+    public void setStatsModifierId(Integer statsModifierId) {
+        this.statsModifierId = statsModifierId;
     }
 
     public boolean haveChildren() {

@@ -64,6 +64,12 @@ public abstract class BARDResource<T extends BardEntity>
                 logger.info("## datasource context: "+ctx);
                 DBUtils.setDataSourceContext(ctx);
             }
+            ctx = servletContext.getInitParameter("hazelcast-cluster-list-context");
+            // if we have cache cluster info and DBUtils has not been initialized.
+            if (ctx != null && !DBUtils.cacheInitialized) {
+                logger.info("## hazelcast cluster context: "+ctx);
+                DBUtils.initializeCache(ctx);
+            }
             init = true;
         }
     }

@@ -73,6 +73,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import com.hazelcast.client.ClientConfig;
 import com.hazelcast.client.HazelcastClient;
+import com.hazelcast.core.IMap;
 
 
 
@@ -123,27 +124,36 @@ public class DBUtils {
     
     private HazelcastClient cacheClient;
     public static Vector <String> managedCachePrefixList;
-
-    public void initializeCache(String managedCacheList, String cacheClusterList) {
+    public static boolean cacheInitialized = false;
+    
+    public static void initializeCache(String cacheClusterList) {
+	
 	managedCachePrefixList = new Vector <String> ();
-	String [] prefixArr = managedCacheList.split(",");
-	for(String prefix : prefixArr) {
-	    managedCachePrefixList.add(prefix.trim());
-	}
+//	String [] prefixArr = managedCacheList.split(",");
+//	for(String prefix : prefixArr) {
+//	    managedCachePrefixList.add(prefix.trim());
+//	}
 	ClientConfig config = new ClientConfig();
 	String [] clusterArr = cacheClusterList.split(",");	
 	for(String clusterMember : clusterArr) {
 	    config.addAddress(clusterMember.split(","));
 	}
-	HazelcastClient cacheClient = HazelcastClient.newHazelcastClient(config);
+	cacheClient = HazelcastClient.newHazelcastClient(config);
+	cacheInitialized = true;
+	System.out.println("INITIALIZE HAZELCAST CACHE: isActive()="+cacheClient.isActive());
     }
     
-    public Map <T, T> getCacheMap(String cacheName) {
-	Map map = cacheClient.getMap(cacheName);
-	if(map == null) {
-	    map = new Map<K,V>();
-	}
+    public IMap <Object, Object> getCacheMap(String cacheName) {
+	//return cacheClient.getMap(CACHE_PREFIX+"::"+cacheName);
+	//we have a shared cache, maybe skip prefix per instance.
+	IMap <Object, Object> map = cacheClient.getMap(cacheName);
+	log.info("Get Hazelcast cache for "+cacheName+ " size = "+map.size());
 	return map;
+    }
+    
+    public <T> T getCacheMapValue(IMap <Object, Object> cache, Object key) {
+	log.info("Getting Hazelcast map value=" + cache.get(key));
+	return (T) cache.get(key);
     }
     
     static private String datasourceContext = "jdbc/bardman3";
@@ -1784,6 +1794,7 @@ public class DBUtils {
         (String edid) throws SQLException {
 
         Cache cache = getCache ("ExperimentDataByDataIdCache");
+        
         try {
             ExperimentData value = getCacheValue (cache, edid);
             if (value != null) {
@@ -2315,37 +2326,80 @@ public class DBUtils {
      * @return
      * @throws SQLException
      */
+//    public Assay getAssayByAid(Long bardAssayID) throws SQLException {
+//        if (bardAssayID == null || bardAssayID <= 0) return null;
+//
+//        Cache cache = getCache ("AssayByAidCache");
+//        try {
+//            Assay value = (Assay) getCacheValue (cache, bardAssayID);
+//            if (value != null) {
+//                return value;
+//            }
+//        }
+//        catch (ClassCastException ex) {}
+//
+//        if (conn == null) conn = getConnection();
+//        PreparedStatement pst = conn.prepareStatement
+//            ("select * from bard_assay where bard_assay_id = ?");
+//        Assay a = null;
+//        try {
+//            pst.setLong(1, bardAssayID);
+//            ResultSet rs = pst.executeQuery();
+//            if (rs.next()) {
+//                a = getAssay(rs);
+//            }
+//            rs.close();
+//            cache.put(new Element (bardAssayID, a));
+//
+//            return a;
+//        }
+//        finally {
+//            pst.close();
+//        }
+//    }
+    
+    //Hazelcast change
     public Assay getAssayByAid(Long bardAssayID) throws SQLException {
-        if (bardAssayID == null || bardAssayID <= 0) return null;
+	if (bardAssayID == null || bardAssayID <= 0) return null;
+	
+	//we get a map rather than a cache
+	IMap<Object,Object> map = getCacheMap("AssayByAidCache");
 
-        Cache cache = getCache ("AssayByAidCache");
-        try {
-            Assay value = (Assay) getCacheValue (cache, bardAssayID);
-            if (value != null) {
-                return value;
-            }
-        }
-        catch (ClassCastException ex) {}
+	try {
+	    //we get the cache map value.
+	    Assay value = (Assay) getCacheMapValue (map, bardAssayID);
+	    if (value != null) {
+		log.info("Hazelcast Retrieve Assay from cache: assay="+bardAssayID);
+		log.info("Hazelcast have value from cache, assay name = "+value.getName());
+		return value;
+	    }
+	}
+	
+	catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement
-            ("select * from bard_assay where bard_assay_id = ?");
-        Assay a = null;
-        try {
-            pst.setLong(1, bardAssayID);
-            ResultSet rs = pst.executeQuery();
-            if (rs.next()) {
-                a = getAssay(rs);
-            }
-            rs.close();
-            cache.put(new Element (bardAssayID, a));
-
-            return a;
-        }
-        finally {
-            pst.close();
-        }
+	if (conn == null) conn = getConnection();
+	PreparedStatement pst = conn.prepareStatement
+		("select * from bard_assay where bard_assay_id = ?");
+	Assay a = null;
+	try {
+	    pst.setLong(1, bardAssayID);
+	    ResultSet rs = pst.executeQuery();
+	    if (rs.next()) {
+		a = getAssay(rs);
+	    }
+	    rs.close();
+	    
+	    log.info("Hazelcast: Add assay to hazelcast cache: assay ="+bardAssayID+" assay id ="+a.getBardAssayId());
+	    map.put(bardAssayID, a);
+	    
+	    return a;
+	}
+	finally {
+	    pst.close();
+	}
     }
+    
+    
 
     /**
      * Helper method to build an Assay object based on a result set
