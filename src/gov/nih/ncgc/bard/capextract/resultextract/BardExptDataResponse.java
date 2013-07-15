@@ -8,37 +8,37 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 /**
  * This class is used to format the bard experiment data response JSON
- * 
+ *
  * @author braistedjc
  *
  */
 public class BardExptDataResponse {
-    
+
     public enum ResponseClass {
 	SP,
 	CR_SER,
 	UNCLASS,
-	MULCONC,
+	MULTCONC,
 	CR_NO_SER,
 	UNDEF;
     }
-    
+
     @JsonIgnore
     private Integer responseType;
     private String responseClass;
 
     //experiment ids
-    private Long bardExptId;    
+    private Long bardExptId;
     private Long capExptId;
-    
+
     //assay ids
     private Long bardAssayId;
     private Long capAssayId;
-    
+
     //substance and compound ids
     private Long sid;
     private Long cid;
-    
+
     //These are used to collect these values for fast retrieval
     private Double potency;
     @JsonIgnore
@@ -50,13 +50,13 @@ public class BardExptDataResponse {
     private Double exptScreeningConc;
     @JsonInclude(Include.NON_NULL)
     private String exptConcUnit;
-    
+
     //Result sets for priority and other root elements, project ids
     private ArrayList <BardResultType> priorityElements;
     private ArrayList <BardResultType> rootElements;
     private ArrayList <ProjectIdPair> projects;
-    
-        
+
+
     /**
      * Default constructor
      */
@@ -74,7 +74,7 @@ public class BardExptDataResponse {
     public void addPriorityElement(BardResultType resultType) {
 	priorityElements.add(resultType);
     }
-    
+
     /**
      * Adds a root element
      * @param resultType a root result type
@@ -82,73 +82,73 @@ public class BardExptDataResponse {
     public void addRootElement(BardResultType resultType) {
 	rootElements.add(resultType);
     }
-    
+
     public ArrayList<BardResultType> getPriorityElements() {
-        return priorityElements;
+	return priorityElements;
     }
 
     public void setPriorityElements(ArrayList<BardResultType> priorityElements) {
-        this.priorityElements = priorityElements;
+	this.priorityElements = priorityElements;
     }
 
     public ArrayList<BardResultType> getRootElements() {
-        return rootElements;
+	return rootElements;
     }
 
     public void setRootElements(ArrayList<BardResultType> rootElements) {
-        this.rootElements = rootElements;
+	this.rootElements = rootElements;
     }
 
     public Long getBardExptId() {
-        return bardExptId;
+	return bardExptId;
     }
 
     public void setBardExptId(Long bardExptId) {
-        this.bardExptId = bardExptId;
+	this.bardExptId = bardExptId;
     }
-    
+
     public Long getCapExptId() {
-        return capExptId;
+	return capExptId;
     }
 
     public void setCapExptId(Long capExptId) {
-        this.capExptId = capExptId;
+	this.capExptId = capExptId;
     }
 
     public Long getBardAssayId() {
-        return bardAssayId;
+	return bardAssayId;
     }
 
     public void setBardAssayId(Long bardAssayId) {
-        this.bardAssayId = bardAssayId;
+	this.bardAssayId = bardAssayId;
     }
 
     public Long getCapAssayId() {
-        return capAssayId;
+	return capAssayId;
     }
 
     public void setCapAssayId(Long capAssayId) {
-        this.capAssayId = capAssayId;
+	this.capAssayId = capAssayId;
     }
 
     public Long getSid() {
-        return sid;
+	return sid;
     }
 
     public void setSid(Long sid) {
-        this.sid = sid;
+	this.sid = sid;
     }
 
     public Long getCid() {
-        return cid;
+	return cid;
     }
 
     public void setCid(Long cid) {
-        this.cid = cid;
+	this.cid = cid;
     }
 
     public Integer getResponseType() {
-        return responseType;
+	return responseType;
     }
 
     /**
@@ -162,59 +162,59 @@ public class BardExptDataResponse {
     }
 
     public String getResponseClass() {
-        return responseClass;
+	return responseClass;
     }
 
     public void setResponseClass(String responseClass) {
-        this.responseClass = responseClass;
+	this.responseClass = responseClass;
     }
-        
+
     public ArrayList<ProjectIdPair> getProjects() {
-        return projects;
+	return projects;
     }
 
     public void setProjects(ArrayList<ProjectIdPair> projects) {
-        this.projects = projects;
-    }    
-    
+	this.projects = projects;
+    }
+
     public Double getPotency() {
-        return potency;
+	return potency;
     }
 
     public void setPotency(Double potency) {
-        this.potency = potency;
+	this.potency = potency;
     }
 
     public Double getScore() {
-        return score;
+	return score;
     }
 
     public void setScore(Double score) {
-        this.score = score;
+	this.score = score;
     }
 
     public Integer getOutcome() {
-        return outcome;
+	return outcome;
     }
 
     public void setOutcome(Integer outcome) {
-        this.outcome = outcome;
+	this.outcome = outcome;
     }
 
     public Double getExptScreeningConc() {
-        return exptScreeningConc;
+	return exptScreeningConc;
     }
 
     public void setExptScreeningConc(Double exptScreeningConc) {
-        this.exptScreeningConc = exptScreeningConc;
+	this.exptScreeningConc = exptScreeningConc;
     }
 
     public String getExptConcUnit() {
-        return exptConcUnit;
+	return exptConcUnit;
     }
 
     public void setExptConcUnit(String exptConcUnit) {
-        this.exptConcUnit = exptConcUnit;
+	this.exptConcUnit = exptConcUnit;
     }
 
     public void addProjectPair(Long bardProjId, Long capProjId) {
@@ -226,41 +226,41 @@ public class BardExptDataResponse {
 
     /**
      * holds a bard id and an external project id (specifically cap project, for now)
-     * 
+     *
      * @author braistedjc
      */
     //Note on reconstructing from JSON, it Jackson ObjectMapper required that the inner class be
     //declared as 'static'. If the class was external I think it would be fine.
     //I need to find out why this is the case.
     public static class ProjectIdPair {
-	
+
 	private Long bardProjId;
 	private Long capProjId;
-	
-	public ProjectIdPair() { 
-	    
+
+	public ProjectIdPair() {
+
 	}
-	
+
 	public ProjectIdPair(Long bardProjId, Long capProjId) {
 	    this.bardProjId = bardProjId;
 	    this.capProjId = capProjId;
 	}
-	
+
 	public ProjectIdPair(long bardProjId, long capProjId) {
 	    this.bardProjId = bardProjId;
 	    this.capProjId = capProjId;
 	}
-	
+
 	public ProjectIdPair(String bardProjId, String capProjId) {
 	    this.bardProjId = Long.parseLong(bardProjId);
 	    this.capProjId = Long.parseLong(capProjId);
 	}
-	
+
 	public ProjectIdPair(int bardProjId, int capProjId) {
 	    this.bardProjId = Long.valueOf(bardProjId);
 	    this.capProjId = Long.valueOf(capProjId);
 	}
-	
+
 	public Long getBardProjId() {
 	    return bardProjId;
 	}
