@@ -258,7 +258,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             List<CAPAnnotation> grp = annoGroups.get(annoId);
 
             // probes are reported as part of a biology context
-            if (!grp.get(0).contextRef.equals("biology")) continue;
+            if (!grp.get(0).contextRef.equals("probe")) continue;
 
             Long cid = null, sid = null;
             String mlid = null, mlidurl = null;
