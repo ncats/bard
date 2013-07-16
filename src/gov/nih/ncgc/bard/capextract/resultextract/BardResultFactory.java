@@ -187,7 +187,7 @@ public class BardResultFactory {
 	    if(resultElem.getDictElemId() != null) {
 		if(this.highPriorityDataElemV.contains(resultElem.getDictElemId())) {
 		    priElems.add(resultElem);
-		} else if(response.getResponseType() == 0
+		} else if((response.getResponseType() == BardExptDataResponse.ResponseClass.SP.ordinal() || response.getResponseType() == BardExptDataResponse.ResponseClass.MULTCONC.ordinal())
 			&& this.efficacyDataElemV.contains(resultElem.getDictElemId())) {
 		    priElems.add(resultElem);
 		} else if(response.getResponseType() == BardExptDataResponse.ResponseClass.CR_SER.ordinal()
@@ -289,8 +289,9 @@ public class BardResultFactory {
 	bardResult.setValue((contextItem.getValueNum() != null) ? contextItem.getValueNum().toString() : contextItem.getValueDisplay());
 	bardResult.setExtValueId(contextItem.getExtValueId());
 	bardResult.setValueMin(contextItem.getValueMin());
-	bardResult.setValueMax(contextItem.getValueMax());	
-	bardResult.setQualifierValue(contextItem.getQualifier());
+	bardResult.setValueMax(contextItem.getValueMax());
+	if(contextItem.getQualifier() != null && !contextItem.getQualifier().equals("="))
+	    bardResult.setQualifierValue(contextItem.getQualifier());
 	return bardResult;
     }
 
