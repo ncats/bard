@@ -101,12 +101,21 @@ public class DBUtils {
     static final int MAX_CACHE_SIZE = 10000;
     static final CacheManager cacheManager = CacheManager.getInstance();
     static CacheFlushManager cacheFlushManager;
-    static String cacheConnContext = null;
+ //   static String cacheConnContext = null;
     
     static synchronized Cache getCache (String name) {
         String cacheName = CACHE_PREFIX+"::"+name;
 
         Cache cache = cacheManager.getCache(cacheName);
+        
+        
+        // test code
+        if(cache == null)
+            log.info("In getCache("+name+") cache in null.");
+        else
+            log.info("In getCache("+name+") cache is NOT null, size="+cache.getSize());
+        
+        
         if (cache == null) {
             cache = new Cache (cacheName,
                                MAX_CACHE_SIZE,
@@ -138,30 +147,32 @@ public class DBUtils {
      * @param cachePrefixListCSV comma delimited list of cache prefixes;
      * @param cacheFlustCheckIntervalSeconds seconds between polling the cache state
      */
-    static public void initializeManagedCaches(String cachePrefixListCSV, long cacheFlustCheckIntervalSeconds, String cacheConnDataSource) {
+    static public void initializeManagedCaches(String cachePrefixListCSV, String cacheClusterNodes) {
 
-	//set the cache data source, the manager will use this connection
-	cacheConnContext = cacheConnDataSource;
-	
 	// we want to only initialize AND start a new thread if we are NOT already initialized
-	// if the cache prefix list is null
-	if(flushCachePrefixNames == null) {
-	    
-	    cacheFlushManager = new CacheFlushManager(CacheManager.getInstance(), cacheConnContext);
-	    
-	    //make the list of cache prefixes
-	    flushCachePrefixNames = new Vector<String>();
-	    String [] cachePrefixes = cachePrefixListCSV.split(",");
-	    
-	    for(String cachePrefix : cachePrefixes) {
-		flushCachePrefixNames.add(cachePrefix.trim());
-	    }
-	  
-	    //put the cache under management control		
-	    cacheFlushManager.manage(flushCachePrefixNames, cacheFlustCheckIntervalSeconds);
+	//just make a new manager if needed.  We'll still initialize the manager.
+	
+	if(cacheFlushManager == null)
+	    cacheFlushManager = new CacheFlushManager(CacheManager.getInstance());
+
+	//make the list of cache prefixes
+	flushCachePrefixNames = new Vector<String>();
+
+	String [] cachePrefixes = cachePrefixListCSV.split(",");
+
+	for(String cachePrefix : cachePrefixes) {
+	    flushCachePrefixNames.add(cachePrefix.trim());
 	}
+
+	//put the cache under management control
+	//if the prefix names are empty, flush all
+	cacheFlushManager.manage(flushCachePrefixNames, cacheClusterNodes, true);
+
     }
     
+    static public void shutdownCacheFlushManager() {
+	cacheFlushManager.shutdown();
+    }
     
     static private String datasourceContext = "jdbc/bardman3";
     static public void setDataSourceContext (String context) {
@@ -182,7 +193,7 @@ public class DBUtils {
     }
 
 
-    Logger log;
+    static Logger log;
     Connection conn = null;
     Map<Class, Query> fieldMap;
     SecureRandom rand = new SecureRandom();

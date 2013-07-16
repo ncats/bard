@@ -189,7 +189,7 @@ public class BardResultFactory {
 	    if(resultElem.getDictElemId() != null) { 
 		if(this.highPriorityDataElemV.contains(resultElem.getDictElemId())) {
 		    priElems.add(resultElem);
-		} else if(response.getResponseType() == 0
+		} else if( (response.getResponseType() == 0 || response.getResponseType() == BardExptDataResponse.ResponseClass.MULCONC.ordinal())
 			&& this.efficacyDataElemV.contains(resultElem.getDictElemId())) {
 		    priElems.add(resultElem);
 		} else if(response.getResponseType() == BardExptDataResponse.ResponseClass.CR_SER.ordinal()

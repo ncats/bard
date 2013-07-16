@@ -65,22 +65,13 @@ public abstract class BARDResource<T extends BardEntity>
                 DBUtils.setDataSourceContext(ctx);
             }            
             init = true;
-            
+
             // initialize cache management parameters
             ctx = servletContext.getInitParameter("cache-management-cache-prefix-list");
-            String cacheMgtInterval = servletContext.getInitParameter("cache-management-check-interval-seconds");
-            String cacheConnContext = servletContext.getInitParameter("cacheconn-context");
-            Long interval;
-            if(ctx != null && cacheMgtInterval != null && cacheConnContext != null) {
-        	try {
-        	    interval = Long.parseLong(cacheMgtInterval);
-        	    DBUtils.initializeManagedCaches(ctx, interval, cacheConnContext);
-        	    logger.info("Initialize Cache Management Interval ="+interval+" cache prefix list="+ctx);
-        	} catch (NumberFormatException nfe) {
-        	    //if there's a problem with interval parsing, set to 30s
-        	    interval = 30l;
-        	    DBUtils.initializeManagedCaches(ctx, interval, cacheConnContext);
-        	}        	
+            String cacheMgrNodes = servletContext.getInitParameter("cache-manager-cluster-nodes");
+            if(ctx != null && cacheMgrNodes != null) {
+        	DBUtils.initializeManagedCaches(ctx, cacheMgrNodes);
+        	logger.info("Initialize Cache Management cache prefix list="+ctx);
             } else {
         	logger.warning("Could not initialize cache management. NULL init parameters.");
             }
