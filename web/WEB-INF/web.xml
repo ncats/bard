@@ -54,7 +54,7 @@
     </context-param>
 
     <listener>
-        <listener-class>gov.nih.ncgc.bard.tools.CacheContextListenter</listener-class>
+        <listener-class>gov.nih.ncgc.bard.tools.CacheContextListener</listener-class>
     </listener>
 
     <servlet>

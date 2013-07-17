@@ -13,7 +13,7 @@ import com.hazelcast.core.ITopic;
 import com.hazelcast.core.Message;
 import com.hazelcast.core.MessageListener;
 
-public class CacheFlushManager implements MessageListener {
+public class CacheFlushManager implements MessageListener <String> {
 
     private Logger log = LoggerFactory.getLogger(this.getClass());
     private CacheManager cacheManager;
@@ -31,6 +31,8 @@ public class CacheFlushManager implements MessageListener {
      * @param clusterIpList
      */
     public void manage(Vector <String> cachePrefixes, String clusterIpList, boolean flushAll) {
+	    
+	log.info("CacheFlushManager.manage(). Start");
 
 	//set the scope of flushing.
 	this.flushAll = flushAll;
@@ -46,11 +48,15 @@ public class CacheFlushManager implements MessageListener {
 	    config.addAddress(ip.trim());
 
 	if(client == null) {
+	    
+	    log.info("CacheFlushManager.manage(), creating a client.");
+
 	    //create a client, get or make the topic to subscribe to.
 	    client = HazelcastClient.newHazelcastClient(new ClientConfig());
 	    ITopic <String> topic = client.getTopic("FLUSH_BROADCAST");
 	    topic.addMessageListener(this);
-	    log.info("CacheFlushManager.manage() Initialized topic FLUSH_BROADCAST");
+	     
+	    log.info("CacheFlushManager.manage() Initialized topic FLUSH_BROADCAST");	    	    
 	}
     }
     
@@ -63,9 +69,8 @@ public class CacheFlushManager implements MessageListener {
 	log.info("CacheFlushManager detected servlet context destoyed. Client has been shutdown.");
     }
     
-    @Override
-    public void onMessage(Message msg) {
-	log.info("onMessage() in CacheFlustManager");
+    public void onMessage(Message <String> msg) {
+	log.info("onMessage() in CacheFlushManager");
 	System.out.println("onMessage() in CacheFlustManager");		
 	msg.toString().equals("FLUSH");
 	flushCache();
