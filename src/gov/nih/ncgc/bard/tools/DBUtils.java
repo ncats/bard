@@ -153,7 +153,7 @@ public class DBUtils {
 	//just make a new manager if needed.  We'll still initialize the manager.
 	
 	if(cacheFlushManager == null)
-	    cacheFlushManager = new CacheFlushManager(CacheManager.getInstance());
+	    cacheFlushManager = new CacheFlushManager(cacheManager);
 
 	//make the list of cache prefixes
 	flushCachePrefixNames = new Vector<String>();
