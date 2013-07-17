@@ -47,7 +47,6 @@ public class HazelTestClient {
     
     public static void main(String [] args) {
 	HazelTestClient test = new HazelTestClient();
-	//test.testAccess();
 	test.testFlush();
     }
     
