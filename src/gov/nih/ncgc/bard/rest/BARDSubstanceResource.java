@@ -7,7 +7,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sun.jersey.api.NotFoundException;
-import gov.nih.ncgc.bard.entity.*;
+import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
+import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.search.MoleculeService;
@@ -16,7 +20,15 @@ import gov.nih.ncgc.util.functional.Functional;
 import gov.nih.ncgc.util.functional.IApplyFunction;
 
 import javax.imageio.ImageIO;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.awt.*;
@@ -80,7 +92,7 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
             if (countRequested) {
                 if (filter != null && filter.contains("[active]"))
                     response = Response.ok(String.valueOf(db.getSubstanceActiveCount())).build();
-                else if (filter != null && filter.contains("[test]"))
+                else if (filter != null && (filter.contains("[test]") || filter.contains("[tested]")) )
                     response = Response.ok(String.valueOf(db.getSubstanceTestCount())).build();
                 else response = Response.ok(String.valueOf(db.getEntityCount(Substance.class))).build();
             } else {

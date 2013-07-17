@@ -6,7 +6,6 @@ package gov.nih.ncgc.bard.capextract;
 import gov.nih.ncgc.bard.capextract.handler.AssayHandler;
 import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
 import gov.nih.ncgc.bard.capextract.handler.BardexportHandler;
-import gov.nih.ncgc.bard.capextract.handler.CapResourceHandler;
 import gov.nih.ncgc.bard.capextract.handler.DictionaryHandler;
 import gov.nih.ncgc.bard.capextract.handler.ExperimentHandler;
 import gov.nih.ncgc.bard.capextract.handler.ExperimentResultHandler;
@@ -19,6 +18,8 @@ import gov.nih.ncgc.bard.capextract.handler.ProjectsHandler;
 import gov.nih.ncgc.bard.capextract.handler.ResultHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Projects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -28,9 +29,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Example code to play with the Broad CAP Data Export API.
@@ -176,12 +174,12 @@ public class CAPExtractor {
 	CAPExtractor c = new CAPExtractor();
 
 	// make sure we have a load state lock file path, or exit
-	if(args.length == 0) {
-	    System.err.println("LOAD Terminatd: Process requires a load state lock file path to determine if a load is in progress.");
-	    System.err.println("USAGE: java -cp <lib-path> -Xmx<mem-alloc> -DCAP_API_KEY=<api-key> -DBARD_SCRATCH_DIR=<scratch-dir-path> -DBARD_DB_URL=<db-url> gov.nih.ncgc.bard.capextract.CAPExtractor <load-state-file-path>");
-	    System.err.println("The load state file is a text properties file with a single property load.state:<IDLE|LOADING>");
-	    System.exit(1);
-	}
+//	if(args.length == 0) {
+//	    System.err.println("LOAD Terminatd: Process requires a load state lock file path to determine if a load is in progress.");
+//	    System.err.println("USAGE: java -cp <lib-path> -Xmx<mem-alloc> -DCAP_API_KEY=<api-key> -DBARD_SCRATCH_DIR=<scratch-dir-path> -DBARD_DB_URL=<db-url> gov.nih.ncgc.bard.capextract.CAPExtractor <load-state-file-path>");
+//	    System.err.println("The load state file is a text properties file with a single property load.state:<IDLE|LOADING>");
+//	    System.exit(1);
+//	}
 
 	// check the load state and begin load
 	try {

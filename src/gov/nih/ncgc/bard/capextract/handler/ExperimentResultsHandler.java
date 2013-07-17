@@ -543,7 +543,7 @@ public class ExperimentResultsHandler extends CapResourceHandler implements ICap
 //		2467,
 //		1600
 //		3325
-		
+
 		5993,
 		6025,
 		3141,
@@ -556,7 +556,8 @@ public class ExperimentResultsHandler extends CapResourceHandler implements ICap
 
 	int i =0;
 	for(int id : ids) {
-	    h.setExtractionStatus("Ready", "https://bard.broadinstitute.org/dataExport/api/experiments/"+id, CAPConstants.CapResource.EXPERIMENT);
+	    h.setExtractionStatus("Ready", "https://bard.broadinstitute.org/dataExport/api/experiments/"+id,CAPConstants.CapResource.EXPERIMENT);
+
 	    System.out.println("Change #"+(++i));
 	}
 	
