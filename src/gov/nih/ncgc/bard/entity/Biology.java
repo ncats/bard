@@ -20,7 +20,7 @@ public class Biology implements BardEntity {
         SEQUENCE("SEQUENCE"), DISEASE("SEQUENCE"),
         PATHWAY("PATHWAY"), PROCESS("PROCESS"),
         COMPONENT("COMPONENT"), FUNCTION("FUNCTION"), NCBI("NCBI"), GO("GO"),
-        UNKNOWN("UNKNOWN");
+        UNCLASSIFIED("UNCLASSIFIED");
 
 
         private String typeString;
@@ -33,7 +33,7 @@ public class Biology implements BardEntity {
             for (BiologyType s : values()) {
                 if (s.typeString.equals(typeString)) return s;
             }
-            return null;
+            return UNCLASSIFIED;
         }
 
         public static BiologyType getBiologyTypeFromDictId(int dictId) {
@@ -55,7 +55,7 @@ public class Biology implements BardEntity {
                 case 1504:
                     return GO;
                 default:
-                    return UNKNOWN;
+                    return UNCLASSIFIED;
             }
         }
     }
