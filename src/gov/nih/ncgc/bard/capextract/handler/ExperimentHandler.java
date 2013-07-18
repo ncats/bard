@@ -274,12 +274,12 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             // Finally we update the scores of connected assays and projects
             ScoreHandler scoreHandler = new ScoreHandler(conn);
             scoreHandler.updateScores(bardExptId);
-
+            conn.commit();
             conn.close();
 
         } catch (SQLException e) {
             e.printStackTrace();
-            log.error("Error inserting annotations for CAP expt id " + expt.getExperimentId() + "\n" + e.getMessage());
+            log.error("Error inserting/updating the experiment or related annotations (see stack trace) for CAP expt id " + expt.getExperimentId() + "\n" + e.getMessage());
         }
     }
 
