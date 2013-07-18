@@ -1378,7 +1378,7 @@ public class DBUtils {
             if (rset.next()) {
                 String h1 = rset.getString(1);
                 String h4 = rset.getString(2);
-                
+
                 pstm2 = conn.prepareStatement
                     ("select * from compound a, bard2.compound_molfile b, "
                      +"compound_props c where a.cid = b.cid "
@@ -1719,10 +1719,10 @@ public class DBUtils {
         if (rs.wasNull()) c.setCompoundClass(null);
 
         if (c.getProbeId() != null) {
-            List<Project> projects = getProjectByProbeId(c.getProbeId());
+            List<Long> projects = getProjectIdByProbeId(c.getProbeId());
             if (projects != null && projects.size() > 0) {
-                Project p = projects.get(0);
-                List<CAPAnnotation> annos = getProjectAnnotations(p.getBardProjectId());
+                Long id = projects.get(0);
+                List<CAPAnnotation> annos = getProjectAnnotations(id);
                 List props = new ArrayList();
                 for (CAPAnnotation anno : annos) {
                     if (anno.contextRef == null || !anno.contextRef.equals("probe")) continue;
@@ -4374,6 +4374,17 @@ public class DBUtils {
         finally {
             pst.close();
         }
+    }
+
+    public List<Long> getProjectIdByProbeId(String probeId) throws SQLException {
+        List<Long> ids = new ArrayList<Long>();
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select bard_proj_id from project_probe where probe_id = ?");
+        pst.setString(1, probeId);
+        ResultSet rs = pst.executeQuery();
+        while (rs.next()) ids.add(rs.getLong(1));
+        pst.close();
+        return ids;
     }
 
     public List<Project> getProjectByProbeId(String probeId)
