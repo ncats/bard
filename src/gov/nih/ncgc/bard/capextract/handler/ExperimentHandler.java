@@ -179,7 +179,8 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 
         // lets do a first check to see if we have this experiment already
         // 07.17.2013 - moved this block after handling assays in case an assay links to the experment
-        // and loads it in the code above. We need to check for this experiment after handling linked assays.
+        // and loads it in the code above.  We need to check for this experiment after handling linked assays.
+
         int localBardExptId = -1;
         boolean doUpdate = false;
         try {
