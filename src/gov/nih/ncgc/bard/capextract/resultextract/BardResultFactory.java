@@ -543,7 +543,8 @@ public class BardResultFactory {
 		result.setConcResponseSeries(series);
 		series.setParentElement(result);
 		for(BardResultType child : result.getChildElements()) {
-		    if(child.getTestConc() != null) {
+		    //we don't want to rope in the separate max concenetration elements here.
+		    if(child.getTestConc() != null && child.getStatsModifierId() == null) {
 			crPointsList.add(child);
 		    } else if(child.getDictElemId() != null
 			    && this.curveFitParameterElemV.contains(child.getDictElemId())) {
