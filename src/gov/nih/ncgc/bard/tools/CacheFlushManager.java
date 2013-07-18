@@ -26,9 +26,10 @@ public class CacheFlushManager implements MessageListener <String> {
     }
 
     /**
-     * Sets the cache prefixes to manage
+     * Sets the cache prefixes to manage, delivers the Hazelcast cluster ip list, 
      * @param cachePrefixes
      * @param clusterIpList
+     * @param flushAll
      */
     public void manage(Vector <String> cachePrefixes, String clusterIpList, boolean flushAll) {
 	    

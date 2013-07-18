@@ -107,8 +107,7 @@ public class DBUtils {
         String cacheName = CACHE_PREFIX+"::"+name;
 
         Cache cache = cacheManager.getCache(cacheName);
-        
-        
+
         // test code
         if(cache == null)
             log.info("In getCache("+name+") cache in null.");

@@ -82,26 +82,6 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             log.warn("Aborting Load!!! Cap experiment = "+exptID + " extraction status ="+extractionStatus);
         }
         
-        // lets do a first check to see if we have this experiment already
-        int localBardExptId = -1;
-        boolean doUpdate = false;
-        try {
-            Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
-            Statement query = conn.createStatement();
-            query.execute("select bard_expt_id, pubchem_aid from bard_experiment where cap_expt_id=" + expt.getExperimentId());
-            ResultSet rs = query.getResultSet();
-            while (rs.next()) {
-                localBardExptId = rs.getInt(1);
-                pubchemAid = rs.getInt(2);
-            }
-            rs.close();
-            query.close();
-            conn.close();
-            bardExptId = localBardExptId;
-            if (bardExptId != -1) doUpdate = true;
-        } catch (SQLException e) {
-        }
-
         ExternalReferenceHandler extrefHandler = new ExternalReferenceHandler();
         ExternalSystemHandler extsysHandler = new ExternalSystemHandler();
         AssayHandler assayHandler = new AssayHandler();
@@ -197,6 +177,28 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             }
         }
 
+        // lets do a first check to see if we have this experiment already
+        // 07.17.2013 - moved this block after handling assays in case an assay links to the experment
+        // and loads it in the code above.  We need to check for this experiment after handling linked assays.
+        int localBardExptId = -1;
+        boolean doUpdate = false;
+        try {
+            Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+            Statement query = conn.createStatement();
+            query.execute("select bard_expt_id, pubchem_aid from bard_experiment where cap_expt_id=" + expt.getExperimentId());
+            ResultSet rs = query.getResultSet();
+            while (rs.next()) {
+                localBardExptId = rs.getInt(1);
+                pubchemAid = rs.getInt(2);
+            }
+            rs.close();
+            query.close();
+            conn.close();
+            bardExptId = localBardExptId;
+            if (bardExptId != -1) doUpdate = true;
+        } catch (SQLException e) {
+        }
+        
         // ready to load in the data
         try {
 
