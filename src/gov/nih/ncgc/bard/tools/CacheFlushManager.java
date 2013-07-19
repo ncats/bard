@@ -25,6 +25,7 @@ public class CacheFlushManager implements MessageListener <String> {
     private boolean flushAll;
     private static HazelcastClient client;
     private static Logger log;
+    
     public CacheFlushManager (CacheManager cacheManager) {
 	this.cacheManager = cacheManager;
 	log = LoggerFactory.getLogger(CacheFlushManager.class.getName());
@@ -78,7 +79,7 @@ public class CacheFlushManager implements MessageListener <String> {
      * Listener method to respond a com.hazelcast.core.Message
      */
     public void onMessage(Message <String> msg) {	
-	log.info("Cache flush manger recieved Hazelcast Message = "+msg);
+	log.warn("Cache flush manger recieved Hazelcast Message = "+msg);
 	if(msg.toString().contains("FLUSH"))
 	    flushCache();
     } 
@@ -91,6 +92,6 @@ public class CacheFlushManager implements MessageListener <String> {
 	} else {
 	    cacheManager.clearAll();
 	}
-	log.info("Cache Flush Excecuted");
+	log.warn("Cache Flush Excecuted");
     }
 }
