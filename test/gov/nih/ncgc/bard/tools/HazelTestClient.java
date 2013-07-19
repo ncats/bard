@@ -4,6 +4,7 @@ import java.util.Map;
 
 import com.hazelcast.client.ClientConfig;
 import com.hazelcast.client.HazelcastClient;
+import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.ITopic;
 
 public class HazelTestClient {
@@ -35,14 +36,14 @@ public class HazelTestClient {
     
     public void testFlush() {
         ClientConfig clientConfig = new ClientConfig();
-        clientConfig.getGroupConfig().setName("ncatsweb");
-        clientConfig.addAddress("10.134.20.33");
+        clientConfig.getGroupConfig().setName("dev").setPassword("dev-pass");
+        clientConfig.addAddress("10.134.20.207");
         System.out.println("in testFlush()");
 	HazelcastClient client = HazelcastClient.newHazelcastClient(clientConfig);
 
         ITopic <String> topic = client.getTopic("FLUSH_BROADCAST");
         topic.publish("FLUSH");
-        
+       
         client.shutdown();
     }
     

@@ -66,15 +66,15 @@ public abstract class BARDResource<T extends BardEntity>
             }            
             init = true;
 
-            // initialize cache management parameters
-            ctx = servletContext.getInitParameter("cache-management-cache-prefix-list");
-            String cacheMgrNodes = servletContext.getInitParameter("cache-manager-cluster-nodes");
-            if(ctx != null && cacheMgrNodes != null) {
-        	DBUtils.initializeManagedCaches(ctx, cacheMgrNodes);
-        	logger.info("Initialize Cache Management cache prefix list="+ctx);
-            } else {
-        	logger.warning("Could not initialize cache management. NULL init parameters.");
-            }
+//            // initialize cache management parameters
+//            ctx = servletContext.getInitParameter("cache-management-cache-prefix-list");
+//            String cacheMgrNodes = servletContext.getInitParameter("cache-manager-cluster-nodes");
+//            if(ctx != null && cacheMgrNodes != null) {
+//        	DBUtils.initializeManagedCaches(ctx, cacheMgrNodes);
+//        	logger.info("Initialize Cache Management cache prefix list="+ctx);
+//            } else {
+//        	logger.warning("Could not initialize cache management. NULL init parameters.");
+//            }
             
         }
     }
