@@ -50,7 +50,7 @@
 
     <context-param>
         <param-name>cache-manager-cluster-nodes</param-name>
-        <param-value>10.134.20.33</param-value>
+        <param-value>10.134.20.207</param-value>
     </context-param>
 
     <listener>

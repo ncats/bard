@@ -100,8 +100,6 @@ public class DBUtils {
 
     static final int MAX_CACHE_SIZE = 10000;
     static final CacheManager cacheManager = CacheManager.getInstance();
-    static CacheFlushManager cacheFlushManager;
- //   static String cacheConnContext = null;
     
     static synchronized Cache getCache (String name) {
         String cacheName = CACHE_PREFIX+"::"+name;
@@ -130,48 +128,45 @@ public class DBUtils {
     }
     
     
+    
     /*******
-     * Cache Flush Handling
+     * Cache Flush Handling methods (2)
      */
-    // current bard global update timesstatmp
-    static Timestamp currentBardGlobalUpdateDate;
-    // cache prefix name list
+    static CacheFlushManager cacheFlushManager;
     static Vector <String> flushCachePrefixNames = null;
-    // frequency of cache checks
-
 
     /**
-     * Initializes the list of cache prefixes to manage and check frequency
+     * Initializes the list of cache prefixes to manage
+     * This is only called when the container is initialized.
      * 
      * @param cachePrefixListCSV comma delimited list of cache prefixes;
      * @param cacheFlustCheckIntervalSeconds seconds between polling the cache state
      */
     static public void initializeManagedCaches(String cachePrefixListCSV, String cacheClusterNodes) {
 
-	// we want to only initialize AND start a new thread if we are NOT already initialized
-	//just make a new manager if needed.  We'll still initialize the manager.
-	
-	if(cacheFlushManager == null)
-	    cacheFlushManager = new CacheFlushManager(cacheManager);
+	cacheFlushManager = new CacheFlushManager(cacheManager);
 
 	//make the list of cache prefixes
 	flushCachePrefixNames = new Vector<String>();
-
 	String [] cachePrefixes = cachePrefixListCSV.split(",");
-
 	for(String cachePrefix : cachePrefixes) {
 	    flushCachePrefixNames.add(cachePrefix.trim());
 	}
 
 	//put the cache under management control
-	//if the prefix names are empty, flush all
-	cacheFlushManager.manage(flushCachePrefixNames, cacheClusterNodes, true);
-
+	//if the prefix names are empty or just one (empty string), set flush all boolean
+	cacheFlushManager.manage(flushCachePrefixNames, cacheClusterNodes, (flushCachePrefixNames.size() > 2));
     }
     
+    /**
+     * Called to shutdown cache management. This is typically called when the container is
+     * destroyed to shutdown the manager gracefully.
+     */
     static public void shutdownCacheFlushManager() {
 	cacheFlushManager.shutdown();
     }
+
+    
     
     static private String datasourceContext = "jdbc/bardman3";
     static public void setDataSourceContext (String context) {
