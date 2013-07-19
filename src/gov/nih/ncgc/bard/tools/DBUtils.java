@@ -108,7 +108,7 @@ public class DBUtils {
 
         // test code
         if(cache == null)
-            log.info("In getCache("+name+") cache in null.");
+            log.info("In getCache("+name+") cache is null.");
         else
             log.info("In getCache("+name+") cache is NOT null, size="+cache.getSize());
         
@@ -154,8 +154,8 @@ public class DBUtils {
 	}
 
 	//put the cache under management control
-	//if the prefix names are empty or just one (empty string), set flush all boolean
-	cacheFlushManager.manage(flushCachePrefixNames, cacheClusterNodes, (flushCachePrefixNames.size() > 2));
+	//if the prefix names are empty or just one (empty string), set flush all boolean	
+	cacheFlushManager.manage(flushCachePrefixNames, cacheClusterNodes, (flushCachePrefixNames.size() < 2));
     }
     
     /**

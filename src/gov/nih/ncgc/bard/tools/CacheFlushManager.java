@@ -4,21 +4,30 @@ import java.util.Vector;
 
 import net.sf.ehcache.CacheManager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.hazelcast.client.ClientConfig;
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.core.ITopic;
 import com.hazelcast.core.Message;
 import com.hazelcast.core.MessageListener;
 
+/**
+ * 
+ * @author braistedjc
+ *
+ */
 public class CacheFlushManager implements MessageListener <String> {
 
     private CacheManager cacheManager;
     private Vector <String> cachePrefixList;
     private boolean flushAll;
     private static HazelcastClient client;
-    
+    private static Logger log;
     public CacheFlushManager (CacheManager cacheManager) {
 	this.cacheManager = cacheManager;
+	log = LoggerFactory.getLogger(CacheFlushManager.class.getName());
     }
 
     /**
@@ -69,7 +78,8 @@ public class CacheFlushManager implements MessageListener <String> {
      * Listener method to respond a com.hazelcast.core.Message
      */
     public void onMessage(Message <String> msg) {	
-	if(msg.toString().equals("FLUSH"))
+	log.info("Cache flush manger recieved Hazelcast Message = "+msg);
+	if(msg.toString().contains("FLUSH"))
 	    flushCache();
     } 
     
@@ -77,9 +87,10 @@ public class CacheFlushManager implements MessageListener <String> {
     private void flushCache() {
 	if(!flushAll) {
 	    for(String cachePrefix : cachePrefixList)
-		cacheManager.clearAllStartingWith(cachePrefix);
+		cacheManager.clearAllStartingWith(DBUtils.CACHE_PREFIX+"::"+cachePrefix);
 	} else {
 	    cacheManager.clearAll();
 	}
+	log.info("Cache Flush Excecuted");
     }
 }
