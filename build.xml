@@ -184,10 +184,10 @@
         </jar>
     </target>
 
-    <property name="cache.test.war.filename" value="${bard.deploy}/bard_cache_dev.war"/>
+    <property name="cache.mgr.bard.war.filename" value="${bard.deploy}/bard-v99.war"/>
     <target name='war-cache-test-rest' depends="explode-rest">
         <mkdir dir="${bard.deploy}"/>
-        <jar destfile="${cache.test.war.filename}" duplicate="preserve">
+        <jar destfile="${cache.mgr.bard.war.filename}" duplicate="preserve">
             <manifest>
                 <attribute name="Created-By" value="NCGC"/>
                 <attribute name="Manifest-Version" value="1.0"/>
