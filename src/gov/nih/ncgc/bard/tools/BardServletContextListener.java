@@ -7,9 +7,6 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * This class is specified in the container configuration file (web.xml) as a registered listener.
  * Methods handle initialization and destruction of application context.
@@ -37,7 +34,7 @@ public class BardServletContextListener implements ServletContextListener {
 	    } catch (UnknownHostException unknownHostExcept) {
 		unknownHostExcept.printStackTrace();
 		DBUtils.initializeManagedCaches("", "localhost");
-	    }
+	    }	    
 	}
 
 	// additional initialization can go here ...
@@ -45,9 +42,10 @@ public class BardServletContextListener implements ServletContextListener {
 
     @Override
     public void contextDestroyed(ServletContextEvent arg0) {
+	//closes the cache manger
 	DBUtils.shutdownCacheFlushManager();
 	DBUtils.flushCachePrefixNames = null;
-
+	
 	// additional context shutdown/cleanup can go here ... 
     }
 }

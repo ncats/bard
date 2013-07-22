@@ -27,4 +27,5 @@ public interface ICapResourceHandler {
     public <T> Vector<T> poll(String url, CAPConstants.CapResource resource, boolean skipPartial) throws IOException;
     // supports public method to have a handler update the bard global update flag
     public boolean updateGlobalBardUpdateTime();
+    public boolean signalFlushRestCache();
 }
