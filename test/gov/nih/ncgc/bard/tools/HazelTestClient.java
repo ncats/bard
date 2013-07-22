@@ -37,8 +37,10 @@ public class HazelTestClient {
     public void testFlush() {
         ClientConfig clientConfig = new ClientConfig();
         clientConfig.getGroupConfig().setName("dev").setPassword("dev-pass");
-        clientConfig.addAddress("10.134.20.33:5702");
-        clientConfig.addAddress("10.134.20.95:5701");
+//        clientConfig.addAddress("10.134.20.33:5701");
+//        clientConfig.addAddress("10.134.20.95:5701");
+        clientConfig.addAddress("128.231.10.95:5701");
+        clientConfig.addAddress("128.231.10.33:5701");
 	HazelcastClient client = HazelcastClient.newHazelcastClient(clientConfig);
 
         ITopic <String> topic = client.getTopic("FLUSH_BROADCAST");

@@ -183,20 +183,6 @@
             </fileset>
         </jar>
     </target>
-
-    <property name="cache.mgr.bard.war.filename" value="${bard.deploy}/bard-v99.war"/>
-    <target name='war-cache-test-rest' depends="explode-rest">
-        <mkdir dir="${bard.deploy}"/>
-        <jar destfile="${cache.mgr.bard.war.filename}" duplicate="preserve">
-            <manifest>
-                <attribute name="Created-By" value="NCGC"/>
-                <attribute name="Manifest-Version" value="1.0"/>
-            </manifest>
-            <fileset dir="${bard.explode.dir}" casesensitive="yes">
-                <include name="**/*"/>
-            </fileset>
-        </jar>
-    </target>
     
     <property name="bard.mgr.bin.dir" value="bin"/>
     <property name="bard.mgr.deploy" value="deploy_mgr"/>

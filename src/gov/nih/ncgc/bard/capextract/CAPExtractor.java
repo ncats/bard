@@ -81,6 +81,8 @@ public class CAPExtractor {
         bardExportHandler.process(CAPConstants.CAP_ROOT, CAPConstants.CapResource.BARDEXPORT);
         //set global bard update time
         bardExportHandler.updateGlobalBardUpdateTime();
+        //signal to flush cache
+        bardExportHandler.signalFlushRestCache();
     }
 
     public void poll() throws IOException {

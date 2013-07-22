@@ -53,14 +53,20 @@ public class CacheFlushManager implements MessageListener <String> {
 	ClientConfig config = new ClientConfig();
 	for(String ip : clusterIPs)
 	    config.addAddress(ip.trim());
+	
+	//try to reconnect, 15s between, for 24hrs.
+	config.setReConnectionTimeOut(15000);
+	config.setReconnectionAttemptLimit(5760);
+
 	// retire an existing client if it exists.
 	// this shouldn't happen since this method is called only when initializing the app/context
 	if(client != null) {
 	    client.shutdown();
 	    client = null;
 	}
+	
 	//create a client, get or make the topic to subscribe to.
-	client = HazelcastClient.newHazelcastClient(new ClientConfig());
+	client = HazelcastClient.newHazelcastClient(config);
 	ITopic <String> topic = client.getTopic("FLUSH_BROADCAST");
 	topic.addMessageListener(this);
     }
@@ -75,6 +81,8 @@ public class CacheFlushManager implements MessageListener <String> {
 	    client.shutdown();
 	    client = null;
 	}
+	//remove caches for this app.
+	removeAllCachesForApplication();
     }
     
     /**
@@ -105,7 +113,7 @@ public class CacheFlushManager implements MessageListener <String> {
 	log.info("DBUtils.CACHE_PREFIX="+DBUtils.CACHE_PREFIX+"  Flush all?="+flushAll);
     }
     
-    public static void removeAllCachesForApplication() {
+    public void removeAllCachesForApplication() {
 	String [] caches = cacheManager.getCacheNames();
 	for(String cache : caches) {
 	    cacheManager.removeCache(DBUtils.CACHE_PREFIX+"::"+cache);    
