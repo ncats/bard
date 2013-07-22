@@ -1,9 +1,11 @@
 package gov.nih.ncgc.bard.tools;
 
+import java.util.Arrays;
 import java.util.Vector;
 
 import net.sf.ehcache.CacheManager;
 
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,14 +22,14 @@ import com.hazelcast.core.MessageListener;
  */
 public class CacheFlushManager implements MessageListener <String> {
 
-    private CacheManager cacheManager;
+    private static CacheManager cacheManager;
     private Vector <String> cachePrefixList;
     private boolean flushAll;
     private static HazelcastClient client;
     private static Logger log;
     
-    public CacheFlushManager (CacheManager cacheManager) {
-	this.cacheManager = cacheManager;
+    public CacheFlushManager (CacheManager cacheMgr) {
+	cacheManager = cacheMgr;
 	log = LoggerFactory.getLogger(CacheFlushManager.class.getName());
     }
 
@@ -79,7 +81,7 @@ public class CacheFlushManager implements MessageListener <String> {
      * Listener method to respond a com.hazelcast.core.Message
      */
     public void onMessage(Message <String> msg) {	
-	log.warn("Cache flush manger recieved Hazelcast Message = "+msg);
+	log.info("Cache flush manager received Hazelcast Message = "+msg);
 	if(msg.toString().contains("FLUSH"))
 	    flushCache();
     } 
@@ -92,6 +94,21 @@ public class CacheFlushManager implements MessageListener <String> {
 	} else {
 	    cacheManager.clearAll();
 	}
-	log.warn("Cache Flush Excecuted");
+	String [] caches = cacheManager.getCacheNames();
+	Arrays.sort(caches);
+	String msg = "Cache Status:";
+	for(String cache : caches) {
+	    msg += cache + " " + cacheManager.getCache(cache).getSize() + "\n";
+	}
+	log.info("Cache Flush Executed");
+	log.info(msg);
+	log.info("DBUtils.CACHE_PREFIX="+DBUtils.CACHE_PREFIX+"  Flush all?="+flushAll);
+    }
+    
+    public static void removeAllCachesForApplication() {
+	String [] caches = cacheManager.getCacheNames();
+	for(String cache : caches) {
+	    cacheManager.removeCache(DBUtils.CACHE_PREFIX+"::"+cache);    
+	}	
     }
 }

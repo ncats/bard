@@ -105,13 +105,6 @@ public class DBUtils {
         String cacheName = CACHE_PREFIX+"::"+name;
 
         Cache cache = cacheManager.getCache(cacheName);
-
-        // test code
-        if(cache == null)
-            log.info("In getCache("+name+") cache is null.");
-        else
-            log.info("In getCache("+name+") cache is NOT null, size="+cache.getSize());
-        
         
         if (cache == null) {
             cache = new Cache (cacheName,
@@ -143,7 +136,6 @@ public class DBUtils {
      * @param cacheFlustCheckIntervalSeconds seconds between polling the cache state
      */
     static public void initializeManagedCaches(String cachePrefixListCSV, String cacheClusterNodes) {
-
 	cacheFlushManager = new CacheFlushManager(cacheManager);
 
 	//make the list of cache prefixes
@@ -166,7 +158,6 @@ public class DBUtils {
 	cacheFlushManager.shutdown();
     }
 
-    
     
     static private String datasourceContext = "jdbc/bardman3";
     static public void setDataSourceContext (String context) {
