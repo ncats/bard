@@ -5,7 +5,6 @@ import java.util.Vector;
 
 import net.sf.ehcache.CacheManager;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
