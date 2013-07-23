@@ -29,6 +29,10 @@ import org.apache.http.entity.StringEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.hazelcast.client.ClientConfig;
+import com.hazelcast.client.HazelcastClient;
+import com.hazelcast.core.ITopic;
+
 //import java.io.BufferedReader;
 //import java.io.InputStream;
 
@@ -217,5 +221,46 @@ public abstract class CapResourceHandler {
 	    return updated;
 	}
 	return updated;
-    }    
+    }
+    
+    public boolean updateGlobalBardUpdateTime() {	
+	Connection conn;
+	boolean updated = false;
+	try {
+	    conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+	    conn.setAutoCommit(true);
+	    Statement stmt = conn.createStatement();
+	    stmt.execute("update bard_update_time set updated = now()");
+	    stmt.close();
+	    conn.close();
+	    updated = true;
+	    log.info("BARD Global Update Time has been Updated in table bard_update_time.");
+	} catch(SQLException e) {
+	    e.printStackTrace();
+	    return updated;
+	}
+	return updated;
+    }
+    
+    public boolean signalFlushRestCache() {
+	boolean flushed = false;
+	String ipList = CAPConstants.getBardBroadcastIPList();
+	log.info("Signalling to Flush Cache");
+	if(ipList != null) {
+	    String [] ipArr = ipList.split(",");
+	    ClientConfig clientConfig = new ClientConfig();
+	    clientConfig.getGroupConfig().setName("dev").setPassword("dev-pass");
+	    for(String ip : ipArr) {
+		clientConfig.addAddress(ip.trim());
+	    }
+	    HazelcastClient client = HazelcastClient.newHazelcastClient(clientConfig);
+	    ITopic <String> topic = client.getTopic("FLUSH_BROADCAST");
+	    topic.publish("FLUSH");
+	    client.shutdown();
+	    flushed = true;
+	    log.info("Flush Cache Message Sent!!! to "+ipList);
+	}	
+	return flushed;
+    }
+
 }

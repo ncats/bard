@@ -48,6 +48,14 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
         java.util.Date today = null;
         try {
             conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+
+            pst = conn.prepareStatement("delete from cap_dict_obj");
+            pst.executeUpdate();
+            pst.close();
+            pst = conn.prepareStatement("delete from cap_dict_elem");
+            pst.executeUpdate();
+            pst.close();
+
             pst = conn.prepareStatement("INSERT INTO cap_dict_obj(ins_date, dict) VALUES (?, ?)");
             today = new java.util.Date();
             pst.setDate(1, new java.sql.Date(today.getTime()));
@@ -107,6 +115,12 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
         for (Dictionary.ElementHierarchies.ElementHierarchy h : hierarchies) {
             String relType = h.getRelationshipType();
             BigInteger childId = getElementId(h.getChildElement().getLink().getHref());
+            h.getChildElement().getLink().getHref();
+            
+            //don't reset the extraction status so it perists at CAP.
+            //set the extraction status to complete.
+            //setExtractionStatus("Complete", h.getChildElement().getLink().getHref(), CAPConstants.CapResource.ELEMENT);
+            
             CAPDictionaryElement childElem = dict.getNode(childId);
 
             // there may be an element with no parent

@@ -70,29 +70,18 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 
         BigInteger exptID = expt.getExperimentId();
         BigInteger confLevel = expt.getConfidenceLevel();
-
+        String status = expt.getStatus();
+        String extractionStatus = expt.getReadyForExtraction();
+        
         log.info("Processing CAP experiment " + exptID + " " + url);
-
-        // lets do a first check to see if we have this experiment already
-        int localBardExptId = -1;
-        boolean doUpdate = false;
-        try {
-            Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
-            Statement query = conn.createStatement();
-            query.execute("select bard_expt_id, pubchem_aid from bard_experiment where cap_expt_id=" + expt.getExperimentId());
-            ResultSet rs = query.getResultSet();
-            while (rs.next()) {
-                localBardExptId = rs.getInt(1);
-                pubchemAid = rs.getInt(2);
-            }
-            rs.close();
-            query.close();
-            conn.close();
-            bardExptId = localBardExptId;
-            if (bardExptId != -1) doUpdate = true;
-        } catch (SQLException e) {
+        log.info("Cap experiment = "+exptID + " status ="+status);
+        log.info("Cap experiment = "+exptID + " extraction status ="+extractionStatus);
+        
+        //check the EXTRACTION status, if can't determine readyForExtraction, or it's 'Not Ready', don't load.
+        if(extractionStatus == null || extractionStatus.equals("Not Ready")) {
+            log.warn("Aborting Load!!! Cap experiment = "+exptID + " extraction status ="+extractionStatus);
         }
-
+        
         ExternalReferenceHandler extrefHandler = new ExternalReferenceHandler();
         ExternalSystemHandler extsysHandler = new ExternalSystemHandler();
         AssayHandler assayHandler = new AssayHandler();
@@ -166,6 +155,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             for (ContextType context : contexts.getContext()) {
                 BigInteger contextId = context.getId();
                 String contextName = context.getContextName();
+                String contextGroup = context.getContextGroup();
                 for (ContextItemType contextItem : context.getContextItems().getContextItem()) {
                     String valueDisplay = contextItem.getValueDisplay();
                     int displayOrder = contextItem.getDisplayOrder();
@@ -180,26 +170,50 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
                     AbstractContextItemType.ValueId vc = contextItem.getValueId();
                     if (vc != null) value = Util.getEntityIdFromUrl(vc.getLink().getHref());
 
-                    annos.add(new CAPAnnotation(contextId.intValue(), expt.getExperimentId().intValue(), valueDisplay, contextName, key, value, null, "cap-context", null, displayOrder, "experiment", null));
+                    annos.add(new CAPAnnotation(contextId.intValue(), expt.getExperimentId().intValue(),
+                            valueDisplay, contextName, key, value,
+                            null, "cap-context", null, displayOrder, "experiment", null, contextGroup));
                 }
             }
         }
 
+        // lets do a first check to see if we have this experiment already
+        // 07.17.2013 - moved this block after handling assays in case an assay links to the experment
+        // and loads it in the code above.  We need to check for this experiment after handling linked assays.
+
+        int localBardExptId = -1;
+        boolean doUpdate = false;
+        try {
+            Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+            Statement query = conn.createStatement();
+            query.execute("select bard_expt_id, pubchem_aid from bard_experiment where cap_expt_id=" + expt.getExperimentId());
+            ResultSet rs = query.getResultSet();
+            while (rs.next()) {
+                localBardExptId = rs.getInt(1);
+                pubchemAid = rs.getInt(2);
+            }
+            rs.close();
+            query.close();
+            conn.close();
+            bardExptId = localBardExptId;
+            if (bardExptId != -1) doUpdate = true;
+        } catch (SQLException e) {
+        }
+        
         // ready to load in the data
         try {
 
-
             Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
-
+            String pubchemAidStr = null;
             PreparedStatement pstExpt;
             if (localBardExptId == -1) {
                 pstExpt = conn.prepareStatement(
-                        "insert into bard_experiment (bard_assay_id, cap_expt_id, category, classification, description, pubchem_aid, type, name, confidence_level) values(?,?,?,?,?,?,?,?,?)",
+                        "insert into bard_experiment (bard_assay_id, cap_expt_id, category, classification, description, pubchem_aid, type, name, confidence_level, status) values(?,?,?,?,?,?,?,?,?,?)",
                         Statement.RETURN_GENERATED_KEYS);
                 log.info("Inserting CAP experiment id " + expt.getExperimentId() + " as BARD experiment id " + localBardExptId);
             } else {
                 pstExpt = conn.prepareStatement(
-                        "update bard_experiment set bard_assay_id=?, cap_expt_id=?, category=?, classification=?, description=?, pubchem_aid=?, type=?, name=?, confidence_level=? where bard_expt_id = ?");
+                        "update bard_experiment set bard_assay_id=?, cap_expt_id=?, category=?, classification=?, description=?, pubchem_aid=?, type=?, name=?, confidence_level=?, status=? where bard_expt_id = ?");
                 log.info("Updating CAP experiment id " + expt.getExperimentId());
             }
             pstExpt.setInt(1, _CAP_ExptID_AssayID_lookup.get(exptID));
@@ -207,11 +221,16 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             pstExpt.setInt(3, -1);
             pstExpt.setInt(4, -1);
             pstExpt.setString(5, expt.getDescription());
-            pstExpt.setInt(6, Integer.parseInt(_CAP_ExptID_PubChemAID_lookup.get(exptID)));
+            pubchemAidStr = _CAP_ExptID_PubChemAID_lookup.get(exptID);
+            if(pubchemAidStr != null)
+        	pstExpt.setInt(6, Integer.parseInt(pubchemAidStr));
+            else
+        	pstExpt.setInt(6, -1);
             pstExpt.setInt(7, -1);
             pstExpt.setString(8, expt.getExperimentName());
             pstExpt.setFloat(9, (float) confLevel.intValue());
-            if (doUpdate) pstExpt.setLong(10, bardExptId);
+            pstExpt.setString(10, status);
+            if (doUpdate) pstExpt.setLong(11, bardExptId);
 
             if(doUpdate) {
                 // set the updated field even if none of the core entity fields change.
@@ -256,12 +275,12 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             // Finally we update the scores of connected assays and projects
             ScoreHandler scoreHandler = new ScoreHandler(conn);
             scoreHandler.updateScores(bardExptId);
-
+            conn.commit();
             conn.close();
 
         } catch (SQLException e) {
             e.printStackTrace();
-            log.error("Error inserting annotations for CAP expt id " + expt.getExperimentId() + "\n" + e.getMessage());
+            log.error("Error inserting/updating the experiment or related annotations (see stack trace) for CAP expt id " + expt.getExperimentId() + "\n" + e.getMessage());
         }
     }
 

@@ -38,6 +38,10 @@ public class CAPConstants {
 	return System.getProperty("BARD_DB_URL");
     }
 
+    public static String getBardBroadcastIPList() {
+	return System.getProperty("BARD_BROADCAST_IP_LIST");
+    }
+    
     public static enum CapResource {
         BARDEXPORT("application/vnd.bard.cap+xml;type=bardexport"),
         DICTIONARY("application/vnd.bard.cap+xml;type=dictionary"),

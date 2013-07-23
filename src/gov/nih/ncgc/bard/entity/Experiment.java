@@ -20,13 +20,21 @@ public class Experiment implements BardEntity {
     Long capExptId, bardAssayId, capAssayId, pubchemAid;
     int category, type, summary, assays, classification, substances, compounds, activeCompounds;
     float confidenceLevel;
-    String name, description, source, grantNo;
+    String name, description, source, grantNo, status;
     Date deposited, updated;
     Boolean hasProbe;
     List<Long> projectIdList;
     
     public Experiment() {
     	projectIdList = new ArrayList<Long>();
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public float getConfidenceLevel() {

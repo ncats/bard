@@ -43,6 +43,27 @@
         <param-value>jdbc/bardman3</param-value>
     </context-param>
 
+    <context-param>
+        <param-name>cache-management-cache-prefix-list</param-name>
+        <param-value>Assay,Experiment,Project,Biology,CompoundAnnotationCache,Ent,Panther,Probe,Protein,Pub,SearchAssay,SearchForEnt,SearchForExpt,Targets,CAPDictionary</param-value>
+    </context-param>
+
+    <!--
+    <context-param>
+        <param-name>cache-manager-cluster-nodes</param-name>
+        <param-value>10.134.20.33:5701,10.134.20.95:5701</param-value>
+    </context-param>
+    -->
+
+    <context-param>
+        <param-name>cache-manager-cluster-nodes</param-name>
+        <param-value>128.231.10.33:5701,128.231.10.95:5701</param-value>
+    </context-param>
+
+    <listener>
+        <listener-class>gov.nih.ncgc.bard.tools.BardServletContextListener</listener-class>
+    </listener>
+
     <servlet>
         <description>BARD REST Services</description>
         <display-name>BARD REST Web Services</display-name>

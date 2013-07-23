@@ -30,16 +30,16 @@ import org.slf4j.LoggerFactory;
 /**
  * This class builds BardResultType starting with a variety of input formats.
  * CapResultCapsule being one type to convert.
- * 
+ *
  * The initialize method is to prepare for an experiment load.
- * Iterative calls to processCapResult return a BardExptDataResponse for each 
+ * Iterative calls to processCapResult return a BardExptDataResponse for each
  * CapResult (collection of results for a tested substance)
- * 
+ *
  * @author braistedjc
  *
  */
 public class BardResultFactory {
-    
+
     // Element categories, these help to identify key element ids
     private Vector <Integer> highPriorityDataElemV;
     private Vector <Integer> lowPriorityDataElemV;
@@ -51,7 +51,7 @@ public class BardResultFactory {
     // The returned response object, class level to prevent building multiple references.
     private BardExptDataResponse response;
     private BardResultType tempBardResult;
-    // a utility list of BardResultType objects that help to 
+    // a utility list of BardResultType objects that help to
     // fully traverse without having to cover hierarchy
     private ArrayList <BardResultType> resultList;
 
@@ -62,10 +62,10 @@ public class BardResultFactory {
     private Contexts exptContexts;
 
     private String exptConcUnit = null;
-    
+
     private Integer attrId;
     private boolean haveConcAttr;
-    
+
     private CAPDictionary dictionary;
     private Logger log;
     /**
@@ -75,7 +75,7 @@ public class BardResultFactory {
 	log = LoggerFactory.getLogger(this.getClass());
 	initPriorityVectors();
     }
-    
+
     /*
      * Collects vector elements from Constants class. These help to identify key result types.
      * Heuristics are require to identify the result format (SP, CR)
@@ -83,17 +83,17 @@ public class BardResultFactory {
     private void initPriorityVectors() {
 	dictionary = null;
 	fetchLatestDictionaryFromWarehouse(CAPConstants.getBardDBJDBCUrl());
-	
+
 	highPriorityDataElemV = new Vector <Integer>();
 	for(Integer elem : Constants.HIGH_PRIORITY_DICT_ELEM) {
 	    highPriorityDataElemV.add(elem);
 	}
-	
+
 	lowPriorityDataElemV = new Vector <Integer>();	
 	for(Integer elem : Constants.LOW_PRIORITY_DATA_ELEM) {
 	    lowPriorityDataElemV.add(elem);
 	}
-	
+
 	curveFitParameterElemV = new Vector <Integer>();
 	for(Integer elem : Constants.FIT_PARAM_DICT_ELEM) {
 	    curveFitParameterElemV.add(elem);
@@ -119,23 +119,23 @@ public class BardResultFactory {
 	    }
 	}
     }
-    
-    
+
+
     public void initialize(Long bardExptId, Long capExptId, Long bardAssayId, Long capAssayId,
 	    ArrayList <ArrayList<Long>> projectIdList, Contexts contexts, Integer responseType,
 	    Double exptScreeningConc, String exptScreeningConcUnit) {
-	
+
 	response = new BardExptDataResponse();
 	response.setResponseType(responseType);
-	
+
 	response.setBardExptId(bardExptId);
 	response.setBardAssayId(bardAssayId);
 	response.setCapExptId(capExptId);
 	response.setCapAssayId(capAssayId);
-	
+
 	response.setExptConcUnit(exptScreeningConcUnit);
 	response.setExptScreeningConc(exptScreeningConc);
-	
+
 	for (ArrayList<Long> projIds :projectIdList) {
 	    if(projIds.size() == 2) {
 		response.addProjectPair(projIds.get(0), projIds.get(1));
@@ -143,19 +143,17 @@ public class BardResultFactory {
 		response.addProjectPair(projIds.get(0), null);
 	    }
 	}
-	
-	
-	
+
 	resultList = new ArrayList <BardResultType>();
-	
+
 	//provide context for the experiment
 	exptContexts = contexts;
-	
-	processCnt = 0;		
-    }
- 
 
-    
+	processCnt = 0;	
+    }
+
+
+
     public BardExptDataResponse processCapResult(CAPExperimentResult result) {
 	//clear the result data
 	response.getPriorityElements().clear();
@@ -168,7 +166,7 @@ public class BardResultFactory {
 	//set the sid for the response
 	response.setSid(result.getSid());
 
-	//build the basic response structure, note that this also builds the simple list of results 
+	//build the basic response structure, note that this also builds the simple list of results
 	buildBasicResponseFromCapResult(result);
 
 	// Typically the result type is determined during initialization
@@ -186,18 +184,18 @@ public class BardResultFactory {
 	//separate priority elements
 	ArrayList <BardResultType> priElems = new ArrayList <BardResultType>();
 	for(BardResultType resultElem : response.getRootElements()) {
-	    if(resultElem.getDictElemId() != null) { 
+	    if(resultElem.getDictElemId() != null) {
 		if(this.highPriorityDataElemV.contains(resultElem.getDictElemId())) {
 		    priElems.add(resultElem);
-		} else if(response.getResponseType() == 0
+		} else if((response.getResponseType() == BardExptDataResponse.ResponseClass.SP.ordinal() || response.getResponseType() == BardExptDataResponse.ResponseClass.MULTCONC.ordinal())
 			&& this.efficacyDataElemV.contains(resultElem.getDictElemId())) {
 		    priElems.add(resultElem);
 		} else if(response.getResponseType() == BardExptDataResponse.ResponseClass.CR_SER.ordinal()
 			|| response.getResponseType() == BardExptDataResponse.ResponseClass.CR_NO_SER.ordinal()) {
 		    if(this.potencyDataElemV.contains(resultElem.getDictElemId())) {
 			priElems.add(resultElem);
-		    }			
-		}			
+		    }	
+		}	
 	    }
 	}
 
@@ -211,11 +209,11 @@ public class BardResultFactory {
 
 	return response;
     }
-    
+
     public BardExptDataResponse buildBasicResponseFromCapResult(CAPExperimentResult capResult) {
-		
+
 	response.setSid(capResult.getSid());
-	
+
 	BardResultType bardResult;
 	//create root elements
 	for(CAPResultMeasure capsule : capResult.getRootElem()) {
@@ -227,10 +225,10 @@ public class BardResultFactory {
 	    //traverse to add children
 	    processChildren(capsule, bardResult);
 	}
-	
+
 	return response;	
     }
-    
+
     /*
      * Recursive method to process children
      */
@@ -244,12 +242,12 @@ public class BardResultFactory {
 	    //process the children of the child if any
 	    processChildren(child, tempBardResult);
 	}
-	
+
 	for(CAPMeasureContextItem item : capResult.getContextItems()) {
 	    processContextItem(item, bardResult);
 	}
     }
-    
+
     private void processContextItem(CAPMeasureContextItem item, BardResultType bardResult) {
 	//context items either lead to children OR if 971's we have to grab the test conc.
 	attrId = item.getAttributeId();
@@ -258,32 +256,32 @@ public class BardResultFactory {
 	//rather than children.
 	if(attrId != null) {
 	    if(attrId == 971) {
-		bardResult.setTestConc(item.getValueNum()); 
+		bardResult.setTestConc(item.getValueNum());
 		bardResult.setTestConcUnit("uM");
 		haveConcAttr = true;
 	    } else if(attrId == 1950) {
-		bardResult.setTestConc(item.getValueNum()); 
+		bardResult.setTestConc(item.getValueNum());
 		bardResult.setTestConcUnit("mg/ml");
 		haveConcAttr = true;
 	    } else if(attrId == 1949) {
-		bardResult.setTestConc(item.getValueNum()); 
+		bardResult.setTestConc(item.getValueNum());
 		bardResult.setTestConcUnit("% (vol.)");
 		haveConcAttr = true;
 	    } else if(attrId == 1948) {
-		bardResult.setTestConc(item.getValueNum()); 
+		bardResult.setTestConc(item.getValueNum());
 		bardResult.setTestConcUnit("% (mass)");
 		haveConcAttr = true;
 	    } else if(attrId == 1943) {
-		bardResult.setTestConc(item.getValueNum()); 
+		bardResult.setTestConc(item.getValueNum());
 		haveConcAttr = true;
-	    }	 	    
-	} 
+	    }	
+	}
 	//if it's not a concentration, add it as a child
 	if(!haveConcAttr) {
 	    bardResult.addChildResult(buildResultTypeFromContextItem(item));
 	}
     }
-    
+
     private BardResultType buildResultTypeFromContextItem(CAPMeasureContextItem contextItem) {
 	BardResultType bardResult = new BardResultType();
 	bardResult.setDictElemId(contextItem.getAttributeId());
@@ -291,27 +289,30 @@ public class BardResultFactory {
 	bardResult.setValue((contextItem.getValueNum() != null) ? contextItem.getValueNum().toString() : contextItem.getValueDisplay());
 	bardResult.setExtValueId(contextItem.getExtValueId());
 	bardResult.setValueMin(contextItem.getValueMin());
-	bardResult.setValueMax(contextItem.getValueMax());	
-	bardResult.setQualifierValue(contextItem.getQualifier());
+	bardResult.setValueMax(contextItem.getValueMax());
+	if(contextItem.getQualifier() != null && !contextItem.getQualifier().equals("="))
+	    bardResult.setQualifierValue(contextItem.getQualifier());
 	return bardResult;
     }
-    
+
     private BardResultType buildResultTypeFromCapResultCapsule(CAPResultMeasure capResult) {	
 	BardResultType result = new BardResultType();	
 	//result type ID, dictionary id
 	result.setDictElemId(capResult.getResultTypeId());
 	//result type, dictionary label from cap
 	result.setDisplayName(capResult.getResultType());
-	//set value as the numeric value, or if numeric value is null, set to display value 
+	//set value as the numeric value, or if numeric value is null, set to display value
 	result.setValue((capResult.getValueNum() != null) ? Double.toString(capResult.getValueNum()) : capResult.getValueDisplay());
 	//take care of qualifier
 	dummyStr = capResult.getQualifier();
 	if(dummyStr != null && !dummyStr.equals("="))
-	    result.setQualifierValue(capResult.getQualifier());	
+	    result.setQualifierValue(capResult.getQualifier());
+	//set stats modifier id
+	result.setStatsModifierId(capResult.getStatsModifierId());
 	return result;
     }
-    
-    
+
+
     private void evaluateResponseType() {
 	//check concentration response
 	boolean haveType = false;
@@ -321,13 +322,13 @@ public class BardResultFactory {
 	    if(haveConcResponse(result)) {
 		//have a series, is the series in a root element
 		//could check but the root might be a mean XX50 measurement
-		response.setResponseType(BardExptDataResponse.ResponseClass.CR_SER.ordinal());		
+		response.setResponseType(BardExptDataResponse.ResponseClass.CR_SER.ordinal());	
 		haveType = true;
 		if(result.getTestConc() != null)
 		    concentrations.add(result.getTestConc());
 	    }
 	}
-	
+
 	//try to get concentrations from the results first, if we have the type we have the conc already from c/r
 	if(!haveType) {
 	    for(BardResultType result : resultList) {
@@ -336,15 +337,15 @@ public class BardResultFactory {
 		}
 	    }
 	}
-	
+
 	//concentrations array should have test concentrations
 	//if not * check for experiment context for screening concentration(s)
 	Double concCnt = -1d;
 	if(concentrations.size() == 0) {
 	    concCnt = resolveConcFromExperimentContext(concentrations);
-	    
+
 	}
-	
+
 	//check for single point, one test concentration, have efficacy
 	if(!haveType) {
 	    if(concentrations.size() == 1 || (concCnt != null && concCnt == 1)) {
@@ -364,14 +365,14 @@ public class BardResultFactory {
 			    //System.out.println("Set to UNCLASS"+ " sid="+response.getSid()+" size="+response.getRootElements().size());
 			    //unclass is fall through
 			    response.setResponseType(BardExptDataResponse.ResponseClass.UNCLASS.ordinal());
-			}			
-		    }	 
+			}	
+		    }	
 		}
 	    } else if(concentrations.size() > 1 || concentrations.size() == 0) {
-		//have more than one concentration but no structure 
+		//have more than one concentration but no structure
 		//the ec50 doesn't have concentration points as children
 		//or we have multiple concentrations but no ec50
-		
+
 		//if we have an AC50 we have CR_NO_SER, going to permit no concentrations
 		//have XX50
 		for(BardResultType result : response.getRootElements()) {
@@ -381,18 +382,18 @@ public class BardResultFactory {
 			haveXX50 = true;
 		    }
 		}
-		
+
 		//have multiple concentrations but tno AC50 in root, type = MULTCONC
 		if(concentrations.size() > 1 && !haveType && !haveXX50) {
-		    response.setResponseType(BardExptDataResponse.ResponseClass.MULCONC.ordinal());
+		    response.setResponseType(BardExptDataResponse.ResponseClass.MULTCONC.ordinal());
 		    haveType = true;
 		}
-		
+
 		if(!haveType) {
-		  //fall through type = UNCLASS (2)
+		    //fall through type = UNCLASS (2)
 		    response.setResponseType(BardExptDataResponse.ResponseClass.UNCLASS.ordinal());
 		}
-		
+
 	    } else {
 		//fall through type = UNCLASS (2)
 		//System.out.println("unclass fall through");
@@ -400,12 +401,12 @@ public class BardResultFactory {
 	    }
 	}
     }
-    
-    
+
+
     /*
      * Deeply nested info... single point results tend to have the single concentration value
      * set at the experiment level.
-     * 
+     *
      * Even if we can't find a concentration, we look for a 650 element which is a concentration count.
      */
     private Double resolveConcFromExperimentContext(HashSet <Double> concentrations) {
@@ -416,7 +417,7 @@ public class BardResultFactory {
 	Integer concLinkId;
 	String concUnit = null;
 	//try to add the concentration for this one
-	if(exptContexts != null)  {
+	if(exptContexts != null) {
 	    for(ContextType item : exptContexts.getContext()) {
 		ContextItems ci = item.getContextItems();
 		if(ci != null) {
@@ -444,10 +445,10 @@ public class BardResultFactory {
 					    concUnit = "% (mass)";
 					} else if(concLinkId == 1943) {
 					    concUnit = "Unspecified";
-					}					
+					}	
 				    }
 				}
-			    }			    
+			    }	
 			} else if(concCnt == null) {
 			    link = type.getAttributeId().getLink();
 			    if(link != null) {
@@ -466,16 +467,16 @@ public class BardResultFactory {
 		}
 	    }
 	}
-	
+
 	//if there is one screening concentration, set the experiment level info
 	if(concentrations.size() == 1) {
 	    response.setExptScreeningConc(concentrations.iterator().next());
 	    response.setExptConcUnit(concUnit);
 	}
-	
+
 	return concCnt;
     }
-    
+
     private Integer getLinkId(String href) {
 	if(href == null) {
 	    return null;
@@ -492,7 +493,7 @@ public class BardResultFactory {
 	}	
 	return id;
     }
-    
+
     /*
      * Checks for C/R
      */
@@ -501,14 +502,14 @@ public class BardResultFactory {
 
 	if(bardResultType.getChildElements() == null || bardResultType.getChildElements().size() < 1)
 	    return false;
-	
+
 	dictElemId = bardResultType.getDictElemId();
-	
+
 	//special case, activity response elements with children are mean values of their child elements
 	//refine to use mean modifier.
 	if(dictElemId != null && (dictElemId == 986 || dictElemId == 982 ||bardResultType.getTestConc() != null))
-		return false;
-	
+	    return false;
+
 	dictElemId = -1;
 	boolean haveActivityMeasure = false;
 	HashSet <Double> concentrations = new HashSet <Double>();
@@ -520,57 +521,58 @@ public class BardResultFactory {
 		if(result.getTestConc() != null) {
 		    concentrations.add(result.getTestConc());
 		}
-	    }	    
+	    }	
 	}
 	return (haveActivityMeasure && concentrations.size() > 1);
     }
-    
-    
+
+
     private void createConcResponseObjects() {
 	ArrayList <BardResultType> crPointsList;
 	ArrayList <BardResultType> parameterList;
 	for(BardResultType result : resultList) {
 	    if(haveConcResponse(result)) {
-		//create new lists 
+		//create new lists
 		crPointsList = new ArrayList <BardResultType>();
 		parameterList = new ArrayList <BardResultType>();
-		
+
 		//have a node, create a new series object
 		BardConcResponseSeries series = new BardConcResponseSeries();
-		
+
 		//set the series for the parent result
 		result.setConcResponseSeries(series);
 		series.setParentElement(result);
 		for(BardResultType child : result.getChildElements()) {
-		    if(child.getTestConc() != null) {
+		    //we don't want to rope in the separate max concenetration elements here.
+		    if(child.getTestConc() != null && child.getStatsModifierId() == null) {
 			crPointsList.add(child);
-		    } else if(child.getDictElemId() != null 
+		    } else if(child.getDictElemId() != null
 			    && this.curveFitParameterElemV.contains(child.getDictElemId())) {
 			parameterList.add(child);
-		    }		    
+		    }	
 		}
-		
+
 		//set the lists
 		series.setConcRespPoints(crPointsList);
 		series.setParameterList(parameterList);
-		
+
 		//remove these lists from child array
 		result.getChildElements().removeAll(crPointsList);
 		result.getChildElements().removeAll(parameterList);
-		
+
 		//initialize the values for display
-		series.initializeForDisplay();	   
-		
+		series.initializeForDisplay();	
+
 		//get the parameters
 		try {
 		    series.reconcileParameters(logXx50ParameterElemV, potencyDataElemV);
 		} catch (Exception e) {
 		    e.printStackTrace();
-		}		
+		}	
 	    }
 	}
     }
-    
+
     /*
      * Sets core values like score, outomce, and potency (when available)
      */
@@ -587,13 +589,13 @@ public class BardResultFactory {
 	response.setOutcome(null);
 	response.setPotency(null);
 	response.setScore(null);
-	
+
 	for(int i = 0; i < resultList.size() && !(haveOutcome && havePotency && haveScore); i++) {
 	    tempBardResult = resultList.get(i);
-	    
+
 	    dictId = tempBardResult.getDictElemId();
 
-	    if(dictId != null) {		
+	    if(dictId != null) {	
 		if(!havePotency && potencyDataElemV.contains(tempBardResult.getDictElemId())) {
 		    havePotency = true;
 		    try {
@@ -601,19 +603,19 @@ public class BardResultFactory {
 			    response.setPotency(Double.parseDouble(tempBardResult.getValue()));
 			}
 		    } catch (NumberFormatException nfe) {
-			response.setPotency(null);		    
-		    }		
+			response.setPotency(null);	
+		    }	
 		} else if(dictId == 896) {
 		    haveOutcome = true;
 		    outcome = tempBardResult.getValue();
-		    
+
 		    if(outcome.equalsIgnoreCase("Inactive"))
 			outcomeIndex = 1;
 		    else if(outcome.equalsIgnoreCase("Active"))
 			outcomeIndex = 2;
 		    else if(outcome.equalsIgnoreCase("Inconclusive"))
 			outcomeIndex = 3;
-		    else if(outcome.equalsIgnoreCase("Unspecified"))    
+		    else if(outcome.equalsIgnoreCase("Unspecified"))
 			outcomeIndex = 4;
 		    else if(outcome.equalsIgnoreCase("Probe"))
 			outcomeIndex = 5;
@@ -622,10 +624,10 @@ public class BardResultFactory {
 			try {
 			    outcomeIndex = 6;
 			    //see if this works
-			    outcomeIndex = (int)(Double.parseDouble(outcome));				
+			    outcomeIndex = (int)(Double.parseDouble(outcome));	
 			} catch (NumberFormatException nfe) {
 			    continue; //quietly
-			}		    
+			}	
 		    }
 		    response.setOutcome(outcomeIndex);
 		} else if(dictId == 898) {
@@ -635,16 +637,16 @@ public class BardResultFactory {
 			response.setScore(score);
 		    } catch (NumberFormatException nfe) {
 			response.setScore(null);
-		    }			    
-		}		
+		    }	
+		}	
 	    }
 	}
     }
 
     public ArrayList<BardResultType> getResultList() {
-        return resultList;
-    }   
-    
+	return resultList;
+    }
+
     public Vector <Integer> getPotencyElements() {
 	Vector <Integer> potElemV = new Vector<Integer>();
 	Set <CAPDictionaryElement> children = dictionary.getChildren(BigInteger.valueOf(942l));
@@ -655,11 +657,11 @@ public class BardResultFactory {
 	    gchildren = dictionary.getChildren(child.getElementId());
 	    if(gchildren != null) {
 		for(CAPDictionaryElement gchild: gchildren) {
-		    potElemV.add(new Integer(gchild.getElementId().intValue()));	  
+		    potElemV.add(new Integer(gchild.getElementId().intValue()));	
 		    ggchildren = dictionary.getChildren(gchild.getLabel());
 		    if(ggchildren != null) {
 			for(CAPDictionaryElement ggchild: ggchildren) {
-			    potElemV.add(new Integer(ggchild.getElementId().intValue()));	  
+			    potElemV.add(new Integer(ggchild.getElementId().intValue()));	
 			}
 		    }
 		}
@@ -667,7 +669,7 @@ public class BardResultFactory {
 	}
 	return potElemV;
     }
-    
+
     /*
      * Returns grandchildren and great grandchildren under 'response endpoint'
      */
@@ -676,17 +678,17 @@ public class BardResultFactory {
 	Set <CAPDictionaryElement> children = dictionary.getChildren(BigInteger.valueOf(972l));
 	Set <CAPDictionaryElement> gchildren;
 	Set <CAPDictionaryElement> ggchildren;	
-	
+
 	for(CAPDictionaryElement child : children) {
 	    effElemV.add(new Integer(child.getElementId().intValue()));
 	    gchildren = dictionary.getChildren(child.getElementId());
 	    if(gchildren != null) {
 		for(CAPDictionaryElement gchild: gchildren) {
-		    effElemV.add(new Integer(gchild.getElementId().intValue()));	  
+		    effElemV.add(new Integer(gchild.getElementId().intValue()));	
 		    ggchildren = dictionary.getChildren(gchild.getLabel());
 		    if(ggchildren != null) {
 			for(CAPDictionaryElement ggchild: ggchildren) {
-			    effElemV.add(new Integer(ggchild.getElementId().intValue()));	  
+			    effElemV.add(new Integer(ggchild.getElementId().intValue()));	
 			}
 		    }
 		}
@@ -694,24 +696,24 @@ public class BardResultFactory {
 	}
 	return effElemV;
     }
-    
+
     public boolean fetchLatestDictionaryFromWarehouse(String dbURL) {
- 	boolean haveIt = false;
- 	try { 	   
- 	    dictionary = getCAPDictionary(dbURL);
- 	    haveIt = true;
- 	} catch (SQLException e) {
- 	    e.printStackTrace();
- 	    return false;
- 	} catch (IOException e) {
- 	    e.printStackTrace();
- 	    return false;
- 	} catch (ClassNotFoundException e) {
- 	    e.printStackTrace();
- 	    return false;
- 	}
- 	return haveIt;
-     }
+	boolean haveIt = false;
+	try {
+	    dictionary = getCAPDictionary(dbURL);
+	    haveIt = true;
+	} catch (SQLException e) {
+	    e.printStackTrace();
+	    return false;
+	} catch (IOException e) {
+	    e.printStackTrace();
+	    return false;
+	} catch (ClassNotFoundException e) {
+	    e.printStackTrace();
+	    return false;
+	}
+	return haveIt;
+    }
 
     public CAPDictionary getCAPDictionary(String dbURL)
 	    throws SQLException, IOException, ClassNotFoundException {

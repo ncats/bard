@@ -22,6 +22,9 @@
         <fileset dir="${bard.lib}/solr">
             <include name="*.jar"/>
         </fileset>
+        <fileset dir="${bard.lib}/hazel_lib">
+            <include name="*.jar"/>
+        </fileset>
     </path>
 
     <path id="run.classpath">
@@ -155,6 +158,8 @@
               tofile="${bard.explode.dir}/WEB-INF/lib/jackson-databind-2.1.4.jar"/>
         <copy file="${bard.lib}/plugin/guava-14.0.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/guava-14.0.jar"/>
+        <copy file="${bard.lib}/hazel_lib/hazelcast-all-2.6.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/hazelcast-all-2.6.jar"/>
         <!--Move compiled classes into WEB-INF-->
         <copy todir="${bard.explode.dir}/WEB-INF/classes">
             <fileset dir="${bard.build}/" excludes="**/service/* **/plugin/* **/rest/*Plugin*"/>
@@ -178,7 +183,35 @@
             </fileset>
         </jar>
     </target>
-
+    
+    <property name="bard.mgr.bin.dir" value="bin"/>
+    <property name="bard.mgr.deploy" value="deploy_mgr"/>
+    <property name="bard.mgr.stage" value="deploy_stage_mgr"/>	
+    <property name="mgr.war.filename" value="${bard.mgr.deploy}/bard_mgr.war"/>
+	<target name='war-manager'>
+        <mkdir dir="${bard.mgr.deploy}"/>
+        <mkdir dir="${bard.mgr.stage}"/>
+		<mkdir dir="${bard.mgr.stage}/WEB-INF"/>
+		<mkdir dir="${bard.mgr.stage}/WEB-INF/classes/"/>
+		<mkdir dir="${bard.mgr.stage}/WEB-INF/lib"/>
+		
+		<copy file="${bard.lib}/mysql-connector-java-5.1.19-bin.jar" todir="${bard.mgr.stage}/WEB-INF/lib"/>
+		<copy todir="${bard.mgr.stage}/WEB-INF/classes">
+			<fileset dir="${bard.mgr.bin.dir}" casesensitive="yes">
+				<include name="gov/nih/ncgc/bard/resourcemgr/**/*"/>
+			</fileset>
+		</copy>
+		
+        <jar destfile="${mgr.war.filename}" duplicate="preserve">
+            <manifest>
+                <attribute name="Created-By" value="NCGC"/>
+                <attribute name="Manifest-Version" value="1.0"/>
+            </manifest>
+            <fileset dir="${bard.mgr.stage}" casesensitive="yes">
+                <include name="**/*"/>
+            </fileset>
+        </jar>
+    </target>
     
     <!-- ############################################################################
     ##

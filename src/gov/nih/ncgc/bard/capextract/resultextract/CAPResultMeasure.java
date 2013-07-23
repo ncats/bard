@@ -25,7 +25,7 @@ public class CAPResultMeasure {
     private Long resultId;  
     private String valueDisplay;
     private String qualifier;
-    private Long statsModifierId;
+    private Integer statsModifierId;
     private ArrayList <CAPMeasureContextItem> contextItems;
     private ArrayList <CAPResultMeasure> related;
     
@@ -91,10 +91,10 @@ public class CAPResultMeasure {
     public void setRelated(ArrayList<CAPResultMeasure> related) {
         this.related = related;
     }
-    public Long getStatsModifierId() {
+    public Integer getStatsModifierId() {
         return statsModifierId;
     }
-    public void setStatsModifierId(Long statsModifierId) {
+    public void setStatsModifierId(Integer statsModifierId) {
         this.statsModifierId = statsModifierId;
     }
 

@@ -150,13 +150,13 @@ public class BardDBManager {
 	    dbLogId = BardDBUpdateLogger.logStart("Fetch Files for command= "+command);
 	    BardResourceFetch fetch = new BardResourceFetch();
 	    haveFiles = fetch.fetchKEGGDiseaseFile(managerProps);
-	    if(haveFiles) {
-		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch for commnad="+command);
-		dbLogId = BardDBUpdateLogger.logStart("Update command= "+command);					
-		BardKeggLoader keggLoader = new BardKeggLoader();
-		updateCnt = keggLoader.loadKeggDisease(managerProps.getProperty("bard.loader.scratch.dir")+"/KEGG-Disease/"+managerProps.getProperty("kegg.disease.filename"));
-		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished KEGG Disease Update. New gene to disease mapping count ="+updateCnt);
-	    }
+//	    if(haveFiles) {
+//		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished File Fetch for commnad="+command);
+//		dbLogId = BardDBUpdateLogger.logStart("Update command= "+command);					
+//		BardKeggLoader keggLoader = new BardKeggLoader();
+//		updateCnt = keggLoader.loadKeggDisease(managerProps.getProperty("bard.loader.scratch.dir")+"/KEGG-Disease/"+managerProps.getProperty("kegg.disease.filename"));
+//		BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished KEGG Disease Update. New gene to disease mapping count ="+updateCnt);
+//	    }
 	} else if (command.equals(KEGG_DISEASE_TO_ASSAY_ANN)) {
 //	    BardAssayAnnotationLoader loader = new BardAssayAnnotationLoader();
 //	    loader.loadKEGGDiseaseToTempAssayAnn(false);

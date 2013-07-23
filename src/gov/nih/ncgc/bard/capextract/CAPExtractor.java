@@ -70,7 +70,13 @@ public class CAPExtractor {
     }
 
     public void run() throws IOException, NoSuchAlgorithmException {
-        registry.getHandler(CAPConstants.CapResource.BARDEXPORT).process(CAPConstants.CAP_ROOT, CAPConstants.CapResource.BARDEXPORT);
+        ICapResourceHandler bardExportHandler = registry.getHandler(CAPConstants.CapResource.BARDEXPORT);
+        //process all entities under the root
+        bardExportHandler.process(CAPConstants.CAP_ROOT, CAPConstants.CapResource.BARDEXPORT);
+        //set global bard update time
+        bardExportHandler.updateGlobalBardUpdateTime();
+        //signal to flush cache
+        bardExportHandler.signalFlushRestCache();
     }
 
     public void poll() throws IOException {
@@ -156,7 +162,12 @@ public class CAPExtractor {
 	
 	return load;
     }
-
+    
+    public void updateGlobalBardUpdateTime() {
+        ICapResourceHandler bardExportHandler = registry.getHandler(CAPConstants.CapResource.BARDEXPORT);
+        bardExportHandler.updateGlobalBardUpdateTime();
+    }
+    
     public static void main(String[] args) throws Exception {
 
 	CAPExtractor c = new CAPExtractor();
@@ -174,14 +185,17 @@ public class CAPExtractor {
 	    // returns true if state was IDLE and the lock is set and state set to LOADING, Ready to load
 
 	    if(c.evaluateAndSetLoadLockState(args[0], true)) {
+//        if (true) {
 		// before running the extractor, lets set our handlers
 		c.setHandlers();
 		// lets start pulling
-		c.run();	    
+		c.run();	
 		// set the load state back to IDLE at the end of the load
 //		c.evaluateAndSetLoadLockState(args[0], false);
 	    } 
 	} catch (Exception e) {
+	    //need to set the global update time in the DB IF we fall out of the load wit error/exception!
+	    c.updateGlobalBardUpdateTime();
 	    // on any terminal error set load state to IDLE
 //	    c.evaluateAndSetLoadLockState(args[0], false);
 	    e.printStackTrace();

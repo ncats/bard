@@ -1,7 +1,17 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import gov.nih.ncgc.bard.capextract.*;
-import gov.nih.ncgc.bard.capextract.jaxb.*;
+import gov.nih.ncgc.bard.capextract.CAPAnnotation;
+import gov.nih.ncgc.bard.capextract.CAPConstants;
+import gov.nih.ncgc.bard.capextract.CAPDictionary;
+import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
+import gov.nih.ncgc.bard.capextract.CAPUtil;
+import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.Assay;
+import gov.nih.ncgc.bard.capextract.jaxb.AssayContexType;
+import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItemType;
+import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
+import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.entity.Biology;
 import gov.nih.ncgc.bard.tools.Util;
 import nu.xom.ParsingException;
@@ -9,7 +19,11 @@ import nu.xom.ParsingException;
 import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -138,7 +152,8 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                     }
 
                     // add annotation for document back to assay
-                    annos.add(new CAPAnnotation(docId, assay.getAssayId().intValue(), docName, docType, "doc", docContent, docContent, "cap-doc", null, 0, "assay", null));
+                    annos.add(new CAPAnnotation(docId, assay.getAssayId().intValue(), docName,
+                            docType, "doc", docContent, docContent, "cap-doc", null, 0, "assay", null, null));
 
                 }
             }
@@ -187,7 +202,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             if (parent != null) related += "|parentMeasure:" + parent;
 
             annos.add(new CAPAnnotation(m.getMeasureId().intValue(), assay.getAssayId().intValue(),
-                    displayName, null, keyId, valueId, null, "cap-measure", null, 0, "assay", related));
+                    displayName, null, keyId, valueId, null, "cap-measure", null, 0, "assay", related, null));
         }
 
         CAPDictionary dict = CAPConstants.getDictionary();
@@ -197,6 +212,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         List<AssayContexType> contexts = assay.getAssayContexts() != null ? assay.getAssayContexts().getAssayContext() : new ArrayList<AssayContexType>();
         for (AssayContexType context : contexts) {
             String contextName = context.getContextName();
+            String contextGroup = context.getContextGroup();
             int contextId = context.getAssayContextId().intValue();
 
             // a context (ie annotation group) can refer to one or more measures (via measureRef tags)
@@ -251,7 +267,9 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 }
 
                 System.out.println(valueDisplay+" "+key+" "+valueUrl);
-                annos.add(new CAPAnnotation(contextId, assay.getAssayId().intValue(), valueDisplay, contextName, key, value, extValueId, "cap-context", valueUrl, displayOrder, "assay", related));
+                annos.add(new CAPAnnotation(contextId, assay.getAssayId().intValue(), valueDisplay,
+                        contextName, key, value,
+                        extValueId, "cap-context", valueUrl, displayOrder, "assay", related, contextGroup));
 
             }
         }
@@ -399,7 +417,8 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             conn.commit();
             deletePst.close();
             // Load in the new ones
-            PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order) values(?,'assay',?,?,?,?,?,?,?,?,?,?)");
+            PreparedStatement pstAssayAnnot = conn.prepareStatement("insert into cap_annotation (source, entity, entity_id, anno_id, anno_key, anno_value, anno_value_text, anno_display, context_name, related, url, display_order, context_group) " +
+                    " values(?,'assay',?,?,?,?,?,?,?,?,?,?,?)");
             for (CAPAnnotation anno : annos) {
                 pstAssayAnnot.setString(1, anno.source);
                 pstAssayAnnot.setInt(2, bardAssayId);
@@ -412,6 +431,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 pstAssayAnnot.setString(9, anno.related); // put into related field
                 pstAssayAnnot.setString(10, anno.url);
                 pstAssayAnnot.setInt(11, anno.displayOrder);
+                pstAssayAnnot.setString(12, anno.contextGroup);
                 pstAssayAnnot.addBatch();
             }
             int[] updateCounts = pstAssayAnnot.executeBatch();
@@ -512,7 +532,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                     GO ID  (1504) (this is going to be renamed "GO gene product ID")
             */
             List<Integer> targetDictIds = Arrays.asList(new Integer[]{
-                    1419, 885, 1795, 880, 881, 882, 883, 1398, 1504
+                    525, 507, 1419, 885, 1795, 880, 881, 882, 883, 1398, 1504
             });
             for (AssayContextItemType contextItem : context.getAssayContextItems().getAssayContextItem()) {
                 AbstractContextItemType.AttributeId attrid = contextItem.getAttributeId();

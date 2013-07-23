@@ -1,12 +1,5 @@
 package gov.nih.ncgc.bard.tools;
 
-import chemaxon.formats.MolFormatException;
-import chemaxon.formats.MolImporter;
-import chemaxon.struc.Molecule;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.Lists;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
@@ -31,13 +24,7 @@ import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.search.SearchUtil;
 import gov.nih.ncgc.bard.search.SolrField;
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Element;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -65,6 +52,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.Vector;
+
+import javax.sql.DataSource;
+
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Element;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import chemaxon.formats.MolFormatException;
+import chemaxon.formats.MolImporter;
+import chemaxon.struc.Molecule;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
 
 
 
@@ -94,11 +100,12 @@ public class DBUtils {
 
     static final int MAX_CACHE_SIZE = 10000;
     static final CacheManager cacheManager = CacheManager.getInstance();
-
+    
     static synchronized Cache getCache (String name) {
         String cacheName = CACHE_PREFIX+"::"+name;
 
         Cache cache = cacheManager.getCache(cacheName);
+        
         if (cache == null) {
             cache = new Cache (cacheName,
                                MAX_CACHE_SIZE,
@@ -112,7 +119,46 @@ public class DBUtils {
         }
         return cache;
     }
+    
+    
+    
+    /*******
+     * Cache Flush Handling methods (2)
+     */
+    static CacheFlushManager cacheFlushManager;
+    static Vector <String> flushCachePrefixNames = null;
 
+    /**
+     * Initializes the list of cache prefixes to manage
+     * This is only called when the container is initialized.
+     * 
+     * @param cachePrefixListCSV comma delimited list of cache prefixes;
+     * @param cacheFlustCheckIntervalSeconds seconds between polling the cache state
+     */
+    static public void initializeManagedCaches(String cachePrefixListCSV, String cacheClusterNodes) {
+	cacheFlushManager = new CacheFlushManager(cacheManager);
+
+	//make the list of cache prefixes
+	flushCachePrefixNames = new Vector<String>();
+	String [] cachePrefixes = cachePrefixListCSV.split(",");
+	for(String cachePrefix : cachePrefixes) {
+	    flushCachePrefixNames.add(cachePrefix.trim());
+	}
+
+	//put the cache under management control
+	//if the prefix names are empty or just one (empty string), set flush all boolean	
+	cacheFlushManager.manage(flushCachePrefixNames, cacheClusterNodes, (flushCachePrefixNames.size() < 2));
+    }
+    
+    /**
+     * Called to shutdown cache management. This is typically called when the container is
+     * destroyed to shutdown the manager gracefully.
+     */
+    static public void shutdownCacheFlushManager() {
+	cacheFlushManager.shutdown();
+    }
+
+    
     static private String datasourceContext = "jdbc/bardman3";
     static public void setDataSourceContext (String context) {
         if (context == null) {
@@ -132,7 +178,7 @@ public class DBUtils {
     }
 
 
-    Logger log;
+    static Logger log;
     Connection conn = null;
     Map<Class, Query> fieldMap;
     SecureRandom rand = new SecureRandom();
@@ -2230,6 +2276,7 @@ public class DBUtils {
         e.setHasProbe(rs.getBoolean("have_probe"));
         e.setPubchemAid(rs.getLong("pubchem_aid"));
         e.setConfidenceLevel(rs.getFloat("confidence_level"));
+        e.setStatus(rs.getString("status"));
 
         e.setActiveCompounds(getExperimentCidCount(e.getBardExptId(), true));
 
@@ -4991,7 +5038,7 @@ public class DBUtils {
                     "keggdiseaseid", diseaseId,
                     diseaseId, "KEGG",
                     url, -1, entity,
-                    diseaseCat);
+                    diseaseCat, null);
             annos.add(anno);
         }
         return annos;
@@ -5031,7 +5078,7 @@ public class DBUtils {
                     "goid", goid,
                     goid, "GO",
                     "http://amigo.geneontology.org/cgi-bin/amigo/term_details?term=" + goid, -1, entity,
-                    related);
+                    related, null);
             annos.add(anno);
         }
         return annos;
@@ -5081,6 +5128,7 @@ public class DBUtils {
                 String entity = rs.getString("entity");
                 String url = rs.getString("url");
                 String contextName = rs.getString("context_name");
+                String contextGroup = rs.getString("context_group");
 
                 String related = rs.getString("related");
                 String extValueId = null;
@@ -5091,7 +5139,9 @@ public class DBUtils {
                 if (extValueId == null && anno_value_text != null) extValueId = anno_value_text;
 
                 // TODO Updated the related annotations field to support grouping
-                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, contextName, anno_key, anno_value, extValueId, source, url, displayOrder, entity, related);
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null,
+                        anno_display, contextName, anno_key, anno_value,
+                        extValueId, source, url, displayOrder, entity, related, contextGroup);
                 annos.add(anno);
             }
             rs.close();
@@ -5114,6 +5164,59 @@ public class DBUtils {
             pst.close();
             gopst.close();
             keggpst.close();
+        }
+    }
+
+    public List<CAPAnnotation> getExperimentAnnotations(Long bardExptId) throws SQLException {
+        Cache cache = getCache ("ExperimentAnnotationsCache");
+        try {
+            List<CAPAnnotation> value = getCacheValue
+                    (cache, bardExptId);
+            if (value != null) {
+                return value;
+            }
+        }
+        catch (ClassCastException ex) {}
+
+        if (conn == null) conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity = 'experiment' and a.entity_id = ?");
+        try {
+            pst.setLong(1, bardExptId);
+            ResultSet rs = pst.executeQuery();
+            List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+            while (rs.next()) {
+                String anno_id = rs.getString("anno_id");
+                String anno_key = rs.getString("anno_key");
+                String anno_value = rs.getString("anno_value");
+                String anno_display = rs.getString("anno_display");
+                String anno_value_text = rs.getString("anno_value_text");
+                int displayOrder = rs.getInt("display_order");
+                String source = rs.getString("source");
+                String entity = rs.getString("entity");
+                String url = rs.getString("url");
+                String contextName = rs.getString("context_name");
+                String contextGroup = rs.getString("context_group");
+
+                String related = rs.getString("related");
+                String extValueId = null;
+                if (related != null && !related.trim().equals("")) {
+                    String[] toks = related.split("\\|");
+                    if (toks.length == 2) extValueId = toks[1];
+                }
+                if (extValueId == null && anno_value_text != null) extValueId = anno_value_text;
+
+                // TODO Updated the related annotations field to support grouping
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null,
+                        anno_display, contextName, anno_key, anno_value,
+                        extValueId, source, url, displayOrder, entity, related, contextGroup);
+                annos.add(anno);
+            }
+            rs.close();
+            cache.put(new Element (bardExptId, annos));
+            return annos;
+        }
+        finally {
+            pst.close();
         }
     }
 
@@ -5147,6 +5250,7 @@ public class DBUtils {
                 int displayOrder = rs.getInt("display_order");
                 String entity = rs.getString("entity");
                 String contextRef = rs.getString("context_name");
+                String contextGroup = rs.getString("context_group");
                 String url = rs.getString("url");
 
                 String related = rs.getString("related");
@@ -5155,7 +5259,9 @@ public class DBUtils {
                     String[] toks = related.split("\\|");
                     if (toks.length == 2) extValueId = toks[1];
                 }
-                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null, anno_display, contextRef, anno_key, anno_value, extValueId, source, url, displayOrder, entity, related);
+                CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), null,
+                        anno_display, contextRef, anno_key, anno_value,
+                        extValueId, source, url, displayOrder, entity, related, contextGroup);
                 annos.add(anno);
             }
             rs.close();
@@ -5686,6 +5792,7 @@ public class DBUtils {
                 String source = rs.getString("source");
                 String entity = rs.getString("entity");
                 String contextName = rs.getString("context_name");
+                String contextGroup = rs.getString("context_group");
 
                 String related = rs.getString("related");
                 String extValueId = null;
@@ -5696,7 +5803,8 @@ public class DBUtils {
 
                 // TODO Updated the related annotations field to support grouping
                 CAPAnnotation anno = new CAPAnnotation(Integer.parseInt(anno_id), projectStepId.intValue(),
-                        anno_display, contextName, anno_key, anno_value, extValueId, source, null, displayOrder, entity, related);
+                        anno_display, contextName, anno_key, anno_value,
+                        extValueId, source, null, displayOrder, entity, related,contextGroup);
                 annos.add(anno);
             }
             rs.close();
