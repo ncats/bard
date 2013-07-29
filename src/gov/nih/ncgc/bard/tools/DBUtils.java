@@ -1,5 +1,12 @@
 package gov.nih.ncgc.bard.tools;
 
+import chemaxon.formats.MolFormatException;
+import chemaxon.formats.MolImporter;
+import chemaxon.struc.Molecule;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
@@ -24,7 +31,13 @@ import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.search.SearchUtil;
 import gov.nih.ncgc.bard.search.SolrField;
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -53,24 +66,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
-
-import javax.sql.DataSource;
-
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Element;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import chemaxon.formats.MolFormatException;
-import chemaxon.formats.MolImporter;
-import chemaxon.struc.Molecule;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.Lists;
 
 
 
@@ -133,7 +128,6 @@ public class DBUtils {
      * This is only called when the container is initialized.
      * 
      * @param cachePrefixListCSV comma delimited list of cache prefixes;
-     * @param cacheFlustCheckIntervalSeconds seconds between polling the cache state
      */
     static public void initializeManagedCaches(String cachePrefixListCSV, String cacheClusterNodes) {
 	cacheFlushManager = new CacheFlushManager(cacheManager);
@@ -1873,22 +1867,26 @@ public class DBUtils {
             if (conn == null) conn = getConnection();
 
             Long bardExptId = -1L;
-            StringBuilder sb = new StringBuilder();
-            sb.append("(");
+            StringBuilder sbSid = new StringBuilder();
+            StringBuilder sbEid = new StringBuilder();
+            sbEid.append("(");
+            sbSid.append("(");
             String sep = "";
             for (String edid : notcached) {
                 String[] toks = edid.split("\\.");
                 if (toks.length != 2) continue;
                 bardExptId = Long.parseLong(toks[0]);
                 Long sid = Long.parseLong(toks[1]);
-                sb.append(sep).append(sid);
+                sbSid.append(sep).append(sid);
+                sbEid.append(sep).append(bardExptId);
                 sep = ",";
             }
-            sb.append(")");
-            if (sb.toString().equals("()")) return ret;
+            sbSid.append(")");
+            sbEid.append(")");
+            if (sbSid.toString().equals("()")) return ret;
 
 //            String sql = "select a.*, b.*, c.*, d.bard_proj_id from bard_experiment_data a, bard_experiment_result b, bard_experiment c, bard_project_experiment d where d.bard_expt_id = " + bardExptId + " and a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString() + " and a.expt_data_id = b.expt_data_id and a.bard_expt_id = c.bard_expt_id";
-            String sql = "select      a . *, b . *, c . *, d.cap_assay_id as real_cap_assay_id from     bard_experiment_data a left join bard_experiment_result b on a.expt_data_id = b.expt_data_id left join bard_experiment c on a.bard_expt_id = c.bard_expt_id left join bard_assay d on c.bard_assay_id = d.bard_assay_id where a.bard_expt_id = " + bardExptId + " and a.sid in " + sb.toString();
+            String sql = "select      a . *, b . *, c . *, d.cap_assay_id as real_cap_assay_id from     bard_experiment_data a left join bard_experiment_result b on a.expt_data_id = b.expt_data_id left join bard_experiment c on a.bard_expt_id = c.bard_expt_id left join bard_assay d on c.bard_assay_id = d.bard_assay_id where a.bard_expt_id in " + sbEid.toString() + " and a.sid in " + sbSid.toString();
             PreparedStatement pst = conn.prepareStatement(sql);
             ExperimentData ed = null;
             try {
