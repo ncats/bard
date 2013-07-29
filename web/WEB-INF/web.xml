@@ -45,7 +45,7 @@
 
     <context-param>
         <param-name>cache-management-cache-prefix-list</param-name>
-        <param-value>Assay,Experiment,Project,Biology,CompoundAnnotationCache,Ent,Panther,Probe,Protein,Pub,SearchAssay,SearchForEnt,SearchForExpt,Targets,CAPDictionary</param-value>
+        <param-value>Assay,Experiment,Project,Biology,CompoundAnnotationCache,Ent,Panther,Probe,Protein,Pub,SearchAssay,SearchForEnt,SearchForExpt,Targets,CAPDictionary,CompoundData,SubstanceData,SubstanceExperiment</param-value>
     </context-param>
 
     <!--
