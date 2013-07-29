@@ -1,19 +1,16 @@
 package gov.nih.ncgc.bard.tools;
 
-import java.util.Arrays;
-import java.util.Vector;
-
-import net.sf.ehcache.CacheManager;
-
-import org.eclipse.jetty.util.log.Log;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.hazelcast.client.ClientConfig;
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.core.ITopic;
 import com.hazelcast.core.Message;
 import com.hazelcast.core.MessageListener;
+import net.sf.ehcache.CacheManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.Vector;
 
 /**
  * 
