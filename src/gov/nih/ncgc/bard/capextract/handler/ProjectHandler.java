@@ -257,12 +257,17 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         for (Integer annoId : annoGroups.keySet()) {
             List<CAPAnnotation> grp = annoGroups.get(annoId);
 
-            // probes are reported as part of a biology context
-            if (!grp.get(0).contextRef.equals("probe")) continue;
+            boolean isProbeContext = false;
+            for (CAPAnnotation anno : grp) {
+                if (Integer.parseInt(anno.key) == 1776) {
+                    isProbeContext = true;
+                    break;
+                }
+            }
+            if (!isProbeContext) continue;
 
             Long cid = null, sid = null;
             String mlid = null, mlidurl = null;
-
             // pull out cid,sid,mlid for this probe context
             for (CAPAnnotation anno : grp) {
                 if (Util.isNumber(anno.key) && anno.display != null) {
