@@ -190,7 +190,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
             // store the annotations we've collected
             if (annos.size() > 0) {
-                PreparedStatement pstAnnot = conn.prepareStatement("insert into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related, context_name, display_order, url) values (?,?,?,?,?,?,?,?,?,?,?,?)");
+                PreparedStatement pstAnnot = conn.prepareStatement("replace into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related, context_name, display_order, url) values (?,?,?,?,?,?,?,?,?,?,?,?)");
                 for (CAPAnnotation anno : annos) {
                     pstAnnot.setInt(1, anno.entityId); // for project this is bard_project.bardProjId, for project-step this is project_step.stepId
                     pstAnnot.setInt(2, project.getProjectId().intValue());
@@ -213,6 +213,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                     try {
                         pstAnnot.executeUpdate();
                     } catch (com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException e) {
+                        log.info("Got a integrity violation constraint. Probably this anno " + anno.id + " already exists");
                     }
                 }
                 conn.commit();
@@ -379,67 +380,68 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
     }
 
     List<CAPAnnotation> processAnnotations(Project project) {
-	List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
-	CAPDictionary dict = CAPConstants.getDictionary();
-	Contexts contexts = project.getContexts();
+        List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
+        CAPDictionary dict = CAPConstants.getDictionary();
+        Contexts contexts = project.getContexts();
 
-	// if there are contexts, process them, else skip processing 
-	// and return the empty annotation list. Contexts may be missing.
-	if(contexts != null) {
-	    List<ContextType> contextTypes = contexts.getContext();
-	    for (ContextType contextType : contextTypes) {
-		int contextId = contextType.getId().intValue();
-		String contextName = contextType.getContextName();
-		String contextGroup = contextType.getContextGroup();
+        // if there are contexts, process them, else skip processing
+        // and return the empty annotation list. Contexts may be missing.
+        if (contexts != null) {
+            List<ContextType> contextTypes = contexts.getContext();
+            for (ContextType contextType : contextTypes) {
+                int contextId = contextType.getId().intValue();
+                String contextName = contextType.getContextName();
+                String contextGroup = contextType.getContextGroup();
 
-		ContextType.ContextItems contextItems = contextType.getContextItems();
-		if (contextItems == null) {
-		    log.warn("Context ID " + contextId + " for CAP project " + project.getProjectId() + " was null (ie had no context items)");
-		    continue;
-		}
+                ContextType.ContextItems contextItems = contextType.getContextItems();
+                if (contextItems == null) {
+                    log.warn("Context ID " + contextId + " for CAP project " + project.getProjectId() + " was null (ie had no context items)");
+                    continue;
+                }
 
-		for (ContextItemType contextItemType : contextItems.getContextItem()) {
+                for (ContextItemType contextItemType : contextItems.getContextItem()) {
 
-		    // dict id for the annotation key
-		    String key = null;
-		    AbstractContextItemType.AttributeId attr = contextItemType.getAttributeId();
-		    if (attr != null) {
-			key = Util.getEntityIdFromUrl(attr.getLink().getHref());
-		    }
+                    // dict id for the annotation key
+                    String key = null;
+                    AbstractContextItemType.AttributeId attr = contextItemType.getAttributeId();
+                    if (attr != null) {
+                        key = Util.getEntityIdFromUrl(attr.getLink().getHref());
+                    }
 
-		    // dict id for the annotation value
-		    String valueUrl = null;
-		    String value = null;
+                    // dict id for the annotation value
+                    String valueUrl = null;
+                    String value = null;
 
-		    String extValueId = contextItemType.getExtValueId();
-		    String valueDisplay = contextItemType.getValueDisplay();
-		    String related = null;
+                    String extValueId = contextItemType.getExtValueId();
+                    String valueDisplay = contextItemType.getValueDisplay();
+                    String related = null;
 
-		    AbstractContextItemType.ValueId vc = contextItemType.getValueId();
-		    if (vc != null) {
-			value = Util.getEntityIdFromUrl(vc.getLink().getHref());
-			String dictUrl = dict.getNode(vc.getLabel()).getExternalUrl();
-			if (dictUrl != null && !dictUrl.equals("null") && extValueId != null)
-			    valueUrl = dictUrl + extValueId;
-		    } else {
-			// if there is no valueId field and there is an extValueId field, we
-			// construct the valueUrl from the key + extValueId
-			if (extValueId != null) {
-			    CAPDictionaryElement dictNode = dict.getNode(new BigInteger(key));
-			    valueUrl = dictNode.getExternalUrl() == null ? "" : dictNode.getExternalUrl() + extValueId;
-			}
-		    }
+                    AbstractContextItemType.ValueId vc = contextItemType.getValueId();
+                    if (vc != null) {
+                        value = Util.getEntityIdFromUrl(vc.getLink().getHref());
+                        String dictUrl = dict.getNode(vc.getLabel()).getExternalUrl();
+                        if (dictUrl != null && !dictUrl.equals("null") && extValueId != null)
+                            valueUrl = dictUrl + extValueId;
+                    } else {
+                        // if there is no valueId field and there is an extValueId field, we
+                        // construct the valueUrl from the key + extValueId
+                        if (extValueId != null) {
+                            CAPDictionaryElement dictNode = dict.getNode(new BigInteger(key));
+                            valueUrl = dictNode.getExternalUrl() == null ? "" : dictNode.getExternalUrl() + extValueId;
+                        }
+                    }
 
-		    // hack so that CID gets displayed rather than IUPAC name due to weird inconsistency in CAP annotations
-		    if (attr != null && attr.getLabel().contains("CID") && extValueId != null) valueDisplay = extValueId;
+                    // hack so that CID gets displayed rather than IUPAC name due to weird inconsistency in CAP annotations
+                    if (attr != null && attr.getLabel().contains("CID") && extValueId != null)
+                        valueDisplay = extValueId;
 
-		    annos.add(new CAPAnnotation(contextId, bardProjId, valueDisplay, contextName, key, value,
-			    contextItemType.getExtValueId(), "cap-context", valueUrl,
-			    contextItemType.getDisplayOrder(), "project", related, contextGroup));
-		}
-	    }
-	}
-	return annos;
+                    annos.add(new CAPAnnotation(contextId, bardProjId, valueDisplay, contextName, key, value,
+                            contextItemType.getExtValueId(), "cap-context", valueUrl,
+                            contextItemType.getDisplayOrder(), "project", related, contextGroup));
+                }
+            }
+        }
+        return annos;
     }
 
     void processTargets(Project project) throws SQLException, ClassNotFoundException, IOException {
