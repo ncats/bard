@@ -190,6 +190,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
             // store the annotations we've collected
             if (annos.size() > 0) {
+                // TODO should we be deleting anno's first?
                 PreparedStatement pstAnnot = conn.prepareStatement("replace into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related, context_name, display_order, url) values (?,?,?,?,?,?,?,?,?,?,?,?)");
                 for (CAPAnnotation anno : annos) {
                     pstAnnot.setInt(1, anno.entityId); // for project this is bard_project.bardProjId, for project-step this is project_step.stepId
@@ -311,7 +312,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 rs.close();
                 pst.close();
 
-                if (linkExists) {
+                if (linkExists) { //  will this ever happen?
                     pst = conn.prepareStatement("update project_probe set probe_id = ? where bard_proj_id = ? and cid = ?");
                     pst.setString(1, mlid);
                     pst.setLong(2, bardProjId);
