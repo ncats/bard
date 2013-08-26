@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
@@ -12,8 +13,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 /**
  * A representation of experiment data (ie measurements).
  *
@@ -24,7 +23,7 @@ public class ExperimentData implements BardEntity {
     @BARDJsonRequired
     String exptDataId;
 
-    Long eid, cid, sid;
+    Long cid, sid;
     Long bardExptId, bardAssayId;
     Long capExptId, capAssayId;
     List<Long> capProjId, bardProjId;
@@ -289,14 +288,6 @@ public class ExperimentData implements BardEntity {
                 sid = Long.parseLong(toks[1]);
             }
         }
-    }
-
-    public Long getEid() {
-        return eid;
-    }
-
-    public void setEid(Long eid) {
-        this.eid = eid;
     }
 
     public Long getBardExptId() {

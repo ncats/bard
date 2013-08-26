@@ -1895,7 +1895,7 @@ public class DBUtils {
                     ed = getExperimentData(rs);
                     ret.add(ed);
 
-                    cache.put(new Element (ed.getEid(), ed));
+                    cache.put(new Element (ed.getExptDataId(), ed));
                 }
                 rs.close();
             }
@@ -2015,7 +2015,6 @@ public class DBUtils {
     ExperimentData getExperimentData(ResultSet rs)
         throws SQLException, IOException {
         ExperimentData ed = new ExperimentData();
-        ed.setEid(rs.getLong("eid"));
         //sets a new field for bard_expt_id
         ed.setBardExptId(rs.getLong("bard_expt_id"));
         ed.setSid(rs.getLong("sid"));

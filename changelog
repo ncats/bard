@@ -114,3 +114,7 @@ v17 released
 	      Cleaned up assay annotation resource to only serve assay annotations
 	      Exposed context_group name in annotations 
 06/24/13      Added the status field to the JSON response for /experiments
+06/27/13      Updated biology entity for new biology type (AA subst)
+07/12/13      Support the use of test or tested in filter queries on /substance
+
+08/26/13      Removed the eid field from /exptdata JSON responses
