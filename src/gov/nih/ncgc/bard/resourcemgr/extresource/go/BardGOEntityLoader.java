@@ -65,7 +65,8 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
     PreparedStatement queryAccessionPS, insertGOPS;
 
     private String sqlSelectCompoundTarget = "select cid, val from compound_annot where annot_key ='TARGETS'";
-
+    private String sqlSelectCompoundTargetFromCompoundTarget = "select cid, target_acc from compound_target";
+    
     private long insertCnt;
     private long accessionCnt;
 
@@ -655,8 +656,27 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 	    }
 
 	    rs.close();
+	    
+	    //need to populate based on compound_target too
+	    queryAccessionPS = conn.prepareStatement(sqlSelectCompoundTargetFromCompoundTarget);
+	    rs = queryAccessionPS.executeQuery();
+	    while(rs.next()) {
+		cid = rs.getLong(1);
+		accession = rs.getString(2);
+	
+		logger.info("cid compound/target capture, cid="+cid);
 
-	    int aidAccCnt = 0;
+		if(accToAssayHash.get(accession) == null) {
+		    HashSet <Long> v = new HashSet<Long>();
+		    v.add(cid);
+		    accToAssayHash.put(accession, v);
+		} else {
+		    accToAssayHash.get(accession).add(cid);
+		}
+
+		cids.add(cid);
+		accV.add(accession);
+	    }
 
 	    //maybe collect all nodes into a hash or two that is keyed by go_id and go_acc
 	    //we can pull nodes from the hash as needed to support queries. 
@@ -702,7 +722,6 @@ public class BardGOEntityLoader extends BardExtResourceLoader implements IBardEx
 
 		for(long aid:accToAssayHash.get(accKey)) {
 		    insertGODataForCompound(aid, accKey, newSet);
-		    aidAccCnt++;
 		}
 	    }
 
