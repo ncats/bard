@@ -24,7 +24,7 @@ public class Assay implements BardEntity {
     String name, source, grantNo, title, designedBy;
     Date deposited, updated;
 
-    String assayType, assayStatus;
+    String assayType, assayStatus, statusWarning;
 
     List<Long> documents;
     List<Long> targets;
@@ -40,6 +40,14 @@ public class Assay implements BardEntity {
 
     @JsonIgnore
     List<String> gobp_id, gobp_term, gomf_term, gomf_id, gocc_id, gocc_term, av_dict_label, ak_dict_label;
+
+    public String getStatusWarning() {
+        return statusWarning;
+    }
+
+    public void setStatusWarning(String statusWarning) {
+        this.statusWarning = statusWarning;
+    }
 
     public float getScore() {
         return score;

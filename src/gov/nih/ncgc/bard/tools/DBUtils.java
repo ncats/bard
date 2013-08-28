@@ -2388,6 +2388,9 @@ public class DBUtils {
         a.setAssayType(rs.getString("assay_type"));
         a.setScore(rs.getFloat("score"));
 
+        if (!a.getAssayStatus().equals("Approved"))
+            a.setStatusWarning("THIS IS PREVIEW DATA that has not been curated yet, and may be revised or deprecated without notice. PLEASE USE WITH CAUTION");
+
         List<Long> pmids = new ArrayList<Long>();
         for (Publication pub : getAssayPublications(bardAssayId)) pmids.add(pub.getPubmedId());
         a.setDocuments(pmids);
