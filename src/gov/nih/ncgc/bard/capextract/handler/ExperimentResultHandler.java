@@ -470,7 +470,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	HttpClient client = SslHttpClient.getHttpClient();
 
 	try {
-	    HttpResponse response = client.execute(get);	   
+	    HttpResponse response = client.execute(get);   
 	    BufferedReader br = new BufferedReader(new InputStreamReader(new GZIPInputStream(response.getEntity().getContent())));
 	    PrintWriter bw = new PrintWriter(new FileWriter(fileName));
 	    String entry;    	    
@@ -846,12 +846,14 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	ExperimentResultHandler worker = new ExperimentResultHandler();
 	long start = System.currentTimeMillis();
 	//worker.getPubchemTIDCount(624024);
-	worker.testResultTypes("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
+	//worker.testResultTypes("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
 	
 	//worker.updateExperimentTestStats("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
 	
 	//worker.processCapExperimentResultViaFileCache(36, "jdbc:mysql://protein.nhgri.nih.gov/bard3", "/ifs/prod/bard/entity_mgr/bard-scratch/");	
 	System.out.println("et="+((System.currentTimeMillis()-start)));		
+    
+        //
     }
     
 }

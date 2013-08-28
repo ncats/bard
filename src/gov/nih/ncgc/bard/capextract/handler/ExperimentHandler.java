@@ -8,6 +8,7 @@ import gov.nih.ncgc.bard.capextract.ScoreHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
+import gov.nih.ncgc.bard.capextract.jaxb.ContextType.ContextItems;
 import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
 import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
@@ -148,7 +149,6 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             }
         }
 
-
         List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
         Contexts contexts = expt.getContexts();
         if (contexts != null) {
@@ -156,23 +156,26 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
                 BigInteger contextId = context.getId();
                 String contextName = context.getContextName();
                 String contextGroup = context.getContextGroup();
-                for (ContextItemType contextItem : context.getContextItems().getContextItem()) {
-                    String valueDisplay = contextItem.getValueDisplay();
-                    int displayOrder = contextItem.getDisplayOrder();
+                ContextItems contextItems = context.getContextItems();
+                if(contextItems != null) {
+                    for (ContextItemType contextItem : contextItems.getContextItem()) {
+                	String valueDisplay = contextItem.getValueDisplay();
+                	int displayOrder = contextItem.getDisplayOrder();
 
-                    // dict id for the annotation key
-                    String key = null;
-                    AbstractContextItemType.AttributeId attr = contextItem.getAttributeId();
-                    if (attr != null) key = Util.getEntityIdFromUrl(attr.getLink().getHref());
+                	// dict id for the annotation key
+                	String key = null;
+                	AbstractContextItemType.AttributeId attr = contextItem.getAttributeId();
+                	if (attr != null) key = Util.getEntityIdFromUrl(attr.getLink().getHref());
 
-                    // dict id for the annotation value
-                    String value = null;
-                    AbstractContextItemType.ValueId vc = contextItem.getValueId();
-                    if (vc != null) value = Util.getEntityIdFromUrl(vc.getLink().getHref());
+                	// dict id for the annotation value
+                	String value = null;
+                	AbstractContextItemType.ValueId vc = contextItem.getValueId();
+                	if (vc != null) value = Util.getEntityIdFromUrl(vc.getLink().getHref());
 
-                    annos.add(new CAPAnnotation(contextId.intValue(), expt.getExperimentId().intValue(),
-                            valueDisplay, contextName, key, value,
-                            null, "cap-context", null, displayOrder, "experiment", null, contextGroup));
+                	annos.add(new CAPAnnotation(contextId.intValue(), expt.getExperimentId().intValue(),
+                		valueDisplay, contextName, key, value,
+                		null, "cap-context", null, displayOrder, "experiment", null, contextGroup));
+                    }
                 }
             }
         }
