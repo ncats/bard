@@ -5203,6 +5203,7 @@ public class DBUtils {
             rs = keggpst.executeQuery();
             annos.addAll(convertKeggToAnno(rs, "assay", bardAssayId.intValue()));
             rs.close();
+            keggpst.close();
 
             cache.put(new Element (bardAssayId, annos));
             return annos;
@@ -5325,6 +5326,7 @@ public class DBUtils {
             rs = keggpst.executeQuery();
             annos.addAll(convertKeggToAnno(rs, "project", bardProjectId.intValue()));
             rs.close();
+            keggpst.close();
 
             cache.put(new Element (bardProjectId, annos));
             return annos;
@@ -5332,6 +5334,7 @@ public class DBUtils {
         finally {
             pst.close();
             gopst.close();
+            keggpst.close();
         }
     }
 
