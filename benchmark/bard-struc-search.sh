@@ -1,6 +1,6 @@
 #!/bin/sh
 
-top=500
+top=11500
 skip=1
 base="http://bard.nih.gov/api/v10"
 if (("$#" > 0)); then

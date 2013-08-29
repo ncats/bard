@@ -1284,7 +1284,10 @@ public class DBUtils {
                         dcounts.put(dcat, dcounts.get(dcat) + 1);
                     } else dcounts.put(dcat, 1);
                 }
+                rs2.close();
+                pst2.close();
             }
+            rs.close();
 
             Facet facet = new Facet("target_name");
             facet.setCounts(tcounts);
@@ -1362,7 +1365,10 @@ public class DBUtils {
                         dcounts.put(dcat, dcounts.get(dcat) + 1);
                     } else dcounts.put(dcat, 1);
                 }
+                rs2.close();
+                pst2.close();
             }
+            rs.close();
 
             Facet facet = new Facet("target_name");
             facet.setCounts(tcounts);
@@ -2787,6 +2793,7 @@ public class DBUtils {
         ResultSet rs = pst.executeQuery();
         rs.next();
         int n = rs.getInt(1);
+        rs.close();
         pst.close();
         return n;
     }
@@ -2803,6 +2810,7 @@ public class DBUtils {
         ResultSet rs = pst.executeQuery();
         rs.next();
         int n = rs.getInt(1);
+        rs.close();
         pst.close();
         return n;
     }
@@ -2819,6 +2827,7 @@ public class DBUtils {
         ResultSet rs = pst.executeQuery();
         rs.next();
         int n = rs.getInt(1);
+        rs.close();
         pst.close();
         return n;
     }
@@ -4427,6 +4436,7 @@ public class DBUtils {
         pst.setString(1, probeId);
         ResultSet rs = pst.executeQuery();
         while (rs.next()) ids.add(rs.getLong(1));
+        rs.close();
         pst.close();
         return ids;
     }
@@ -4644,12 +4654,16 @@ public class DBUtils {
         }
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql);
-        ResultSet rs = pst.executeQuery();
-        int n = 0;
-        while (rs.next()) n = rs.getInt(1);
-        rs.close();
-        pst.close();
-        return (n);
+        try {
+            ResultSet rs = pst.executeQuery();
+            int n = 0;
+            while (rs.next()) n = rs.getInt(1);
+            rs.close();
+            return (n);
+        }
+        finally {
+            pst.close();
+        }
     }
 
 
@@ -4657,51 +4671,75 @@ public class DBUtils {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data");
         ResultSet rs = pst.executeQuery();
-        rs.next();
-        int n = rs.getInt(1);
-        pst.close();
-        return n;
+        try {
+            rs.next();
+            int n = rs.getInt(1);
+            rs.close();
+            return n;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     public int getCompoundActiveCount() throws SQLException {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data where outcome = 2");
-        ResultSet rs = pst.executeQuery();
-        rs.next();
-        int n = rs.getInt(1);
-        pst.close();
-        return n;
+        try {
+            ResultSet rs = pst.executeQuery();
+            rs.next();
+            int n = rs.getInt(1);
+            rs.close();
+            return n;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     public int getSubstanceTestCount() throws SQLException {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data");
-        ResultSet rs = pst.executeQuery();
-        rs.next();
-        int n = rs.getInt(1);
-        pst.close();
-        return n;
+        try {
+            ResultSet rs = pst.executeQuery();
+            rs.next();
+            int n = rs.getInt(1);
+            rs.close();
+            return n;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     public int getSubstanceActiveCount() throws SQLException {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data where outcome = 2");
-        ResultSet rs = pst.executeQuery();
-        rs.next();
-        int n = rs.getInt(1);
-        pst.close();
-        return n;
+        try {
+            ResultSet rs = pst.executeQuery();
+            rs.next();
+            int n = rs.getInt(1);
+            rs.close();
+            return n;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     private List<String> getCompoundAnnotationKeys() throws SQLException {
         List<String> ret = new ArrayList<String>();
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct annot_key from compound_annot order by annot_key");
-        ResultSet rs = pst.executeQuery();
-        while (rs.next()) ret.add(rs.getString(1));
-        rs.close();
-        pst.close();
-        return ret;
+        try {
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) ret.add(rs.getString(1));
+            rs.close();
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -4778,21 +4816,24 @@ public class DBUtils {
 
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql);
-        ResultSet rs = pst.executeQuery();
-        while (rs.next()) {
-            if (!hasAnno) ret.addAll(getCompoundsByCid(rs.getLong(1)));
-            else {
-                List<Compound> cs = getCompoundsByCid(rs.getLong(1));
-                for (Compound c : cs) {
-                    if (getCompoundAnnotations(c.getCid()).get("anno_key").length > 0) ret.add(c);
+        try {
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                if (!hasAnno) ret.addAll(getCompoundsByCid(rs.getLong(1)));
+                else {
+                    List<Compound> cs = getCompoundsByCid(rs.getLong(1));
+                    for (Compound c : cs) {
+                        if (getCompoundAnnotations(c.getCid()).get("anno_key").length > 0) ret.add(c);
+                    }
                 }
             }
+            rs.close();
+            cache.put(new Element(sql, ret));
+            return ret;
         }
-        pst.close();
-
-        cache.put(new Element(sql, ret));
-
-        return ret;
+        finally {
+            pst.close();
+        }
     }
 
 
@@ -4827,15 +4868,19 @@ public class DBUtils {
 
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql);
-        ResultSet rs = pst.executeQuery();
-        while (rs.next()) {
-            ret.add(getSubstanceBySid(rs.getLong(1)));
+        try {
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                ret.add(getSubstanceBySid(rs.getLong(1)));
+            }
+            rs.close();
+            cache.put(new Element(sql, ret));
+        
+            return ret;
         }
-        pst.close();
-
-        cache.put(new Element(sql, ret));
-
-        return ret;
+        finally {
+            pst.close();
+        }
     }
 
     /**
@@ -5148,12 +5193,14 @@ public class DBUtils {
             gopst.setLong(1, bardAssayId);
             rs = gopst.executeQuery();
             annos.addAll(convertGoToAnno(rs, "assay", bardAssayId.intValue()));
+            rs.close();
 
             // pull in KEGG disease annotations
             keggpst.setLong(1, bardAssayId);
             keggpst.setLong(2, bardAssayId);
             rs = keggpst.executeQuery();
             annos.addAll(convertKeggToAnno(rs, "assay", bardAssayId.intValue()));
+            rs.close();
 
             cache.put(new Element (bardAssayId, annos));
             return annos;
@@ -5268,12 +5315,14 @@ public class DBUtils {
             gopst.setLong(1, bardProjectId);
             rs = gopst.executeQuery();
             annos.addAll(convertGoToAnno(rs, "project", bardProjectId.intValue()));
+            rs.close();
 
             // deal with KEGG annotations
             keggpst.setLong(1, bardProjectId);
             keggpst.setLong(2, bardProjectId);
             rs = keggpst.executeQuery();
             annos.addAll(convertKeggToAnno(rs, "project", bardProjectId.intValue()));
+            rs.close();
 
             cache.put(new Element (bardProjectId, annos));
             return annos;
@@ -5303,19 +5352,24 @@ public class DBUtils {
         PreparedStatement pst = conn.prepareStatement("select dict, ins_date from cap_dict_obj order by ins_date desc");
         try {
             ResultSet rs = pst.executeQuery();
-            rs.next();
-            byte[] buf = rs.getBytes(1);
-            log.info("Retrived CAP dictionary blob with ins_date = "+rs.getDate(2));
-            ObjectInputStream objectIn = null;
-            if (buf != null)
-                objectIn = new ObjectInputStream(new ByteArrayInputStream(buf));
-            Object o = objectIn.readObject();
+            Object obj = null;
+
+            if (rs.next()) {
+                byte[] buf = rs.getBytes(1);
+                log.info("Retrived CAP dictionary blob with ins_date = "
+                         +rs.getDate(2));
+                ObjectInputStream objectIn = null;
+                if (buf != null) {
+                    objectIn = new ObjectInputStream(new ByteArrayInputStream(buf));
+                    obj = objectIn.readObject();
+                }
+            }
             rs.close();
 
-            if (!(o instanceof CAPDictionary)) return null;
-
-            cache.put(new Element ("cap", o));
-            return (CAPDictionary)o;
+            if (!(obj instanceof CAPDictionary)) return null;
+                
+            cache.put(new Element ("cap", obj));
+            return (CAPDictionary)obj;
         }
         finally {
             pst.close();
@@ -5650,6 +5704,7 @@ public class DBUtils {
             pcount = rs.getInt("pcount");
             syncount = rs.getInt("scount");
         }
+        rs.close();
         pst.close();
 
         List<Experiment> expts = new ArrayList<Experiment>();
@@ -5657,6 +5712,7 @@ public class DBUtils {
         pst.setLong(1, projectId);
         rs = pst.executeQuery();
         while (rs.next()) expts.add(getExperimentByExptId(rs.getLong("bard_expt_id")));
+        rs.close();
         pst.close();
 
         pst = conn.prepareStatement("select count(*) from bard_project_experiment a, bard_experiment b where a.bard_proj_id = ? and a.bard_expt_id = b.bard_expt_id");
@@ -5664,6 +5720,8 @@ public class DBUtils {
         rs = pst.executeQuery();
         rs.next();
         nassay = rs.getInt(1);
+        rs.close();
+        pst.close();
 
         Map<String,Integer> exptClasses = new HashMap<String, Integer>();
         for (Experiment e : expts) {
@@ -5715,51 +5773,66 @@ public class DBUtils {
                 "and b.accession = c.protein_accession " +
                 "and a.accession in " + sb.toString() +
                 "and c.tid = d.tid");
-        ResultSet rs = pst.executeQuery();
-        Map<String, String> map = new HashMap<String, String>();
-        while (rs.next()) {
-            String acc = rs.getString(1);
+        try {
+            ResultSet rs = pst.executeQuery();
+            Map<String, String> map = new HashMap<String, String>();
+            while (rs.next()) {
+                String acc = rs.getString(1);
             String tclass = rs.getString("l"+level);
             map.put(acc, tclass);
+            }
+            rs.close();
+            List<String> ret = new ArrayList<String>();
+            for (String acc : accs) ret.add(map.get(acc));
+            return ret;
         }
-        rs.close();
-        pst.close();
-        List<String> ret = new ArrayList<String>();
-        for (String acc : accs) ret.add(map.get(acc));
-        return ret;
+        finally {
+            pst.close();
+        }
     }
 
     public List<ProjectStep> getProjectStepsByProjectId(Long projectId) throws SQLException {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select * from project_step where bard_proj_id = ?");
-        pst.setLong(1, projectId);
-        List<ProjectStep> steps = new ArrayList<ProjectStep>();
-        ResultSet rs = pst.executeQuery();
-        while (rs.next()) {
-            ProjectStep step = new ProjectStep();
-            step.setStepId(rs.getLong("step_id"));
-            step.setBardProjId(projectId);
-            step.setEdgeName(rs.getString("edge_name"));
-            step.setNextBardExpt(rs.getLong("next_bard_expt_id"));
-            step.setPrevBardExpt(rs.getLong("prev_bard_expt_id"));
-            step.setAnnotations(getProjectStepAnnotations(step.getStepId()));
-            step.setPrevStageRef(getExperimentTypeByProject(projectId, step.getPrevBardExpt()));
-            step.setNextStageRef(getExperimentTypeByProject(projectId, step.getNextBardExpt()));
-            steps.add(step);
+        try {
+            pst.setLong(1, projectId);
+            List<ProjectStep> steps = new ArrayList<ProjectStep>();
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                ProjectStep step = new ProjectStep();
+                step.setStepId(rs.getLong("step_id"));
+                step.setBardProjId(projectId);
+                step.setEdgeName(rs.getString("edge_name"));
+                step.setNextBardExpt(rs.getLong("next_bard_expt_id"));
+                step.setPrevBardExpt(rs.getLong("prev_bard_expt_id"));
+                step.setAnnotations(getProjectStepAnnotations(step.getStepId()));
+                step.setPrevStageRef(getExperimentTypeByProject(projectId, step.getPrevBardExpt()));
+                step.setNextStageRef(getExperimentTypeByProject(projectId, step.getNextBardExpt()));
+                steps.add(step);
+            }
+            rs.close();
+            return steps;
         }
-        return steps;
+        finally {
+            pst.close();
+        }
     }
 
     public String getExperimentTypeByProject(Long bardProjId, Long bardExptId) throws SQLException {
         if (conn == null) conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select expt_type from bard_project_experiment where bard_proj_id = ? and bard_expt_id = ?");
-        pst.setLong(1, bardProjId);
-        pst.setLong(2, bardExptId);
-        ResultSet rs = pst.executeQuery();
-        String ret = null;
-        while (rs.next()) ret = rs.getString(1);
-        pst.close();
-        return ret;
+        try {
+            pst.setLong(1, bardProjId);
+            pst.setLong(2, bardExptId);
+            ResultSet rs = pst.executeQuery();
+            String ret = null;
+            while (rs.next()) ret = rs.getString(1);
+            rs.close();
+            return ret;
+        }
+        finally {
+            pst.close();
+        }
     }
 
     public List<CAPAnnotation> getProjectStepAnnotations(Long projectStepId) throws SQLException {
@@ -5838,6 +5911,8 @@ public class DBUtils {
                 pc.setNodeLevel(rs.getInt("node_level"));
                 classes.add(pc);
             }
+            rs.close();
+
             cache.put(new Element (acc, classes));
             return classes;
         } finally {
@@ -5863,6 +5938,8 @@ public class DBUtils {
                 String acc = rs.getString(1);
                 targets.add(getProteinTargetByAccession(acc));
             }
+            rs.close();
+
             cache.put(new Element(clsid, targets));
             return targets;
         } finally {
@@ -5870,29 +5947,34 @@ public class DBUtils {
         }
     }
 
-    public List<Biology> getBiologyByDictId(String dictId) throws SQLException {
+    public List<Biology> getBiologyByDictId(String dictId) 
+        throws SQLException {
         if (conn == null) conn = getConnection();
         PreparedStatement pst;
         pst = conn.prepareStatement("select * from bard_biology where biology_dict_id = ?");
-        pst.setString(1, dictId);
-        ResultSet rs = pst.executeQuery();
-        List<Biology> bios = new ArrayList<Biology>();
-        while (rs.next()) {
-            Biology bio = new Biology();
-            bio.setSerial(rs.getLong("serial"));
-            bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
-            bio.setName(rs.getString("description"));
-            bio.setDictId(rs.getLong("biology_dict_id"));
-            bio.setDictLabel(rs.getString("biology_dict_label"));
-            bio.setEntity(rs.getString("entity"));
-            bio.setEntityId(rs.getLong("entity_id"));
-            bio.setExtId(rs.getString("ext_id"));
-            bio.setExtRef(rs.getString("ext_ref"));
-            bios.add(bio);
+        try {
+            pst.setString(1, dictId);
+            ResultSet rs = pst.executeQuery();
+            List<Biology> bios = new ArrayList<Biology>();
+            while (rs.next()) {
+                Biology bio = new Biology();
+                bio.setSerial(rs.getLong("serial"));
+                bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
+                bio.setName(rs.getString("description"));
+                bio.setDictId(rs.getLong("biology_dict_id"));
+                bio.setDictLabel(rs.getString("biology_dict_label"));
+                bio.setEntity(rs.getString("entity"));
+                bio.setEntityId(rs.getLong("entity_id"));
+                bio.setExtId(rs.getString("ext_id"));
+                bio.setExtRef(rs.getString("ext_ref"));
+                bios.add(bio);
+            }
+            rs.close();
+            return bios;
         }
-        rs.close();
-        pst.close();
-        return bios;
+        finally {
+            pst.close();
+        }
     }
 
     public List<Biology> getBiologyByType(String typeName, String extId) throws SQLException {
@@ -5918,25 +6000,29 @@ public class DBUtils {
             pst.setString(2, extId);
         }
 
-        ResultSet rs = pst.executeQuery();
-        List<Biology> bios = new ArrayList<Biology>();
-        while (rs.next()) {
-            Biology bio = new Biology();
-            bio.setSerial(rs.getLong("serial"));
-            bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
-            bio.setName(rs.getString("description"));
-            bio.setDictId(rs.getLong("biology_dict_id"));
-            bio.setDictLabel(rs.getString("biology_dict_label"));
-            bio.setEntity(rs.getString("entity"));
-            bio.setEntityId(rs.getLong("entity_id"));
-            bio.setExtId(rs.getString("ext_id"));
-            bio.setExtRef(rs.getString("ext_ref"));
-            bios.add(bio);
+        try {
+            ResultSet rs = pst.executeQuery();
+            List<Biology> bios = new ArrayList<Biology>();
+            while (rs.next()) {
+                Biology bio = new Biology();
+                bio.setSerial(rs.getLong("serial"));
+                bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
+                bio.setName(rs.getString("description"));
+                bio.setDictId(rs.getLong("biology_dict_id"));
+                bio.setDictLabel(rs.getString("biology_dict_label"));
+                bio.setEntity(rs.getString("entity"));
+                bio.setEntityId(rs.getLong("entity_id"));
+                bio.setExtId(rs.getString("ext_id"));
+                bio.setExtRef(rs.getString("ext_ref"));
+                bios.add(bio);
+            }
+            cache.put(new Element(bios, cachKey));
+            rs.close();
+            return bios;
         }
-        cache.put(new Element(bios, cachKey));
-        rs.close();
-        pst.close();
-        return bios;
+        finally {
+            pst.close();
+        }
     }
 
     public List<Biology> getBiologyByType(String typeName) throws SQLException {
@@ -5954,26 +6040,31 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select * from bard_biology where serial = ?");
-        pst.setLong(1, serial);
-        ResultSet rs = pst.executeQuery();
-        List<Biology> bios = new ArrayList<Biology>();
-        while (rs.next()) {
-            Biology bio = new Biology();
-            bio.setSerial(rs.getLong("serial"));
-            bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
-            bio.setName(rs.getString("description"));
-            bio.setDictId(rs.getLong("biology_dict_id"));
-            bio.setDictLabel(rs.getString("biology_dict_label"));
-            bio.setEntity(rs.getString("entity"));
-            bio.setEntityId(rs.getLong("entity_id"));
-            bio.setExtId(rs.getString("ext_id"));
-            bio.setExtRef(rs.getString("ext_ref"));
-            bios.add(bio);
+        try {
+            pst.setLong(1, serial);
+            ResultSet rs = pst.executeQuery();
+            List<Biology> bios = new ArrayList<Biology>();
+            while (rs.next()) {
+                Biology bio = new Biology();
+                bio.setSerial(rs.getLong("serial"));
+                bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
+                bio.setName(rs.getString("description"));
+                bio.setDictId(rs.getLong("biology_dict_id"));
+                bio.setDictLabel(rs.getString("biology_dict_label"));
+                bio.setEntity(rs.getString("entity"));
+                bio.setEntityId(rs.getLong("entity_id"));
+                bio.setExtId(rs.getString("ext_id"));
+                bio.setExtRef(rs.getString("ext_ref"));
+                bios.add(bio);
+            }
+            cache.put(new Element (bios, serial));
+            rs.close();
+
+            return bios;
         }
-        cache.put(new Element (bios, serial));
-        rs.close();
-        pst.close();
-        return bios;
+        finally {
+            pst.close();
+        }
     }
 
     public List<Biology> getBiologyByEntity(String entity, long entityId) throws SQLException {
@@ -5986,27 +6077,31 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select * from bard_biology where entity = ? and entity_id = ?");
-        pst.setString(1, entity);
-        pst.setLong(2, entityId);
-        ResultSet rs = pst.executeQuery();
-        List<Biology> bios = new ArrayList<Biology>();
-        while (rs.next()) {
-            Biology bio = new Biology();
-            bio.setSerial(rs.getLong("serial"));
-            bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
-            bio.setName(rs.getString("description"));
-            bio.setDictId(rs.getLong("biology_dict_id"));
-            bio.setDictLabel(rs.getString("biology_dict_label"));
-            bio.setEntity(entity);
-            bio.setEntityId(entityId);
-            bio.setExtId(rs.getString("ext_id"));
-            bio.setExtRef(rs.getString("ext_ref"));
-            bios.add(bio);
+        try {
+            pst.setString(1, entity);
+            pst.setLong(2, entityId);
+            ResultSet rs = pst.executeQuery();
+            List<Biology> bios = new ArrayList<Biology>();
+            while (rs.next()) {
+                Biology bio = new Biology();
+                bio.setSerial(rs.getLong("serial"));
+                bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
+                bio.setName(rs.getString("description"));
+                bio.setDictId(rs.getLong("biology_dict_id"));
+                bio.setDictLabel(rs.getString("biology_dict_label"));
+                bio.setEntity(entity);
+                bio.setEntityId(entityId);
+                bio.setExtId(rs.getString("ext_id"));
+                bio.setExtRef(rs.getString("ext_ref"));
+                bios.add(bio);
+            }
+            cache.put(new Element (bios, entity+"#"+entityId));
+            rs.close();
+            return bios;
         }
-        cache.put(new Element (bios, entity+"#"+entityId));
-        rs.close();
-        pst.close();
-        return bios;
+        finally {
+            pst.close();
+        }
     }
 
     public List<Biology> getBiologyByEntity(String entity, long entityId, String typeName) throws SQLException {
@@ -6019,27 +6114,31 @@ public class DBUtils {
         }
 
         PreparedStatement pst = conn.prepareStatement("select * from bard_biology where entity = ? and entity_id = ?");
-        pst.setString(1, entity);
-        pst.setLong(2, entityId);
-        ResultSet rs = pst.executeQuery();
-        List<Biology> bios = new ArrayList<Biology>();
-        while (rs.next()) {
-            Biology bio = new Biology();
-            bio.setSerial(rs.getLong("serial"));
-            bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
-            bio.setName(rs.getString("description"));
-            bio.setDictId(rs.getLong("biology_dict_id"));
-            bio.setDictLabel(rs.getString("biology_dict_label"));
-            bio.setEntity(entity);
-            bio.setEntityId(entityId);
-            bio.setExtId(rs.getString("ext_id"));
-            bio.setExtRef(rs.getString("ext_ref"));
-            bios.add(bio);
+        try {
+            pst.setString(1, entity);
+            pst.setLong(2, entityId);
+            ResultSet rs = pst.executeQuery();
+            List<Biology> bios = new ArrayList<Biology>();
+            while (rs.next()) {
+                Biology bio = new Biology();
+                bio.setSerial(rs.getLong("serial"));
+                bio.setBiology(Biology.BiologyType.fromString(rs.getString("biology")));
+                bio.setName(rs.getString("description"));
+                bio.setDictId(rs.getLong("biology_dict_id"));
+                bio.setDictLabel(rs.getString("biology_dict_label"));
+                bio.setEntity(entity);
+                bio.setEntityId(entityId);
+                bio.setExtId(rs.getString("ext_id"));
+                bio.setExtRef(rs.getString("ext_ref"));
+                bios.add(bio);
+            }
+            cache.put(new Element (bios, entity + "#" + entityId + "#" + typeName));
+            rs.close();
+            return bios;
         }
-        cache.put(new Element (bios, entity + "#" + entityId + "#" + typeName));
-        rs.close();
-        pst.close();
-        return bios;
+        finally {
+            pst.close();
+        }
     }
 
     public static void main(String[] argv) throws Exception {
