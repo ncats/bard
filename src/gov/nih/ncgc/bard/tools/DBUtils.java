@@ -3803,8 +3803,9 @@ public class DBUtils {
             rtype.setHistogram(getExperimentResultTypeHistogram(bardExptId, rtype.getName(), collapse));
             ret.add(rtype);
         }
-        pst.close();
         rs.close();
+        pst.close();
+
         cache.put(new Element(ret, cacheKey));
         return ret;
     }
