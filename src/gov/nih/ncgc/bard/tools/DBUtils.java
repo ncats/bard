@@ -271,6 +271,7 @@ public class DBUtils {
             con.setAutoCommit(false);
         }
         catch (Exception ex) {
+            log.info(ex.toString());
             // try 
             try {
                 initContext = new javax.naming.InitialContext();
