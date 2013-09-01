@@ -60,9 +60,9 @@
         <param-value>128.231.10.33:5701,128.231.10.95:5701</param-value>
     </context-param>
 
-    <listener>
-        <listener-class>gov.nih.ncgc.bard.tools.BardServletContextListener</listener-class>
-    </listener>
+    <!--<listener>-->
+        <!--<listener-class>gov.nih.ncgc.bard.tools.BardServletContextListener</listener-class>-->
+    <!--</listener>-->
 
     <servlet>
         <description>BARD REST Services</description>

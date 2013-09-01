@@ -41,7 +41,7 @@ public class BARDLandingResource extends BARDResource {
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("expand") String expand, @QueryParam("skip") Integer skip, @QueryParam("top") Integer top) {
         List<String> res = new ArrayList<String>(Arrays.asList(new String[]{"/assays", "/biology",
                 "/compounds", "/projects", "/experiments", "/exptdata", "/cap", "/etag", "/search",
-                "/targets", "/documents", "/substances"}));
+                "/documents", "/substances"}));
         Collections.sort(res);
         BardLinkedEntity ble = new BardLinkedEntity(res, null);
         try {
