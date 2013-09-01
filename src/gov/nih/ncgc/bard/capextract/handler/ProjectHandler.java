@@ -285,7 +285,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                     if (dict.getNode(new BigInteger(anno.key)).getLabel().toLowerCase().contains("pubchem cid"))
                         cid = Long.parseLong(anno.extValueId);
                     else if (dict.getNode(new BigInteger(anno.key)).getLabel().toLowerCase().contains("pubchem sid")) {
-                        sid = Long.parseLong(anno.extValueId.split(" ")[0]);  // wtf does CAP list 2 SID's separate by a space (eg CAP project 303)??
+                        sid = Long.parseLong(anno.extValueId.split(" ")[0]);
                     } else if (dict.getNode(new BigInteger(anno.key)).getLabel().toLowerCase().contains("probe report")) {
                         mlid = anno.display;
                         mlidurl = anno.url;
