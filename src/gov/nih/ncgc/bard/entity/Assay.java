@@ -20,7 +20,6 @@ public class Assay extends BaseEntity {
     Long bardAssayId;
 
     Long capAssayId;
-    int category, summary, assays, classification;
     String name, source, grantNo, title, designedBy;
     Date deposited, updated;
 
@@ -216,22 +215,6 @@ public class Assay extends BaseEntity {
     public Assay() {
     }
 
-    public int getAssays() {
-        return assays;
-    }
-
-    public void setAssays(int assays) {
-        this.assays = assays;
-    }
-
-    public int getClassification() {
-        return classification;
-    }
-
-    public void setClassification(int classification) {
-        this.classification = classification;
-    }
-
 
     public String getSource() {
         return source;
@@ -255,22 +238,6 @@ public class Assay extends BaseEntity {
 
     public void setTargets(List<Long> targets) {
         this.targets = targets;
-    }
-
-    public Integer getCategory() {
-        return category;
-    }
-
-    public void setCategory(Integer category) {
-        this.category = category;
-    }
-
-    public Integer getSummary() {
-        return summary;
-    }
-
-    public void setSummary(Integer summary) {
-        this.summary = summary;
     }
 
     public String getName() {

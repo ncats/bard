@@ -2381,7 +2381,6 @@ public class DBUtils {
         long bardAssayId = rs.getLong("bard_assay_id");
         //add the bard assay id
         a.setBardAssayId(bardAssayId);
-        a.setCategory(rs.getInt("category"));
         a.setDeposited(rs.getDate("deposited"));
         a.setDescription(rs.getString("description"));
         a.setName(rs.getString("name"));
