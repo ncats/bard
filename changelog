@@ -113,9 +113,18 @@ v17 released
               Added /experiments/{eid}/annotations to get experiment annotations
 	      Cleaned up assay annotation resource to only serve assay annotations
 	      Exposed context_group name in annotations 
+
+v17.1 released
+
 06/24/13      Added the status field to the JSON response for /experiments
 06/27/13      Updated biology entity for new biology type (AA subst)
 07/12/13      Support the use of test or tested in filter queries on /substance
+
+v17.2 released
+
+7/23/13       Merged cache flush code from master
+
+v17.3 released
 
 08/26/13      Removed the eid field from /exptdata JSON responses
 09/01/13      Added a field called statusWarning to all entities, to indicate non-curated status of the data
