@@ -11,10 +11,9 @@ import java.util.Map;
 
 /**
  * A representation of a project.
- * <p/>
- * Currently a project is just a summary assay. In the future we expect
- * this class to represent both (old) summary assays and explict project
- * management meta-data.
+ *
+ * A project will refer to one or more experiments and assays as well as meta-data
+ * about the project itself.
  *
  * @author Rajarshi Guha
  */
@@ -22,14 +21,18 @@ public class Project extends BaseEntity{
 
     /**
      * Numeric project identifier.
-     * <p/>
-     * Currently the AID of the summary assay.
      */
     @BARDJsonRequired
     Long bardProjectId;
 
+    /**
+     * CAP project identifier.
+     */
     Long capProjectId;
 
+    /**
+     * A map of experiment id to the experiment type.
+     */
     Map<Long, String> experimentTypes;
 
     int category, type, classification;
@@ -62,9 +65,27 @@ public class Project extends BaseEntity{
 
     List<Compound> probes;
     List<Long> probeIds;
-    List<Long> eids; // experiments
-    List<Long> aids; // assays (using bard_assay_id)
+
+    /**
+     * A list of BARD experiment ids
+     */
+    List<Long> eids;
+
+    /**
+     * A list of BARD assay ids
+     */
+    List<Long> aids;
+
+    /**
+     * A list of Pubmed IDs associated with the project.
+     */
     List<Long> publications;
+
+    /**
+     * A list of target biologies associated with the project
+     *
+     * @see Biology
+     */
     List<Biology> targets;
 
     public float getScore() {

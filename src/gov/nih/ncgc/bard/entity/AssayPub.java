@@ -7,7 +7,7 @@ import java.io.IOException;
  *
  * @author Rajarshi Guha
  */
-public class AssayPub implements BardEntity {
+public class AssayPub extends BaseEntity {
     Long aid, pubmedId;
 
     public AssayPub(Long aid, Long pubmedId) {

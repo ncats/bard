@@ -16,7 +16,6 @@ import java.util.List;
  * Currently, a compound is simply referred to by its CID in the database. I think
  * we should at least include the SMILES.
  * <p/>
- * TODO Will we retrieve structural details from Pubchem, always?
  *
  * @author Rajarshi Guha
  */
