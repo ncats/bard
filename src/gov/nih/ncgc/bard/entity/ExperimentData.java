@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  *
  * @author Rajarshi Guha
  */
-public class ExperimentData implements BardEntity {
+public class ExperimentData extends BaseEntity {
 
     @BARDJsonRequired
     String exptDataId;

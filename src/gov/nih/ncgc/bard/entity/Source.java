@@ -1,17 +1,17 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * A one line summary.
  *
  * @author Rajarshi Guha
  */
-public class Source implements BardEntity {
+public class Source extends BaseEntity {
     String name;
     Long sourceId;
 

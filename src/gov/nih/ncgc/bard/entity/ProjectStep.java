@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * @author Rajarshi Guha
  */
-public class ProjectStep implements BardEntity {
+public class ProjectStep extends BaseEntity {
     Long prevBardExpt, nextBardExpt, bardProjId;
     String prevStageRef, nextStageRef;
     Long stepId;

@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * @author Rajarshi Guha
  */
-public class ExperimentResultType implements BardEntity {
+public class ExperimentResultType extends BaseEntity {
     String name;
     double max, min;
     long num;

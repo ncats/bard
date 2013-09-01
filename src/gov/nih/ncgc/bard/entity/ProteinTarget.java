@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
@@ -8,14 +9,12 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.List;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 /**
  * Represents Uniprot protein targets.
  *
  * @author Rajarshi Guha
  */
-public class ProteinTarget implements BardEntity {
+public class ProteinTarget extends BaseEntity {
 
     @BARDJsonRequired
     String acc;

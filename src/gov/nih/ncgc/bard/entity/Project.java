@@ -18,7 +18,7 @@ import java.util.Map;
  *
  * @author Rajarshi Guha
  */
-public class Project implements BardEntity {
+public class Project extends BaseEntity{
 
     /**
      * Numeric project identifier.

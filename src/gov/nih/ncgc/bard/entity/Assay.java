@@ -14,7 +14,7 @@ import java.util.Map;
  *
  * @author Rajarshi Guha
  */
-public class Assay implements BardEntity {
+public class Assay extends BaseEntity {
 
     @BARDJsonRequired
     Long bardAssayId;

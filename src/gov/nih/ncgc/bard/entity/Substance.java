@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
@@ -8,14 +9,12 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Date;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 /**
  * Represents Pubchem substances and includes the related CID's
  *
  * @author Rajarshi Guha
  */
-public class Substance implements BardEntity {
+public class Substance extends BaseEntity {
 
     @BARDJsonRequired
     Long sid = null;

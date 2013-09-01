@@ -118,3 +118,4 @@ v17 released
 07/12/13      Support the use of test or tested in filter queries on /substance
 
 08/26/13      Removed the eid field from /exptdata JSON responses
+09/01/13      Added a field called statusWarning to all entities, to indicate non-curated status of the data

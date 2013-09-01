@@ -12,7 +12,7 @@ import java.util.List;
  *
  * @author Rajarshi Guha
  */
-public class Experiment implements BardEntity {
+public class Experiment extends BaseEntity {
 
     @BARDJsonRequired
     Long bardExptId;

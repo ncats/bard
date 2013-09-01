@@ -12,7 +12,7 @@ import java.util.List;
  *
  * @author Rajarshi Guha
  */
-public class ETag implements BardEntity {
+public class ETag extends BaseEntity {
 
     @BARDJsonRequired
     private String etag = null;

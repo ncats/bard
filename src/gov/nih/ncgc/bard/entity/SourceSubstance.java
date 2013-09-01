@@ -7,7 +7,7 @@ import java.io.IOException;
  *
  * @author Rajarshi Guha
  */
-public class SourceSubstance implements BardEntity {
+public class SourceSubstance extends BaseEntity{
     Long sourceId, sid;
 
     public SourceSubstance(Long sourceId, Long sid) {

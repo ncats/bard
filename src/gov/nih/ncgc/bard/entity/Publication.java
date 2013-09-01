@@ -11,7 +11,7 @@ import gov.nih.ncgc.bard.tools.BARDJsonRequired;
  *
  * @author Rajarshi Guha
  */
-public class Publication implements BardEntity {
+public class Publication extends BaseEntity {
     String title, doi, abs;
 
     @BARDJsonRequired

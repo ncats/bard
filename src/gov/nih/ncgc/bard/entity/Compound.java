@@ -1,5 +1,7 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.tools.BARDJsonRequired;
 
@@ -7,9 +9,6 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Represents a compound.
@@ -21,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *
  * @author Rajarshi Guha
  */
-public class Compound implements BardEntity {
+public class Compound extends BaseEntity {
 
     @BARDJsonRequired
     Long cid;

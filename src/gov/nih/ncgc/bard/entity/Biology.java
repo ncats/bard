@@ -13,7 +13,7 @@ import java.sql.Timestamp;
  *
  * @author Rajarshi Guha
  */
-public class Biology implements BardEntity {
+public class Biology extends BaseEntity {
     public static enum BiologyType {
         AASUBSTITUTION("AASUBSTITUTION"),
         GENE("GENE"), PROTEIN("PROTEIN"),

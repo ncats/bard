@@ -10,7 +10,7 @@ package gov.nih.ncgc.bard.entity;
  *
  * @author Rajarshi Guha
  */
-public class DummyEntity implements BardEntity {
+public class DummyEntity extends BaseEntity {
     /**
      * Return the path for this resource in the REST API.
      * <p/>
@@ -20,7 +20,6 @@ public class DummyEntity implements BardEntity {
      * @return The path to this resource. <code>null</code> if the object is not meant
      *         to be publically available via the REST API
      */
-    @Override
     public String getResourcePath() {
         return "";
     }
