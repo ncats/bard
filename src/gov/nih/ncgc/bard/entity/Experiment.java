@@ -18,7 +18,9 @@ public class Experiment extends BaseEntity {
     Long bardExptId;
 
     Long capExptId, bardAssayId, capAssayId, pubchemAid;
-    int category, type, summary, assays, classification, substances, compounds, activeCompounds;
+    int substances;
+    int compounds;
+    int activeCompounds;
     float confidenceLevel;
     String name, description, source, grantNo, status;
     Date deposited, updated;
@@ -103,46 +105,6 @@ public class Experiment extends BaseEntity {
 
     public void setCapExptId(Long capExptId) {
         this.capExptId = capExptId;
-    }
-
-    public int getCategory() {
-        return category;
-    }
-
-    public void setCategory(int category) {
-        this.category = category;
-    }
-
-    public int getType() {
-        return type;
-    }
-
-    public void setType(int type) {
-        this.type = type;
-    }
-
-    public int getSummary() {
-        return summary;
-    }
-
-    public void setSummary(int summary) {
-        this.summary = summary;
-    }
-
-    public int getAssays() {
-        return assays;
-    }
-
-    public void setAssays(int assays) {
-        this.assays = assays;
-    }
-
-    public int getClassification() {
-        return classification;
-    }
-
-    public void setClassification(int classification) {
-        this.classification = classification;
     }
 
     public int getSubstances() {

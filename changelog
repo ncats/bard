@@ -130,3 +130,5 @@ v17.3 released
 09/01/13      Added a field called statusWarning to all entities, to indicate non-curated status of the data
 	      Removed the /targets resource
               Removed category, classification, summary, assays from the assay entity response
+09/02/13      Removed experiment_class from /projects/{id}/summary
+              Removed category type classification summary assays from /experiments JSON

@@ -24,7 +24,6 @@ import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.entity.Substance;
 import gov.nih.ncgc.bard.entity.TargetClassification;
-import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
@@ -2270,9 +2269,6 @@ public class DBUtils {
         e.setCapAssayId(rs.getLong("real_cap_assay_id"));
         e.setName(rs.getString("name"));
         e.setDescription(rs.getString("description"));
-        e.setCategory(rs.getInt("category"));
-        e.setClassification(rs.getInt("classification"));
-        e.setType(rs.getInt("type"));
         e.setDeposited(rs.getDate("deposited"));
         e.setUpdated(rs.getDate("updated"));
         e.setSubstances(rs.getInt("sample_count"));
@@ -5728,13 +5724,6 @@ public class DBUtils {
         rs.close();
         pst.close();
 
-        Map<String,Integer> exptClasses = new HashMap<String, Integer>();
-        for (Experiment e : expts) {
-            String cls = BARDConstants.ExperimentClassification.valueOf(e.getClassification()).toString();
-            if (exptClasses.containsKey(cls)) exptClasses.put(cls, exptClasses.get(cls) + 1);
-            else exptClasses.put(cls, 1);
-        }
-
         List<Long> probeIds = getProbeCidsForProject(projectId);
         List<Compound> probes = getCompoundsByCid(probeIds.toArray(new Long[]{}));
         List<String> probeReports = new ArrayList<String>();
@@ -5752,7 +5741,6 @@ public class DBUtils {
         ret.put("cmpd_synthesis_count", syncount);
         ret.put("assay_count", nassay);
         ret.put("experiment_count", expts.size());
-        ret.put("experiment_class", exptClasses);
         ret.put("experiments", expts);
 
         cache.put(new Element (projectId, ret));
