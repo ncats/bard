@@ -5737,8 +5737,8 @@ public class DBUtils {
         ret.put("depositor", project.getSource());
         ret.put("description", project.getDescription());
         ret.put("targets", project.getTargets());
-        ret.put("cmpd_purchase_count", pcount);
-        ret.put("cmpd_synthesis_count", syncount);
+//        ret.put("cmpd_purchase_count", pcount);
+//        ret.put("cmpd_synthesis_count", syncount);
         ret.put("assay_count", nassay);
         ret.put("experiment_count", expts.size());
         ret.put("experiments", expts);

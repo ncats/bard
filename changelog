@@ -133,3 +133,5 @@ v17.3 released
 09/02/13      Removed experiment_class from /projects/{id}/summary
               Removed category type classification summary assays from /experiments JSON
 09/04/13      Ensured that all top level resources support /_count subresource
+              Removed cmpd_purchase_count, cmpd_synthesis_count from /projects/{id}/summary
+	      Removed classes (ie target class) from ProteinTarget responses. (only relevant when another entity JSON includes a ProteinTarget field)	

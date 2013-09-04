@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.tools.BARDJsonRequired;
@@ -23,6 +24,7 @@ public class ProteinTarget extends BaseEntity {
     Long geneId, taxId;
 
 //    @JsonBackReference
+    @JsonIgnore
     List<TargetClassification> classes;
 
     public ProteinTarget(String acc, String name, String description, String status, Long geneId, Long taxId) {
