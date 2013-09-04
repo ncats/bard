@@ -2738,7 +2738,7 @@ public class DBUtils {
                 }
             }
             rs.close();
-
+            pst.close();
             cache.put(new Element (key, expts));
             return expts;
         }
@@ -3849,6 +3849,7 @@ public class DBUtils {
             while (rs.next()) {
                 ret.addAll(getCompoundsByCid(rs.getLong("cid")));
             }
+            pst.close();
             rs.close();
             cache.put(new Element (cacheKey, ret));
             return ret;
@@ -4605,6 +4606,7 @@ public class DBUtils {
             ResultSet rs = pst.executeQuery();
             int n = 0;
             while (rs.next()) n = rs.getInt(1);
+            pst.close();
             rs.close();
             return (n);
         }
@@ -4660,6 +4662,7 @@ public class DBUtils {
             ResultSet rs = pst.executeQuery();
             int n = 0;
             while (rs.next()) n = rs.getInt(1);
+            pst.close();
             rs.close();
             return (n);
         }
@@ -5636,6 +5639,7 @@ public class DBUtils {
             ResultSet rs = pst.executeQuery();
             rs.next();
             Integer ret = rs.getInt(1);
+            pst.close();
             rs.close();
             cache.put(new Element(cid, ret));
             return ret;
@@ -5676,7 +5680,7 @@ public class DBUtils {
             ResultSet rs = pst.executeQuery();
             rs.next();
             Integer ret = rs.getInt(1);
-
+            pst.close();
             rs.close();
             cache.put(new Element(cid, ret));
             return ret;
