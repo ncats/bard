@@ -100,32 +100,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
     }
 
     @GET
-    @Produces("text/plain")
-    @Path("/_count")
-    public String count(@QueryParam("filter") String filter) {
-        DBUtils db = new DBUtils();
-        String ret;
-        try {
-            if (filter == null) {
-                int n = db.getAssayCount().size();
-                ret = String.valueOf(n);
-            } else {
-                List<Assay> assays = db.searchForAssay(filter);
-                ret = String.valueOf(assays.size());
-            }
-            return ret;
-        } catch (SQLException e) {
-            throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
-        } finally {
-            try {
-                db.closeConnection();
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-            }
-        }
-    }
-
-    @GET
     @Produces("application/json")
     public Response getResources(@QueryParam("filter") String filter,
                                  @QueryParam("expand") String expand,

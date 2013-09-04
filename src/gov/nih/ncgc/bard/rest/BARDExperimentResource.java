@@ -84,28 +84,6 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
     }
 
     @GET
-    @Produces("text/plain")
-    @Path("/_count")
-    public String count(@QueryParam("filter") String filter) {
-        DBUtils db = new DBUtils();
-        String ret;
-        try {
-            if (filter == null) {
-                ret = String.valueOf(db.getEntityCount(Experiment.class));
-            } else {
-                List<Experiment> experiments = db.searchForEntity(filter, -1, -1, Experiment.class);
-                ret = String.valueOf(experiments.size());
-            }
-            db.closeConnection();
-            return ret;
-        } catch (SQLException e) {
-            throw new WebApplicationException(e, 500);
-        } catch (IOException e) {
-            throw new WebApplicationException(e, 500);
-        }
-    }
-
-    @GET
     public Response getResources(@QueryParam("filter") String filter,
                                  @QueryParam("expand") String expand,
                                  @QueryParam("skip") Integer skip,

@@ -3,10 +3,16 @@ package gov.nih.ncgc.bard.rest;
 import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
+import gov.nih.ncgc.bard.entity.DummyEntity;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
-import javax.ws.rs.*;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -27,7 +33,7 @@ import java.util.Set;
  * @author Rajarshi Guha
  */
 @Path("/cap")
-public class BARDCapResource implements IBARDResource {
+public class BARDCapResource extends BARDResource<DummyEntity> {
 
     @GET
     @Produces("text/plain")
@@ -38,6 +44,18 @@ public class BARDCapResource implements IBARDResource {
         for (String path : paths) msg.append(path).append("\n");
         msg.append("/cap/" + BARDConstants.API_EXTRA_PARAM_SPEC + "\n");
         return msg.toString();
+    }
+
+    @GET
+    @Path("/")
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response getCount() throws SQLException, ClassNotFoundException, IOException {
+        if (countRequested) {
+            DBUtils db = new DBUtils();
+            CAPDictionary dict = db.getCAPDictionary();
+            if (dict == null) throw new WebApplicationException(500);
+            return Response.ok(String.valueOf(dict.size()), MediaType.TEXT_PLAIN).build();
+        } else return Response.status(405).build();
     }
 
     @GET
@@ -67,7 +85,7 @@ public class BARDCapResource implements IBARDResource {
             CAPDictionaryElement elem;
             if (Util.isNumber(dictId)) elem = dict.getNode(new BigInteger(dictId));
             else elem = dict.getNode(dictId);
-            if (elem == null) throw new NotFoundException("No CAP dictionary element for "+dictId);
+            if (elem == null) throw new NotFoundException("No CAP dictionary element for " + dictId);
             return Response.ok(Util.toJson(elem)).type(MediaType.APPLICATION_JSON_TYPE).build();
         } catch (SQLException e) {
             throw new WebApplicationException(Response.status(500).entity(e).build());
@@ -143,5 +161,15 @@ public class BARDCapResource implements IBARDResource {
 
     public Response getResources(@PathParam("name") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public Class<DummyEntity> getEntityClass() {
+        return DummyEntity.class;
+    }
+
+    @Override
+    public String getResourceBase() {
+        return BARDConstants.API_BASE + "/cap";
     }
 }

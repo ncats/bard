@@ -132,3 +132,4 @@ v17.3 released
               Removed category, classification, summary, assays from the assay entity response
 09/02/13      Removed experiment_class from /projects/{id}/summary
               Removed category type classification summary assays from /experiments JSON
+09/04/13      Ensured that all top level resources support /_count subresource

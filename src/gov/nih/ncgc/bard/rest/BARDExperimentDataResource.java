@@ -15,14 +15,27 @@ import gov.nih.ncgc.bard.tools.Util;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -94,6 +107,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
     }
 
     @GET
+    @Path("/")
     public Response getResources(@QueryParam("filter") String filter,
                                  @QueryParam("expand") String expand,
                                  @QueryParam("skip") Integer skip,
@@ -105,10 +119,12 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
         DBUtils db = new DBUtils();
         Response response;
         try {
-            if (filter == null) { // don't bother returning all experiment_data objects
-                response = Response.status(413).build();
+            if (filter == null) {
+                if (countRequested) return Response.ok(String.valueOf(db.getEntityCount(ExperimentData.class)), MediaType.TEXT_PLAIN).build();
+                else return Response.status(413).build();
             } else {
                 List<ExperimentData> experimentData = db.searchForExperimentData(filter, skip, top); // TODO search needs to be reworked
+                if (countRequested) return Response.ok(String.valueOf(experimentData.size()), MediaType.TEXT_PLAIN).build();
                 if (expandEntries) {
                     String json = Util.toJson(experimentData);
                     response = Response.ok(json, MediaType.APPLICATION_JSON).build();
