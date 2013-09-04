@@ -4602,6 +4602,7 @@ public class DBUtils {
             int n = 0;
             while (rs.next()) n = rs.getInt(1);
             rs.close();
+            pst.close();
             return (n);
         }
         finally {
@@ -4657,6 +4658,7 @@ public class DBUtils {
             int n = 0;
             while (rs.next()) n = rs.getInt(1);
             rs.close();
+            pst.close();
             return (n);
         }
         finally {
@@ -5577,6 +5579,7 @@ public class DBUtils {
                 else if (entity.isAssignableFrom(ExperimentData.class)) ret.add((T) getExperimentDataByDataId(rs.getString(1)));
             }
             rs.close();
+            pst.close();
             cache.put(new Element (cid, ret));
             return ret;
         }
@@ -5632,6 +5635,7 @@ public class DBUtils {
             ResultSet rs = pst.executeQuery();
             rs.next();
             Integer ret = rs.getInt(1);
+            pst.close();
             rs.close();
             cache.put(new Element(cid, ret));
             return ret;
