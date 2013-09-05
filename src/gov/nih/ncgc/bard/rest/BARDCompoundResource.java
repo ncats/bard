@@ -5,7 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sun.jersey.api.NotFoundException;
-import gov.nih.ncgc.bard.entity.*;
+import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
+import gov.nih.ncgc.bard.entity.Biology;
+import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.ExperimentData;
+import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.entity.TargetClassification;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.OrderedSearchResultHandler;
@@ -18,7 +25,15 @@ import gov.nih.ncgc.util.functional.Functional;
 import gov.nih.ncgc.util.functional.IApplyFunction;
 
 import javax.imageio.ImageIO;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -29,8 +44,13 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -59,7 +79,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
     /**
      * these parameters should be configurable somewhere; having a static
-     * is really a bad idea here. We should hook this into the lifecycle 
+     * is really a bad idea here. We should hook this into the lifecycle
      * of the web container so as to properly performing clean up!
      */
     /*
@@ -70,7 +90,6 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                                 TimeUnit.SECONDS,
                                 new ArrayBlockingQueue<Runnable>(20));
     */
-
     public Class<Compound> getEntityClass() {
         return Compound.class;
     }
@@ -133,12 +152,12 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 if (skip + top <= db.getEntityCount(Compound.class))
                     linkString = BARDConstants.API_BASE + "/compounds?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
                 end = System.currentTimeMillis();
-                System.out.println("TIME entity count: "+((end-start)*1e-3));
+                System.out.println("TIME entity count: " + ((end - start) * 1e-3));
 
                 start = System.currentTimeMillis();
                 List<Compound> compounds = db.searchForEntity(filter, skip, top, Compound.class);
                 end = System.currentTimeMillis();
-                System.out.println("TIME entity search: "+((end-start)*1e-3));
+                System.out.println("TIME entity search: " + ((end - start) * 1e-3));
 
 
                 if (expandEntries) {
@@ -147,7 +166,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                     start = System.currentTimeMillis();
                     response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
                     end = System.currentTimeMillis();
-                    System.out.println("TIME json generate: "+((end-start)*1e-3));
+                    System.out.println("TIME json generate: " + ((end - start) * 1e-3));
 
                 } else {
                     List<String> links = new ArrayList<String>();
@@ -163,8 +182,10 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 filter = filter.trim().replace("[structure]", "");
                 response = doStructureSearch(filter, type, top, skip, cutoff, rankBy, db, expandEntries, annot);
             } else if (filter.contains("[tested]") || filter.contains("[active]")) {
-                if (countRequested && filter.contains("[tested]")) response = Response.ok(String.valueOf(db.getCompoundTestCount())).build();
-                else if (countRequested && filter.contains("[active]")) response = Response.ok(String.valueOf(db.getCompoundActiveCount())).build();
+                if (countRequested && filter.contains("[tested]"))
+                    response = Response.ok(String.valueOf(db.getCompoundTestCount())).build();
+                else if (countRequested && filter.contains("[active]"))
+                    response = Response.ok(String.valueOf(db.getCompoundActiveCount())).build();
                 else {
                     if ((top == -1)) { // top was not specified, so we start from the beginning
                         top = BARDConstants.MAX_COMPOUND_COUNT;
@@ -236,15 +257,15 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
         if (rankBy != null) params.setRankBy(rankBy);
         System.out.println("## structure search: query:"
-                           +query+" type:"+type+" rank:"+rankBy);
+                + query + " type:" + type + " rank:" + rankBy);
 
         StringWriter writer = new StringWriter();
         PrintWriter pw = new PrintWriter(writer);
         if (skip == -1) skip = 0;
         if (top == -1) top = 100;
 
-        OrderedSearchResultHandler handler = 
-            new OrderedSearchResultHandler (params, pw, skip, top);
+        OrderedSearchResultHandler handler =
+                new OrderedSearchResultHandler(params, pw, skip, top);
         if (countRequested) {
             int n = search.count(query, params);
             response = Response.ok(String.valueOf(n)).build();
@@ -372,8 +393,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                         if (projects.size() == 1) {
                             onode.put("bardProjectId", projects.get(0).getBardProjectId());
                             onode.put("capProjectId", projects.get(0).getCapProjectId());
-                        }
-                        else if (projects.size() == 0) {
+                        } else if (projects.size() == 0) {
                             onode.put("bardProjectId", -1);
                             onode.put("capProjectId", -1);
                         }
@@ -419,7 +439,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         return etag;
     }
 
-    String toJson(DBUtils db, List<Compound> compounds,  String type,
+    String toJson(DBUtils db, List<Compound> compounds, String type,
                   boolean annotation) throws SQLException, IOException {
 
         if (!annotation && !type.equals("probeid")) {
@@ -437,7 +457,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 if (projects.size() == 1) {
                     if (annotation) n.put("bardProjectId", mapper.valueToTree(projects.get(0)));
                     else n.put("bardProjectId", projects.get(0).getBardProjectId());
-                } else logger.warning("There were "+projects.size()+" projects for probe "+probeId);
+                } else logger.warning("There were " + projects.size() + " projects for probe " + probeId);
             }
 
             Map anno = db.getCompoundAnnotations(n.get("cid").asLong());
@@ -541,20 +561,20 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
     @GET
     @Path("/{hash}/h{id}")
-    public Response getCompoundsByHash (@PathParam("hash") String hv,
-                                        @PathParam("id") String id,
-                                        @QueryParam("expand") String expand) {
+    public Response getCompoundsByHash(@PathParam("hash") String hv,
+                                       @PathParam("id") String id,
+                                       @QueryParam("expand") String expand) {
 
         DBUtils db = new DBUtils();
         try {
             if (id == null || id.length() == 0) {
-                throw new IllegalArgumentException ("No hash id specified!");
+                throw new IllegalArgumentException("No hash id specified!");
             }
 
             if ((hv.length() % 6) != 0) {
                 // not multiple of 6
                 throw new IllegalArgumentException
-                    ("Hash value is not multiple of 6");
+                        ("Hash value is not multiple of 6");
             }
 
             /*
@@ -568,50 +588,54 @@ public class BARDCompoundResource extends BARDResource<Compound> {
              * /GwdyarvpREqoAykhoOoTARYx/h1234
              */
             String[] hash = new String[4];
-            for (int i = 0, pos = 0; 
+            for (int i = 0, pos = 0;
                  i < id.length() && pos < hv.length(); ++i) {
-                String key = hv.substring(pos, pos+6);
+                String key = hv.substring(pos, pos + 6);
 
                 switch (id.charAt(i)) {
-                case '1': hash[0] = key; break;
-                case '2': hash[1] = key; break;
-                case '3': hash[2] = key; break;
-                case '4': hash[3] = key; break;
-                default:
-                    // ignore bogus character
+                    case '1':
+                        hash[0] = key;
+                        break;
+                    case '2':
+                        hash[1] = key;
+                        break;
+                    case '3':
+                        hash[2] = key;
+                        break;
+                    case '4':
+                        hash[3] = key;
+                        break;
+                    default:
+                        // ignore bogus character
                 }
                 pos += 6;
             }
 
-            log ("{hash} = "+hv+"; {id} = "+id+"; h1="+hash[0]+" h2="+hash[1]
-                 +" h3="+hash[2]+" h4="+hash[3]);
+            log("{hash} = " + hv + "; {id} = " + id + "; h1=" + hash[0] + " h2=" + hash[1]
+                    + " h3=" + hash[2] + " h4=" + hash[3]);
 
-            List<Compound> compounds = 
-                db.getCompoundsByHash(hash[0], hash[1], hash[2], hash[3]);
+            List<Compound> compounds =
+                    db.getCompoundsByHash(hash[0], hash[1], hash[2], hash[3]);
             Response response;
-            if (expand != null && (expand.equalsIgnoreCase("true") 
-                                   || expand.equalsIgnoreCase("yes"))) {
-                response = Response.ok(Util.toJson(compounds), 
-                                       MediaType.APPLICATION_JSON).build();
-            }
-            else {
+            if (expand != null && (expand.equalsIgnoreCase("true")
+                    || expand.equalsIgnoreCase("yes"))) {
+                response = Response.ok(Util.toJson(compounds),
+                        MediaType.APPLICATION_JSON).build();
+            } else {
                 List<String> links = new ArrayList<String>();
-                for (Compound a : compounds) 
+                for (Compound a : compounds)
                     links.add(a.getResourcePath());
-                response = Response.ok(Util.toJson(links), 
-                                       MediaType.APPLICATION_JSON).build();
+                response = Response.ok(Util.toJson(links),
+                        MediaType.APPLICATION_JSON).build();
             }
 
             return response;
-        } 
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new WebApplicationException(e, 500);
-        }
-        finally {
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
@@ -619,38 +643,35 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
     @GET
     @Path("/{cid}/eqv")
-    public Response getEqvCompounds (@PathParam("cid") String cid,
-                                     @QueryParam("expand") String expand) {
+    public Response getEqvCompounds(@PathParam("cid") String cid,
+                                    @QueryParam("expand") String expand) {
         DBUtils db = new DBUtils();
         // return equivalence class based on hash keys
         try {
-            List<Compound> compounds = 
-                db.getEqvCompounds(Long.parseLong(cid));
+            List<Compound> compounds =
+                    db.getEqvCompounds(Long.parseLong(cid));
 
             Response response;
-            if (expand != null && (expand.equalsIgnoreCase("true") 
-                                   || expand.equalsIgnoreCase("yes"))) {
-                response = Response.ok(Util.toJson(compounds), 
-                                       MediaType.APPLICATION_JSON).build();
-            }
-            else {
+            if (expand != null && (expand.equalsIgnoreCase("true")
+                    || expand.equalsIgnoreCase("yes"))) {
+                response = Response.ok(Util.toJson(compounds),
+                        MediaType.APPLICATION_JSON).build();
+            } else {
                 List<String> links = new ArrayList<String>();
-                for (Compound a : compounds) 
+                for (Compound a : compounds)
                     links.add(a.getResourcePath());
-                response = Response.ok(Util.toJson(links), 
-                                       MediaType.APPLICATION_JSON).build();
+                response = Response.ok(Util.toJson(links),
+                        MediaType.APPLICATION_JSON).build();
             }
 
             return response;
-        }
-        catch (Exception ex) {
-            throw new WebApplicationException (ex, 500);
-        }
-        finally {
+        } catch (Exception ex) {
+            throw new WebApplicationException(ex, 500);
+        } finally {
             try {
                 db.closeConnection();
+            } catch (Exception ex) {
             }
-            catch (Exception ex) {}
         }
     }
 
@@ -1205,6 +1226,26 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         if (top == null) top = -1;
 
         List<ExperimentData> data = db.getEntitiesByCid(cid, ExperimentData.class, skip, top);
+
+        // make an array of experiment ids then pull all expts
+        // in bulk and set up local cache
+        List<Long> tmpEids = new ArrayList<Long>();
+        for (ExperimentData edata : data) {
+            if (edata != null) tmpEids.add(edata.getBardExptId());
+        }
+        List<Experiment> experiments = db.getExperimentsByExptIds(tmpEids.toArray(new Long[0]));
+        Map<Long, Experiment> localExptCache = new HashMap<Long, Experiment>();
+        for (Experiment expt : experiments) localExptCache.put(expt.getBardExptId(), expt);
+
+        // do the same thing for the assays
+        List<Long> tmpAids = new ArrayList<Long>();
+        for (Experiment expt : experiments) {
+            if (expt.getBardAssayId() != null) tmpAids.add(expt.getBardAssayId());
+        }
+        List<Assay> assays = db.getAssays(tmpAids.toArray(new Long[0]));
+        Map<Long, Assay> localAssayCache = new HashMap<Long, Assay>();
+        for (Assay assay : assays) localAssayCache.put(assay.getBardAssayId(), assay);
+
         List<ExperimentData> hitData = new ArrayList<ExperimentData>();
         int nhit = 0;
         List<String> hitExpts = new ArrayList<String>();
@@ -1220,31 +1261,30 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             }
 
             Long eid = ed.getBardExptId();
-            Experiment expt = db.getExperimentByExptId(eid);
+            Experiment expt = localExptCache.get(eid);
             if (expt == null) continue;
             Long aid = expt.getBardAssayId();
 
             testedExperiments.add(expt);
             if (aid != null) {
-                Assay assay = db.getAssayByAid(aid);
+                Assay assay = localAssayCache.get(aid);
                 testedAssays.add(assay);
 
                 // if cid was active in experiment_data (outcome = 2) and experiment was a confirmatory screen, we call it a hit
                 if (ed.getOutcome() == 2) {
                     nhit++;
                     hitExpts.add(expt.getResourcePath());
-
                     hitAssays.add(assay);
                     hitData.add(ed);
                 }
-            }
-            else {
+            } else {
                 logger.warning("Something is rotten in the state of Denmark! "
-                               +"No assay found for eid="+eid+" exptid="
-                               +ed.getExptDataId()+" bardexptid="
-                               +ed.getBardExptId()+"!");
+                        + "No assay found for eid=" + eid + " exptid="
+                        + ed.getExptDataId() + " bardexptid="
+                        + ed.getBardExptId() + "!");
             }
         }
+
         s.put("ntest", data.size());
         s.put("nhit", nhit);
 //        s.put("hitExperiments", hitExpts);
@@ -1262,9 +1302,10 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                     accs.add(bio.getExtId());
             }
         }
+
         if (accs.size() > 0)
-            s.put("testedTargetClasses", getTargetClassCount(accs, 1));
-        else s.put("testedTargetClasses", null);
+            s.put("testedTargets", accs);
+        else s.put("testedTarget", null);
 
         accs = new ArrayList<String>();
         for (Assay a : hitAssays) {
@@ -1275,8 +1316,8 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             }
         }
         if (accs.size() > 0)
-            s.put("hitTargetClasses", getTargetClassCount(accs, 1));
-        else s.put("hitTargetClasses", null);
+            s.put("hitTarget", accs);
+        else s.put("hitTarget", null);
 
 
         if (expand != null && expand.trim().toLowerCase().equals("true")) {
