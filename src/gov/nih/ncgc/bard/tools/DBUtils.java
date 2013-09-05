@@ -2194,7 +2194,7 @@ public class DBUtils {
         if (bardExptIds == null || bardExptIds.length == 0) return expts;
         String idclause = Util.join(bardExptIds, ",");
         if (conn == null) conn = getConnection();
-        String sql = "select *, b.cap_assay_id as real_cap_assay_id from bard_experiment a, bard_assay b,  where bard_expt_id in ("+
+        String sql = "select *, b.cap_assay_id as real_cap_assay_id from bard_experiment a, bard_assay b  where bard_expt_id in ("+
                 idclause+") and a.bard_assay_id = b.bard_assay_id";
         PreparedStatement pst = conn.prepareStatement(sql);
         try {
