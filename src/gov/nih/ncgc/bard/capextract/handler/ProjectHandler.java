@@ -270,7 +270,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
             boolean isProbeContext = false;
             for (CAPAnnotation anno : grp) {
-                if (Integer.parseInt(anno.key) == 1776) {
+                if (Util.isNumber(anno.key) && Integer.parseInt(anno.key) == 1776) {
                     isProbeContext = true;
                     break;
                 }
@@ -533,7 +533,12 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
     }
 
     void processExperiments(Project project, int pubchemAid) throws SQLException, IOException {
-        List<ProjectExperiment> experiments = project.getProjectExperiments().getProjectExperiment();
+        Project.ProjectExperiments projexpt = project.getProjectExperiments();
+        if (projexpt == null) {
+            log.warn("ProjectExperiment for CAP project id " + project.getProjectId() + " was null. No experiments to process");
+            return;
+        }
+        List<ProjectExperiment> experiments = projexpt.getProjectExperiment();
 
         //We could update existing pe's by usint 'replace' over 'insert' BUT
         //suppose some pe's are removed.
@@ -654,6 +659,13 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
         PreparedStatement exptLookup = conn.prepareStatement("select bard_expt_id from bard_experiment where cap_expt_id = ?");
         ResultSet rs;
+
+        // are there any experiments to process?
+        if (project.getProjectExperiments() == null) {
+            exptLookup.close();
+            log.warn("ProjectExperiment for CAP project id " + project.getProjectId() + " was null. No experiment steps to process");
+            return new ArrayList<CAPAnnotation>();
+        }
 
         // first go through projectExperiment elements and build a map of
         // pprojectExperiment id <-> bard experiment id
