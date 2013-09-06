@@ -1,12 +1,5 @@
 package gov.nih.ncgc.bard.tools;
 
-import chemaxon.formats.MolFormatException;
-import chemaxon.formats.MolImporter;
-import chemaxon.struc.Molecule;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.Lists;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
@@ -30,13 +23,7 @@ import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.search.SearchUtil;
 import gov.nih.ncgc.bard.search.SolrField;
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Element;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -46,7 +33,6 @@ import java.security.Principal;
 import java.security.SecureRandom;
 import java.sql.Blob;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -65,6 +51,24 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
+
+import javax.sql.DataSource;
+
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Element;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import chemaxon.formats.MolFormatException;
+import chemaxon.formats.MolImporter;
+import chemaxon.struc.Molecule;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
 
 
 
@@ -172,7 +176,7 @@ public class DBUtils {
 
 
     static Logger log;
-    Connection conn = null;
+//    Connection conn = null;
     Map<Class, Query> fieldMap;
     SecureRandom rand = new SecureRandom();
 
@@ -250,13 +254,13 @@ public class DBUtils {
      *
      * @return <code>true</code> if there is a valid connection to the database, otherwise false
      */
-    public boolean ready() {
-        return conn != null;
-    }
-
+//    public boolean ready() {
+//        return conn != null;
+//    }
+//
     public void closeConnection() throws SQLException {
-        if (conn != null && !conn.isClosed())
-            conn.close();
+//        if (conn != null && !conn.isClosed())
+//            conn.close();
     }
 
     private Connection getConnection() {
@@ -286,9 +290,9 @@ public class DBUtils {
         return con;
     }
 
-    protected void setConnection(Connection conn) {
-        this.conn = conn;
-    }
+//    protected void setConnection(Connection conn) {
+//        this.conn = conn;
+//    }
 
     private String readFromClob(Reader reader) throws IOException {
         StringBuilder sb = new StringBuilder();
@@ -323,7 +327,7 @@ public class DBUtils {
             //
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select * from publication where pmid = ?");
         try {
             pst.setLong(1, pmid);
@@ -340,7 +344,8 @@ public class DBUtils {
             return p;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -356,7 +361,7 @@ public class DBUtils {
         catch (ClassCastException ex) {
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select * from publication where doi = ?");
         try {
             pst.setString(1, doi);
@@ -373,7 +378,8 @@ public class DBUtils {
             return p;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -390,7 +396,7 @@ public class DBUtils {
         catch (ClassCastException ex) {
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst2 = conn.prepareStatement("select a.* from publication a, target_pub b where b.accession = ? and b.pmid = a.pmid");
         try {
             pst2.setString(1, accession);
@@ -409,7 +415,8 @@ public class DBUtils {
             return pubs;
         }
         finally {
-            pst2.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst2, conn);
         }
     }
 
@@ -423,7 +430,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select * from protein_target where accession  = ?");
         try {
             pst.setString(1, accession);
@@ -443,7 +450,8 @@ public class DBUtils {
             return p;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -458,7 +466,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         if (p == null) {
-            if (conn == null) conn = getConnection();
+            Connection conn = getConnection();
             PreparedStatement pst = conn.prepareStatement
                 ("select * from protein_target where gene_id = ?");
             try {
@@ -479,7 +487,8 @@ public class DBUtils {
                 cache.put(new Element (geneId, p));
             }
             finally {
-                pst.close();
+        	//close resources
+        	JDBCResourceCloser.close(pst, conn);
             }
         }
         return p;
@@ -495,7 +504,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select cid from cid_sid where sid = ?");
         try {
             pst.setLong(1, sid);
@@ -507,7 +516,8 @@ public class DBUtils {
             return cid;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -522,7 +532,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         List<Long> sids = new ArrayList<Long>();
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select sid from cid_sid where cid = ?");
         try {
             pst.setLong(1, cid);
@@ -533,7 +543,8 @@ public class DBUtils {
             return sids;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -556,7 +567,7 @@ public class DBUtils {
         // if there's nothing in uncachedCids, we got everything from the cache
         if (uncachedCids.size() == 0) return list.toArray(new Long[][]{});
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         List<List<Long>> chunks = Util.chunk(uncachedCids, CHUNK_SIZE);
 
         for (List<Long> chunk : chunks) {
@@ -591,7 +602,8 @@ public class DBUtils {
                 rs.close();
             }
             finally {
-                stm.close();
+        	//close resources
+        	JDBCResourceCloser.close(stm, conn);
             }
         }
 
@@ -631,7 +643,7 @@ public class DBUtils {
         }
 
         if (!notcached.isEmpty()) {
-            if (conn == null) conn = getConnection();
+            Connection conn = getConnection();
             cids = notcached.toArray(new Long[0]);
             List<List<Long>> chunks = Util.chunk(cids, CHUNK_SIZE);
 
@@ -657,7 +669,8 @@ public class DBUtils {
                     rs.close();
                 }
                 finally {
-                    stm.close();
+        	    //close resources
+        	    JDBCResourceCloser.close(stm, conn);
                 }
             }
         }
@@ -699,7 +712,7 @@ public class DBUtils {
             }
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct id from synonyms where type = 1 and match(syn) against (? in boolean mode)");
         try {
             ResultSet rs;
@@ -719,53 +732,60 @@ public class DBUtils {
             return cmpds;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public List<Compound> getCompoundsBySid(Long... sids) throws SQLException {
-        if (sids == null || sids.length == 0) return null;
+	if (sids == null || sids.length == 0) return null;
 
-        List<Compound> cmpds = new ArrayList<Compound>();
+	List<Compound> cmpds = new ArrayList<Compound>();
 
-        List<Long> notcached = new ArrayList<Long>();
-        Cache cache = getCache("CompoundsBySidCache");
-        for (Long sid : sids) {
-            Compound value = null;
-            value = getCacheValue(cache, sid);
-            if (value != null) cmpds.add(value);
-            else notcached.add(sid);
-        }
+	List<Long> notcached = new ArrayList<Long>();
+	Cache cache = getCache("CompoundsBySidCache");
+	for (Long sid : sids) {
+	    Compound value = null;
+	    value = getCacheValue(cache, sid);
+	    if (value != null) cmpds.add(value);
+	    else notcached.add(sid);
+	}
 
-        if (conn == null) conn = getConnection();
-        List<List<Long>> chunks = Util.chunk(notcached, CHUNK_SIZE);
-        for (List<Long> chunk : chunks) {
-            String sidClause = Util.join(chunk, ",");
-            String sql = "select cid from cid_sid s where s.sid in (" + sidClause + ")";
-            PreparedStatement pst = conn.prepareStatement(sql);
-            List<Long> cids = new ArrayList<Long>();
-            Set<Long> unique = new HashSet<Long>();
-            ResultSet rs = pst.executeQuery();
-            while (rs.next()) {
-                long cid = rs.getLong("cid");
-                if (!unique.contains(cid)) {
-                    unique.add(cid);
-                    cids.add(cid);
-                }
-            }
-            rs.close();
+	Connection conn = getConnection();
+	PreparedStatement pst = null;
+	List<List<Long>> chunks = Util.chunk(notcached, CHUNK_SIZE);
+	try {
+	    for (List<Long> chunk : chunks) {
+		String sidClause = Util.join(chunk, ",");
+		String sql = "select cid from cid_sid s where s.sid in (" + sidClause + ")";
+		pst = conn.prepareStatement(sql);
+		List<Long> cids = new ArrayList<Long>();
+		Set<Long> unique = new HashSet<Long>();
+		ResultSet rs = pst.executeQuery();
+		while (rs.next()) {
+		    long cid = rs.getLong("cid");
+		    if (!unique.contains(cid)) {
+			unique.add(cid);
+			cids.add(cid);
+		    }
+		}
+		rs.close();
 
-            List<Compound> notCachedCompounds = getCompoundsByCid(cids.toArray(new Long[]{}));
-            for (Compound c : notCachedCompounds) {
-                List<Long> notCachedSids = c.getSids();
-                if (notCachedSids == null) continue;
-                for (Long sid : notCachedSids) cache.put(new Element(sid, c));
-            }
-            cmpds.addAll(notCachedCompounds);
-            pst.close();
-        }
-
-        return cmpds;
+		List<Compound> notCachedCompounds = getCompoundsByCid(cids.toArray(new Long[]{}));
+		for (Compound c : notCachedCompounds) {
+		    List<Long> notCachedSids = c.getSids();
+		    if (notCachedSids == null) continue;
+		    for (Long sid : notCachedSids) cache.put(new Element(sid, c));
+		}
+		cmpds.addAll(notCachedCompounds);
+		pst.close();          
+	    }
+	} 
+	finally {
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
+	}
+	return cmpds;
     }
 
     public String newETag(String name, String clazz) throws SQLException {
@@ -777,7 +797,7 @@ public class DBUtils {
             throw new IllegalArgumentException("Please specify the class!");
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("insert into etag(etag_id,name,type,created,modified,url) "
              + "values (?,?,?,?,?,?)");
@@ -822,13 +842,14 @@ public class DBUtils {
 
             return etag;
         } finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public int createETagLinks(String etag, String... parents)
         throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("insert into etag_link(etag_id, parent_id) values (?,?)");
         int links = 0;
@@ -846,7 +867,8 @@ public class DBUtils {
 
             return links;
         } finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -855,7 +877,7 @@ public class DBUtils {
     }
     public int putETag (String etag, String name,  Long... ids) throws SQLException {
         int cnt = 0;
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select a.*,count(*) as size from etag a left join etag_data b "
              +"on a.etag_id = b.etag_id where a.etag_id = ? "
@@ -919,15 +941,17 @@ public class DBUtils {
                 pst.executeUpdate();
             }
         } finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
         return cnt;
     }
 
     public void touchETag(String etag) throws SQLException {
         PreparedStatement pst = null;
+        Connection conn = getConnection();
+
         try {
-            if (conn == null) conn = getConnection();
             pst = conn.prepareStatement
                 ("update etag set accessed = ? where etag_id = ?");
             pst.setTimestamp(1, new java.sql.Timestamp
@@ -936,15 +960,14 @@ public class DBUtils {
             if (pst.executeUpdate() > 0) {
             }
         } finally {
-            if (pst != null) {
-                pst.close();
-            }
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public List<Compound> getCompoundsByProbeId(String... probeids)
         throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         if (probeids == null || probeids.length == 0) return null;
         List<List<String>> chunks = Util.chunk(probeids, CHUNK_SIZE);
         List<Compound> compounds = new ArrayList<Compound>();
@@ -965,9 +988,13 @@ public class DBUtils {
                 }
                 rs.close();
             } finally {
-                pst.close();
+                //close resources
+                JDBCResourceCloser.close(pst, conn);
             }
         }
+        
+        //close resources
+        JDBCResourceCloser.close(conn);
 
         // get Sids
         for (Compound c : compounds) {
@@ -978,7 +1005,7 @@ public class DBUtils {
     }
 
     public ETag getEtagByEtagId(String id) throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.*, count(*) as cnt from etag a, etag_data b where a.etag_id = ? and a.etag_id = b.etag_id");
         ETag etag = new ETag();
         try {
@@ -1010,12 +1037,13 @@ public class DBUtils {
             pst2.close();
             return etag;
         } finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public Map getETagInfo (String etag) throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select a.*,count(*) as count from etag a, etag_data b "
              + "where a.etag_id = ? and a.etag_id = b.etag_id");
@@ -1035,7 +1063,8 @@ public class DBUtils {
 
             return info;
         } finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -1058,7 +1087,7 @@ public class DBUtils {
             }
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select val,count(*) as cnt from "
              + "compound_annot a, etag_data b "
@@ -1108,7 +1137,8 @@ public class DBUtils {
 
             return facet;
         } finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -1122,7 +1152,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select syn from synonyms where id = ? and type=1");
         List<String> syns = new ArrayList<String>();
@@ -1137,7 +1167,8 @@ public class DBUtils {
             cache.put(new Element (cid, syns));
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
         return syns;
     }
@@ -1175,7 +1206,7 @@ public class DBUtils {
     public Facet getCompoundPropertyFacet
         (String etag, String name, String column, int precision)
         throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select round(" + column + "," + precision + ")  as bucket,\n"
              + "count(*) as count\n"
@@ -1232,7 +1263,8 @@ public class DBUtils {
 
             return f;
         } finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -1245,7 +1277,7 @@ public class DBUtils {
         if (!etag.getType().equals("gov.nih.ncgc.bard.entity.Project"))
             throw new IllegalArgumentException("ETag " + etag + " is of type " + etag.getType());
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select data_id from etag_data where etag_id = ?");
         try {
             pst.setString(1, etagId);
@@ -1301,7 +1333,8 @@ public class DBUtils {
             //            facet.setCounts(dtcounts);
             //            facets.add(facet);
         } finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
 
         return facets;
@@ -1315,8 +1348,9 @@ public class DBUtils {
         if (!etag.getType().equals("gov.nih.ncgc.bard.entity.Assay"))
             throw new IllegalArgumentException("ETag " + etag + " is of type " + etag.getType());
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select data_id from etag_data where etag_id = ?");
+        PreparedStatement pst2 = null;
         try {
             pst.setString(1, etagId);
             ResultSet rs = pst.executeQuery();
@@ -1356,7 +1390,7 @@ public class DBUtils {
                 }
 
                 // disease facet
-                PreparedStatement pst2 = conn.prepareStatement("select disease_category from bard_assay a, kegg_gene2disease b, assay_target c where a.bard_assay_id = ? and a.bard_assay_id=c.bard_assay_id and c.gene_id=b.gene_id");
+                pst2 = conn.prepareStatement("select disease_category from bard_assay a, kegg_gene2disease b, assay_target c where a.bard_assay_id = ? and a.bard_assay_id=c.bard_assay_id and c.gene_id=b.gene_id");
                 pst2.setLong(1, bardAssayId);
                 ResultSet rs2 = pst2.executeQuery();
                 while (rs2.next()) {
@@ -1387,7 +1421,9 @@ public class DBUtils {
             facets.add(facet);
 
         } finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst2);
+            JDBCResourceCloser.close(pst, conn);
         }
 
         return facets;
@@ -1410,7 +1446,7 @@ public class DBUtils {
             return value;
         }
 
-        if (conn == null) conn = getConnection ();
+        Connection conn = getConnection ();
         // for extra safe measure we use an additional hash 1
         PreparedStatement pstm1, pstm2 = null;
         pstm1 = conn.prepareStatement
@@ -1452,9 +1488,9 @@ public class DBUtils {
             return compounds;
         }
         finally {
-            if (pstm2 != null)
-                pstm2.close();
-            pstm1.close();
+            //close resources
+            JDBCResourceCloser.close(pstm1,pstm2);
+            JDBCResourceCloser.close(conn);
         }
     }
 
@@ -1498,7 +1534,7 @@ public class DBUtils {
         log.info("HASH: "+hash);
         log.info("SQL: "+sql);
 
-        if (conn == null) conn = getConnection ();
+        Connection conn = getConnection ();
         PreparedStatement pstm = conn.prepareStatement(sql.toString());
         try {
             for (int i = 0; i < args.size(); ++i) {
@@ -1522,7 +1558,8 @@ public class DBUtils {
             return compounds;
         }
         finally {
-            pstm.close();
+            //close resources
+            JDBCResourceCloser.close(pstm, conn);
         }
     }
 
@@ -1555,7 +1592,7 @@ public class DBUtils {
             sql.append(" limit " + Math.max(6, top));
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst1 = conn.prepareStatement(sql.toString());
         try {
             pst1.setString(2, Compound.class.getName());
@@ -1596,7 +1633,8 @@ public class DBUtils {
 
             return compounds;
         } finally {
-            pst1.close();
+            //close resources
+            JDBCResourceCloser.close(pst1, conn);
         }
     }
 
@@ -1613,7 +1651,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
 
 
         StringBuffer sb = new StringBuffer();
@@ -1654,7 +1692,8 @@ public class DBUtils {
             return anno;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
 
     }
@@ -1671,7 +1710,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select * from compound_annot where cid = ?");
         try {
@@ -1700,7 +1739,8 @@ public class DBUtils {
             return anno;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -1811,7 +1851,7 @@ public class DBUtils {
         Long bardExptId = Long.parseLong(toks[0]);
         Long sid = Long.parseLong(toks[1]);
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select      a . *, b . *, c . *, d.cap_assay_id as real_cap_assay_id from     bard_experiment_data a left join bard_experiment_result b on a.expt_data_id = b.expt_data_id left join bard_experiment c on a.bard_expt_id = c.bard_expt_id left join bard_assay d on c.bard_assay_id = d.bard_assay_id where a.bard_expt_id = ? and a.sid = ?");
         ExperimentData ed = null;
         try {
@@ -1830,7 +1870,8 @@ public class DBUtils {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
         return ed;
     }
@@ -1870,7 +1911,7 @@ public class DBUtils {
         }
 
         if (!notcached.isEmpty()) {
-            if (conn == null) conn = getConnection();
+            Connection conn = getConnection();
 
             Long bardExptId = -1L;
             StringBuilder sbSid = new StringBuilder();
@@ -1906,7 +1947,8 @@ public class DBUtils {
                 rs.close();
             }
             finally {
-                pst.close();
+                //close resources
+                JDBCResourceCloser.close(pst, conn);
             }
         }
         return ret;
@@ -1989,7 +2031,7 @@ public class DBUtils {
             sql.append(" limit ").append(top);
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql.toString());
         try {
             pst.setLong(1, bardExptId);
@@ -2005,7 +2047,8 @@ public class DBUtils {
             cache.put(new Element (key, data));
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
 
         return data;
@@ -2019,51 +2062,57 @@ public class DBUtils {
      * @throws IOException
      */
     ExperimentData getExperimentData(ResultSet rs)
-        throws SQLException, IOException {
-        ExperimentData ed = new ExperimentData();
-        //sets a new field for bard_expt_id
-        ed.setBardExptId(rs.getLong("bard_expt_id"));
-        ed.setSid(rs.getLong("sid"));
-        ed.setCid(rs.getLong("cid"));
-        ed.setExptDataId(ed.getBardExptId()+"."+ed.getSid());
+	    throws SQLException, IOException {
+	ExperimentData ed = new ExperimentData();
+	//sets a new field for bard_expt_id
+	ed.setBardExptId(rs.getLong("bard_expt_id"));
+	ed.setSid(rs.getLong("sid"));
+	ed.setCid(rs.getLong("cid"));
+	ed.setExptDataId(ed.getBardExptId()+"."+ed.getSid());
 
-        ed.setBardAssayId(rs.getLong("bard_assay_id"));
-        ed.setCapAssayId(rs.getLong("real_cap_assay_id"));
-        ed.setCapExptId(rs.getLong("cap_expt_id"));
+	ed.setBardAssayId(rs.getLong("bard_assay_id"));
+	ed.setCapAssayId(rs.getLong("real_cap_assay_id"));
+	ed.setCapExptId(rs.getLong("cap_expt_id"));
 
-        Integer classification = rs.getInt("classification");
-        if (rs.wasNull()) classification = null;
-        ed.setClassification(classification);
+	Integer classification = rs.getInt("classification");
+	if (rs.wasNull()) classification = null;
+	ed.setClassification(classification);
 
-        ed.setUpdated(rs.getDate("updated"));
-        ed.setOutcome(rs.getInt("outcome"));
-        ed.setScore(rs.getInt("score"));
+	ed.setUpdated(rs.getDate("updated"));
+	ed.setOutcome(rs.getInt("outcome"));
+	ed.setScore(rs.getInt("score"));
 
-        Float potency = rs.getFloat("potency");
-        if (rs.wasNull()) potency = null;
-        ed.setPotency(potency);
+	Float potency = rs.getFloat("potency");
+	if (rs.wasNull()) potency = null;
+	ed.setPotency(potency);
 
-        Blob blob = rs.getBlob("json_response");
-        if (blob != null) {
-            ed.setResultJson(new String(blob.getBytes(1, (int) blob.length())));
-        }
+	Blob blob = rs.getBlob("json_response");
+	if (blob != null) {
+	    ed.setResultJson(new String(blob.getBytes(1, (int) blob.length())));
+	}
 
-        // pull in associated projects
-        PreparedStatement ps = conn.prepareStatement("select a.bard_proj_id, b.cap_proj_id from bard_project_experiment a, bard_project b where a.bard_expt_id = ? and a.bard_proj_id = b.bard_proj_id");
-        ps.setLong(1, ed.getBardExptId());
-        ResultSet rs2 = ps.executeQuery();
-        List<Long> bpids = new ArrayList<Long>();
-        List<Long> cpids = new ArrayList<Long>();
-        while (rs2.next()) {
-            bpids.add(rs2.getLong(1));
-            cpids.add(rs2.getLong(2));
-        }
-        ed.setBardProjId(bpids);
-        ed.setCapProjId(cpids);
-        rs2.close();
-        ps.close();
-
-        return ed;
+	// pull in associated projects
+	Connection conn = getConnection();
+	PreparedStatement ps = null;
+	try {
+	    ps = conn.prepareStatement("select a.bard_proj_id, b.cap_proj_id from bard_project_experiment a, bard_project b where a.bard_expt_id = ? and a.bard_proj_id = b.bard_proj_id");
+	    ps.setLong(1, ed.getBardExptId());
+	    ResultSet rs2 = ps.executeQuery();
+	    List<Long> bpids = new ArrayList<Long>();
+	    List<Long> cpids = new ArrayList<Long>();
+	    while (rs2.next()) {
+		bpids.add(rs2.getLong(1));
+		cpids.add(rs2.getLong(2));
+	    }
+	    ed.setBardProjId(bpids);
+	    ed.setCapProjId(cpids);
+	    rs2.close();
+	}
+	finally {
+	    //close resources
+	    JDBCResourceCloser.close(ps, conn);
+	}
+	return ed;
     }
 
     ObjectNode getExperimentDataJsonByExperimentDataId(ExperimentData experimentData, String edid) throws Exception {
@@ -2189,7 +2238,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select expt_result_def from bard_experiment where bard_expt_id = ?");
         pst.setLong(1, bardExptId);
@@ -2207,7 +2256,8 @@ public class DBUtils {
             return json;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -2230,7 +2280,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select *, b.cap_assay_id as real_cap_assay_id from bard_experiment a, bard_assay b where bard_expt_id = ? and a.bard_assay_id = b.bard_assay_id");
         try {
@@ -2257,7 +2307,8 @@ public class DBUtils {
             return e;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -2302,7 +2353,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select bard_expt_id from bard_experiment where bard_assay_id = ?");
         try {
@@ -2318,7 +2369,8 @@ public class DBUtils {
             return experiments;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -2340,7 +2392,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
             ("select * from bard_assay where bard_assay_id = ?");
         Assay a = null;
@@ -2356,7 +2408,8 @@ public class DBUtils {
             return a;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -2506,7 +2559,7 @@ public class DBUtils {
         }
 
         List<Project> projects = new ArrayList<Project>();
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql.toString());
         try {
             pst.setString(1, etag);
@@ -2519,11 +2572,10 @@ public class DBUtils {
             cache.put(new Element (key, projects));
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
         return projects;
-
-
     }
 
     /**
@@ -2589,7 +2641,7 @@ public class DBUtils {
         }
 
         List<Assay> assays = new ArrayList<Assay>();
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql.toString());
         try {
             pst.setString(1, etag);
@@ -2602,7 +2654,8 @@ public class DBUtils {
             cache.put(new Element (key, assays));
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
         return assays;
     }
@@ -2641,7 +2694,7 @@ public class DBUtils {
         }
 
         ArrayList<Substance> substances = new ArrayList<Substance>();
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql.toString());
         try {
             pst.setString(1, etag);
@@ -2655,7 +2708,8 @@ public class DBUtils {
             return substances;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -2723,7 +2777,7 @@ public class DBUtils {
         }
 
         ArrayList<Experiment> expts = new ArrayList<Experiment>();
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql.toString());
         try {
             pst.setString(1, etag);
@@ -2740,7 +2794,8 @@ public class DBUtils {
             return expts;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -2752,119 +2807,145 @@ public class DBUtils {
     }
 
     public int getAssayCidCount(Long bardAssayId, boolean actives) throws SQLException {
-        if (bardAssayId == null || bardAssayId < 0) return -1;
-        PreparedStatement pst;
-        if (conn == null) conn = getConnection();
-        if (!actives)
-            pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
-                    "where b.bard_assay_id = ? " +
-                    "and b.bard_assay_id = c.bard_assay_id " +
-                    "and c.bard_expt_id = a.bard_expt_id");
-        else
-            pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
-                    "where b.bard_assay_id = ? " +
-                    "and b.bard_assay_id = c.bard_assay_id " +
-                    "and c.bard_expt_id = a.bard_expt_id and a.outcome = 2");
-        pst.setLong(1, bardAssayId);
-        ResultSet rs = pst.executeQuery();
-        rs.next();
-        int n = rs.getInt(1);
-        pst.close();
-        return n;
+	if (bardAssayId == null || bardAssayId < 0) return -1;
+	PreparedStatement pst = null;
+	Connection conn = getConnection();
+	int n;
+	try {
+	    if (!actives)
+		pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
+			"where b.bard_assay_id = ? " +
+			"and b.bard_assay_id = c.bard_assay_id " +
+			"and c.bard_expt_id = a.bard_expt_id");
+	    else
+		pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
+			"where b.bard_assay_id = ? " +
+			"and b.bard_assay_id = c.bard_assay_id " +
+			"and c.bard_expt_id = a.bard_expt_id and a.outcome = 2");
+	    pst.setLong(1, bardAssayId);
+	    ResultSet rs = pst.executeQuery();
+	    rs.next();
+	    n = rs.getInt(1);
+	    rs.close();
+	}
+	finally {
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
+	}
+	return n;
     }
 
     public int getAssaySidCount(Long bardAssayId, boolean actives) throws SQLException {
-        if (bardAssayId == null || bardAssayId < 0) return -1;
-        PreparedStatement pst;
-        if (conn == null) conn = getConnection();
-        if (!actives)
-            pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
-                    "where b.bard_assay_id = ? " +
-                    "and b.bard_assay_id = c.bard_assay_id " +
-                    "and c.bard_expt_id = a.bard_expt_id");
-        else
-            pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
-                    "where b.bard_assay_id = ? " +
-                    "and b.bard_assay_id = c.bard_assay_id " +
-                    "and c.bard_expt_id = a.bard_expt_id and a.outcome = 2");
-        pst.setLong(1, bardAssayId);
-        ResultSet rs = pst.executeQuery();
-        rs.next();
-        int n = rs.getInt(1);
-        rs.close();
-        pst.close();
-        return n;
+	if (bardAssayId == null || bardAssayId < 0) return -1;
+	PreparedStatement pst = null;
+	Connection conn = getConnection();
+	int n;
+	try {
+	    if (!actives)
+		pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
+			"where b.bard_assay_id = ? " +
+			"and b.bard_assay_id = c.bard_assay_id " +
+			"and c.bard_expt_id = a.bard_expt_id");
+	    else
+		pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data a, bard_experiment c, bard_assay b " +
+			"where b.bard_assay_id = ? " +
+			"and b.bard_assay_id = c.bard_assay_id " +
+			"and c.bard_expt_id = a.bard_expt_id and a.outcome = 2");
+	    pst.setLong(1, bardAssayId);
+	    ResultSet rs = pst.executeQuery();
+	    rs.next();
+	    n = rs.getInt(1);
+	    rs.close();
+	} 
+	finally {
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
+	}
+	return n;
     }
+    
+    
 
     public int getExperimentCidCount(Long bardExptId, boolean actives) throws SQLException {
         if (bardExptId == null || bardExptId < 0) return -1;
-        PreparedStatement pst;
-        if (conn == null) conn = getConnection();
-        if (!actives)
-            pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data where bard_expt_id = ?");
-        else
-            pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data where bard_expt_id = ? and outcome = 2");
-        pst.setLong(1, bardExptId);
-        ResultSet rs = pst.executeQuery();
-        rs.next();
-        int n = rs.getInt(1);
-        rs.close();
-        pst.close();
+        PreparedStatement pst = null;
+        Connection conn = getConnection();
+        int n;
+        try {
+            if (!actives)
+        	pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data where bard_expt_id = ?");
+            else
+        	pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data where bard_expt_id = ? and outcome = 2");
+            pst.setLong(1, bardExptId);
+            ResultSet rs = pst.executeQuery();
+            rs.next();
+            n = rs.getInt(1);
+            rs.close();
+        }
+        finally {
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
+        }
         return n;
     }
+    
 
     public int getExperimentSidCount(Long bardExptId, boolean actives) throws SQLException {
-        if (bardExptId == null || bardExptId < 0) return -1;
-        PreparedStatement pst;
-        if (conn == null) conn = getConnection();
-        if (!actives)
-            pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data where bard_expt_id = ?");
-        else
-            pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data where bard_expt_id = ? and outcome = 2");
-        pst.setLong(1, bardExptId);
-        ResultSet rs = pst.executeQuery();
-        rs.next();
-        int n = rs.getInt(1);
-        rs.close();
-        pst.close();
-        return n;
+	if (bardExptId == null || bardExptId < 0) return -1;
+	Connection conn = getConnection();
+	PreparedStatement pst = null;
+	ResultSet rs = null;
+	int n;
+	try {
+	    if (!actives)
+		pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data where bard_expt_id = ?");
+	    else
+		pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data where bard_expt_id = ? and outcome = 2");
+	    pst.setLong(1, bardExptId);
+	    rs = pst.executeQuery();
+	    rs.next();
+	    n = rs.getInt(1);
+	} finally {
+	    JDBCResourceCloser.close(rs, pst, conn);
+	}
+	return n;
     }
 
     public List<Long> getAssaySids(Long bardAssayId, int skip, int top, boolean actives)
-           throws SQLException {
-           if (bardAssayId == null || bardAssayId < 0) return null;
+	    throws SQLException {
+	if (bardAssayId == null || bardAssayId < 0) return null;
 
-           String cacheKey = bardAssayId + "#" + skip + "#" + top + "#" + actives;
-           Cache cache = getCache ("AssaySidsCache");
-           try {
-               List<Long> value = (List) getCacheValue (cache, cacheKey);
-               if (value != null) {
-                   return value;
-               }
-           }
-           catch (ClassCastException ex) {}
+	String cacheKey = bardAssayId + "#" + skip + "#" + top + "#" + actives;
+	Cache cache = getCache ("AssaySidsCache");
+	try {
+	    List<Long> value = (List) getCacheValue (cache, cacheKey);
+	    if (value != null) {
+		return value;
+	    }
+	}
+	catch (ClassCastException ex) {}
 
-        String limitClause = generateLimitClause(skip, top);
-           PreparedStatement pst;
-        if (conn == null) conn = getConnection();
-           if (!actives)
-               pst = conn.prepareStatement("select distinct sid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by sid " + limitClause);
-           else
-               pst = conn.prepareStatement("select distinct sid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id and a.outcome = 2 order by sid " + limitClause);
+	String limitClause = generateLimitClause(skip, top);
+	PreparedStatement pst;
+	Connection conn = getConnection();
+	if (!actives)
+	    pst = conn.prepareStatement("select distinct sid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by sid " + limitClause);
+	else
+	    pst = conn.prepareStatement("select distinct sid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id and a.outcome = 2 order by sid " + limitClause);
 
-           try {
-               pst.setLong(1, bardAssayId);
-               ResultSet rs = pst.executeQuery();
-               List<Long> ret = new ArrayList<Long>();
-               while (rs.next()) ret.add(rs.getLong("sid"));
-               rs.close();
-               cache.put(new Element (cacheKey, ret));
-               return ret;
-           }
-           finally {
-               pst.close();
-           }
-       }
+	try {
+	    pst.setLong(1, bardAssayId);
+	    ResultSet rs = pst.executeQuery();
+	    List<Long> ret = new ArrayList<Long>();
+	    while (rs.next()) ret.add(rs.getLong("sid"));
+	    rs.close();
+	    cache.put(new Element (cacheKey, ret));
+	    return ret;
+	}
+	finally {
+	    JDBCResourceCloser.close(pst, conn);	    
+	}
+    }
 
 
     public List<Long> getAssayCids(Long bardAssayId, int skip, int top, boolean actives)
@@ -2883,7 +2964,7 @@ public class DBUtils {
 
         String limitClause = generateLimitClause(skip, top);
         PreparedStatement pst;
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         if (!actives)
             pst = conn.prepareStatement("select distinct cid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by cid " + limitClause);
         else
@@ -2899,7 +2980,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -2919,7 +3001,7 @@ public class DBUtils {
 
         String limitClause = generateLimitClause(skip, top);
         PreparedStatement pst;
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         if (!actives)
             pst = conn.prepareStatement("select distinct cid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by cid " + limitClause);
         else
@@ -2937,7 +3019,8 @@ public class DBUtils {
             cache.put(new Element(cacheKey, ret));
             return ret;
         } finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -2957,7 +3040,7 @@ public class DBUtils {
 
         String limitClause = generateLimitClause(skip, top);
         PreparedStatement pst;
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         if (!actives)
             pst = conn.prepareStatement("select distinct sid from bard_experiment_data a, bard_experiment c, bard_assay b  where b.bard_assay_id = ? and b.bard_assay_id = c.bard_assay_id and c.bard_expt_id = a.bard_expt_id order by cid " + limitClause);
         else
@@ -2975,7 +3058,8 @@ public class DBUtils {
             cache.put(new Element(cacheKey, ret));
             return ret;
         } finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3005,7 +3089,7 @@ public class DBUtils {
 
         String limitClause = generateLimitClause(skip, top);
         PreparedStatement pst;
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         if (!actives)
             pst = conn.prepareStatement("select distinct cid from bard_experiment_data where bard_expt_id = ? order by cid " + limitClause);
         else
@@ -3022,7 +3106,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3052,7 +3137,7 @@ public class DBUtils {
         } catch (ClassCastException ex) {
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
 
         // does the exploded results table have any numeric values for this expt id?
         // if not we have to ignore some filter fields and avoid a simple join (and
@@ -3144,7 +3229,9 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+            JDBCResourceCloser.close(errs, erpst);
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3200,7 +3287,7 @@ public class DBUtils {
             else if (filter.toLowerCase().equals("inactive")) filterClause = " and outcome = 1 ";
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? "+
                 filterClause+" order by score desc, bard_expt_id, sid " + limitClause);
         try {
@@ -3209,7 +3296,8 @@ public class DBUtils {
             cache.put(new Element(cacheKey, ret));
             return ret;
         } finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3237,7 +3325,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         String limitClause = generateLimitClause(skip, top);
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where bard_expt_id = ? and outcome = 2 order by score desc, bard_expt_id, sid " + limitClause);
         try {
             pst.setLong(1, bardExptId);
@@ -3246,7 +3334,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3282,7 +3371,7 @@ public class DBUtils {
         }
 
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? " + filterClause +" order by classification desc, score desc " + limitClause);
         try {
             pst.setLong(1, sid);
@@ -3295,7 +3384,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
 
     }
@@ -3319,7 +3409,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select  a . *, b.cid, c.iso_smiles from substance a  left join cid_sid b on a.sid = b.sid  left join compound c on c.cid = b.cid where a.sid = ?");
         try {
             pst.setLong(1, sid);
@@ -3345,7 +3435,8 @@ public class DBUtils {
             return s;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3380,7 +3471,7 @@ public class DBUtils {
             else if (filter.toLowerCase().equals("inactive")) filterClause = " and outcome = 1 ";
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where sid = ? " +
                 filterClause+" order by classification desc, score desc " + limitClause);
         try {
@@ -3395,7 +3486,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3430,7 +3522,7 @@ public class DBUtils {
             else if (filter.toLowerCase().equals("inactive")) filterClause = " and outcome = 1 ";
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where cid = ? "+ filterClause + " order by classification desc, score desc " + limitClause);
         try {
             pst.setLong(1, cid);
@@ -3442,7 +3534,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3518,7 +3611,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         String limitClause = generateLimitClause(skip, top);
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
         try {
             pst.setLong(1, sid);
@@ -3530,7 +3623,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3606,7 +3700,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         String limitClause = generateLimitClause(skip, top);
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct(bard_expt_id) from bard_experiment_data where sid = ? order by classification desc, score desc " + limitClause);
         try {
             pst.setLong(1, sid);
@@ -3618,7 +3712,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3646,7 +3741,7 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         String limitClause = generateLimitClause(skip, top);
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct b.bard_assay_id from bard_experiment_data a, bard_experiment b where a.sid = ? and a.bard_expt_id = b.bard_expt_id  " + limitClause);
         try {
             pst.setLong(1, sid);
@@ -3658,7 +3753,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3687,7 +3783,7 @@ public class DBUtils {
 
         String limitClause = generateLimitClause(skip, top);
         PreparedStatement pst;
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         if (!actives) pst = conn.prepareStatement("select distinct sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
         else pst = conn.prepareStatement("select distinct sid from bard_experiment_data where bard_expt_id = ? and outcome = 2 order by sid " + limitClause);
 
@@ -3701,7 +3797,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3733,17 +3830,23 @@ public class DBUtils {
         } catch (ClassCastException ex) {
         }
 
-        PreparedStatement pst;
-        if (conn == null) conn = getConnection();
+        PreparedStatement pst = null;
+        Connection conn = getConnection();
         List<Float[]> ret = new ArrayList<Float[]>();
-        pst = conn.prepareStatement("select n, l, u from exploded_histograms where bard_expt_id = ? and display_name = ? order by l");
-        pst.setLong(1, bardExptId);
-        pst.setString(2, typeName);
-        ResultSet rs = pst.executeQuery();
-        while (rs.next()) ret.add(new Float[]{rs.getFloat("n"), rs.getFloat("l"), rs.getFloat("u")});
-        rs.close();
-        pst.close();
-
+        
+        try {            
+            pst = conn.prepareStatement("select n, l, u from exploded_histograms where bard_expt_id = ? and display_name = ? order by l");
+            pst.setLong(1, bardExptId);
+            pst.setString(2, typeName);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) ret.add(new Float[]{rs.getFloat("n"), rs.getFloat("l"), rs.getFloat("u")});
+            rs.close();
+        } 
+        finally {
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
+        }
+        
         if (nbin != null && nbin < ret.size()) { // collapse bins
             int chunkSize = (int) Math.ceil((double) ret.size() / nbin);
             List<Float[]> collapsed = new ArrayList<Float[]>();
@@ -3767,43 +3870,46 @@ public class DBUtils {
     }
 
     public List<ExperimentResultType> getExperimentResultTypes(Long bardExptId, Integer collapse) throws SQLException {
-        if (bardExptId == null || bardExptId < 0) return null;
-        PreparedStatement pst;
+	if (bardExptId == null || bardExptId < 0) return null;
+	PreparedStatement pst = null;
 
-        String cacheKey = String.valueOf(bardExptId);
-        Cache cache = getCache ("ExperimentResultTypeCache");
-        try {
-            List<ExperimentResultType> value = getCacheValue (cache, cacheKey);
-            if (value != null) {
-                return value;
-            }
-        }
-        catch (ClassCastException ex) {}
+	String cacheKey = String.valueOf(bardExptId);
+	Cache cache = getCache ("ExperimentResultTypeCache");
+	try {
+	    List<ExperimentResultType> value = getCacheValue (cache, cacheKey);
+	    if (value != null) {
+		return value;
+	    }
+	}
+	catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
-        List<ExperimentResultType> ret = new ArrayList<ExperimentResultType>();
-
-        pst = conn.prepareStatement("select * from exploded_statistics where bard_expt_id = ?");
-        pst.setLong(1, bardExptId);
-        ResultSet rs = pst.executeQuery();
-        while (rs.next()) {
-            ExperimentResultType rtype = new ExperimentResultType();
-            rtype.setName(rs.getString("display_name"));
-            rtype.setMin(rs.getFloat("minval"));
-            rtype.setMax(rs.getFloat("maxval"));
-            rtype.setNum(rs.getLong("n"));
-            rtype.setMean(rs.getFloat("mean"));
-            rtype.setSd(rs.getFloat("sd"));
-            rtype.setQ1(rs.getFloat("q1"));
-            rtype.setQ2(rs.getFloat("q2"));
-            rtype.setQ3(rs.getFloat("q3"));
-            rtype.setHistogram(getExperimentResultTypeHistogram(bardExptId, rtype.getName(), collapse));
-            ret.add(rtype);
-        }
-        pst.close();
-        rs.close();
-        cache.put(new Element(ret, cacheKey));
-        return ret;
+	Connection conn = getConnection();
+	List<ExperimentResultType> ret = new ArrayList<ExperimentResultType>();
+	try {
+	    pst = conn.prepareStatement("select * from exploded_statistics where bard_expt_id = ?");
+	    pst.setLong(1, bardExptId);
+	    ResultSet rs = pst.executeQuery();
+	    while (rs.next()) {
+		ExperimentResultType rtype = new ExperimentResultType();
+		rtype.setName(rs.getString("display_name"));
+		rtype.setMin(rs.getFloat("minval"));
+		rtype.setMax(rs.getFloat("maxval"));
+		rtype.setNum(rs.getLong("n"));
+		rtype.setMean(rs.getFloat("mean"));
+		rtype.setSd(rs.getFloat("sd"));
+		rtype.setQ1(rs.getFloat("q1"));
+		rtype.setQ2(rs.getFloat("q2"));
+		rtype.setQ3(rs.getFloat("q3"));
+		rtype.setHistogram(getExperimentResultTypeHistogram(bardExptId, rtype.getName(), collapse));
+		ret.add(rtype);
+	    }
+	    rs.close();
+	} finally {
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);            
+	}        
+	cache.put(new Element(ret, cacheKey));
+	return ret;
     }
     /**
      * Retrieve compounds associated with an experiment.
@@ -3831,7 +3937,7 @@ public class DBUtils {
         String limitClause = generateLimitClause(skip, top);
 
         PreparedStatement pst;
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         if (!actives)
             pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
         else
@@ -3850,7 +3956,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3879,7 +3986,7 @@ public class DBUtils {
 
         String limitClause = generateLimitClause(skip, top);
         PreparedStatement pst;
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         if (!actives) pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? order by sid " + limitClause);
         else pst = conn.prepareStatement("select cid, sid from bard_experiment_data where bard_expt_id = ? and outcome = 2 order by sid " + limitClause);
 
@@ -3897,7 +4004,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -3923,7 +4031,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst2 = conn.prepareStatement("select a.* from publication a, assay_pub b where b.bard_assay_id = ? and b.pmid = a.pmid");
         try {
             pst2.setLong(1, bardAssayId);
@@ -3943,7 +4051,8 @@ public class DBUtils {
             return pubs;
         }
         finally {
-            pst2.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst2, conn);
         }
     }
 
@@ -3965,7 +4074,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst2 = conn.prepareStatement("select distinct a.* from protein_target a, assay_target b where b.bard_assay_id = ? and a.gene_id = b.gene_id");
         try {
             pst2.setLong(1, bardAssayId);
@@ -3989,7 +4098,8 @@ public class DBUtils {
             return targets;
         }
         finally {
-            pst2.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst2, conn);
         }
     }
 
@@ -4047,7 +4157,7 @@ public class DBUtils {
 
         if (!query.contains("[")) freeTextQuery = true;
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = null;
         if (freeTextQuery) {
             String q = "%" + query + "%";
@@ -4077,7 +4187,8 @@ public class DBUtils {
             return assays;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -4092,7 +4203,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct bard_assay_id from bard_experiment where bard_expt_id = ?");
         try {
             pst.setLong(1, eid);
@@ -4104,7 +4215,8 @@ public class DBUtils {
             return assays;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -4125,9 +4237,10 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select distinct b.bard_assay_id from protein_target a, assay_target b where a.accession = ? and a.accession = b.accession");
+        Connection conn = getConnection();
+        PreparedStatement pst = null;
         try {
+            pst = conn.prepareStatement("select distinct b.bard_assay_id from protein_target a, assay_target b where a.accession = ? and a.accession = b.accession");
             pst.setString(1, acc);
             List<Assay> assays = new ArrayList<Assay>();
             ResultSet rs = pst.executeQuery();
@@ -4137,7 +4250,8 @@ public class DBUtils {
             return assays;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -4158,9 +4272,10 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select distinct b.bard_assay_id from protein_target a, assay_target b where a.gene_id = ? and a.accession = b.accession");
+        Connection conn = getConnection();
+        PreparedStatement pst = null;         
         try {
+            pst = conn.prepareStatement("select distinct b.bard_assay_id from protein_target a, assay_target b where a.gene_id = ? and a.accession = b.accession");
             pst.setLong(1, geneid);
             List<Assay> assays = new ArrayList<Assay>();
             ResultSet rs = pst.executeQuery();
@@ -4170,7 +4285,8 @@ public class DBUtils {
             return assays;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -4185,9 +4301,10 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select bard_proj_id from bard_project");
+        Connection conn = getConnection();
+        PreparedStatement pst = null;
         try {
+            pst = conn.prepareStatement("select bard_proj_id from bard_project");
             ResultSet rs = pst.executeQuery();
             List<Long> ret = new ArrayList<Long>();
             while (rs.next()) {
@@ -4198,7 +4315,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -4218,9 +4336,10 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select bard_assay_id from bard_assay order by bard_assay_id");
+        Connection conn = getConnection();
+        PreparedStatement pst = null;
         try {
+            pst = conn.prepareStatement("select bard_assay_id from bard_assay order by bard_assay_id");
             ResultSet rs = pst.executeQuery();
             List<Long> ret = new ArrayList<Long>();
             while (rs.next()) {
@@ -4231,7 +4350,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -4277,9 +4397,10 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         Project p = null;
-        if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select a.*, b.name as source_name from bard_project a left join source b on a.depositor_id = b.source_id where a.bard_proj_id = ?");
+        Connection conn = getConnection();
+        PreparedStatement pst = null; 
         try {
+            pst = conn.prepareStatement("select a.*, b.name as source_name from bard_project a left join source b on a.depositor_id = b.source_id where a.bard_proj_id = ?");
             pst.setLong(1, bardProjId);
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {
@@ -4296,7 +4417,8 @@ public class DBUtils {
             }
             rs.close();
         } finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst);
         }
 
         if (p == null) {
@@ -4304,9 +4426,9 @@ public class DBUtils {
         }
 
         // publications
-        pst = conn.prepareStatement("select pmid from project_pub where bard_proj_id = ?");
-        pst.setLong(1, bardProjId);
         try {
+            pst = conn.prepareStatement("select pmid from project_pub where bard_proj_id = ?");
+            pst.setLong(1, bardProjId);
             List<Long> pubs = new ArrayList<Long>();
             ResultSet rs = pst.executeQuery();
             while (rs.next()) {
@@ -4315,7 +4437,8 @@ public class DBUtils {
             rs.close();
             p.setPublications(pubs);
         } finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst);
         }
 
 
@@ -4325,8 +4448,8 @@ public class DBUtils {
         p.setProbes(getCompoundsByCid(probeIds.toArray(new Long[]{})));
 
         // find all experiments for this project
-        pst = conn.prepareStatement("select bard_expt_id from bard_project_experiment where bard_proj_id = ?");
         try {
+            pst = conn.prepareStatement("select bard_expt_id from bard_project_experiment where bard_proj_id = ?");
             pst.setLong(1, bardProjId);
             ResultSet rs = pst.executeQuery();
             List<Long> eids = new ArrayList<Long>();
@@ -4334,14 +4457,15 @@ public class DBUtils {
             rs.close();
             p.setEids(eids);
         } finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst);
         }
 
         // find assays
-        pst = conn.prepareStatement
-            ("select distinct a.bard_assay_id from bard_experiment a, bard_project_experiment b " +
-             "where a.bard_expt_id=b.bard_expt_id and b.bard_proj_id = ?");
         try {
+            pst = conn.prepareStatement
+                    ("select distinct a.bard_assay_id from bard_experiment a, bard_project_experiment b " +
+                     "where a.bard_expt_id=b.bard_expt_id and b.bard_proj_id = ?");
             List<Long> aids = new ArrayList<Long>();
             pst.setLong(1, bardProjId);
             ResultSet rs = pst.executeQuery();
@@ -4351,7 +4475,8 @@ public class DBUtils {
             rs.close();
             p.setAids(aids);
         } finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst);
         }
 
         //find targets, get collected bard_assay_ids, for each bard_assay_id under the project
@@ -4359,8 +4484,8 @@ public class DBUtils {
 
         // experiment types - this can't go in Experiment, since the 'type' of the
         // experiment depends on how it was used in a project
-        pst = conn.prepareStatement("select * from bard_project_experiment where bard_proj_id = ?");
         try {
+            pst = conn.prepareStatement("select * from bard_project_experiment where bard_proj_id = ?");
             pst.setLong(1, bardProjId);
             ResultSet rs = pst.executeQuery();
             Map<Long, String> etypes = new HashMap<Long, String>();
@@ -4368,7 +4493,8 @@ public class DBUtils {
             rs.close();
             p.setExperimentTypes(etypes);
         } finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
         return p;
     }
@@ -4407,9 +4533,10 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select bard_proj_id from bard_project_experiment where bard_expt_id = ?");
+        Connection conn = getConnection();
+        PreparedStatement pst = null;
         try {
+            pst = conn.prepareStatement("select bard_proj_id from bard_project_experiment where bard_expt_id = ?");
             pst.setLong(1, bardExptId);
             ResultSet rs = pst.executeQuery();
             List<Project> ps = new ArrayList<Project>();
@@ -4423,20 +4550,27 @@ public class DBUtils {
             return ps;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public List<Long> getProjectIdByProbeId(String probeId) throws SQLException {
-        List<Long> ids = new ArrayList<Long>();
-        if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select bard_proj_id from project_probe where probe_id = ?");
-        pst.setString(1, probeId);
-        ResultSet rs = pst.executeQuery();
-        while (rs.next()) ids.add(rs.getLong(1));
-        rs.close();
-        pst.close();
-        return ids;
+	List<Long> ids = new ArrayList<Long>();
+	Connection conn = getConnection();
+	PreparedStatement pst = null;
+	try {
+	    pst = conn.prepareStatement("select bard_proj_id from project_probe where probe_id = ?");
+	    pst.setString(1, probeId);
+	    ResultSet rs = pst.executeQuery();
+	    while (rs.next()) ids.add(rs.getLong(1));
+	    rs.close();
+	}
+	finally {
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
+	}
+	return ids;
     }
 
     public List<Project> getProjectByProbeId(String probeId)
@@ -4451,9 +4585,10 @@ public class DBUtils {
         } catch (ClassCastException ex) {
         }
 
-        if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select bard_proj_id from project_probe where probe_id = ?");
+        Connection conn = getConnection();
+        PreparedStatement pst = null;
         try {
+            pst = conn.prepareStatement("select bard_proj_id from project_probe where probe_id = ?");
             pst.setString(1, probeId);
             ResultSet rs = pst.executeQuery();
             List<Project> ps = new ArrayList<Project>();
@@ -4466,7 +4601,8 @@ public class DBUtils {
             cache.put(new Element(probeId, ps));
             return ps;
         } finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -4487,9 +4623,10 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select distinct b.bard_proj_id from bard_experiment a, bard_project_experiment b where a.bard_assay_id = ? and a.bard_expt_id = b.bard_expt_id");
+        Connection conn = getConnection();
+        PreparedStatement pst = null;        
         try {
+            pst = conn.prepareStatement("select distinct b.bard_proj_id from bard_experiment a, bard_project_experiment b where a.bard_assay_id = ? and a.bard_expt_id = b.bard_expt_id");
             pst.setLong(1, bardAssayId);
             ResultSet rs = pst.executeQuery();
             List<Long> pids = new ArrayList<Long>();
@@ -4503,7 +4640,8 @@ public class DBUtils {
             return projs;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -4518,7 +4656,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         //        PreparedStatement pst = conn.prepareStatement("select a.cid from bard_experiment_data a, compound b where b.probe_id is not null and a.bard_expt_id = ? and a.cid = b.cid");
         PreparedStatement pst = conn.prepareStatement("select * from project_probe where bard_proj_id = ?");
         try {
@@ -4531,7 +4669,8 @@ public class DBUtils {
             return probeids;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -4554,27 +4693,34 @@ public class DBUtils {
 
         if (!query.contains("[")) freeTextQuery = true;
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = null;
-        if (freeTextQuery) {
-            return new ArrayList<ExperimentData>();
-        } else {
-            String[] toks = query.split("\\[");
-            String q = toks[0].trim();
-            String field = toks[1].trim().replace("]", "");
-
-            String sql = "select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where " + field + " = " + q + "";
-            pst = conn.prepareStatement(sql);
-        }
-
-        ResultSet rs = pst.executeQuery();
         List<ExperimentData> experimentData = new ArrayList<ExperimentData>();
-        while (rs.next()) {
-            String exptId = rs.getString(1);
-            experimentData.add(getExperimentDataByDataId(exptId));
+
+        try {
+            if (freeTextQuery) {
+        	return new ArrayList<ExperimentData>();
+            } else {
+        	String[] toks = query.split("\\[");
+        	String q = toks[0].trim();
+        	String field = toks[1].trim().replace("]", "");
+
+        	String sql = "select concat(cast(bard_expt_id as char), '.', cast(sid as char)) as id from bard_experiment_data where " + field + " = " + q + "";
+        	pst = conn.prepareStatement(sql);
+            }
+
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+        	String exptId = rs.getString(1);
+        	experimentData.add(getExperimentDataByDataId(exptId));
+            }
+            rs.close();
         }
-        rs.close();
-        pst.close();
+        finally {
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
+        }
+        
         cache.put(new Element (query, experimentData));
         return experimentData;
     }
@@ -4595,7 +4741,7 @@ public class DBUtils {
         if (queryParams.getJoin() != null) {
             sql += " where "+queryParams.getJoin();
         }
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql);
         try {
             ResultSet rs = pst.executeQuery();
@@ -4606,7 +4752,8 @@ public class DBUtils {
             return (n);
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -4651,7 +4798,7 @@ public class DBUtils {
         if (queryParams.getJoin() != null) {
             sql += " where " + queryParams.getJoin();
         }
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql);
         try {
             ResultSet rs = pst.executeQuery();
@@ -4662,13 +4809,14 @@ public class DBUtils {
             return (n);
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
 
     public int getCompoundTestCount() throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data");
         ResultSet rs = pst.executeQuery();
         try {
@@ -4678,12 +4826,13 @@ public class DBUtils {
             return n;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public int getCompoundActiveCount() throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select count(distinct cid) from bard_experiment_data where outcome = 2");
         try {
             ResultSet rs = pst.executeQuery();
@@ -4693,12 +4842,13 @@ public class DBUtils {
             return n;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public int getSubstanceTestCount() throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data");
         try {
             ResultSet rs = pst.executeQuery();
@@ -4708,12 +4858,13 @@ public class DBUtils {
             return n;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public int getSubstanceActiveCount() throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select count(distinct sid) from bard_experiment_data where outcome = 2");
         try {
             ResultSet rs = pst.executeQuery();
@@ -4723,13 +4874,14 @@ public class DBUtils {
             return n;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
     private List<String> getCompoundAnnotationKeys() throws SQLException {
         List<String> ret = new ArrayList<String>();
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select distinct annot_key from compound_annot order by annot_key");
         try {
             ResultSet rs = pst.executeQuery();
@@ -4738,7 +4890,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -4814,7 +4967,7 @@ public class DBUtils {
 
         log.info("## SQL: " + sql);
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql);
         try {
             ResultSet rs = pst.executeQuery();
@@ -4832,7 +4985,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -4866,7 +5020,7 @@ public class DBUtils {
 
         log.info("## SQL: " + sql);
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(sql);
         try {
             ResultSet rs = pst.executeQuery();
@@ -4879,7 +5033,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -4941,22 +5096,22 @@ public class DBUtils {
             String q = toks[0].trim();
             String field = toks[1].trim().replace("]", "");
             if (!queryParams.getValidFields().contains(field))
-                throw new SQLException("Invalid field was specified");
+        	throw new SQLException("Invalid field was specified");
 
             sql = "select " + queryParams.getIdField() + " from "
-                + queryParams.getTableName() + " where ";
+        	    + queryParams.getTableName() + " where ";
             if (queryParams.getJoin() != null) {
-                sql += queryParams.getJoin()+" AND ";
+        	sql += queryParams.getJoin()+" AND ";
             }
             sql += field + " like '%" + q + "%' order by "
-                + queryParams.getOrderField() + "  " + limitClause;
+        	    + queryParams.getOrderField() + "  " + limitClause;
         }
 
         Cache cache = getCache ("SearchForEntityCache");
         try {
             List<T> value = getCacheValue (cache, sql);
             if (value != null) {
-                return value;
+        	return value;
             }
         }
         catch (ClassCastException ex) {}
@@ -4964,29 +5119,34 @@ public class DBUtils {
         log.info("## SQL: "+sql);
         System.out.println("## searchForEntity SQL: "+sql);
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         pst = conn.prepareStatement(sql);
-        ResultSet rs = pst.executeQuery();
         List<T> entities = new ArrayList<T>();
-        while (rs.next()) {
-            Object id = rs.getObject(queryParams.getIdField());
-            Object entity = null;
-            if (klass.equals(Publication.class)) entity = getPublicationByPmid((Long) id);
-            if (klass.equals(Biology.class)) entity = getBiologyBySerial((Long) id);
-            else if (klass.equals(ProteinTarget.class)) entity = getProteinTargetByAccession((String) id);
-            else if (klass.equals(Project.class)) entity = getProject((Long) id);
-            else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
-            else if (klass.equals(Compound.class)) entity = getCompoundsByCid((Long) id);
-            else if (klass.equals(Substance.class)) entity = getSubstanceBySid((Long) id);
-            else if (klass.equals(Assay.class)) entity = getAssayByAid((Long) id);
-            else if (klass.equals(ETag.class)) entity = getEtagByEtagId((String) id);
-            if (entity != null) {
-                if (entity instanceof List) entities.addAll((Collection<T>) entity);
-                else if (entity instanceof BardEntity) entities.add((T) entity);
+        try {
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+        	Object id = rs.getObject(queryParams.getIdField());
+        	Object entity = null;
+        	if (klass.equals(Publication.class)) entity = getPublicationByPmid((Long) id);
+        	if (klass.equals(Biology.class)) entity = getBiologyBySerial((Long) id);
+        	else if (klass.equals(ProteinTarget.class)) entity = getProteinTargetByAccession((String) id);
+        	else if (klass.equals(Project.class)) entity = getProject((Long) id);
+        	else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
+        	else if (klass.equals(Compound.class)) entity = getCompoundsByCid((Long) id);
+        	else if (klass.equals(Substance.class)) entity = getSubstanceBySid((Long) id);
+        	else if (klass.equals(Assay.class)) entity = getAssayByAid((Long) id);
+        	else if (klass.equals(ETag.class)) entity = getEtagByEtagId((String) id);
+        	if (entity != null) {
+        	    if (entity instanceof List) entities.addAll((Collection<T>) entity);
+        	    else if (entity instanceof BardEntity) entities.add((T) entity);
+        	}
             }
+            rs.close();
         }
-        rs.close();
-        pst.close();
+        finally {
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
+        }
 
         cache.put(new Element (sql, entities));
         return entities;
@@ -5032,7 +5192,7 @@ public class DBUtils {
          */
         String sql = "select etag_id from etag where status = 1";
         PreparedStatement pst;
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         if (clazz != null) {
             pst = conn.prepareStatement(sql+" and type = ?" + limits);
             pst.setString(1, clazz.getName());
@@ -5053,7 +5213,8 @@ public class DBUtils {
             return etags;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -5152,7 +5313,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity = 'assay' and a.entity_id = ?");
         PreparedStatement gopst = conn.prepareStatement("select * from go_assay where bard_assay_id = ? and implied = 0 order by go_type");
         PreparedStatement keggpst = conn.prepareStatement("select a.* from kegg_gene2disease a,  (select distinct um.acc as gene_id from bard_biology a, uniprot_map um  where a.entity = 'assay' and a.entity_id = ? and a.biology_dict_id = 1398 and um.uniprot_acc = a.ext_id and acc_type = 'GeneID' union select distinct ext_id as gene_id from bard_biology a  where a.entity = 'assay' and a.entity_id = ? and a.biology_dict_id = 880) t where t.gene_id = a.gene_id");
@@ -5207,9 +5368,9 @@ public class DBUtils {
             return annos;
         }
         finally {
-            pst.close();
-            gopst.close();
-            keggpst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, gopst, keggpst);
+            JDBCResourceCloser.close(conn);
         }
     }
 
@@ -5224,7 +5385,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_annotation a where a.entity = 'experiment' and a.entity_id = ?");
         try {
             pst.setLong(1, bardExptId);
@@ -5262,7 +5423,8 @@ public class DBUtils {
             return annos;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -5278,7 +5440,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a, bard_project b where b.bard_proj_id = ? and a.cap_proj_id = b.cap_proj_id");
         PreparedStatement gopst = conn.prepareStatement("select * from go_project where bard_proj_id = ? and implied = 0 order by go_type");
         // ensure we select biologies that used Entrez Gene ID
@@ -5330,9 +5492,9 @@ public class DBUtils {
             return annos;
         }
         finally {
-            pst.close();
-            gopst.close();
-            keggpst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, gopst, keggpst);
+            JDBCResourceCloser.close(conn);
         }
     }
 
@@ -5351,7 +5513,7 @@ public class DBUtils {
         }
 
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select dict, ins_date from cap_dict_obj order by ins_date desc");
         try {
             ResultSet rs = pst.executeQuery();
@@ -5375,7 +5537,8 @@ public class DBUtils {
             return (CAPDictionary)obj;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -5389,15 +5552,20 @@ public class DBUtils {
      * @throws SQLException
      */
     public int getEstimatedRowCount(String query) throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement(query);
-        ResultSet rs = pst.executeQuery();
         int nrow = -1;
-        while (rs.next()) {
-            nrow = rs.getInt("rows");
+        try {
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+        	nrow = rs.getInt("rows");
+            }
+            rs.close();
         }
-        rs.close();
-        pst.close();
+        finally {
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
+        }
         return nrow;
     }
 
@@ -5454,7 +5622,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         pst = conn.prepareStatement(sql);
         try {
             pst.setLong(1, cid);
@@ -5473,7 +5641,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -5494,7 +5663,7 @@ public class DBUtils {
             sql = "select serial from bard_biology order by updated desc";
         }
         sql += limitClause;
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         pst = conn.prepareStatement(sql);
         try {
             ResultSet rs = pst.executeQuery();
@@ -5511,7 +5680,8 @@ public class DBUtils {
             rs.close();
             return ret;
         } finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -5565,7 +5735,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         pst = conn.prepareStatement(sql);
         try {
             pst.setLong(1, cid);
@@ -5584,7 +5754,8 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -5628,7 +5799,7 @@ public class DBUtils {
         } catch (ClassCastException ignored) {
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         pst = conn.prepareStatement(sql);
         try {
             pst.setLong(1, cid);
@@ -5640,7 +5811,8 @@ public class DBUtils {
             cache.put(new Element(cid, ret));
             return ret;
         } finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -5669,7 +5841,7 @@ public class DBUtils {
         } catch (ClassCastException ignored) {
         }
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         pst = conn.prepareStatement(sql);
         try {
             pst.setLong(1, cid);
@@ -5681,82 +5853,89 @@ public class DBUtils {
             cache.put(new Element(cid, ret));
             return ret;
         } finally {
-            pst.close();
+            //close resources
+            JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public Map<String, Object> getProjectSumary(Long projectId) throws SQLException {
-        Cache cache = getCache ("ProjectSummaryCache");
-        try {
-            Map<String, Object> value = getCacheValue (cache, projectId);
-            if (value != null) {
-                return value;
-            }
-        }
-        catch (ClassCastException ex) {}
+	Cache cache = getCache ("ProjectSummaryCache");
+	try {
+	    Map<String, Object> value = getCacheValue (cache, projectId);
+	    if (value != null) {
+		return value;
+	    }
+	}
+	catch (ClassCastException ex) {}
 
-        Project project = getProject(projectId);
-        if (project == null || project.getBardProjectId() == null)
-            return null;
+	Project project = getProject(projectId);
+	if (project == null || project.getBardProjectId() == null)
+	    return null;
 
-        int pcount = 0, syncount = 0, nassay = 0;
+	int pcount = 0, syncount = 0, nassay = 0;
 
-        if (conn == null) conn = getConnection();
-        PreparedStatement pst = conn.prepareStatement("select sum(a.purchased_count) as pcount, sum(a.synthesized_count) as scount from bard_experiment a join bard_project_experiment b on a.bard_expt_id=b.bard_expt_id where  b.bard_proj_id = ?");
-        pst.setLong(1, projectId);
-        ResultSet rs = pst.executeQuery();
-        while(rs.next()) {
-            pcount = rs.getInt("pcount");
-            syncount = rs.getInt("scount");
-        }
-        rs.close();
-        pst.close();
+	Connection conn = getConnection();
+	PreparedStatement pst = conn.prepareStatement("select sum(a.purchased_count) as pcount, sum(a.synthesized_count) as scount from bard_experiment a join bard_project_experiment b on a.bard_expt_id=b.bard_expt_id where  b.bard_proj_id = ?");
+	List<Experiment> expts = new ArrayList<Experiment>();
 
-        List<Experiment> expts = new ArrayList<Experiment>();
-        pst = conn.prepareStatement("select * from bard_project_experiment where bard_proj_id = ?");
-        pst.setLong(1, projectId);
-        rs = pst.executeQuery();
-        while (rs.next()) expts.add(getExperimentByExptId(rs.getLong("bard_expt_id")));
-        rs.close();
-        pst.close();
+	try {
+	    pst.setLong(1, projectId);
+	    ResultSet rs = pst.executeQuery();
+	    while(rs.next()) {
+		pcount = rs.getInt("pcount");
+		syncount = rs.getInt("scount");
+	    }
+	    rs.close();
+	    pst.close();
 
-        pst = conn.prepareStatement("select count(*) from bard_project_experiment a, bard_experiment b where a.bard_proj_id = ? and a.bard_expt_id = b.bard_expt_id");
-        pst.setLong(1, projectId);
-        rs = pst.executeQuery();
-        rs.next();
-        nassay = rs.getInt(1);
-        rs.close();
-        pst.close();
+	    pst = conn.prepareStatement("select * from bard_project_experiment where bard_proj_id = ?");
+	    pst.setLong(1, projectId);
+	    rs = pst.executeQuery();
+	    while (rs.next()) expts.add(getExperimentByExptId(rs.getLong("bard_expt_id")));
+	    rs.close();
+	    pst.close();
 
-        List<Long> probeIds = getProbeCidsForProject(projectId);
-        List<Compound> probes = getCompoundsByCid(probeIds.toArray(new Long[]{}));
-        List<String> probeReports = new ArrayList<String>();
-        for (Compound c : probes) {
-            if (c.getProbeId()!= null) probeReports.add("http://www.ncbi.nlm.nih.gov/books/n/mlprobe/"+c.getProbeId()+"/");
-        }
-        Map<String, Object> ret = new HashMap<String, Object>();
-        ret.put("name", project.getName());
-        ret.put("probes", probes);
-        ret.put("probe_reports", probeReports);
-        ret.put("depositor", project.getSource());
-        ret.put("description", project.getDescription());
-        ret.put("targets", project.getTargets());
-//        ret.put("cmpd_purchase_count", pcount);
-//        ret.put("cmpd_synthesis_count", syncount);
-        ret.put("assay_count", nassay);
-        ret.put("experiment_count", expts.size());
-        ret.put("experiments", expts);
+	    pst = conn.prepareStatement("select count(*) from bard_project_experiment a, bard_experiment b where a.bard_proj_id = ? and a.bard_expt_id = b.bard_expt_id");
+	    pst.setLong(1, projectId);
+	    rs = pst.executeQuery();
+	    rs.next();
+	    nassay = rs.getInt(1);
+	    rs.close();
+	    pst.close();
+	} 
+	finally {
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
+	}
+	List<Long> probeIds = getProbeCidsForProject(projectId);
+	List<Compound> probes = getCompoundsByCid(probeIds.toArray(new Long[]{}));
+	List<String> probeReports = new ArrayList<String>();
+	for (Compound c : probes) {
+	    if (c.getProbeId()!= null) probeReports.add("http://www.ncbi.nlm.nih.gov/books/n/mlprobe/"+c.getProbeId()+"/");
+	}
+	Map<String, Object> ret = new HashMap<String, Object>();
+	ret.put("name", project.getName());
+	ret.put("probes", probes);
+	ret.put("probe_reports", probeReports);
+	ret.put("depositor", project.getSource());
+	ret.put("description", project.getDescription());
+	ret.put("targets", project.getTargets());
+	//        ret.put("cmpd_purchase_count", pcount);
+	//        ret.put("cmpd_synthesis_count", syncount);
+	ret.put("assay_count", nassay);
+	ret.put("experiment_count", expts.size());
+	ret.put("experiments", expts);
 
-        cache.put(new Element (projectId, ret));
+	cache.put(new Element (projectId, ret));
 
-        return ret;
+	return ret;
     }
 
     public List<String> getChemblTargetClasses(List<String> accs, int level) throws SQLException {
         if (level < 1 || level > 8) throw new IllegalArgumentException("Level must be between 1 & 8, inclusive");
         if (accs.size() < 1) throw new IllegalArgumentException("Must provide at least one Uniprot accession");
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         StringBuilder sb = new StringBuilder("(");
         String delim = "";
         for (String acc : accs) {
@@ -5784,12 +5963,13 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public List<ProjectStep> getProjectStepsByProjectId(Long projectId) throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select * from project_step where bard_proj_id = ?");
         try {
             pst.setLong(1, projectId);
@@ -5811,12 +5991,13 @@ public class DBUtils {
             return steps;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public String getExperimentTypeByProject(Long bardProjId, Long bardExptId) throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select expt_type from bard_project_experiment where bard_proj_id = ? and bard_expt_id = ?");
         try {
             pst.setLong(1, bardProjId);
@@ -5828,12 +6009,12 @@ public class DBUtils {
             return ret;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public List<CAPAnnotation> getProjectStepAnnotations(Long projectStepId) throws SQLException {
-        if (conn == null) conn = getConnection();
 
         Cache cache = getCache ("ProjectStepAnnotationsCache");
         try {
@@ -5845,7 +6026,7 @@ public class DBUtils {
         }
         catch (ClassCastException ex) {}
 
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement("select a.* from cap_project_annotation a where a.bard_proj_id = ?");
         try {
             pst.setLong(1, projectStepId);
@@ -5880,12 +6061,13 @@ public class DBUtils {
             return annos;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public List<TargetClassification> getPantherClassesForAccession(String acc) throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
 
         Cache cache = getCache("PantherClassesCache");
         try {
@@ -5913,11 +6095,12 @@ public class DBUtils {
             cache.put(new Element (acc, classes));
             return classes;
         } finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
     public List<ProteinTarget> getProteinTargetsForPantherClassification(String clsid) throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
 
         Cache cache = getCache("TargetsForPantherClassCache");
         try {
@@ -5940,13 +6123,14 @@ public class DBUtils {
             cache.put(new Element(clsid, targets));
             return targets;
         } finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public List<Biology> getBiologyByDictId(String dictId) 
         throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         PreparedStatement pst;
         pst = conn.prepareStatement("select * from bard_biology where biology_dict_id = ?");
         try {
@@ -5970,12 +6154,13 @@ public class DBUtils {
             return bios;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public List<Biology> getBiologyByType(String typeName, String extId) throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
 
         String cachKey = typeName;
         if (extId != null) cachKey = cachKey + "#" + extId;
@@ -6018,7 +6203,8 @@ public class DBUtils {
             return bios;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
@@ -6027,7 +6213,7 @@ public class DBUtils {
     }
 
     public List<Biology> getBiologyBySerial(Long serial) throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
 
         Cache cache = getCache("BiologyCache");
         try {
@@ -6060,12 +6246,13 @@ public class DBUtils {
             return bios;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
     public List<Biology> getBiologyByEntity(String entity, long entityId) throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         Cache cache = getCache("BiologyCache");
         try {
             List<Biology> value = getCacheValue(cache, entity+"#"+entityId);
@@ -6097,12 +6284,13 @@ public class DBUtils {
             return bios;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);;
         }
     }
 
     public List<Biology> getBiologyByEntity(String entity, long entityId, String typeName) throws SQLException {
-        if (conn == null) conn = getConnection();
+        Connection conn = getConnection();
         Cache cache = getCache("BiologyCache");
         try {
             List<Biology> value = getCacheValue(cache, entity + "#" + entityId + "#" + typeName);
@@ -6134,26 +6322,27 @@ public class DBUtils {
             return bios;
         }
         finally {
-            pst.close();
+	    //close resources
+	    JDBCResourceCloser.close(pst, conn);
         }
     }
 
-    public static void main(String[] argv) throws Exception {
-        if (argv.length == 0) {
-            System.out.println("Usage: DBUtils URL");
-            System.exit(1);
-        }
-        Class.forName("com.mysql.jdbc.Driver");
-
-        DBUtils db = new DBUtils();
-        Connection con = DriverManager.getConnection(argv[0]);
-        con.setAutoCommit(false);
-        db.setConnection(con);
-
-        System.out.println(db.getProjectStepsByProjectId(2l));
-//        String etag = db.newETag("test", Compound.class.getName());
-//        int cnt = db.putETag(etag, 1l, 2l, 3l, 4l, 5l);
-//        System.out.println(etag + ": " + cnt);
-        db.closeConnection();
-    }
+//    public static void main(String[] argv) throws Exception {
+//        if (argv.length == 0) {
+//            System.out.println("Usage: DBUtils URL");
+//            System.exit(1);
+//        }
+//        Class.forName("com.mysql.jdbc.Driver");
+//
+//        DBUtils db = new DBUtils();
+//        Connection con = DriverManager.getConnection(argv[0]);
+//        con.setAutoCommit(false);
+//        db.setConnection(con);
+//
+//        System.out.println(db.getProjectStepsByProjectId(2l));
+////        String etag = db.newETag("test", Compound.class.getName());
+////        int cnt = db.putETag(etag, 1l, 2l, 3l, 4l, 5l);
+////        System.out.println(etag + ": " + cnt);
+//        db.closeConnection();
+//    }
 }
