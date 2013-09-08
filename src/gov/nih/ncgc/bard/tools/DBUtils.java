@@ -1,5 +1,12 @@
 package gov.nih.ncgc.bard.tools;
 
+import chemaxon.formats.MolFormatException;
+import chemaxon.formats.MolImporter;
+import chemaxon.struc.Molecule;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
@@ -23,7 +30,13 @@ import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.search.SearchUtil;
 import gov.nih.ncgc.bard.search.SolrField;
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -51,24 +64,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
-
-import javax.sql.DataSource;
-
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Element;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import chemaxon.formats.MolFormatException;
-import chemaxon.formats.MolImporter;
-import chemaxon.struc.Molecule;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.Lists;
 
 
 
@@ -2333,6 +2328,35 @@ public class DBUtils {
 
         return e;
     }
+
+    public List<Experiment> getExperimentsByExptIds(Long... bardExptIds) throws SQLException {
+        List<Experiment> expts = new ArrayList<Experiment>();
+        if (bardExptIds == null || bardExptIds.length == 0) return expts;
+        String idclause = Util.join(bardExptIds, ",");
+        String sql = "select *, b.cap_assay_id as real_cap_assay_id from bard_experiment a, bard_assay b  where bard_expt_id in ("+
+                idclause+") and a.bard_assay_id = b.bard_assay_id";
+        Connection conn = getConnection();
+        PreparedStatement pst = conn.prepareStatement(sql);
+        try {
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                Experiment e = getExperiment(rs);
+                List<Project> projects = getProjectByExperimentId(e.getBardExptId());
+                for (Project project : projects) {
+                    Long projectId = project.getBardProjectId();
+                    if (projectId != null)
+                        e.addProjectID(project.getBardProjectId());
+                }
+                expts.add(e);
+            }
+            rs.close();
+            pst.close();
+            return expts;
+        } finally {
+            JDBCResourceCloser.close(pst, conn);
+        }
+    }
+
 
     /**
      * Returns the list of experiments based on a given bard_assay_id (experiments that use the assay)
@@ -5170,6 +5194,8 @@ public class DBUtils {
             entities = (List<T>) getProjectsByETag(skip, top, etag.getEtag());
         return entities;
     }
+
+
 
     /*
      * Return all known ETag's for a given principal
