@@ -773,7 +773,6 @@ public class DBUtils {
 		    for (Long sid : notCachedSids) cache.put(new Element(sid, c));
 		}
 		cmpds.addAll(notCachedCompounds);
-		pst.close();          
 	    }
 	} 
 	finally {
@@ -2350,7 +2349,6 @@ public class DBUtils {
                 expts.add(e);
             }
             rs.close();
-            pst.close();
             return expts;
         } finally {
             JDBCResourceCloser.close(pst, conn);
