@@ -188,19 +188,28 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             // handle project steps and include anny anno's we get from this, possibly empty
             annos.addAll(processProjectSteps(project));
 
+            /*
+             *  The sections below clear project annoations and probe info
+             */
+            
+            // delete all the annos for the project before reload...
+            pst = conn.prepareStatement("delete from cap_project_annotation where bard_proj_id = ?");
+            pst.setLong(1, bardProjId);
+            pst.executeUpdate();
+            pst.close();
+            
+            //we need to clear probe information before storing. An update will not remove probes that have been removed.
+            //its assumed that a CAP project record is complete, not incremental.
+            pst = conn.prepareStatement("delete from project_probe where bard_proj_id = ?");
+            pst.setLong(1, bardProjId);
+            pst.execute();
+            pst.close();
+            
             // store the annotations we've collected
             if (annos.size() > 0) {
 
-                PreparedStatement pstAnnot;
-
-                // delete all the annos for the project
-                pstAnnot = conn.prepareStatement("delete from cap_project_annotation where bard_proj_id = ?");
-                pstAnnot.setLong(1, bardProjId);
-                pstAnnot.executeUpdate();
-                pstAnnot.close();
-
                 // now lets insert them all
-                pstAnnot = conn.prepareStatement("replace into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related, context_name, display_order, url) values (?,?,?,?,?,?,?,?,?,?,?,?)");
+                PreparedStatement pstAnnot = conn.prepareStatement("replace into cap_project_annotation (bard_proj_id, cap_proj_id, source, entity, anno_id, anno_key, anno_value, anno_display, related, context_name, display_order, url) values (?,?,?,?,?,?,?,?,?,?,?,?)");
                 for (CAPAnnotation anno : annos) {
                     pstAnnot.setInt(1, anno.entityId); // for project this is bard_project.bardProjId, for project-step this is project_step.stepId
                     pstAnnot.setInt(2, project.getProjectId().intValue());
@@ -230,7 +239,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 pstAnnot.close();
                 log.info("\tLoaded " + annos.size() + " annotations (from " + annos.size() + " CAP annotations) for cap project id " + project.getProjectId());
             }
-
+            
             updateProbeLinks(annos, (long) bardProjId);
 
             conn.commit();
