@@ -107,6 +107,7 @@ public class BardResultFactory {
 	    log.info("Have Dictionary. Retrieving potency and efficacy measures.");
 	    potencyDataElemV = getPotencyElements();
 	    efficacyDataElemV = getEfficacyElements();
+	    efficacyDataElemV.addAll(this.getPhysicalPropertyElements());
 	    log.info("Have Dictionary. Retrieving potency and efficacy measures. potency cnt:"+potencyDataElemV.size()+" efficacy cnt:"+efficacyDataElemV.size());
 	} else { //get them from constants if we don't have a dictionary
 	    potencyDataElemV = new Vector <Integer>();
@@ -695,6 +696,33 @@ public class BardResultFactory {
 	    }
 	}
 	return effElemV;
+    }
+    
+    /*
+     * Returns grandchildren and great grandchildren under 'response endpoint'
+     */
+    private Vector <Integer> getPhysicalPropertyElements() {
+	Vector <Integer> physPropElem = new Vector<Integer>();
+	Set <CAPDictionaryElement> children = dictionary.getChildren(BigInteger.valueOf(930l));
+	Set <CAPDictionaryElement> gchildren;
+	Set <CAPDictionaryElement> ggchildren;	
+
+	for(CAPDictionaryElement child : children) {
+	    physPropElem.add(new Integer(child.getElementId().intValue()));
+	    gchildren = dictionary.getChildren(child.getElementId());
+	    if(gchildren != null) {
+		for(CAPDictionaryElement gchild: gchildren) {
+		    physPropElem.add(new Integer(gchild.getElementId().intValue()));	
+		    ggchildren = dictionary.getChildren(gchild.getLabel());
+		    if(ggchildren != null) {
+			for(CAPDictionaryElement ggchild: ggchildren) {
+			    physPropElem.add(new Integer(ggchild.getElementId().intValue()));	
+			}
+		    }
+		}
+	    }
+	}
+	return physPropElem;
     }
 
     public boolean fetchLatestDictionaryFromWarehouse(String dbURL) {
