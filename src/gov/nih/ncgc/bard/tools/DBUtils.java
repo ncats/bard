@@ -1806,12 +1806,26 @@ public class DBUtils {
             if (projects != null && projects.size() > 0) {
                 Long id = projects.get(0);
                 List<CAPAnnotation> annos = getProjectAnnotations(id);
-                List props = new ArrayList();
+                List<CAPAnnotation> props = new ArrayList();
                 for (CAPAnnotation anno : annos) {
-                    if (anno.contextRef == null || !anno.contextRef.equals("probe")) continue;
-                    props.add(anno);
+                    // we only add annos that are Pubchem CID or probe reports
+                    if (anno.key.equals("1776") || anno.key.equals("878")) props.add(anno);
                 }
-                c.setProbeAnnotations(props);
+
+                // but a project may refer to many probes. We should only keep those probe
+                // annotations that are relevant to the current cid
+                long annoId = -1L;
+                for (CAPAnnotation anno : props) {
+                    if (anno.key.equals("878") && Long.parseLong(anno.display) == c.getCid()) {
+                        annoId = anno.id;
+                        break;
+                    }
+                }
+                List<CAPAnnotation> annosForCid = new ArrayList<CAPAnnotation>();
+                for (CAPAnnotation anno : props) {
+                    if (anno.id == annoId) annosForCid.add(anno);
+                }
+                c.setProbeAnnotations(annosForCid);
             }
         }
     }
