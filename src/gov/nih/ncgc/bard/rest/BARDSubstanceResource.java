@@ -12,7 +12,6 @@ import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.Substance;
-import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 import gov.nih.ncgc.search.MoleculeService;
 import gov.nih.ncgc.util.MolRenderer;
@@ -78,7 +77,7 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
                                  @QueryParam("expand") String expand,
                                  @QueryParam("skip") Integer skip,
                                  @QueryParam("top") Integer top) {
-        DBUtils db = new DBUtils();
+        
         Response response = null;
 
         if (skip == null) skip = -1;
@@ -139,7 +138,7 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
     public Response getAssaysForSubstance(@PathParam("sid") Long sid, String expand,
                                           @QueryParam("skip") Integer skip,
                                           @QueryParam("top") Integer top) throws SQLException, IOException {
-        DBUtils db = new DBUtils();
+        
         Response response;
         String linkString = null;
         List<Assay> p = db.getSubstanceAssays(sid, -1, -1);
@@ -177,7 +176,7 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
     private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes, boolean expand) throws SQLException, IOException {
         if (!type.equals("cid") && !type.equals("sid")) throw new WebApplicationException(400);
 
-        DBUtils db = new DBUtils();
+        
         Substance s = null;
 
         if (type.equals("cid")) {
@@ -269,7 +268,7 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
         Long[] lcids = new Long[toks.length];
         for (int i = 0; i < toks.length; i++) lcids[i] = Long.parseLong(toks[i].trim());
 
-        DBUtils db = new DBUtils();
+        
         try {
             Long[][] mapping = db.getSidsByCids(lcids);
 
@@ -369,7 +368,7 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
-        DBUtils db = new DBUtils();
+        
         String linkString = null;
 
         if (skip == null) skip = -1;
@@ -426,7 +425,7 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
-        DBUtils db = new DBUtils();
+        
         String linkString = null;
         String json;
 
@@ -479,7 +478,7 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
                                       @QueryParam("expand") String expand,
                                       @QueryParam("skip") Integer skip,
                                       @QueryParam("top") Integer top) {
-        DBUtils db = new DBUtils();
+        
         try {
             List<Substance> substances = db.getSubstanceByETag(skip != null ? skip : -1, top != null ? top : -1, resourceId);
             String json = Util.toJson(substances);

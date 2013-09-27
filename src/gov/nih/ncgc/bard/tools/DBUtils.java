@@ -215,6 +215,7 @@ public class DBUtils {
 
     public DBUtils() {
         log = LoggerFactory.getLogger(this.getClass());
+        log.info("DBUtils initialized. No connection yet.");
 
         final List<String> publicationFields = Arrays.asList("pmid", "title", "abstract", "doi");
         final List<String> projectFields = Arrays.asList("name", "description");
@@ -6363,23 +6364,4 @@ public class DBUtils {
 	    JDBCResourceCloser.close(pst, conn);
         }
     }
-
-//    public static void main(String[] argv) throws Exception {
-//        if (argv.length == 0) {
-//            System.out.println("Usage: DBUtils URL");
-//            System.exit(1);
-//        }
-//        Class.forName("com.mysql.jdbc.Driver");
-//
-//        DBUtils db = new DBUtils();
-//        Connection con = DriverManager.getConnection(argv[0]);
-//        con.setAutoCommit(false);
-//        db.setConnection(con);
-//
-//        System.out.println(db.getProjectStepsByProjectId(2l));
-////        String etag = db.newETag("test", Compound.class.getName());
-////        int cnt = db.putETag(etag, 1l, 2l, 3l, 4l, 5l);
-////        System.out.println(etag + ": " + cnt);
-//        db.closeConnection();
-//    }
 }

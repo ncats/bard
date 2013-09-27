@@ -95,7 +95,7 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
         if (skip == null) skip = -1;
         if (top == null) top = -1;
 
-        DBUtils db = new DBUtils();
+        
         try {
             String linkString = null;
             if (filter == null) {
@@ -143,7 +143,6 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
     public Response getResources(@FormParam("ids") String eids, 
                                  @QueryParam("expand") String expand) 
         throws SQLException {
-        DBUtils db = new DBUtils ();
         try {
             if (eids == null)
                 throw new BadRequestException("POST request must specify the ids form parameter, which should be a comma separated string of experiment IDs");
@@ -173,7 +172,7 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
     @GET
     @Path("/{eid}")
     public Response getResources(@PathParam("eid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
+        
         Experiment experiment;
         try {
             experiment = db.getExperimentByExptId(Long.valueOf(resourceId));
@@ -228,7 +227,7 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
-        DBUtils db = new DBUtils();
+        
         List<Project> projects = db.getProjectByExperimentId(eid);
         if (!expandEntries) {
             List<String> links = Functional.Apply(projects, new IApplyFunction<Project, String>() {
@@ -257,7 +256,7 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
             expandEntries = true;
 
         List<MediaType> types = headers.getAcceptableMediaTypes();
-        DBUtils db = new DBUtils();
+        
         String linkString = null;
 
         if (skip == null) skip = -1;
@@ -331,7 +330,7 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
             expandEntries = true;
 
         List<MediaType> types = headers.getAcceptableMediaTypes();
-        DBUtils db = new DBUtils();
+        
         String linkString = null;
 
         if (skip == null) skip = -1;
@@ -398,7 +397,7 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
     public Response getExperimentData(@PathParam("eid") String resourceId)
         throws SQLException {
         
-        DBUtils db = new DBUtils();
+        
         try {
             String json = db.getExperimentMetadataByExptId
                 (Long.parseLong(resourceId));
@@ -423,7 +422,7 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
-        DBUtils db = new DBUtils();
+        
         String linkString = null;
 
         if (skip == null) skip = -1;
@@ -502,7 +501,7 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
                  +"for POST!");
         }
 
-        DBUtils db = new DBUtils();
+        
         try {
             Experiment experiemnt = db.getExperimentByExptId
                 (Long.valueOf(resourceId));
@@ -527,7 +526,6 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
                                           @QueryParam("skip") Integer skip,
                                           @QueryParam("top") Integer top) 
         throws SQLException, IOException {
-        DBUtils db = new DBUtils ();
         try {
             List<ExperimentData> data = db.getExperimentDataByETag
                 (skip != null ? skip : -1, top != null ? top : -1, eid, etag);
@@ -547,7 +545,7 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
                                       @QueryParam("expand") String expand,
                                       @QueryParam("skip") Integer skip,
                                       @QueryParam("top") Integer top) {
-        DBUtils db = new DBUtils();
+        
         try {
             List<Experiment> expts = db.getExperimentsByETag(skip != null ? skip : -1, top != null ? top : -1, resourceId);
             String json = Util.toJson(expts);
@@ -569,7 +567,7 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
         long start = System.currentTimeMillis();
 
         Map<String, Object> s = new HashMap<String, Object>();
-        DBUtils db = new DBUtils();
+        
 
         Experiment e = db.getExperimentByExptId(eid);
         if (e == null || e.getBardExptId() == null) throw new WebApplicationException(404);
@@ -612,7 +610,7 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
     public Response getExperimentResultTypes(@PathParam("eid") Long eid,
                                              @QueryParam("expand") String expand,
                                              @QueryParam("collapse") Integer collapse) {
-        DBUtils db = new DBUtils();
+        
         try {
             List<ExperimentResultType> rtypes = db.getExperimentResultTypes(eid, collapse);
             String json = null;
@@ -634,7 +632,7 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
     @Produces("application/json")
     @Path("/{eid}/annotations")
     public Response getAnnotations(@PathParam("eid") Long eid, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
-        DBUtils db = new DBUtils();
+        
         List<CAPAnnotation> a;
         try {
             a = db.getExperimentAnnotations(eid);
