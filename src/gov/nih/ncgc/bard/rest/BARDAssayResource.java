@@ -113,7 +113,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
         if (top == null) top = -1;
 
         String linkString = null;
-        DBUtils db = new DBUtils();
         Response response;
         try {
 
@@ -141,7 +140,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(assays, linkString);
                 start = System.currentTimeMillis();
 
-                String json = getExpandedJson(linkedEntity, null, db).toString();
+                String json = getExpandedJson(linkedEntity, null).toString();
                 log.info("## Generating json in " + String.format("%1$.3fs", 1.e-3 * (System.currentTimeMillis() - start)));
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
             } else {
@@ -166,7 +165,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
         }
     }
 
-    JsonNode getSingleExpandedNode(Assay a, Long aid, DBUtils db) throws SQLException {
+    JsonNode getSingleExpandedNode(Assay a, Long aid) throws SQLException {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode t = mapper.valueToTree(a);
 
@@ -208,18 +207,18 @@ public class BARDAssayResource extends BARDResource<Assay> {
         return t;
     }
 
-    JsonNode getExpandedJson(Object o, Long aid, DBUtils db) throws SQLException {
+    JsonNode getExpandedJson(Object o, Long aid) throws SQLException {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode t = null;
         if (o instanceof Assay) {
-            return getSingleExpandedNode((Assay) o, aid, db);
+            return getSingleExpandedNode((Assay) o, aid);
         } else if (o instanceof BardLinkedEntity) {
             ArrayNode an = mapper.createArrayNode();
             BardLinkedEntity e = (BardLinkedEntity) o;
             List assays = (List) e.getCollection();
             for (Object assay : assays) {
                 Assay a = (Assay) assay;
-                an.add(getSingleExpandedNode(a, a.getBardAssayId(), db));
+                an.add(getSingleExpandedNode(a, a.getBardAssayId()));
             }
             t = mapper.createObjectNode();
             ((ObjectNode) t).put("collection", an);
@@ -234,7 +233,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
     public Response getResources(@PathParam("aid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
         if (!Util.isNumber(resourceId)) throw new WebApplicationException(400);
 
-        DBUtils db = new DBUtils();
         Assay a;
         try {
             a = db.getAssayByAid(Long.valueOf(resourceId));
@@ -242,7 +240,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
 
             JsonNode node;
             if (expandEntries(expand)) { // expand experiment and project entries
-                node = getExpandedJson(a, Long.parseLong(resourceId), db);
+                node = getExpandedJson(a, Long.parseLong(resourceId));
             } else {
                 ObjectMapper mapper = new ObjectMapper();
                 node = mapper.valueToTree(a);
@@ -270,7 +268,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
     public Response getResources(@FormParam("ids") String aids, @QueryParam("expand") String expand) {
         if (aids == null)
             throw new WebApplicationException(new Exception("POST request must specify the aids form parameter, which should be a comma separated string of assay IDs"), 400);
-        DBUtils db = new DBUtils();
         try {
             // we'll asssume an ID list if we're being called via POST
             String[] s = aids.split(",");
@@ -288,7 +285,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
             if (assays.size() == 0) throw new WebApplicationException(404);
 
             if (countRequested) return Response.ok(String.valueOf(assays.size()), MediaType.TEXT_PLAIN).build();
-            db.closeConnection();
 
             String json;
             if (expand == null || expand.toLowerCase().equals("false")) {
@@ -296,11 +292,10 @@ public class BARDAssayResource extends BARDResource<Assay> {
                 for (Assay ap : assays) links.add(ap.getResourcePath());
                 json = Util.toJson(links);
             } else {
-                db = new DBUtils();
                 ObjectMapper mapper = new ObjectMapper();
                 ArrayNode an = mapper.createArrayNode();
                 for (Assay a : assays) {
-                    an.add(getExpandedJson(a, a.getBardAssayId(), db));
+                    an.add(getExpandedJson(a, a.getBardAssayId()));
                 }
                 json = an.toString();
                 db.closeConnection();
@@ -323,7 +318,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
     public Response getMultipleAnnotations(@FormParam("aids") String aids,
                                            @QueryParam("filter") String filter, @QueryParam("expand") String expand)
             throws ClassNotFoundException, IOException, SQLException {
-        DBUtils db = new DBUtils();
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode topLevel = mapper.createObjectNode();
 
@@ -350,7 +344,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
     @Produces("application/json")
     @Path("/{aid}/annotations")
     public Response getAnnotations(@PathParam("aid") Long resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
-        DBUtils db = new DBUtils();
         List<CAPAnnotation> a;
         try {
             a = db.getAssayAnnotations(resourceId);
@@ -385,7 +378,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
-        DBUtils db = new DBUtils();
         List<ProteinTarget> targets = null;
         Response response;
         try {
@@ -427,7 +419,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
-        DBUtils db = new DBUtils();
         List<Publication> targets = null;
         try {
             targets = db.getAssayPublications(Long.valueOf(resourceId));
@@ -464,8 +455,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
-
-        DBUtils db = new DBUtils();
+        
         try {
             List<Project> projects = db.getProjectByAssayId(aid);
             if (!expandEntries) {
@@ -495,7 +485,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
-        DBUtils db = new DBUtils();
         List<Experiment> experiments = null;
         try {
             experiments = db.getExperimentByAssayId(Long.valueOf(resourceId));
@@ -540,7 +529,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
             expandEntries = true;
 
         List<MediaType> types = headers.getAcceptableMediaTypes();
-        DBUtils db = new DBUtils();
         String linkString = null;
 
         if (skip == null) skip = -1;
@@ -616,7 +604,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
             expandEntries = true;
 
         List<MediaType> types = headers.getAcceptableMediaTypes();
-        DBUtils db = new DBUtils();
         String linkString = null;
 
         if (skip == null) skip = -1;
@@ -741,7 +728,6 @@ public class BARDAssayResource extends BARDResource<Assay> {
                                       @QueryParam("expand") String expand,
                                       @QueryParam("skip") Integer skip,
                                       @QueryParam("top") Integer top) {
-        DBUtils db = new DBUtils();
         try {
             List<Assay> assays = db.getAssaysByETag
                     (skip != null ? skip : -1, top != null ? top : -1, resourceId);
@@ -767,7 +753,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     @Produces("application/json")
     @Path("/etag/{etag}/facets")
     public Response getFacets(@PathParam("etag") String resourceId) {
-        DBUtils db = new DBUtils();
+        
         try {
             List<Facet> facets = db.getAssayFacets(resourceId);
             return Response.ok(Util.toJson(facets),

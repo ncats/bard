@@ -152,7 +152,6 @@ public abstract class BARDResource<T extends BardEntity>
     public Response getETags (@QueryParam("expand") String expand,
                               @QueryParam("skip") Integer skip,
                               @QueryParam("top") Integer top) {
-        DBUtils db = new DBUtils ();
         try {
             Response response = null;
             if (top == null) {
@@ -224,7 +223,6 @@ public abstract class BARDResource<T extends BardEntity>
                                @FormParam("url") String url,
                                @FormParam("ids") String ids,
                                @FormParam("etagids") String etagids) {
-        DBUtils db = new DBUtils();
         try {
             if (name == null) {
                 throw new IllegalArgumentException
@@ -275,7 +273,6 @@ public abstract class BARDResource<T extends BardEntity>
                             @FormParam("name") String name,
                             @FormParam("ids") String ids,
                             @FormParam("etagids") String etagids) {
-        DBUtils db = new DBUtils();
         try {
             if (ids == null) {
                 throw new IllegalArgumentException
@@ -323,7 +320,6 @@ public abstract class BARDResource<T extends BardEntity>
     @GET
     @Path("/etag/{etag}/_info")
     public Response getETagInfo (@PathParam("etag") String resourceId) {
-        DBUtils db = new DBUtils();
         try {
             Map info = db.getETagInfo(resourceId);
             return Response.ok(Util.toJson(info),
@@ -383,7 +379,6 @@ public abstract class BARDResource<T extends BardEntity>
     @Produces(MediaType.APPLICATION_JSON)
     public Response getRecent(@PathParam("n") Integer n,
                               @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
         try {
             List<T> entities = db.getRecentEntities(getEntityClass(), n);
             if (expandEntries(expand))
