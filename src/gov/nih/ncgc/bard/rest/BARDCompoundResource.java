@@ -125,7 +125,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                            @QueryParam("cutoff") Double cutoff,
                            @QueryParam("rankBy") String rankBy,
                            @QueryParam("annot") String annot) throws SQLException, IOException {
-        DBUtils db = new DBUtils();
+        
         Response response = null;
         Long start, end;
 
@@ -327,7 +327,6 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
 
     private Response getCompoundResponse(String id, String type, List<MediaType> mediaTypes, boolean expand) throws SQLException, IOException {
-        DBUtils db = new DBUtils();
 
         List<String> validTypes = Arrays.asList("cid", "sid", "probeid", "name");
 
@@ -565,7 +564,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                                        @PathParam("id") String id,
                                        @QueryParam("expand") String expand) {
 
-        DBUtils db = new DBUtils();
+        
         try {
             if (id == null || id.length() == 0) {
                 throw new IllegalArgumentException("No hash id specified!");
@@ -645,7 +644,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     @Path("/{cid}/eqv")
     public Response getEqvCompounds(@PathParam("cid") String cid,
                                     @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
+        
         // return equivalence class based on hash keys
         try {
             List<Compound> compounds =
@@ -715,7 +714,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                                       @QueryParam("expand") String expand,
                                       @QueryParam("skip") Integer skip,
                                       @QueryParam("top") Integer top) {
-        DBUtils db = new DBUtils();
+        
         try {
             List<Compound> c = db.getCompoundsByETag
                     (skip != null ? skip : -1, top != null ? top : -1, resourceId);
@@ -740,7 +739,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                                     @QueryParam("expand") String expand,
                                     @QueryParam("skip") Integer skip,
                                     @QueryParam("top") Integer top) {
-        DBUtils db = new DBUtils();
+        
         try {
             List<Compound> c = db.getCompoundsByETag
                     (skip != null ? skip : -1, top != null ? top : -1, resourceId);
@@ -782,7 +781,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     @GET
     @Path("/etag/{etag}/facets")
     public Response getFacets(@PathParam("etag") String resourceId) {
-        DBUtils db = new DBUtils();
+        
         try {
             List<Facet> facets = db.getCompoundFacets(resourceId);
             return Response.ok(Util.toJson(facets),
@@ -878,7 +877,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         if (names == null || names.trim().equals("")) throw new WebApplicationException(400);
         String[] toks = names.trim().split(",");
         Map<String, List<Compound>> map = new HashMap<String, List<Compound>>();
-        DBUtils db = new DBUtils();
+        
         Response response = null;
         try {
             for (String tok : toks) map.put(tok.trim(), db.getCompoundsByName(tok.trim()));
@@ -908,7 +907,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                                            @QueryParam("expand") String expand,
                                            @QueryParam("skip") Integer skip,
                                            @QueryParam("top") Integer top) throws SQLException, IOException {
-        DBUtils db = new DBUtils();
+        
         Response response;
         String linkString = null;
 
@@ -948,7 +947,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     @Path("/{cid}/annotations")
     public Response getCompoundAnnotations(@PathParam("cid") Long cid)
             throws SQLException, IOException {
-        DBUtils db = new DBUtils();
+        
         try {
             Map anno = db.getCompoundAnnotations(cid);
             return Response.ok(Util.toJson(anno))
@@ -962,7 +961,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     @Path("/{cid}/sids")
     public Response getSidsForCompound(@PathParam("cid") Long cid)
             throws SQLException, IOException {
-        DBUtils db = new DBUtils();
+        
         try {
             List<Long> sids = db.getSidsByCid(cid);
             return Response.ok(Util.toJson(sids))
@@ -976,7 +975,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     @Path("/{cid}/synonyms")
     public Response getSynonymsForCompound(@PathParam("cid") Long cid)
             throws SQLException, IOException {
-        DBUtils db = new DBUtils();
+        
         try {
             List<String> syns = db.getCompoundSynonyms(cid);
             return Response.ok(Util.toJson(syns))
@@ -994,7 +993,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                                           @QueryParam("filter") String filter,
                                           @QueryParam("skip") Integer skip,
                                           @QueryParam("top") Integer top) throws SQLException, IOException {
-        DBUtils db = new DBUtils();
+        
         Response response;
         String linkString = null;
 
@@ -1035,7 +1034,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                                          @QueryParam("filter") String filter,
                                          @QueryParam("skip") Integer skip,
                                          @QueryParam("top") Integer top) throws SQLException, IOException {
-        DBUtils db = new DBUtils();
+        
         Response response;
         String linkString = null;
         List<Assay> p;
@@ -1085,7 +1084,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                                       @QueryParam("skip") Integer skip,
                                       @QueryParam("top") Integer top) {
 
-        DBUtils db = new DBUtils();
+        
         String linkString = null;
 
         if (skip == null) skip = -1;
@@ -1144,7 +1143,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                                    @QueryParam("expand") String expand,
                                    @QueryParam("skip") Integer skip,
                                    @QueryParam("top") Integer top) {
-        DBUtils db = new DBUtils();
+        
         String linkString = null;
 
         if (skip == null) skip = -1;
@@ -1197,7 +1196,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     }
 
     private Map<String, Integer> getTargetClassCount(List<String> acc, int level) throws SQLException {
-        DBUtils db = new DBUtils();
+        
         List<String> tclasses = new ArrayList<String>(); //db.getChemblTargetClasses(acc, level);
         for (String anAcc : acc) {
             List<TargetClassification> pclasses = db.getPantherClassesForAccession(anAcc);
@@ -1220,8 +1219,9 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                                @QueryParam("skip") Integer skip,
                                @QueryParam("top") Integer top) throws IOException, SQLException {
         Map<String, Object> s = new HashMap<String, Object>();
-        DBUtils db = new DBUtils();
+        
 
+        if (skip == null) skip = -1;
         if (skip == null) skip = -1;
         if (top == null) top = -1;
 

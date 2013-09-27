@@ -10,7 +10,6 @@ import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.rest.rowdef.AssayDefinitionObject;
 import gov.nih.ncgc.bard.rest.rowdef.DataResultObject;
 import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
-import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
 import javax.servlet.ServletContext;
@@ -88,7 +87,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
     @Produces("text/plain")
     @Path("/_count")
     public String count(@QueryParam("filter") String filter) {
-        DBUtils db = new DBUtils();
+        
         String ret;
         try {
             if (filter == null) {
@@ -116,7 +115,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
-        DBUtils db = new DBUtils();
+        
         Response response;
         try {
             if (filter == null) {
@@ -174,7 +173,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
                                      @QueryParam("expand") String expand) throws IOException, SQLException {
         List<ExperimentData> edlist = new ArrayList<ExperimentData>();
         List<String> edids = null;
-        DBUtils db = new DBUtils();
+        
 
         if (skip == null) skip = -1;
         if (top == null) top = -1;
@@ -307,7 +306,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
 
     private List<String> getAllEdidFromAssays(String[] aids, int skip, int top, String filter) throws SQLException {
         List<String> edids = new ArrayList<String>();
-        DBUtils db = new DBUtils();
+        
         for (String aid : aids) {
             List<Long> eids = db.getAssayByAid(Long.parseLong(aid)).getExperiments();
             String[] s = new String[eids.size()];
@@ -320,7 +319,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
 
     private List<String> getAllEdidFromExperiments(String[] eids, int skip, int top, String filter) throws SQLException {
         List<String> edids = new ArrayList<String>();
-        DBUtils db = new DBUtils();
+        
         for (String eid : eids) {
             edids.addAll(db.getExperimentDataIds(Long.parseLong(eid), skip, top, filter));
         }
@@ -329,7 +328,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
     }
 
     private List<String> getEdidFromProjects(String[] ids, String[] pids, int skip, int top, String filter) throws SQLException {
-        DBUtils db = new DBUtils();
+        
         List<Long> eids = new ArrayList<Long>();
         for (String pid : pids) {
             Project project = db.getProject(Long.parseLong(pid));
@@ -340,7 +339,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
     }
 
     private List<String> getEdidFromAssays(String[] ids, String[] aids, int skip, int top, String filter) throws SQLException {
-        DBUtils db = new DBUtils();
+        
         List<Long> eids = new ArrayList<Long>();
         for (String aid : aids) {
             Assay assay = db.getAssayByAid(Long.parseLong(aid));
@@ -359,7 +358,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
     }
 
     private List<ExperimentData> getExperimentData(String[] edids, String filter) throws SQLException {
-        DBUtils db = new DBUtils();
+        
         List<ExperimentData> edlist = new ArrayList<ExperimentData>();
         for (String edid : edids) {
             try {
@@ -386,7 +385,7 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
     @GET
     @Path("/{edid}")
     public Response getResources(@PathParam("edid") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
+        
         ExperimentData experimentData;
         try {
             String exptId = "";

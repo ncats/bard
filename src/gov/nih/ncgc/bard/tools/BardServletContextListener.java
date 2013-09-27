@@ -1,6 +1,7 @@
 package gov.nih.ncgc.bard.tools;
 
 import gov.nih.ncgc.bard.rest.BARDResource;
+import gov.nih.ncgc.bard.search.SolrSearch;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
@@ -22,6 +23,7 @@ public class BardServletContextListener implements ServletContextListener {
     public void contextInitialized(ServletContextEvent contextEvent) {
         db = new DBUtils();
         BARDResource.setDb(db);
+        SolrSearch.setDb(db);
 
         // should we initialize cache mgmt at all?
         boolean initHazelcast = System.getProperty("initHazelcast").toLowerCase().equals("true");

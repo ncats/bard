@@ -1,27 +1,24 @@
 package gov.nih.ncgc.bard.search;
 
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
 import gov.nih.ncgc.bard.tools.DBUtils;
-
-import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import nu.xom.Builder;
 import nu.xom.Document;
 import nu.xom.Element;
 import nu.xom.Node;
 import nu.xom.Nodes;
-
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A one line summary.
@@ -29,6 +26,7 @@ import com.sun.jersey.api.client.WebResource;
  * @author Rajarshi Guha
  */
 public abstract class SolrSearch implements ISolrSearch {
+    protected static DBUtils db;
     protected String query = null;
     protected int numHit = -1;
     protected List<Facet> facets;
@@ -37,6 +35,10 @@ public abstract class SolrSearch implements ISolrSearch {
     protected String CORE_NAME = null;
 
     protected String solrURL = "http://localhost:8090/solr";
+
+    public static void setDb(DBUtils db) {
+        SolrSearch.db = db;
+    }
 
     protected SolrSearch(String query) {
         this.query = query;
@@ -207,7 +209,6 @@ public abstract class SolrSearch implements ISolrSearch {
     }
 
     protected String putEtag(List<Long> ids, Class klass) throws Exception {
-        DBUtils db = new DBUtils();
         try {
             String etag = db.newETag(query, klass.getName());
             db.putETag(etag, ids.toArray(new Long[0]));
