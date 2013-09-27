@@ -2,13 +2,7 @@ package gov.nih.ncgc.bard.rest;
 
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Publication;
-import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
-
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -18,6 +12,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Prototype of MLBD REST resources.
@@ -62,7 +60,7 @@ public class BARDDocumentResource extends BARDResource<Publication> {
             top = -1;
         }
 
-        DBUtils db = new DBUtils();
+        
         Response response = null;
         try {
             String linkString = null;
@@ -117,7 +115,7 @@ public class BARDDocumentResource extends BARDResource<Publication> {
             throw new WebApplicationException(400);
         }
 
-        DBUtils db = new DBUtils();
+        
         try {
             Publication p = db.getPublicationByPmid(Long.parseLong(resourceId));
             if (countRequested && p != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();
@@ -133,7 +131,7 @@ public class BARDDocumentResource extends BARDResource<Publication> {
     @GET
     @Path("/doi/{doi}")
     public Response getResourcesByDoi(@PathParam("doi") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
+        
         try {
             Publication p = db.getPublicationByDoi(resourceId);
             if (countRequested && p != null) return Response.ok("1", MediaType.TEXT_PLAIN).build();

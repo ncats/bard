@@ -1,16 +1,6 @@
 package gov.nih.ncgc.bard.search;
 
 import gov.nih.ncgc.bard.entity.Project;
-import gov.nih.ncgc.bard.tools.DBUtils;
-
-import java.net.MalformedURLException;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -20,6 +10,14 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.MalformedURLException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Full text search for project entities.
@@ -142,7 +140,6 @@ public class ExperimentSearch extends SolrSearch {
         if (!detailed) {
             ret = copyRange(docs, skip, top, detailed, PKEY_EXPERIMENT_DOC, "name", "capExptId");
         } else {
-            DBUtils db = new DBUtils();
             ret = new ArrayList();
             try {
                 for (int i = skip; i < size; i++) {
