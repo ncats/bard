@@ -61,7 +61,7 @@ public class SearchUtil {
 
         HashMap<String, List<String>> ret = new HashMap<String, List<String>>();
         if (filter == null || filter.trim().equals("")) return ret;
-        Pattern pattern = Pattern.compile("fq\\((.*?):(.*?)\\),");
+        Pattern pattern = Pattern.compile("fq\\((.*?):[\"'](.*?)[\"']\\),");
         Matcher matcher = pattern.matcher(filter);
         while (matcher.find()) {
             for (int i = 1; i < matcher.groupCount(); i += 2) {
