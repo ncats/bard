@@ -3,12 +3,19 @@ package gov.nih.ncgc.bard.rest;
 import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.Biology;
-import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -69,7 +76,7 @@ public class BARDBiologyResource extends BARDResource<Biology> {
                                  @QueryParam("expand") String expand,
                                  @QueryParam("skip") Integer skip,
                                  @QueryParam("top") Integer top) {
-        DBUtils db = new DBUtils();
+        
 
         if (skip == null) skip = -1;
         if (top == null) top = -1;
@@ -134,7 +141,7 @@ public class BARDBiologyResource extends BARDResource<Biology> {
     @Produces("application/json")
     public Response getBiologyByType(@PathParam("typeName") String typeName,
                                      @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
+        
         try {
             String json;
             List<Biology> biologies = db.getBiologyByType(typeName);
@@ -163,7 +170,7 @@ public class BARDBiologyResource extends BARDResource<Biology> {
     @Produces("application/json")
     public Response getBiologyByDictId(@PathParam("dictId") String dictId,
                                        @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
+        
         try {
             String json;
             List<Biology> biologies = db.getBiologyByDictId(dictId);
@@ -193,7 +200,7 @@ public class BARDBiologyResource extends BARDResource<Biology> {
     public Response getBiologyByTypeAndExtId(@PathParam("typeName") String typeName,
                                              @PathParam("extId") String extId,
                                              @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
+        
         try {
             String json;
             List<Biology> biologies = db.getBiologyByType(typeName, extId);
@@ -223,7 +230,7 @@ public class BARDBiologyResource extends BARDResource<Biology> {
     public Response getBiologyForEntity(@PathParam("entity") String entity,
                                         @PathParam("entityId") int entityId,
                                         @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
+        
         try {
             String json;
             List<Biology> biologies = db.getBiologyByEntity(entity, entityId);
@@ -254,7 +261,7 @@ public class BARDBiologyResource extends BARDResource<Biology> {
                                                @PathParam("entityId") int entityId,
                                                @PathParam("typeName") String typeName,
                                                @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
+        
         try {
             String json;
             List<Biology> biologies = db.getBiologyByEntity(entity, entityId);
@@ -294,7 +301,7 @@ public class BARDBiologyResource extends BARDResource<Biology> {
     public Response getResources(@PathParam("bid") String resourceId,
                                  @QueryParam("filter") String filter,
                                  @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
+        
         try {
             if (resourceId != null && !Util.isNumber(resourceId)) throw new WebApplicationException(400);
             List<Biology> bios = db.getBiologyBySerial(Long.parseLong(resourceId));
@@ -324,7 +331,7 @@ public class BARDBiologyResource extends BARDResource<Biology> {
     public Response getResourcesByPost(@FormParam("bids") String bids,
                                        @QueryParam("filter") String filter,
                                        @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
+        
         try {
             List<Biology> allBiologies = new ArrayList<Biology>();
             for (String bid : bids.split(",")) {

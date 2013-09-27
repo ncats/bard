@@ -9,12 +9,26 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
-import gov.nih.ncgc.bard.entity.*;
+import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.BardLinkedEntity;
+import gov.nih.ncgc.bard.entity.Biology;
+import gov.nih.ncgc.bard.entity.Compound;
+import gov.nih.ncgc.bard.entity.Experiment;
+import gov.nih.ncgc.bard.entity.Project;
+import gov.nih.ncgc.bard.entity.ProjectStep;
+import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.search.Facet;
-import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -22,7 +36,12 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.math.BigInteger;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Prototype of MLBD REST resources.
@@ -66,7 +85,7 @@ public class BARDProjectResource extends BARDResource<Project> {
         if (skip == null) skip = -1;
         if (top == null) top = -1;
 
-        DBUtils db = new DBUtils();
+        
         Response response = null;
         try {
             String linkString = null;
@@ -108,7 +127,7 @@ public class BARDProjectResource extends BARDResource<Project> {
     @GET
     @Path("/{id}")
     public Response getResources(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
+        
         try {
             Project p = db.getProject(Long.valueOf(resourceId));
             if (p == null) throw new WebApplicationException(404);
@@ -173,7 +192,7 @@ public class BARDProjectResource extends BARDResource<Project> {
     public Response getResources(@FormParam("ids") String pids, @QueryParam("expand") String expand) {
         if (pids == null)
             throw new WebApplicationException(new Exception("POST request must specify the pids form parameter, which should be a comma separated string of project IDs"), 400);
-        DBUtils db = new DBUtils();
+        
         try {
             // we'll asssume an ID list if we're being called via POST
             String[] s = pids.split(",");
@@ -208,7 +227,7 @@ public class BARDProjectResource extends BARDResource<Project> {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
-        DBUtils db = new DBUtils();
+        
         try {
             Project project = db.getProject(Long.valueOf(resourceId));
             List<Biology> targets = project.getTargets();
@@ -241,7 +260,7 @@ public class BARDProjectResource extends BARDResource<Project> {
         if (expand != null && (expand.toLowerCase().equals("true") 
                                || expand.toLowerCase().equals("yes")))
             expandEntries = true;
-        DBUtils db = new DBUtils();
+        
         try {
             Project p = db.getProject(Long.valueOf(resourceId));
             List<Experiment> e = new ArrayList<Experiment>();
@@ -277,7 +296,7 @@ public class BARDProjectResource extends BARDResource<Project> {
         if (expand != null && (expand.toLowerCase().equals("true") 
                                || expand.toLowerCase().equals("yes")))
             expandEntries = true;
-        DBUtils db = new DBUtils();
+        
         try {
             Project p = db.getProject(Long.valueOf(resourceId));
             List<Assay> e = new ArrayList<Assay>();
@@ -317,7 +336,7 @@ public class BARDProjectResource extends BARDResource<Project> {
     public Response getProbesForProject(@PathParam("id") String resourceId, @QueryParam("filter") String filter, @QueryParam("search") String search, @QueryParam("expand") String expand) {
         List<MediaType> types = headers.getAcceptableMediaTypes();
 
-        DBUtils db = new DBUtils();
+        
         Response response = null;
         try {
             List<Long> probes = db.getProbeCidsForProject(Long.valueOf(resourceId));
@@ -353,7 +372,7 @@ public class BARDProjectResource extends BARDResource<Project> {
     @GET
     @Path("/{pid}/annotations")
     public Response getAnnotations(@PathParam("pid") Long resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) throws ClassNotFoundException, IOException, SQLException {
-        DBUtils db = new DBUtils();
+        
         List<CAPAnnotation> a;
         CAPDictionary dict = db.getCAPDictionary();
         try {
@@ -448,7 +467,7 @@ public class BARDProjectResource extends BARDResource<Project> {
     @GET
     @Path("/etag/{etag}/facets")
     public Response getFacets(@PathParam("etag") String resourceId) {
-        DBUtils db = new DBUtils();
+        
         try {
             List<Facet> facets = db.getProjectFacets(resourceId);
             return Response.ok(Util.toJson(facets),
@@ -467,7 +486,7 @@ public class BARDProjectResource extends BARDResource<Project> {
     @GET
     @Path("/{pid}/summary")
     public Response getSummary(@PathParam("pid") Long projectId) {
-        DBUtils db = new DBUtils();
+        
 
         try {
             Map<String, Object> summary = db.getProjectSumary(projectId);
@@ -489,7 +508,7 @@ public class BARDProjectResource extends BARDResource<Project> {
     @GET
     @Path("/{pid}/steps")
     public Response getProjectSteps(@PathParam("pid") Long projectId, @QueryParam("expand") String expand) throws SQLException, IOException {
-        DBUtils db = new DBUtils();
+        
         List<ProjectStep> steps = db.getProjectStepsByProjectId(projectId);
         if (steps.size() == 0) {
             db.closeConnection();
@@ -524,7 +543,7 @@ public class BARDProjectResource extends BARDResource<Project> {
                                       @QueryParam("expand") String expand,
                                       @QueryParam("skip") Integer skip,
                                       @QueryParam("top") Integer top) {
-        DBUtils db = new DBUtils();
+        
         try {
             List<Project> projects = db.getProjectsByETag
                     (skip != null ? skip : -1, top != null ? top : -1, resourceId);

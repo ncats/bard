@@ -10,7 +10,6 @@ import gov.nih.ncgc.bard.entity.BardLinkedEntity;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
 import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.entity.TargetClassification;
-import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
 import javax.servlet.ServletContext;
@@ -73,7 +72,7 @@ public class BARDTargetResource extends BARDResource<ProteinTarget> {
                                  @QueryParam("expand") String expand,
                                  @QueryParam("skip") Integer skip,
                                  @QueryParam("top") Integer top) {
-        DBUtils db = new DBUtils();
+        
 
         if (skip == null) skip = -1;
         if (top == null) top = -1;
@@ -121,7 +120,7 @@ public class BARDTargetResource extends BARDResource<ProteinTarget> {
     @Path("/accession/{acc}")
     @Produces("application/json")
     public Response getResources(@PathParam("acc") String resourceId, @QueryParam("filter") String filter, @QueryParam("expand") String expand) {
-        DBUtils db = new DBUtils();
+        
         ProteinTarget p;
         try {
             String json;
@@ -150,7 +149,7 @@ public class BARDTargetResource extends BARDResource<ProteinTarget> {
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
 
-        DBUtils db = new DBUtils();
+        
         List<Publication> pubs = null;
         try {
             pubs = db.getProteinTargetPublications(resourceId);
@@ -185,7 +184,7 @@ public class BARDTargetResource extends BARDResource<ProteinTarget> {
     public Response getClassificationsForAccession(@PathParam("source") String source,
                                                    @PathParam("acc") String acc) throws SQLException, IOException {
         List<TargetClassification> classes = null;
-        DBUtils db = new DBUtils();
+        
         if (source.toLowerCase().equals("panther")) {
             classes = db.getPantherClassesForAccession(acc);
         }
@@ -210,7 +209,7 @@ public class BARDTargetResource extends BARDResource<ProteinTarget> {
     public Response getClassificationsForAccessions(@PathParam("source") String source,
                                                     @FormParam("accs") String accs) throws SQLException, IOException {
 
-        DBUtils db = new DBUtils();
+        
         String[] laccs = accs.split(",");
 
         ObjectMapper mapper = new ObjectMapper();
@@ -236,7 +235,7 @@ public class BARDTargetResource extends BARDResource<ProteinTarget> {
     public Response getAccessionsForClassification(@PathParam("source") String source,
                                                    @PathParam("clsid") String clsid) throws SQLException, IOException {
         List<ProteinTarget> targets = null;
-        DBUtils db = new DBUtils();
+        
         if (source.toLowerCase().equals("panther")) {
             targets = db.getProteinTargetsForPantherClassification(clsid);
         }

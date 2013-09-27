@@ -4,7 +4,6 @@ import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.entity.DummyEntity;
-import gov.nih.ncgc.bard.tools.DBUtils;
 import gov.nih.ncgc.bard.tools.Util;
 
 import javax.ws.rs.GET;
@@ -51,7 +50,7 @@ public class BARDCapResource extends BARDResource<DummyEntity> {
     @Produces(MediaType.TEXT_PLAIN)
     public Response getCount() throws SQLException, ClassNotFoundException, IOException {
         if (countRequested) {
-            DBUtils db = new DBUtils();
+            
             CAPDictionary dict = db.getCAPDictionary();
             if (dict == null) throw new WebApplicationException(500);
             return Response.ok(String.valueOf(dict.size()), MediaType.TEXT_PLAIN).build();
@@ -61,7 +60,7 @@ public class BARDCapResource extends BARDResource<DummyEntity> {
     @GET
     @Path("/dictionary")
     public Response getResources(@QueryParam("filter") String filter, @QueryParam("expand") String expand, @QueryParam("skip") Integer skip, @QueryParam("top") Integer top) {
-        DBUtils db = new DBUtils();
+        
         try {
             CAPDictionary dict = db.getCAPDictionary();
             String json = Util.toJson(dict);
@@ -79,7 +78,7 @@ public class BARDCapResource extends BARDResource<DummyEntity> {
     @GET
     @Path("/dictionary/{id}")
     public Response getDictElement(@PathParam("id") String dictId) {
-        DBUtils db = new DBUtils();
+        
         try {
             CAPDictionary dict = db.getCAPDictionary();
             CAPDictionaryElement elem;
@@ -99,7 +98,7 @@ public class BARDCapResource extends BARDResource<DummyEntity> {
     @GET
     @Path("/dictionary/{id}/children")
     public Response getDictElementChildren(@PathParam("id") String dictId) {
-        DBUtils db = new DBUtils();
+        
         try {
             CAPDictionary dict = db.getCAPDictionary();
             Set<CAPDictionaryElement> elem;
@@ -118,7 +117,7 @@ public class BARDCapResource extends BARDResource<DummyEntity> {
     @GET
     @Path("/dictionary/{id}/parents")
     public Response getDictElementParents(@PathParam("id") String dictId) {
-        DBUtils db = new DBUtils();
+        
         try {
             CAPDictionary dict = db.getCAPDictionary();
             Set<CAPDictionaryElement> elem;
@@ -137,7 +136,7 @@ public class BARDCapResource extends BARDResource<DummyEntity> {
     @GET
     @Path("/dictionary/roots")
     public Response getDictionaryRoots() {
-        DBUtils db = new DBUtils();
+        
         try {
 
             // root elements are those elements without children
