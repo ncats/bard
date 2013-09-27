@@ -156,8 +156,6 @@
               tofile="${bard.explode.dir}/WEB-INF/lib/jackson-annotations-2.1.4.jar"/>
         <copy file="${bard.lib}/jackson-databind-2.1.4.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/jackson-databind-2.1.4.jar"/>
-        <copy file="${bard.lib}/plugin/guava-14.0.jar"
-              tofile="${bard.explode.dir}/WEB-INF/lib/guava-14.0.jar"/>
         <copy file="${bard.lib}/hazel_lib/hazelcast-all-2.6.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/hazelcast-all-2.6.jar"/>
         <!--Move compiled classes into WEB-INF-->
