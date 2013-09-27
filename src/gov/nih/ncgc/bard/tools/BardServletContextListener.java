@@ -1,7 +1,10 @@
 package gov.nih.ncgc.bard.tools;
 
 import gov.nih.ncgc.bard.rest.BARDResource;
+<<<<<<< HEAD
 import gov.nih.ncgc.bard.search.SolrSearch;
+=======
+>>>>>>> Modified cache mgmt init so that we can skip it via cmd line parameter
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
