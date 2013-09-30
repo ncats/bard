@@ -26,7 +26,9 @@ public class BardServletContextListener implements ServletContextListener {
         SolrSearch.setDb(db);
 
         // should we initialize cache mgmt at all?
-        boolean initHazelcast = System.getProperty("initHazelcast").toLowerCase().equals("true");
+        String sym = System.getProperty("initHazelcast");
+        boolean initHazelcast = true;
+        if (sym != null) initHazelcast = sym.toLowerCase().equals("true");
 
         // initialize cache management parameters
         if (initHazelcast) {
