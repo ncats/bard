@@ -6,7 +6,6 @@ import chemaxon.struc.Molecule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.Lists;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
@@ -3886,7 +3885,7 @@ public class DBUtils {
         if (nbin != null && nbin < ret.size()) { // collapse bins
             int chunkSize = (int) Math.ceil((double) ret.size() / nbin);
             List<Float[]> collapsed = new ArrayList<Float[]>();
-            List<List<Float[]>> chunks = Lists.partition(ret, chunkSize);
+            List<List<Float[]>> chunks = Util.chunk(ret, chunkSize);
             for (List<Float[]> chunk : chunks) {
                 float count = 0;
                 float l, u;
