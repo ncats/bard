@@ -137,3 +137,6 @@ v17.3 released
 	      Removed classes (ie target class) from ProteinTarget responses. (only relevant when another entity JSON includes a ProteinTarget field)	
 09/05/13      Renamed the hitTargetClasses and testedTargetClasses to hitTarget and testedtTarget in compound summary as they now simply return Uniprot IDs rather than
               Panther target classes
+
+v18 released
+
