@@ -9,8 +9,10 @@ import org.apache.solr.client.solrj.response.TermsResponse;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.TermsParams;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +92,14 @@ public class SearchUtil {
         return ret;
     }
 
+    public static void deleteDocs(String url, String... docIds) throws IOException, SolrServerException {
+        SolrServer solr = new CommonsHttpSolrServer(url);
+        List<String> l = new ArrayList<String>();
+        Collections.addAll(l, docIds);
+        solr.deleteById(l);
+        solr.commit(true, true);
+    }
+
     /**
      *
      * @param url The Solr URL (including relevant core)
@@ -131,6 +141,10 @@ public class SearchUtil {
 
     public static void main(String[] args) throws Exception {
 
+        String url = "http://carnot.ncats.nih.gov:8094/solr/core-assay-v14/";
+        SearchUtil.deleteDocs(url, "1748");
+        System.exit(-1);
+
         String s = "0.33150536 = (MATCH) max of:\n" +
                 "  0.2429601 = (MATCH) weight(av_dict_label:lopac in 2985), product of:\n" +
                 "    0.51730007 = queryWeight(av_dict_label:lopac), product of:\n" +
@@ -170,6 +184,5 @@ public class SearchUtil {
         System.out.println("terms.size() = " + terms.size());
         for (TermsResponse.Term term : terms) System.out.println("term.getTerm() = " + term.getTerm());
     }
-
 
 }
