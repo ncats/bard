@@ -3,6 +3,7 @@ package gov.nih.ncgc.bard.capextract;
 //import gov.nih.ncgc.bard.capextract.handler.AssayHandler;
 //import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
 
+import gov.nih.ncgc.bard.capextract.CAPConstants.CapResource;
 import gov.nih.ncgc.bard.capextract.handler.AssayHandler;
 import gov.nih.ncgc.bard.capextract.handler.AssaysHandler;
 import gov.nih.ncgc.bard.capextract.handler.BardexportHandler;
@@ -171,6 +172,11 @@ public class CAPExtractor {
         bardExportHandler.updateGlobalBardUpdateTime();
     }
     
+    
+    public CapResourceHandlerRegistry getRegistry() {
+        return registry;
+    }
+
     public static void main(String[] args) throws Exception {
 
 	CAPExtractor c = new CAPExtractor();
@@ -196,6 +202,8 @@ public class CAPExtractor {
 		c.evaluateAndSetLoadLockState(args[0], false);
 	    } 
 	} catch (Exception e) {
+	    //signal a flush on fall out
+	    c.getRegistry().getHandler(CapResource.BARDEXPORT).signalFlushRestCache();
 	    //need to set the global update time in the DB IF we fall out of the load wit error/exception!
 	    c.updateGlobalBardUpdateTime();
 	    // on any terminal error set load state to IDLE

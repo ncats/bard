@@ -231,7 +231,10 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         	pstExpt.setInt(6, -1);
             pstExpt.setInt(7, -1);
             pstExpt.setString(8, expt.getExperimentName());
-            pstExpt.setFloat(9, (float) confLevel.intValue());
+            if(confLevel != null)
+        	pstExpt.setFloat(9, (float) confLevel.intValue());
+            else
+        	pstExpt.setNull(9, java.sql.Types.FLOAT);
             pstExpt.setString(10, status);
             if (doUpdate) pstExpt.setLong(11, bardExptId);
 
