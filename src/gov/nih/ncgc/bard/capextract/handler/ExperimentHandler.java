@@ -11,7 +11,7 @@ import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
 import gov.nih.ncgc.bard.capextract.jaxb.ContextType.ContextItems;
 import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
-import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
+import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystem;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.tools.Util;
 
@@ -78,9 +78,16 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         log.info("Cap experiment = "+exptID + " status ="+status);
         log.info("Cap experiment = "+exptID + " extraction status ="+extractionStatus);
         
+        //first check if it's approved
+        if(!"Approved".equals(status)) {
+            log.warn("Unable to process non-Approved experiments (aborting experiment load), experiment:" + url + " " + status);
+            return;
+        }
+        
         //check the EXTRACTION status, if can't determine readyForExtraction, or it's 'Not Ready', don't load.
         if(extractionStatus == null || extractionStatus.equals("Not Ready")) {
             log.warn("Aborting Load!!! Cap experiment = "+exptID + " extraction status ="+extractionStatus);
+            return;
         }
         
         ExternalReferenceHandler extrefHandler = new ExternalReferenceHandler();
@@ -133,7 +140,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             for (Link refLink : extrefHandler.getLinks()) {
                 if (refLink.getType().equals(CAPConstants.CapResource.EXTSYS.getMimeType())) {
                     extsysHandler.process(refLink.getHref(), CAPConstants.CapResource.EXTSYS);
-                    ExternalSystems.ExternalSystem extsys = extsysHandler.getExtsys();
+                    ExternalSystem extsys = extsysHandler.getExtsys();
                     String source = extsys.getName() + "," + extsys.getOwner() + "," + extsys.getSystemUrl();
                     if (PUBCHEM.equals(source)) {
                         if (_CAP_ExptID_PubChemAID_lookup.containsValue(aid)) {
@@ -231,7 +238,10 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         	pstExpt.setInt(6, -1);
             pstExpt.setInt(7, -1);
             pstExpt.setString(8, expt.getExperimentName());
-            pstExpt.setFloat(9, (float) confLevel.intValue());
+            if(confLevel != null)
+        	pstExpt.setFloat(9, (float) confLevel.intValue());
+            else
+        	pstExpt.setNull(9, java.sql.Types.FLOAT);
             pstExpt.setString(10, status);
             if (doUpdate) pstExpt.setLong(11, bardExptId);
 

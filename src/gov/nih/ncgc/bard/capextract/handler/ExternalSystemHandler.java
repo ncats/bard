@@ -2,6 +2,7 @@ package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
+import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystem;
 import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
 
 import java.io.IOException;
@@ -12,7 +13,7 @@ import java.io.IOException;
  * @author Rajarshi Guha
  */
 public class ExternalSystemHandler extends CapResourceHandler implements ICapResourceHandler {
-    ExternalSystems.ExternalSystem extsys;
+    ExternalSystem extsys;
 
     public ExternalSystemHandler() {
         super();
@@ -32,7 +33,7 @@ public class ExternalSystemHandler extends CapResourceHandler implements ICapRes
         extsys = getResponse(url, resource);
     }
 
-    public ExternalSystems.ExternalSystem getExtsys() {
+    public ExternalSystem getExtsys() {
         return extsys;
     }
 }

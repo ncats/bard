@@ -14,9 +14,7 @@ import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.entity.Biology;
 import gov.nih.ncgc.bard.tools.Util;
-import nu.xom.ParsingException;
 
-import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.Connection;
@@ -27,6 +25,10 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import javax.xml.bind.JAXBElement;
+
+import nu.xom.ParsingException;
 
 /**
  * Process CAP <code>Assay</code> elements.
@@ -91,11 +93,22 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             log.warn("Unable to process non-regular assays at the moment, assay:" + url + " " + type);
             return;
         }
+        
         String status = assay.getStatus(); // Pending, Active, Superceded, Retired. Probably should do something with the status
-//        if (!"Active".equals(status)) {
-//            log.warn("Unable to process non-active assays at the moment, assay:" + url + " " + status);
-//            return;
-//        }
+        
+        //we should only process Approved and non-retired assays
+        if(!"Approved".equals(status) && !"Retired".equals(status)) {
+            log.warn("Unable to process non-Approved assays (aborting assay load), assay:" + url + " " + status);
+            return;
+        }
+        
+        if("Retired".equals(status)) {
+            log.info("RETIRED ASSAY! CAP Assay " + capAssayId + " has Retired status. Initiating Retirement.");
+            this.retireAssay(capAssayId.longValue());
+            return;
+        }
+        
+        
         String name = assay.getAssayName();
         String title = assay.getAssayShortName();
         String designedBy = assay.getDesignedBy(); // becomes source
@@ -167,43 +180,44 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         }
 
         /* save measures for an assay */
-        List<Assay.Measures.Measure> measures = assay.getMeasures() != null ? assay.getMeasures().getMeasure() : new ArrayList<Assay.Measures.Measure>();
-        for (Assay.Measures.Measure m : measures) {
-            // which assay contexts (aka annotations) refer to this measure
-            String assayContextRefs = null;
-            if (m.getAssayContextRefs() != null) {
-                assayContextRefs = Util.join(m.getAssayContextRefs().getAssayContextRef(), ",");
-            }
-
-            // parent mesaure can be null - if so, this measure is the "root"
-            // of the measure network
-            BigInteger parent = m.getParentMeasureRef();
-
-            // Kludge to store measures as annotations. In this approach
-            // the resultTypeRef is the anno value and the entryUnitRef
-            // is the anno key. Both are stored in terms of the CAP dict
-            // element id. The 'display name' for the 'annotation' is the
-            // label on the resultTypeRef
-            Assay.Measures.Measure.ResultTypeRef resultTypeRef = m.getResultTypeRef();
-            Assay.Measures.Measure.EntryUnitRef entryUnitRef = m.getEntryUnitRef();
-            String displayName = null, valueId = null, keyId = null;
-            if (resultTypeRef != null) {
-                displayName = resultTypeRef.getLabel();
-                String[] toks = resultTypeRef.getLink().getHref().split("/");
-                valueId = toks[toks.length - 1];
-            }
-            if (entryUnitRef != null) {
-                String[] toks = entryUnitRef.getLink().getHref().split("/");
-                keyId = toks[toks.length - 1];
-            }
-
-            String related = "";
-            if (assayContextRefs != null) related = "assayContextRefs:" + assayContextRefs;
-            if (parent != null) related += "|parentMeasure:" + parent;
-
-            annos.add(new CAPAnnotation(m.getMeasureId().intValue(), assay.getAssayId().intValue(),
-                    displayName, null, keyId, valueId, null, "cap-measure", null, 0, "assay", related, null));
-        }
+        /* 10/25/2013 - JCB CAP has stopped delivering ASSAY Measures. Only experiments have measures. */
+//        List<Assay.Measures.Measure> measures = assay.getMeasures() != null ? assay.getMeasures().getMeasure() : new ArrayList<Assay.Measures.Measure>();
+//        for (Assay.Measures.Measure m : measures) {
+//            // which assay contexts (aka annotations) refer to this measure
+//            String assayContextRefs = null;
+//            if (m.getAssayContextRefs() != null) {
+//                assayContextRefs = Util.join(m.getAssayContextRefs().getAssayContextRef(), ",");
+//            }
+//
+//            // parent mesaure can be null - if so, this measure is the "root"
+//            // of the measure network
+//            BigInteger parent = m.getParentMeasureRef();
+//
+//            // Kludge to store measures as annotations. In this approach
+//            // the resultTypeRef is the anno value and the entryUnitRef
+//            // is the anno key. Both are stored in terms of the CAP dict
+//            // element id. The 'display name' for the 'annotation' is the
+//            // label on the resultTypeRef
+//            Assay.Measures.Measure.ResultTypeRef resultTypeRef = m.getResultTypeRef();
+//            Assay.Measures.Measure.EntryUnitRef entryUnitRef = m.getEntryUnitRef();
+//            String displayName = null, valueId = null, keyId = null;
+//            if (resultTypeRef != null) {
+//                displayName = resultTypeRef.getLabel();
+//                String[] toks = resultTypeRef.getLink().getHref().split("/");
+//                valueId = toks[toks.length - 1];
+//            }
+//            if (entryUnitRef != null) {
+//                String[] toks = entryUnitRef.getLink().getHref().split("/");
+//                keyId = toks[toks.length - 1];
+//            }
+//
+//            String related = "";
+//            if (assayContextRefs != null) related = "assayContextRefs:" + assayContextRefs;
+//            if (parent != null) related += "|parentMeasure:" + parent;
+//
+//            annos.add(new CAPAnnotation(m.getMeasureId().intValue(), assay.getAssayId().intValue(),
+//                    displayName, null, keyId, valueId, null, "cap-measure", null, 0, "assay", related, null));
+//        }
 
         CAPDictionary dict = CAPConstants.getDictionary();
         List<String> gis = new ArrayList<String>();
@@ -494,6 +508,80 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         }
     }
 
+    private void retireAssay(long capAssayId) {
+
+	try {    
+	    Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+	    Statement stmt = conn.createStatement();
+	    
+	    //get bard_assay_id
+	    long bardAssayId = 0l;
+	    ResultSet rs = stmt.executeQuery("select bard_expt_id from bard_assay where cap_assay_id = "+capAssayId);
+	    if(rs.next()) {
+		bardAssayId = rs.getLong(1);
+	    } else {
+		//if bard assay doesn't exist, then we're done.
+		return;
+	    }
+	    rs.close();
+	    
+	    //get collection of bard experiment id
+	    ArrayList<Long> bardExptIds = new ArrayList<Long>();
+	    rs = stmt.executeQuery("select bard_expt_id from bard_experiment where bard_assay_id = " + bardAssayId);
+	    while(rs.next()) {
+		bardExptIds.add(rs.getLong(1));
+	    }
+	    
+	    //delete assay entity
+	    stmt.executeUpdate("delete from cap_assay where cap_assay_id = "+ capAssayId);
+	    stmt.executeUpdate("delete from bard_assay where bard_assay_id = "+ bardAssayId);
+	    log.info("Retirement Log ("+capAssayId+"): Deleted from cap_assay and bard_assay tables.");
+
+	    //delete assay annotations
+	    stmt.executeUpdate("delete from cap_annotation where entity = 'assay' and entity_id =" + bardAssayId);
+	    log.info("Retirement Log ("+capAssayId+"): Deleted from cap_annotation table.");
+
+	    //delete from panel
+	    stmt.executeUpdate("delete from bard_panel_assay where bard_assay_id = " + bardAssayId);	   
+	    log.info("Retirement Log ("+capAssayId+"): Deleted from bard_panel_assay table (if present).");
+
+	    //delete from go_assay
+	    stmt.executeUpdate("delete from go_assay where bardAssayId = " + bardAssayId);
+	    log.info("Retirement Log ("+capAssayId+"): Deleted from go_assay table.");
+
+
+	    //handle referencing experiments
+	    for(long bardExptId : bardExptIds) {
+		//delete referencing experiment
+		stmt.executeUpdate("delete from bard_experiment where bard_expt_id = " + bardExptId);
+
+		//delete experiment data
+		stmt.executeUpdate("delete from bard_experiment_data where bard_expt_id = " + bardExptId);
+
+		//delete experiment json responses
+		stmt.executeUpdate("delete from bard_experiment_result where bard_expt_id = " + bardExptId);	    
+
+		//delete project experiment mapping
+		stmt.executeUpdate("delete from bard_project_experiment where bard_expt_id = " + bardExptId);
+
+		//delete project experiment steps
+		stmt.executeUpdate("delete from project_step where prev_bard_expt_id = " + bardExptId + 
+			" or next_bard_expt_id = " + bardExptId);
+
+		//delete experiment annotations
+		stmt.executeUpdate("delete from cap_annotation where entity = 'experiment' and entity_id =" + bardExptId);
+	    }
+
+	    //delete documents ?
+
+	    //clean up related search indices
+
+	    //what should load status be? Complete?
+
+	} catch (SQLException sqle) {
+	    sqle.printStackTrace();
+	}
+    }
 
     List<BiologyInfo> extractBiology(List<AssayContexType> contexts) throws ClassNotFoundException, IOException, SQLException {
         CAPDictionary dict = CAPUtil.getCAPDictionary();

@@ -9,11 +9,13 @@ import gov.nih.ncgc.bard.capextract.ResultStatistics;
 import gov.nih.ncgc.bard.capextract.SslHttpClient;
 import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
+import gov.nih.ncgc.bard.capextract.jaxb.ExperimentMeasure;
 import gov.nih.ncgc.bard.capextract.resultextract.BardExptDataResponse;
 import gov.nih.ncgc.bard.capextract.resultextract.BardResultFactory;
 import gov.nih.ncgc.bard.capextract.resultextract.BardResultType;
 import gov.nih.ncgc.bard.capextract.resultextract.CAPExperimentResult;
 import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
+import gov.nih.ncgc.bard.tools.Util;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -39,6 +41,7 @@ import java.sql.Statement;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Vector;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
@@ -164,7 +167,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 
 		    //convert CAP result object to BardExptResultResponse class
 		    //the BARDResultFactory takes care of formatting and hierarchy.
-		    //teh factory already has the entity ids
+		    //the factory already has the entity ids
 		    BardExptDataResponse bardResponse = resultFactory.processCapResult(result);
 
 		    //set cid, if the cid was null, the staged value is '0'. 
@@ -573,7 +576,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
     private Contexts fetchContexts(Long capExptId) {
 	Contexts contexts = null;
 	try {
-	    Experiment w = getResponse(CAPConstants.CAP_ROOT+"/experiments/"+capExptId, 
+	    Experiment w = getResponse(CAPConstants.getCAPRoot()+"/experiments/"+capExptId, 
 		    CAPConstants.CapResource.EXPERIMENT);
 	    if(w != null) {
 		contexts = w.getContexts();				
@@ -582,6 +585,26 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    e.printStackTrace();
 	}
 	return contexts;
+    }
+    
+    /*
+     * Helper method to pull the Contexts for th given CAP experiment ID
+     */
+    public void fetchPriorityElements(Long capExptId) {
+	Contexts contexts = null;
+	try {
+	    Experiment w = getResponse(CAPConstants.getCAPRoot()+"/experiments/"+capExptId, 
+		    CAPConstants.CapResource.EXPERIMENT);
+	    if(w != null) {
+		List<ExperimentMeasure> measures = w.getExperimentMeasures().getExperimentMeasure();
+		//iterate over measures and build corresponding 
+		for(ExperimentMeasure measure : measures) {
+		    System.out.println(measure.getExperimentMeasureId()+ " statsmod:"+ measure.getStatsModifierRef() + " is priority element " + measure.isPriorityElement() + " relation " + measure.getParentChildRelationship() + " resultType:" + measure.getResultTypeRef().getLabel() + "(" + Util.getEntityIdFromUrl(measure.getResultTypeRef().getLink().getHref()) + ")");
+		}
+	    }
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
     }
     
     
@@ -845,6 +868,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
     public static void main(String [] args) {
 	ExperimentResultHandler worker = new ExperimentResultHandler();
 	long start = System.currentTimeMillis();
+	worker.fetchPriorityElements(4976l);
 	//worker.getPubchemTIDCount(624024);
 	//worker.testResultTypes("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
 	

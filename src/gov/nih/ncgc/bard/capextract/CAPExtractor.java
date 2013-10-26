@@ -78,7 +78,7 @@ public class CAPExtractor {
     public void run() throws IOException, NoSuchAlgorithmException {
         ICapResourceHandler bardExportHandler = registry.getHandler(CAPConstants.CapResource.BARDEXPORT);
         //process all entities under the root
-        bardExportHandler.process(CAPConstants.CAP_ROOT, CAPConstants.CapResource.BARDEXPORT);
+        bardExportHandler.process(CAPConstants.getCAPRoot(), CAPConstants.CapResource.BARDEXPORT);
         //set global bard update time
         bardExportHandler.updateGlobalBardUpdateTime();
         //signal to flush cache
@@ -89,7 +89,7 @@ public class CAPExtractor {
         Logger log = LoggerFactory.getLogger(this.getClass());
 
         Vector<Projects> projects = registry.getHandler(CAPConstants.CapResource.PROJECTS).
-                poll(CAPConstants.CAP_ROOT + "/projects", CAPConstants.CapResource.PROJECTS);
+                poll(CAPConstants.getCAPRoot() + "/projects", CAPConstants.CapResource.PROJECTS);
         log.info("Project count: " + projects.get(0).getCount().toString());
 
         // each project is obtained via a link

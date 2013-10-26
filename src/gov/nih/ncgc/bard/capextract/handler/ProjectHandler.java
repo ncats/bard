@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
@@ -13,17 +12,14 @@ import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
 import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
-import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
+import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystem;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Project;
 import gov.nih.ncgc.bard.capextract.jaxb.ProjectExperiment;
 import gov.nih.ncgc.bard.capextract.jaxb.ProjectStep;
 import gov.nih.ncgc.bard.entity.Biology;
 import gov.nih.ncgc.bard.tools.Util;
-import nu.xom.ParsingException;
-import org.w3c.dom.Node;
 
-import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.Connection;
@@ -36,6 +32,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.xml.bind.JAXBElement;
+
+import nu.xom.ParsingException;
+
+import org.w3c.dom.Node;
+
+import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
 
 /**
  * A one line summary.
@@ -117,7 +121,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 for (Link refLink : extrefHandler.getLinks()) {
                     if (refLink.getType().equals(CAPConstants.CapResource.EXTSYS.getMimeType())) {
                         extsysHandler.process(refLink.getHref(), CAPConstants.CapResource.EXTSYS);
-                        ExternalSystems.ExternalSystem extsys = extsysHandler.getExtsys();
+                        ExternalSystem extsys = extsysHandler.getExtsys();
                         String source = extsys.getName() + "," + extsys.getOwner() + "," + extsys.getSystemUrl();
                         if (PUBCHEM.equals(source)) pubchemAid = Integer.parseInt(aid);
                     }
