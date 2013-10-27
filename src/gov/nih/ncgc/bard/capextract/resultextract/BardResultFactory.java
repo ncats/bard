@@ -90,6 +90,7 @@ public class BardResultFactory {
     private boolean haveConcAttr;
     
     private HashSet <Double> concentrations;
+    private Integer concCnt;
 
     private CAPDictionary dictionary;
     private Logger log;
@@ -340,12 +341,14 @@ public class BardResultFactory {
      * Recursive method to process children
      */
     private void processChildren(CAPResultMeasure capResult, BardResultType bardResult) {
-	for(CAPResultMeasure child : capResult.getRelated()) {
+	for(CAPResultMeasure child : capResult.getRelated()) {	    
 	    tempBardResult = buildResultTypeFromCapResultCapsule(child);
 	    //add to the basic result list
 	    resultList.add(tempBardResult);
 	    //add the child to the parent
 	    bardResult.addChildResult(tempBardResult);
+	    //add parent to child
+	    tempBardResult.setParentElement(bardResult);
 	    //process the children of the child if any
 	    processChildren(child, tempBardResult);
 	}
@@ -458,14 +461,17 @@ public class BardResultFactory {
 
 	//concentrations array should have test concentrations
 	//if not * check for experiment context for screening concentration(s)
-	concCnt = -1d;
+	concCnt = -1;
 	if(concentrations.size() == 0) {
 	    concCnt = resolveConcFromExperimentContext(concentrations);
 	}
 
+	if(concCnt == null)
+	    concCnt = 0;
+	
 	//check for single point, one test concentration, have efficacy
 	if(!haveType) {
-	    if(concentrations.size() == 1 || (concCnt != null && concCnt == 1)) {
+	    if(concentrations.size() == 1 || concCnt == 1) {
 		//check for efficacy in root elements
 		for(BardResultType result : response.getRootElements()) {
 		    if(result.getDictElemId() != null) {
@@ -526,8 +532,8 @@ public class BardResultFactory {
      *
      * Even if we can't find a concentration, we look for a 650 element which is a concentration count.
      */
-    private Double resolveConcFromExperimentContext(HashSet <Double> concentrations) {
-	Double concCnt = null;
+    private Integer resolveConcFromExperimentContext(HashSet <Double> concentrations) {
+	Integer concCnt = null;
 	Link link = null;
 	String href;
 	Integer linkId;
@@ -574,7 +580,7 @@ public class BardResultFactory {
 				    linkId = getLinkId(href);
 				    if(linkId != null) {
 					if(linkId == 650) {
-					    concCnt = type.getValueNum();
+					    concCnt = (type.getValueNum() != null ? type.getValueNum().intValue() : -1);
 					}
 				    }
 				}
@@ -1014,6 +1020,7 @@ public class BardResultFactory {
     }
     
     public List<BardResultType> findCAPPriorityElementsAndDisconnect(List <ResultTuple> priorityTuples, List <BardResultType> resultList) {
+	//log.info("@@@@@@@@@@Finding cap cap pri elem, exptMeasure tuples:"+priorityTuples.size()+" resultList:"+resultList.size());
 	ArrayList<BardResultType> foundPriorityElements = new ArrayList<BardResultType>();
 	for(ResultTuple priTuple : priorityTuples) {
 	    for(BardResultType result : resultList) {
@@ -1028,87 +1035,10 @@ public class BardResultFactory {
 		}
 	    }
 	}
+	//log.info("@@@@@@@@@@Found priority elems:"+foundPriorityElements.size());
 	return foundPriorityElements;
     }
     
-    
-    public class ResultTuple {
-	
-	private Long dictId;
-	private boolean atRoot;
-	private Long parentDictId;
-	private Long statsModifierId;
-
-	public ResultTuple() {	}
-
-	public ResultTuple(Long dictId, Long parentDictId, Long statsModifierId, boolean atRoot) {
-	    this.dictId = dictId;
-	    this.parentDictId = parentDictId;
-	    this.statsModifierId = statsModifierId;	 
-	    this.atRoot = atRoot;
-	}
-	
-	//performs tuple comparison to check equality. In practice, this is used to find priority elements
-	//in CAP JSON based on CAP experiment XML experimentMeasure hierarchy
-	public boolean equalsResultType(BardResultType result) {
-	    	    
-	    //first check that the root status of the two elements matches , both at root or both nested
-	    if((atRoot && result.getParentElement() != null)
-		    || (!atRoot && result.getParentElement() == null)) {
-	    	return false;
-	    }
-	    
-	    if(atRoot) {
-		//now check parity only based on dict id and stats modifier, no parent for parent dict id test
-		if(dictId.equals(result.getDictElemId())) {
-		    //dict id matches, check stats modifier
-		    if((statsModifierId == null && result.getStatsModifierId() == null)
-			    || (statsModifierId.equals(result.getStatsModifierId()))) {
-			return true;
-		    } 
-		}
-		//both at root but fall through because of dict id or stats mod not matching		
-	    } else {
-		//we're not at the root so we can check all fields
-		if(parentDictId.equals(result.getParentElement().getDictElemId()) 
-			&& dictId.equals(result.getDictElemId())) {
-		    //parent matches and dictionary id matches, now just check the stats modifier
-		    if((statsModifierId == null && result.getStatsModifierId() == null)
-			    || (statsModifierId.equals(result.getStatsModifierId()))) {
-			return true;
-		    } 
-		}
-		//neither at root but fall through becaus of parent dict id, dict id, or stats modifier
-	    }	        
-	    return false;
-	}
-	
-	
-	public Long getDictId() {
-	    return dictId;
-	}	
-	public void setDictId(Long dictId) {
-	    this.dictId = dictId;
-	}
-	public Long getParentDictId() {
-	    return parentDictId;
-	}
-	public void setParentDictId(Long parentDictId) {
-	    this.parentDictId = parentDictId;
-	}
-	public Long getStatsModifier() {
-	    return statsModifierId;
-	}
-	public void setStatsModifier(Long statsModifier) {
-	    this.statsModifierId = statsModifier;
-	}
-	public boolean isAtRoot() {
-	    return atRoot;
-	}
-	public void setAtRoot(boolean atRoot) {
-	    this.atRoot = atRoot;
-	}	
-    }
     
     public static void main(String [] args) {
 	BardResultFactory factory = new BardResultFactory();

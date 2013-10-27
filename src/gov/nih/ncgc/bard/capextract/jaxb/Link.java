@@ -8,6 +8,8 @@
 
 package gov.nih.ncgc.bard.capextract.jaxb;
 
+import java.io.Serializable;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -77,7 +79,7 @@ import javax.xml.bind.annotation.XmlType;
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "")
 @XmlRootElement(name = "link")
-public class Link {
+public class Link implements Serializable {
 
     @XmlAttribute(required = true)
     protected String type;

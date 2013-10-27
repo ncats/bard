@@ -179,46 +179,6 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             e.printStackTrace();
         }
 
-        /* save measures for an assay */
-        /* 10/25/2013 - JCB CAP has stopped delivering ASSAY Measures. Only experiments have measures. */
-//        List<Assay.Measures.Measure> measures = assay.getMeasures() != null ? assay.getMeasures().getMeasure() : new ArrayList<Assay.Measures.Measure>();
-//        for (Assay.Measures.Measure m : measures) {
-//            // which assay contexts (aka annotations) refer to this measure
-//            String assayContextRefs = null;
-//            if (m.getAssayContextRefs() != null) {
-//                assayContextRefs = Util.join(m.getAssayContextRefs().getAssayContextRef(), ",");
-//            }
-//
-//            // parent mesaure can be null - if so, this measure is the "root"
-//            // of the measure network
-//            BigInteger parent = m.getParentMeasureRef();
-//
-//            // Kludge to store measures as annotations. In this approach
-//            // the resultTypeRef is the anno value and the entryUnitRef
-//            // is the anno key. Both are stored in terms of the CAP dict
-//            // element id. The 'display name' for the 'annotation' is the
-//            // label on the resultTypeRef
-//            Assay.Measures.Measure.ResultTypeRef resultTypeRef = m.getResultTypeRef();
-//            Assay.Measures.Measure.EntryUnitRef entryUnitRef = m.getEntryUnitRef();
-//            String displayName = null, valueId = null, keyId = null;
-//            if (resultTypeRef != null) {
-//                displayName = resultTypeRef.getLabel();
-//                String[] toks = resultTypeRef.getLink().getHref().split("/");
-//                valueId = toks[toks.length - 1];
-//            }
-//            if (entryUnitRef != null) {
-//                String[] toks = entryUnitRef.getLink().getHref().split("/");
-//                keyId = toks[toks.length - 1];
-//            }
-//
-//            String related = "";
-//            if (assayContextRefs != null) related = "assayContextRefs:" + assayContextRefs;
-//            if (parent != null) related += "|parentMeasure:" + parent;
-//
-//            annos.add(new CAPAnnotation(m.getMeasureId().intValue(), assay.getAssayId().intValue(),
-//                    displayName, null, keyId, valueId, null, "cap-measure", null, 0, "assay", related, null));
-//        }
-
         CAPDictionary dict = CAPConstants.getDictionary();
         List<String> gis = new ArrayList<String>();
         List<String> geneIds = new ArrayList<String>();

@@ -52,6 +52,7 @@ public class BardResultType {
     // private Integer contextGroupID;
     private ArrayList <BardResultType> primaryElements;
     private ArrayList <BardResultType> childElements;
+    @JsonIgnore
     private BardResultType parentElement;
 
     public static enum DisplayPriorityLevels {
