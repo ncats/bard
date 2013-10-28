@@ -501,6 +501,9 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 	    stmt.executeUpdate("delete from cap_annotation where entity = 'assay' and entity_id =" + bardAssayId);
 	    log.info("Retirement Log ("+capAssayId+"): Deleted from cap_annotation table.");
 
+	    stmt.executeUpdate("delete from bard_biology where entity = 'assay' and entity_id =" + bardAssayId);
+	    log.info("Retirement Log ("+capAssayId+"): Deleted from bard_biology table (if present).");
+	    
 	    //delete from panel
 	    stmt.executeUpdate("delete from bard_panel_assay where bard_assay_id = " + bardAssayId);	   
 	    log.info("Retirement Log ("+capAssayId+"): Deleted from bard_panel_assay table (if present).");
@@ -512,32 +515,40 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 
 	    //handle referencing experiments
 	    for(long bardExptId : bardExptIds) {
+		log.info("Retirement Log ("+capAssayId+"): Deleting referencing experiment: " + bardExptId);
+
 		//delete referencing experiment
 		stmt.executeUpdate("delete from bard_experiment where bard_expt_id = " + bardExptId);
+		log.info("Retirement Log ("+capAssayId+"): Deleted experiment, bard_expt_id:" + bardExptId);
 
 		//delete experiment data
 		stmt.executeUpdate("delete from bard_experiment_data where bard_expt_id = " + bardExptId);
+		log.info("Retirement Log ("+capAssayId+"): Deleted experiment data, bard_expt_id:" + bardExptId);
 
 		//delete experiment json responses
 		stmt.executeUpdate("delete from bard_experiment_result where bard_expt_id = " + bardExptId);	    
+		log.info("Retirement Log ("+capAssayId+"): Deleted experiment results, bard_expt_id:" + bardExptId);
 
 		//delete project experiment mapping
 		stmt.executeUpdate("delete from bard_project_experiment where bard_expt_id = " + bardExptId);
+		log.info("Retirement Log ("+capAssayId+"): Deleted project-experiment mapping, bard_expt_id:" + bardExptId);
 
 		//delete project experiment steps
 		stmt.executeUpdate("delete from project_step where prev_bard_expt_id = " + bardExptId + 
 			" or next_bard_expt_id = " + bardExptId);
+		log.info("Retirement Log ("+capAssayId+"): Deleted project/expt steps mapping, bard_expt_id:" + bardExptId);
 
 		//delete experiment annotations
 		stmt.executeUpdate("delete from cap_annotation where entity = 'experiment' and entity_id =" + bardExptId);
+		log.info("Retirement Log ("+capAssayId+"): Deleted experiment annotations, bard_expt_id:" + bardExptId);
 	    }
 
-	    //delete documents ?
-
 	    //clean up related search indices
-
-	    //what should load status be? Complete?
-
+	    
+	    //commit
+	    conn.commit();
+	    conn.close();
+	    
 	} catch (SQLException sqle) {
 	    sqle.printStackTrace();
 	}

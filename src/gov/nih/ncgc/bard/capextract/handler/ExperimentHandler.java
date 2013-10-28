@@ -79,8 +79,14 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         log.info("Cap experiment = "+exptID + " extraction status ="+extractionStatus);
         
         //first check if it's approved
-        if(!"Approved".equals(status)) {
+        if(!"Approved".equals(status) && !"Retired".equals(status)) {
             log.warn("Unable to process non-Approved experiments (aborting experiment load), experiment:" + url + " " + status);
+            return;
+        }
+        
+        if("Retired".equals(status)) {
+            log.info("RETIRED EXPERIMENT! CAP Experiment " + exptID + " has Retired status. Initiating Retirement.");
+            this.retireExperiment(exptID.longValue());
             return;
         }
         
@@ -297,6 +303,57 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         }
     }
 
+    
+    public void retireExperiment(long capExptId) {
+	try {    
+	    Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+	    Statement stmt = conn.createStatement();
+
+	    //get bard_expt_id
+	    long bardExptId = 0l;
+	    ResultSet rs = stmt.executeQuery("select bard_expt_id from bard_assay where cap_expt_id = "+capExptId);
+	    if(rs.next()) {
+		bardExptId = rs.getLong(1);
+	    } else {
+		//if bard assay doesn't exist, then we're done.
+		return;
+	    }
+	    rs.close();
+
+
+	    //delete experiment
+	    stmt.executeUpdate("delete from bard_experiment where bard_expt_id = " + bardExptId);
+	    log.info("Retirement Log ("+capExptId+"): Deleting experiment, bard_expt_id: " + bardExptId);
+
+	    //delete experiment data
+	    stmt.executeUpdate("delete from bard_experiment_data where bard_expt_id = " + bardExptId);
+	    log.info("Retirement Log ("+capExptId+"): Deleting experiment data, bard_expt_id: " + bardExptId);
+
+	    //delete experiment json responses
+	    stmt.executeUpdate("delete from bard_experiment_result where bard_expt_id = " + bardExptId);	    
+	    log.info("Retirement Log ("+capExptId+"): Deleting experiment results, bard_expt_id: " + bardExptId);
+
+	    //delete project experiment mapping
+	    stmt.executeUpdate("delete from bard_project_experiment where bard_expt_id = " + bardExptId);
+	    log.info("Retirement Log ("+capExptId+"): Deleting project-experiment mapping, bard_expt_id: " + bardExptId);
+
+	    //delete project experiment steps
+	    stmt.executeUpdate("delete from project_step where prev_bard_expt_id = " + bardExptId + 
+		    " or next_bard_expt_id = " + bardExptId);
+	    log.info("Retirement Log ("+capExptId+"): Deleting project-experiment steps, bard_expt_id: " + bardExptId);
+
+	    //delete experiment annotations
+	    stmt.executeUpdate("delete from cap_annotation where entity = 'experiment' and entity_id =" + bardExptId);
+	    log.info("Retirement Log ("+capExptId+"): Deleting experiment annotations, bard_expt_id: " + bardExptId);
+
+	    conn.commit();
+	    conn.close();
+
+	} catch (SQLException sqle) {
+	    sqle.printStackTrace();
+	}
+    }
+    
 //
 //    public void printLookup() {
 //	try {
