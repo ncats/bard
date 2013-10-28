@@ -79,7 +79,7 @@ public class CAPExtractor {
     public void run() throws IOException, NoSuchAlgorithmException {
         ICapResourceHandler bardExportHandler = registry.getHandler(CAPConstants.CapResource.BARDEXPORT);
         //process all entities under the root
-        bardExportHandler.process(CAPConstants.CAP_ROOT, CAPConstants.CapResource.BARDEXPORT);
+        bardExportHandler.process(CAPConstants.getCAPRoot(), CAPConstants.CapResource.BARDEXPORT);
         //set global bard update time
         bardExportHandler.updateGlobalBardUpdateTime();
         //signal to flush cache
@@ -90,7 +90,7 @@ public class CAPExtractor {
         Logger log = LoggerFactory.getLogger(this.getClass());
 
         Vector<Projects> projects = registry.getHandler(CAPConstants.CapResource.PROJECTS).
-                poll(CAPConstants.CAP_ROOT + "/projects", CAPConstants.CapResource.PROJECTS);
+                poll(CAPConstants.getCAPRoot() + "/projects", CAPConstants.CapResource.PROJECTS);
         log.info("Project count: " + projects.get(0).getCount().toString());
 
         // each project is obtained via a link
@@ -170,8 +170,7 @@ public class CAPExtractor {
     public void updateGlobalBardUpdateTime() {
         ICapResourceHandler bardExportHandler = registry.getHandler(CAPConstants.CapResource.BARDEXPORT);
         bardExportHandler.updateGlobalBardUpdateTime();
-    }
-    
+    }    
     
     public CapResourceHandlerRegistry getRegistry() {
         return registry;
@@ -202,7 +201,7 @@ public class CAPExtractor {
 		c.evaluateAndSetLoadLockState(args[0], false);
 	    } 
 	} catch (Exception e) {
-	    //signal a flush on fall out
+	    //signal flush when fall out
 	    c.getRegistry().getHandler(CapResource.BARDEXPORT).signalFlushRestCache();
 	    //need to set the global update time in the DB IF we fall out of the load wit error/exception!
 	    c.updateGlobalBardUpdateTime();

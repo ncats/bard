@@ -9,11 +9,14 @@ import gov.nih.ncgc.bard.capextract.ResultStatistics;
 import gov.nih.ncgc.bard.capextract.SslHttpClient;
 import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
+import gov.nih.ncgc.bard.capextract.jaxb.ExperimentMeasure;
 import gov.nih.ncgc.bard.capextract.resultextract.BardExptDataResponse;
 import gov.nih.ncgc.bard.capextract.resultextract.BardResultFactory;
 import gov.nih.ncgc.bard.capextract.resultextract.BardResultType;
 import gov.nih.ncgc.bard.capextract.resultextract.CAPExperimentResult;
+import gov.nih.ncgc.bard.capextract.resultextract.ResultTuple;
 import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
+import gov.nih.ncgc.bard.tools.Util;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -27,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Blob;
@@ -39,6 +43,7 @@ import java.sql.Statement;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Vector;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
@@ -71,7 +76,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
     private Connection conn;
     private Connection conn2;
     private ArrayList<Long> tempProjectList;
-    
+    private ArrayList<ResultTuple> priorityElems;
 
     /**
      * This method pulls result data from CAP using the supplied CAP experiment id and saves it in a
@@ -83,10 +88,18 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
     public void process(String url, CAPConstants.CapResource resource) {
 	try {
 	    
-	    long capExptId = Long.parseLong(url.substring(url.lastIndexOf('/')+1));    
+	    long capExptId = Long.parseLong(url.substring(url.lastIndexOf('/')+1));
+	    //get tuples that id priority element
+	    priorityElems = fetchPriorityElements(capExptId);
 	    long start = System.currentTimeMillis();
 
 	    logger.info("Starting load for CAP Expt ID="+capExptId+" DBserverHost="+CAPConstants.getBardDBJDBCUrl());
+	    //make sure we have a priority element
+	    if(priorityElems.size() < 1) {
+		logger.warning("CAP Expt Id ="+capExptId+" lacks a CAP specified priority element. ABORT EXPT DATA LOAD!!!");
+		return;
+	    }
+	    
 	    //open connection
 	    conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
 	    conn.setAutoCommit(false);
@@ -141,7 +154,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    BardExptDataResponse sampleResponse = determineResultClass(capExptId, br);
 	    //now pass the experiment level response class on to the response factory when initializing
 	    resultFactory.initialize(ids.get("bardExptId"), capExptId, ids.get("bardAssayId"), ids.get("capAssayId"), projIds, fetchContexts(capExptId),
-		    sampleResponse.getResponseType(), sampleResponse.getExptScreeningConc(), sampleResponse.getExptConcUnit());
+		    sampleResponse.getResponseType(), sampleResponse.getExptScreeningConc(), sampleResponse.getExptConcUnit(), priorityElems);
 	    
 	    
 	    br = new BufferedReader(new FileReader(stageFile));
@@ -164,7 +177,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 
 		    //convert CAP result object to BardExptResultResponse class
 		    //the BARDResultFactory takes care of formatting and hierarchy.
-		    //teh factory already has the entity ids
+		    //the factory already has the entity ids
 		    BardExptDataResponse bardResponse = resultFactory.processCapResult(result);
 
 		    //set cid, if the cid was null, the staged value is '0'. 
@@ -297,7 +310,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 		
 		//need to initialize factory to make a new response object to pass out
 		resultFactory.initialize(bed, ced, bad, cad, pids, contexts, BardExptDataResponse.ResponseClass.UNDEF.ordinal(),
-			null, null);
+			null, null, priorityElems);
 		
 		capResult = mapper.readValue(capData, CAPExperimentResult.class);
 		
@@ -573,7 +586,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
     private Contexts fetchContexts(Long capExptId) {
 	Contexts contexts = null;
 	try {
-	    Experiment w = getResponse(CAPConstants.CAP_ROOT+"/experiments/"+capExptId, 
+	    Experiment w = getResponse(CAPConstants.getCAPRoot()+"/experiments/"+capExptId, 
 		    CAPConstants.CapResource.EXPERIMENT);
 	    if(w != null) {
 		contexts = w.getContexts();				
@@ -584,6 +597,81 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	return contexts;
     }
     
+    /*
+     * Helper method to pull the Contexts for th given CAP experiment ID
+     */
+    public ArrayList<ResultTuple> fetchPriorityElements(Long capExptId) {
+	ArrayList<ResultTuple> resultTuples = new ArrayList<ResultTuple>();
+	try {
+	    Experiment w = getResponse(CAPConstants.getCAPRoot()+"/experiments/"+capExptId, 
+		    CAPConstants.CapResource.EXPERIMENT);
+	    if(w != null) {
+		List<ExperimentMeasure> measures = w.getExperimentMeasures().getExperimentMeasure();
+		//iterate over measures and build corresponding 
+		for(ExperimentMeasure measure : measures) {
+		    if(measure.isPriorityElement()) {
+			System.out.println("Priority Element");
+			ResultTuple resultTuple = makeResultTuple(measure);
+			resultTuples.add(resultTuple);
+			if(!resultTuple.isAtRoot()) {
+			    populateParentInfo(measure, measures, resultTuple);
+			}
+			System.out.println(resultTuple.toString());
+		    }
+		    System.out.println(measure.getExperimentMeasureId()+ " statsmod:"+ measure.getStatsModifierRef() + " is priority element " + measure.isPriorityElement() + " relation " + measure.getParentChildRelationship() + " resultType:" + measure.getResultTypeRef().getLabel() + "(" + Util.getEntityIdFromUrl(measure.getResultTypeRef().getLink().getHref()) + ")");
+		}
+	    }
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
+	return resultTuples;
+    }
+    
+    /*
+     * Helper method to pull the Contexts for th given CAP experiment ID
+     */
+    public ArrayList<ResultTuple> fetchPriorityElements(Experiment experiment) {
+	ArrayList<ResultTuple> resultTuples = new ArrayList<ResultTuple>();
+	if(experiment != null) {
+	    List<ExperimentMeasure> measures = experiment.getExperimentMeasures().getExperimentMeasure();
+	    //iterate over measures and build corresponding 
+	    for(ExperimentMeasure measure : measures) {
+		if(measure.isPriorityElement()) {
+		    //System.out.println("Priority Element");
+		    ResultTuple resultTuple = makeResultTuple(measure);
+		    resultTuples.add(resultTuple);
+		    if(!resultTuple.isAtRoot()) {
+			populateParentInfo(measure, measures, resultTuple);
+		    }
+		    //System.out.println(resultTuple.toString());
+		}
+		//System.out.println(measure.getExperimentMeasureId()+ " statsmod:"+ measure.getStatsModifierRef() + " is priority element " + measure.isPriorityElement() + " relation " + measure.getParentChildRelationship() + " resultType:" + measure.getResultTypeRef().getLabel() + "(" + Util.getEntityIdFromUrl(measure.getResultTypeRef().getLink().getHref()) + ")");
+	    }
+	}
+	return resultTuples;
+    }
+
+    private ResultTuple makeResultTuple(ExperimentMeasure measure) {
+	ResultTuple tuple = new ResultTuple();
+	tuple.setDictId(Integer.parseInt(Util.getEntityIdFromUrl(measure.getResultTypeRef().getLink().getHref())));
+	if(measure.getStatsModifierRef() != null)
+	    tuple.setStatsModifier(Integer.parseInt(Util.getEntityIdFromUrl(measure.getStatsModifierRef().getLink().getHref())));
+	else
+	    tuple.setStatsModifier(null);
+	tuple.setAtRoot(measure.getParentExperimentMeasureRef() == null);
+	return tuple;
+    }
+    
+    private void populateParentInfo(ExperimentMeasure measure, List<ExperimentMeasure> measures, ResultTuple tuple) {
+	BigInteger parentNodeId = measure.getParentExperimentMeasureRef();
+	for(ExperimentMeasure m : measures) {
+	    if(m.getExperimentMeasureId().equals(parentNodeId)) {
+		tuple.setParentDictId(Integer.parseInt(Util.getEntityIdFromUrl(m.getResultTypeRef().getLink().getHref())));	
+		//have parent, now break
+		break;
+	    }
+	}
+    }
     
     public void updateExperimentTestingStats(Long bardExptId) throws SQLException {
 	if(bardExptId != null) {
@@ -845,6 +933,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
     public static void main(String [] args) {
 	ExperimentResultHandler worker = new ExperimentResultHandler();
 	long start = System.currentTimeMillis();
+	worker.fetchPriorityElements(4976l);
 	//worker.getPubchemTIDCount(624024);
 	//worker.testResultTypes("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
 	

@@ -107,8 +107,11 @@ public class BardConcResponseSeries {
 	   
 	   try {	       
 	       logEc50 = Double.parseDouble(parentElement.getValue());
+	       
+	       //xx50 values are in uM, logEc50 is typically in molar (mol/L) units
+	       //multiplying by 10^-6 prior to log to change the convention.
 	       if(logEc50 > 0d)
-		   logEc50 = Math.log10(logEc50);
+		   logEc50 = Math.log10(logEc50 * Math.pow(10, -6.0));	       
 	       else
 		   logEc50 = null;
 	   } catch (NumberFormatException nfe) {

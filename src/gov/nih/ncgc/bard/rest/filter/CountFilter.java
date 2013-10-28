@@ -1,14 +1,17 @@
 package gov.nih.ncgc.bard.rest.filter;
 
-import com.sun.jersey.core.header.InBoundHeaders;
-import com.sun.jersey.spi.container.ContainerRequest;
-import com.sun.jersey.spi.container.ContainerRequestFilter;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 
-import javax.ws.rs.core.MultivaluedMap;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+
+import javax.ws.rs.core.MultivaluedMap;
+
+import com.sun.jersey.core.header.InBoundHeaders;
+import com.sun.jersey.spi.container.ContainerRequest;
+import com.sun.jersey.spi.container.ContainerRequestFilter;
+
 
 /**
  * Processes a request to identify whether a count is desired or not.
@@ -30,11 +33,12 @@ import java.util.List;
 public class CountFilter implements ContainerRequestFilter {
 
     public ContainerRequest filter(ContainerRequest request) {
-        String path = request.getPath();
+        String path = request.getPath(false);
         MultivaluedMap<String, String> headers = request.getRequestHeaders();
         if (path.endsWith("/_count")) { // make sure to strip out query params
             headers.add(BARDConstants.REQUEST_HEADER_COUNT, "true");
-            request.setHeaders((InBoundHeaders) headers);
+//            request.setHeaders(headers);
+            
             String uriString = request.getRequestUri().toString().replace("/_count", "");
             try {
                 URI uri = new URI(uriString);

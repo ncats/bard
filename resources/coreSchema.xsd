@@ -65,6 +65,7 @@
                         <xs:enumeration value="application/vnd.bard.cap+xml;type=externalSystems"/>
                         <xs:enumeration value="application/vnd.bard.cap+xml;type=externalSystem"/>
                         <xs:enumeration value="application/vnd.bard.cap+xml;type=projectDoc"/>
+                        <xs:enumeration value="application/json;type=results"/>
                     </xs:restriction>
                 </xs:simpleType>
             </xs:attribute>
@@ -99,7 +100,7 @@
     <xs:attribute name="readyForExtraction">
         <xs:simpleType>
             <xs:restriction base="xs:string">
-                <xs:enumeration value="Pending"/>
+                <xs:enumeration value="Not Ready"/>
                 <xs:enumeration value="Ready"/>
                 <xs:enumeration value="Started"/>
                 <xs:enumeration value="Complete"/>
@@ -136,7 +137,7 @@
                     <xs:enumeration value="Description"/>
                     <xs:enumeration value="Protocol"/>
                     <xs:enumeration value="Comments"/>
-                    <xs:enumeration value="Paper"/>
+                    <xs:enumeration value="Publication"/>
                     <xs:enumeration value="External URL"/>
                     <xs:enumeration value="Other"/>
                 </xs:restriction>
@@ -225,4 +226,7 @@
         </xs:key>
     </xs:element>
     <xs:element name="context" type="contextType"/>
+    <xs:attribute name="lastUpdated" type="xs:dateTime"> </xs:attribute>
+    <xs:attribute name="modifiedBy" type="xs:string"> </xs:attribute>
+    <xs:attribute name="parentChildRelationship" type="xs:string"/>
 </xs:schema>

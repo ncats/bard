@@ -69,18 +69,18 @@
         <description>BARD REST Services</description>
         <display-name>BARD REST Web Services</display-name>
         <servlet-name>ServletAdaptor</servlet-name>
-        <servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
+        <servlet-class>org.glassfish.jersey.servlet.ServletContainer</servlet-class>
         <init-param>
             <param-name>com.sun.jersey.spi.container.ContainerRequestFilters</param-name>
             <param-value>gov.nih.ncgc.bard.rest.filter.CountFilter</param-value>
         </init-param>
         <init-param>
-            <param-name>com.sun.jersey.spi.container.ContainerResponseFilters</param-name>
+            <param-name>javax.ws.rs.container.ContainerResponseFilters</param-name>
             <param-value>gov.nih.ncgc.bard.rest.filter.CORSFilter</param-value>
         </init-param>
 
         <init-param>
-            <param-name>com.sun.jersey.config.property.packages</param-name>
+            <param-name>jersey.config.server.provider.packages</param-name>
             <param-value>gov.nih.ncgc.bard.rest</param-value>
         </init-param>
 

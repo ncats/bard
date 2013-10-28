@@ -11,13 +11,12 @@ public class CAPConstants {
 
     private static CAPDictionary dictionary = null;
 
-    public static final String CAP_ROOT = "https://bard.broadinstitute.org/dataExport/api";
     public static final String CAP_ROOT_MIMETYPE = "application/vnd.bard.cap+xml;type=bardexport";
     public static final String CAP_APIKEY_HEADER = "APIKEY";
     public static final String CAP_STATUS_READY = "Ready";
     public static final String CAP_STATUS_STARTED = "Started";
     public static final String CAP_STATUS_COMPLETE = "Complete";
-    
+        
     /**
      * Get the API key.
      * <p/>
@@ -41,6 +40,14 @@ public class CAPConstants {
     public static String getBardBroadcastIPList() {
 	return System.getProperty("BARD_BROADCAST_IP_LIST");
     }
+    
+    public static String getCAPRoot() {
+	String capRoot = System.getProperty("CAP_ROOT");
+	//if not specified, default to production CAP export
+	if(capRoot == null)
+	    capRoot = "https://bard.broadinstitute.org/dataExport/api";
+	return capRoot;
+   }
     
     public static enum CapResource {
         BARDEXPORT("application/vnd.bard.cap+xml;type=bardexport"),
@@ -94,7 +101,7 @@ public class CAPConstants {
 	if (dictionary == null) {
 	    try {
 		CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.DICTIONARY).
-		poll(CAPConstants.CAP_ROOT+"/dictionary", CAPConstants.CapResource.DICTIONARY);
+		poll(CAPConstants.getCAPRoot()+"/dictionary", CAPConstants.CapResource.DICTIONARY);
 	    } catch (IOException e) {}
 	}
         return dictionary;

@@ -20,7 +20,7 @@ public class CAPDictionaryElement implements Serializable {
     private BigInteger elementId;
     private String externalUrl;
     private String label;
-    transient private List<Link> link;
+    private List<Link> link;
     private String elementStatus;
     transient private String readyForExtraction;
     private String synonyms;

@@ -52,7 +52,8 @@ public class BardResultType {
     // private Integer contextGroupID;
     private ArrayList <BardResultType> primaryElements;
     private ArrayList <BardResultType> childElements;
-
+    @JsonIgnore
+    private BardResultType parentElement;
 
     public static enum DisplayPriorityLevels {
 	/**
@@ -115,6 +116,16 @@ public class BardResultType {
 	primaryElements.add(child);
     }
 
+    public void removeChildElement(BardResultType child) {
+	if(childElements != null) {
+	    if(!childElements.remove(child)) {
+		if(primaryElements != null) {
+		    primaryElements.remove(child);
+		}
+	    }
+	}
+    }
+    
     public BardResultType getResult(int searchDataId) {
 	BardResultType result = null;
 	boolean found = false;
@@ -317,6 +328,14 @@ public class BardResultType {
     public void setStatsModifierId(Integer statsModifierId) {
 	this.statsModifierId = statsModifierId;
     }
+    
+    public BardResultType getParentElement() {
+        return parentElement;
+    }
+
+    public void setParentElement(BardResultType parentElement) {
+        this.parentElement = parentElement;
+    }
 
     public boolean haveChildren() {
 	if((childElements != null && childElements.size() > 0))
@@ -327,4 +346,6 @@ public class BardResultType {
 	    return true;
 	return false;	
     }
+    
+    
 }

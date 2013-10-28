@@ -1,6 +1,5 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
-import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
@@ -13,17 +12,14 @@ import gov.nih.ncgc.bard.capextract.jaxb.ContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.ContextType;
 import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
-import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystems;
+import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystem;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.capextract.jaxb.Project;
 import gov.nih.ncgc.bard.capextract.jaxb.ProjectExperiment;
 import gov.nih.ncgc.bard.capextract.jaxb.ProjectStep;
 import gov.nih.ncgc.bard.entity.Biology;
 import gov.nih.ncgc.bard.tools.Util;
-import nu.xom.ParsingException;
-import org.w3c.dom.Node;
 
-import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.Connection;
@@ -36,6 +32,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.xml.bind.JAXBElement;
+
+import nu.xom.ParsingException;
+
+import org.w3c.dom.Node;
+
+import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
 
 /**
  * A one line summary.
@@ -94,6 +98,9 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         String groupType = project.getGroupType();
         if (!"Project".equals(groupType)) log.error("Group type other than Project: " + groupType);
 
+        
+///        retireProject
+        
         ExternalReferenceHandler extrefHandler = new ExternalReferenceHandler();
         ExternalSystemHandler extsysHandler = new ExternalSystemHandler();
 
@@ -102,6 +109,22 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         int capProjectId = project.getProjectId().intValue();
         int pubchemAid = -1;
 
+        String status = project.getStatus();
+        if(status != null) {
+            if(!status.equals("Approved") && !status.equals("Retired")) {
+        	log.warn("ABORT PROJECT Load. CAP Project ID:"+capProjectId+" Status:"+status+" Only Approved and Retired projects can be processed.");
+        	return;
+            }
+            if(status.equals("Retired")) {
+        	log.warn("RETIRE PROJECT, CAP Project ID:"+capProjectId+" Starting retirement process.");
+        	retireProject(capProjectId);
+        	return;
+            }
+        
+        }
+        
+        
+        
         try {
             // look for a Pubchem AID (ie summary aid)
             for (Link link : project.getLink()) {
@@ -117,7 +140,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 for (Link refLink : extrefHandler.getLinks()) {
                     if (refLink.getType().equals(CAPConstants.CapResource.EXTSYS.getMimeType())) {
                         extsysHandler.process(refLink.getHref(), CAPConstants.CapResource.EXTSYS);
-                        ExternalSystems.ExternalSystem extsys = extsysHandler.getExtsys();
+                        ExternalSystem extsys = extsysHandler.getExtsys();
                         String source = extsys.getName() + "," + extsys.getOwner() + "," + extsys.getSystemUrl();
                         if (PUBCHEM.equals(source)) pubchemAid = Integer.parseInt(aid);
                     }
@@ -786,6 +809,56 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         return annos;
     }
 
+    private void retireProject(long capProjId) {
+	
+	try { 
+	    
+	    //note autocommit is false
+	    Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+	    Statement stmt = conn.createStatement();
+	    
+	    ResultSet rs = stmt.executeQuery("select bard_proj_id from bard_project where cap_proj_id = " + capProjId);
+	    long bardProjId = 0l;
+	    if(rs.next()) {
+		bardProjId = rs.getLong(1);
+	    } else {
+		//if we don't have a project ID, the project already isn't in the system.
+        	log.warn("RETIRE PROJECT, CAP Project ID:"+capProjId+" Note: Project not present.");
+		return;
+	    }
+	    
+	    //drop project
+	    stmt.executeUpdate("delete from bard_project where bard_proj_id =" + bardProjId);
+	    log.warn("RETIRE PROJECT, CAP Project ID:"+capProjId+" Deleted from bard_project.");
+
+	    //drop project experiment mapping
+	    stmt.executeUpdate("delete from bard_project_experiment where bard_proj_id =" + bardProjId);
+	    log.warn("RETIRE PROJECT, CAP Project ID:"+capProjId+" Deleted from bard_project_experiment.");
+
+	    //drop project steps
+	    stmt.executeUpdate("delete from project_step where bard_proj_id =" + bardProjId);
+	    log.warn("RETIRE PROJECT, CAP Project ID:"+capProjId+" Deleted from project_step.");
+
+	    //drop project annotation
+	    stmt.executeUpdate("delete from cap_project_annotation where bard_proj_id =" + bardProjId);
+	    log.warn("RETIRE PROJECT, CAP Project ID:"+capProjId+" Deleted from cap_project_annotation.");
+
+	    //drop project biology
+	    stmt.executeUpdate("delete from bard_biology where entity = 'project' and entity_id =" + bardProjId);
+	    log.warn("RETIRE PROJECT, CAP Project ID:"+capProjId+" Deleted from bard_biology.");
+
+	    //don't drop the corresponding experiments, other projects might refer to them	   
+
+	    //clean up related search indices
+
+	    conn.commit();
+	    conn.close();
+	    
+	} catch (SQLException sqle) {
+	    sqle.printStackTrace();
+	}
+    }
+    
     class BiologyInfo {
         String dictLabel, extId, extRef, description;
         Integer dictId;
@@ -798,5 +871,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             this.dictId = dictId;
         }
     }
+    
+    
 
 }

@@ -9,7 +9,12 @@
     <property name="bard.build" value="classes"/>
     <property name="bard.dist" value="dist"/>
     <property name="bard.deploy" value="deploy"/>
-    <property name="jaxb.windir" value="..\\jaxb-ri-20120516\\bin\\"/>
+        
+    <property name="jaxb.windir" value="C:\\Program Files\\Java\\jdk1.6.0_31\\bin\\"/>
+    
+    
+    <!-- <property name="jaxb.windir" value="..\\..\\jaxb-ri-2.2.7\\bin\\"/> -->
+    <!-- <property name="jaxb.windir" value="..\\jaxb-ri-20120516\\bin\\"/> -->
     <property name="jaxb.dir" value="../jaxb/bin/"/>
 
     <path id="compile.classpath">
@@ -62,20 +67,20 @@
     <target name='cap-extract-jaxb'>
         <exec executable="cmd" osfamily="windows">
             <arg value="/c"/>
-            <arg value="${jaxb.windir}xjc.bat"/>
+            <arg value="${jaxb.windir}xjc.exe"/>
             <arg value="-p"/>
             <arg value="gov.nih.ncgc.bard.capextract.jaxb"/>
             <arg value="resources\\BARDexportSchema.xsd"/>
             <arg value="-d"/>
             <arg value="${bard.src}"/>
         </exec>
-        <exec executable="${jaxb.dir}xjc.sh" osfamily="unix">
+   <!--     <exec executable="${jaxb.dir}xjc.sh" osfamily="unix">
             <arg value="-p"/>
             <arg value="gov.nih.ncgc.bard.capextract.jaxb"/>
             <arg value="resources/BARDexportSchema.xsd"/>
             <arg value="-d"/>
             <arg value="${bard.src}"/>
-        </exec>
+        </exec> -->
     </target>
 
 

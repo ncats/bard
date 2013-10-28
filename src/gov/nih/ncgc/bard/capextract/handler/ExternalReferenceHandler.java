@@ -2,7 +2,7 @@ package gov.nih.ncgc.bard.capextract.handler;
 
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
-import gov.nih.ncgc.bard.capextract.jaxb.ExternalReferences;
+import gov.nih.ncgc.bard.capextract.jaxb.ExternalReference;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 
 import java.io.IOException;
@@ -32,7 +32,7 @@ public class ExternalReferenceHandler extends CapResourceHandler implements ICap
         if (resource != CAPConstants.CapResource.EXTREF) return;
 
         // get the Project object here
-        ExternalReferences.ExternalReference tmp = getResponse(url, resource);
+        ExternalReference tmp = getResponse(url, resource);
         externalAssayRef = tmp.getExternalAssayRef();
         links = tmp.getLink();
     }
