@@ -455,16 +455,22 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             Panels panels = assay.getPanels();
             BigInteger panelId;
             String panelName, panelDescription;
-            if(panels != null) {
-        	assay.getPanels();
+            PreparedStatement ps = conn.prepareStatement("replace into bard_panel_assay (panel_id, bard_assay_id, panel_name, panel_desc) values (?,?,?,?)");
+            if(panels != null) {        	
         	for(Assay.Panels.Panel panel : panels.getPanel()) {
         	    panelId = panel.getId();
         	    panelName = panel.getName();
-        	    panelDescription = panel.getDescription();
-        	    
-        	    
+        	    panelDescription = panel.getDescription();        	    
+        	    ps.setLong(1, panelId.longValue());
+        	    ps.setLong(2, bardAssayId);
+        	    ps.setString(3, panelName);
+        	    ps.setString(4, panelDescription);
+        	    ps.execute();        	    
         	}
+        	conn.commit();
             }
+            
+            ps.close();
             
             // now insert the experiment
             ExperimentHandler exptHandler = new ExperimentHandler();
@@ -492,7 +498,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 	    
 	    //get bard_assay_id
 	    long bardAssayId = 0l;
-	    ResultSet rs = stmt.executeQuery("select bard_expt_id from bard_assay where cap_assay_id = "+capAssayId);
+	    ResultSet rs = stmt.executeQuery("select bard_assay_id from bard_assay where cap_assay_id = "+capAssayId);
 	    if(rs.next()) {
 		bardAssayId = rs.getLong(1);
 	    } else {
