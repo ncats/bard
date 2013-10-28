@@ -8,6 +8,7 @@ import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.Assay;
+import gov.nih.ncgc.bard.capextract.jaxb.Assay.Panels;
 import gov.nih.ncgc.bard.capextract.jaxb.AssayContexType;
 import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
@@ -450,6 +451,21 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 rs.close();
             }
 
+            // now capture panel information if present
+            Panels panels = assay.getPanels();
+            BigInteger panelId;
+            String panelName, panelDescription;
+            if(panels != null) {
+        	assay.getPanels();
+        	for(Assay.Panels.Panel panel : panels.getPanel()) {
+        	    panelId = panel.getId();
+        	    panelName = panel.getName();
+        	    panelDescription = panel.getDescription();
+        	    
+        	    
+        	}
+            }
+            
             // now insert the experiment
             ExperimentHandler exptHandler = new ExperimentHandler();
             for (String exptUrl : exptUrls) {
