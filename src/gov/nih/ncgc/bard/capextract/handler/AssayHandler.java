@@ -551,6 +551,14 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 		stmt.executeUpdate("delete from bard_experiment_result where bard_expt_id = " + bardExptId);	    
 		log.info("Retirement Log ("+capAssayId+"): Deleted experiment results, bard_expt_id:" + bardExptId);
 
+		//delete exploded data
+		stmt.executeUpdate("delete from exploded_histograms where bard_expt_id = " + bardExptId);	    
+		log.info("Retirement Log ("+capAssayId+"): Deleted experiment exploded histograms, bard_expt_id:" + bardExptId);
+		stmt.executeUpdate("delete from exploded_results where bard_expt_id = " + bardExptId);	    
+		log.info("Retirement Log ("+capAssayId+"): Deleted experiment exploded results, bard_expt_id:" + bardExptId);
+		stmt.executeUpdate("delete from exploded_statistics where bard_expt_id = " + bardExptId);	    
+		log.info("Retirement Log ("+capAssayId+"): Deleted experiment exploded statistics, bard_expt_id:" + bardExptId);
+		
 		//delete project experiment mapping
 		stmt.executeUpdate("delete from bard_project_experiment where bard_expt_id = " + bardExptId);
 		log.info("Retirement Log ("+capAssayId+"): Deleted project-experiment mapping, bard_expt_id:" + bardExptId);
@@ -563,6 +571,8 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 		//delete experiment annotations
 		stmt.executeUpdate("delete from cap_annotation where entity = 'experiment' and entity_id =" + bardExptId);
 		log.info("Retirement Log ("+capAssayId+"): Deleted experiment annotations, bard_expt_id:" + bardExptId);
+		
+		
 	    }
 
 	    //clean up related search indices
