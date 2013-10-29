@@ -5948,7 +5948,7 @@ public class DBUtils {
 	List<Compound> probes = getCompoundsByCid(probeIds.toArray(new Long[]{}));
 	List<String> probeReports = new ArrayList<String>();
 	for (Compound c : probes) {
-	    if (c.getProbeId()!= null) probeReports.add("http://www.ncbi.nlm.nih.gov/books/n/mlprobe/"+c.getProbeId()+"/");
+	    if (c.getProbeId()!= null) probeReports.add(c.getUrl());
 	}
 	Map<String, Object> ret = new HashMap<String, Object>();
 	ret.put("name", project.getName());
