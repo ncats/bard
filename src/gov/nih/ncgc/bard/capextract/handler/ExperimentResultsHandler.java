@@ -1607,7 +1607,10 @@ public class ExperimentResultsHandler extends CapResourceHandler implements ICap
 //	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/34",CAPConstants.CapResource.EXPERIMENT);
 
 	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/4976",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/assays/5520",CAPConstants.CapResource.ASSAY);
 	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/assays/4981",CAPConstants.CapResource.ASSAY);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/assays/3600",CAPConstants.CapResource.ASSAY);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/assays/2692",CAPConstants.CapResource.ASSAY);
 
     }
 

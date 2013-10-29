@@ -8,6 +8,7 @@ import gov.nih.ncgc.bard.capextract.CAPUtil;
 import gov.nih.ncgc.bard.capextract.ICapResourceHandler;
 import gov.nih.ncgc.bard.capextract.jaxb.AbstractContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.Assay;
+import gov.nih.ncgc.bard.capextract.jaxb.Assay.Panels;
 import gov.nih.ncgc.bard.capextract.jaxb.AssayContexType;
 import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
@@ -450,6 +451,27 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 rs.close();
             }
 
+            // now capture panel information if present
+            Panels panels = assay.getPanels();
+            BigInteger panelId;
+            String panelName, panelDescription;
+            PreparedStatement ps = conn.prepareStatement("replace into bard_panel_assay (panel_id, bard_assay_id, panel_name, panel_desc) values (?,?,?,?)");
+            if(panels != null) {        	
+        	for(Assay.Panels.Panel panel : panels.getPanel()) {
+        	    panelId = panel.getId();
+        	    panelName = panel.getName();
+        	    panelDescription = panel.getDescription();        	    
+        	    ps.setLong(1, panelId.longValue());
+        	    ps.setLong(2, bardAssayId);
+        	    ps.setString(3, panelName);
+        	    ps.setString(4, panelDescription);
+        	    ps.execute();        	    
+        	}
+        	conn.commit();
+            }
+            
+            ps.close();
+            
             // now insert the experiment
             ExperimentHandler exptHandler = new ExperimentHandler();
             for (String exptUrl : exptUrls) {
@@ -476,7 +498,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 	    
 	    //get bard_assay_id
 	    long bardAssayId = 0l;
-	    ResultSet rs = stmt.executeQuery("select bard_expt_id from bard_assay where cap_assay_id = "+capAssayId);
+	    ResultSet rs = stmt.executeQuery("select bard_assay_id from bard_assay where cap_assay_id = "+capAssayId);
 	    if(rs.next()) {
 		bardAssayId = rs.getLong(1);
 	    } else {
@@ -529,6 +551,14 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 		stmt.executeUpdate("delete from bard_experiment_result where bard_expt_id = " + bardExptId);	    
 		log.info("Retirement Log ("+capAssayId+"): Deleted experiment results, bard_expt_id:" + bardExptId);
 
+		//delete exploded data
+		stmt.executeUpdate("delete from exploded_histograms where bard_expt_id = " + bardExptId);	    
+		log.info("Retirement Log ("+capAssayId+"): Deleted experiment exploded histograms, bard_expt_id:" + bardExptId);
+		stmt.executeUpdate("delete from exploded_results where bard_expt_id = " + bardExptId);	    
+		log.info("Retirement Log ("+capAssayId+"): Deleted experiment exploded results, bard_expt_id:" + bardExptId);
+		stmt.executeUpdate("delete from exploded_statistics where bard_expt_id = " + bardExptId);	    
+		log.info("Retirement Log ("+capAssayId+"): Deleted experiment exploded statistics, bard_expt_id:" + bardExptId);
+		
 		//delete project experiment mapping
 		stmt.executeUpdate("delete from bard_project_experiment where bard_expt_id = " + bardExptId);
 		log.info("Retirement Log ("+capAssayId+"): Deleted project-experiment mapping, bard_expt_id:" + bardExptId);
@@ -541,6 +571,8 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 		//delete experiment annotations
 		stmt.executeUpdate("delete from cap_annotation where entity = 'experiment' and entity_id =" + bardExptId);
 		log.info("Retirement Log ("+capAssayId+"): Deleted experiment annotations, bard_expt_id:" + bardExptId);
+		
+		
 	    }
 
 	    //clean up related search indices

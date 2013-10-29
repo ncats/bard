@@ -333,6 +333,14 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 	    stmt.executeUpdate("delete from bard_experiment_result where bard_expt_id = " + bardExptId);	    
 	    log.info("Retirement Log ("+capExptId+"): Deleting experiment results, bard_expt_id: " + bardExptId);
 
+	    //delete exploded data
+	    stmt.executeUpdate("delete from exploded_histograms where bard_expt_id = " + bardExptId);	    
+	    log.info("Retirement Log ("+capExptId+"): Deleted experiment exploded histograms, bard_expt_id:" + bardExptId);
+	    stmt.executeUpdate("delete from exploded_results where bard_expt_id = " + bardExptId);	    
+	    log.info("Retirement Log ("+capExptId+"): Deleted experiment exploded results, bard_expt_id:" + bardExptId);
+	    stmt.executeUpdate("delete from exploded_statistics where bard_expt_id = " + bardExptId);	    
+	    log.info("Retirement Log ("+capExptId+"): Deleted experiment exploded statistics, bard_expt_id:" + bardExptId);
+
 	    //delete project experiment mapping
 	    stmt.executeUpdate("delete from bard_project_experiment where bard_expt_id = " + bardExptId);
 	    log.info("Retirement Log ("+capExptId+"): Deleting project-experiment mapping, bard_expt_id: " + bardExptId);
