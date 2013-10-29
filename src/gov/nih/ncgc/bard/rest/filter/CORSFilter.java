@@ -24,7 +24,7 @@ import javax.ws.rs.core.MediaType;
 public class CORSFilter implements ContainerResponseFilter {
     @Override
     public ContainerResponse filter(ContainerRequest containerRequest, ContainerResponse response) {
-	String jsonp = response.getHeaderValue(BARDConstants.REQUEST_HEADER_JSONP);
+	String jsonp = response.getContainerRequest().getHeaderValue(BARDConstants.REQUEST_HEADER_JSONP);
         
         
         // if we were asked for a JSONP response, modify the content-type and the response appropriately.
