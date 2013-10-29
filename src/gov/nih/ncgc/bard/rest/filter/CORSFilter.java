@@ -1,12 +1,11 @@
 package gov.nih.ncgc.bard.rest.filter;
 
-import gov.nih.ncgc.bard.rest.BARDConstants;
-
-import javax.ws.rs.core.MediaType;
-
 import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerResponse;
 import com.sun.jersey.spi.container.ContainerResponseFilter;
+import gov.nih.ncgc.bard.rest.BARDConstants;
+
+import javax.ws.rs.core.MediaType;
 
 
 
@@ -31,7 +30,7 @@ public class CORSFilter implements ContainerResponseFilter {
         // if we were asked for a JSONP response, modify the content-type and the response appropriately.
         // We only do this is the response wsa going to be JSON
         MediaType responseContentType = (MediaType) response.getHttpHeaders().getFirst("Content-type");
-        if (jsonp != null && (responseContentType.equals(MediaType.APPLICATION_JSON_TYPE))) {
+        if (jsonp != null && responseContentType != null && responseContentType.equals(MediaType.APPLICATION_JSON_TYPE)) {
             response.getHttpHeaders().putSingle("Content-type", "application/javascript");
             Object entity = response.getEntity();
             String jsonpEntity = jsonp + "(" + entity + ")";
