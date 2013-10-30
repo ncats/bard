@@ -9,8 +9,17 @@ import com.github.fge.jsonschema.report.ProcessingReport;
 import com.github.fge.jsonschema.util.JsonLoader;
 import gov.nih.ncgc.bard.plugin.IPlugin;
 
-import javax.ws.rs.*;
-import java.io.*;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -32,12 +41,17 @@ import java.util.zip.ZipFile;
  * @author Rajarshi Guha
  */
 public class PluginValidator {
+    private static final String version = "1.0";
 
     private String[] packagesToIgnore = {"javax.servlet"};
 
     private String currentClassName = "";
 
     private ErrorList errors;
+
+    public static String getVersion() {
+        return version;
+    }
 
     public PluginValidator() {
         errors = new ErrorList();
@@ -421,6 +435,7 @@ public class PluginValidator {
         boolean printWarn = false;
 
         if (args.length < 1) {
+            System.out.println("\nBARD Plugin validator v"+version);
             System.out.println("\nUsage: java -jar validator.jar bardplugin_FOO.war [-i|-w]");
             System.out.println("\n-i\tPrint INFO messages");
             System.out.println("-w\tPrint WARN messages");
