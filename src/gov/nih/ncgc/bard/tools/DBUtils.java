@@ -17,6 +17,7 @@ import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.ExperimentResultType;
 import gov.nih.ncgc.bard.entity.PantherClassification;
+import gov.nih.ncgc.bard.entity.Probe;
 import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProjectStep;
 import gov.nih.ncgc.bard.entity.ProteinTarget;
@@ -235,6 +236,7 @@ public class DBUtils {
             put(Biology.class, new Query(biologyFields, "serial", null, "bard_biology"));
             put(Experiment.class, new Query(experimentFields, "bard_expt_id", null, "bard_experiment"));
             put(Compound.class, new Query(compoundFields, "druglike desc, activity desc", "cid", "compound_rank"));
+            put(Probe.class, new Query(compoundFields, "updated desc", "cid", "compound", " probe_id is not null and compound_class = 'ML Probe'"));
             put(Substance.class, new Query(substanceFields, "sid", null, "substance"));
             put(Assay.class, new Query(assayFields, "bard_assay_id", null, "bard_assay"));
             put(ExperimentData.class, new Query(edFields, "expt_data_id", null, "bard_experiment_data"));
@@ -5169,6 +5171,7 @@ public class DBUtils {
         	else if (klass.equals(Project.class)) entity = getProject((Long) id);
         	else if (klass.equals(Experiment.class)) entity = getExperimentByExptId((Long) id);
         	else if (klass.equals(Compound.class)) entity = getCompoundsByCid((Long) id);
+            else if (klass.equals(Probe.class)) entity = getCompoundsByCid((Long) id);
         	else if (klass.equals(Substance.class)) entity = getSubstanceBySid((Long) id);
         	else if (klass.equals(Assay.class)) entity = getAssayByAid((Long) id);
         	else if (klass.equals(ETag.class)) entity = getEtagByEtagId((String) id);
@@ -5699,6 +5702,8 @@ public class DBUtils {
             sql = "select sid from substance order by updated desc";
         } else if (entity.isAssignableFrom(Biology.class)) {
             sql = "select serial from bard_biology order by updated desc";
+        } else if (entity.isAssignableFrom(Probe.class)) {
+            sql = "select cid from compound where probe_id is not null and compound_class = 'ML Probe' order by updated desc";
         }
         sql += limitClause;
         Connection conn = getConnection();
@@ -5714,6 +5719,10 @@ public class DBUtils {
                 else if (entity.isAssignableFrom(Substance.class)) ret.add((T) getSubstanceBySid(id));
                 else if (entity.isAssignableFrom(Experiment.class)) ret.add((T) getExperimentByExptId(id));
                 else if (entity.isAssignableFrom(Biology.class)) ret.add((T) getBiologyBySerial(id).get(0));
+                else if (entity.isAssignableFrom(Probe.class)) {
+                    List<Compound> cmpds = getCompoundsByCid(id);
+                    if (cmpds != null && cmpds.size() > 0) ret.add((T) cmpds.get(0));
+                }
             }
             rs.close();
             return ret;

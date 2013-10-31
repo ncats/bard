@@ -219,7 +219,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
         return response;
     }
 
-    private Response doStructureSearch(String query, String type, int top, int skip, Double cutoff, String rankBy,
+    protected Response doStructureSearch(String query, String type, int top, int skip, Double cutoff, String rankBy,
                                        DBUtils db, boolean expandEntries, String annot) throws SQLException, IOException {
 
         Response response;
