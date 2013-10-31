@@ -48,18 +48,18 @@
         <param-value>Assay,Experiment,Project,Biology,CompoundAnnotationCache,Ent,Panther,Probe,Protein,Pub,SearchAssay,SearchForEnt,SearchForExpt,Targets,CAPDictionary,CompoundData,SubstanceData,SubstanceExperiment,Compound,Subst</param-value>
     </context-param>
                  
-    <!-- Hazelcast cluster for Glassfish4 cluster: rayleigh, boltzmann, and gauss -->
+    <!-- Hazelcast cluster for Glassfish4 cluster: rayleigh, boltzmann, and gauss
     <context-param>
         <param-name>cache-manager-cluster-nodes</param-name>
         <param-value>10.134.21.163:5701,10.134.21.162:5701,10.134.21.161:5701</param-value>
     </context-param>
+    -->
 
-    <!-- Hazelcast cluster for Glassfish3: hamilton and dirac 
+    <!-- Hazelcast cluster for Glassfish3: hamilton and dirac -->
     <context-param>
         <param-name>cache-manager-cluster-nodes</param-name>
         <param-value>128.231.10.33:5701,128.231.10.95:5701</param-value>
     </context-param>
-    -->
 
     <listener>
         <listener-class>gov.nih.ncgc.bard.tools.BardServletContextListener</listener-class>
