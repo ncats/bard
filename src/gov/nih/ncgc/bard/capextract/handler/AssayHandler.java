@@ -531,7 +531,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 	    log.info("Retirement Log ("+capAssayId+"): Deleted from bard_panel_assay table (if present).");
 
 	    //delete from go_assay
-	    stmt.executeUpdate("delete from go_assay where bardAssayId = " + bardAssayId);
+	    stmt.executeUpdate("delete from go_assay where bard_assay_Id = " + bardAssayId);
 	    log.info("Retirement Log ("+capAssayId+"): Deleted from go_assay table.");
 
 

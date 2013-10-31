@@ -1038,6 +1038,37 @@ public class BardResultFactory {
 	//log.info("@@@@@@@@@@Found priority elems:"+foundPriorityElements.size());
 	return foundPriorityElements;
     }
+
+    /**
+     * Utility method to organize result tuples representing priority elements
+     * based on element type.  Conc endpoint, then log conc endpoint, then others.
+     * @param tuples
+     */
+    public void sortPriorityElementTuples(List <ResultTuple> tuples) {
+	ArrayList<ResultTuple> concEndpointTuples = new ArrayList<ResultTuple>();
+	ArrayList<ResultTuple> otherTuples = new ArrayList<ResultTuple>();
+	ArrayList<ResultTuple> logConcEndpointTuples = new ArrayList<ResultTuple>();
+
+	for(ResultTuple tuple : tuples) {
+	    if(this.concEndpointDataElemV.contains(tuple.getDictId())) {
+		if(this.logXx50ParameterElemV.contains(tuple.getDictId())) {
+		    logConcEndpointTuples.add(tuple);
+		} else {
+		    concEndpointTuples.add(tuple);		
+		}
+	    } else {
+		otherTuples.add(tuple);
+	    }
+	}
+	
+	//clear the received tuples object
+	tuples.clear();
+	
+	//add back conc endpoint tuples, then log conc endpoint tuples, then others
+	tuples.addAll(concEndpointTuples);
+	tuples.addAll(logConcEndpointTuples);
+	tuples.addAll(otherTuples);
+    }
     
     
     public static void main(String [] args) {

@@ -590,7 +590,13 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
             if (res != CAPConstants.CapResource.EXPERIMENT) continue;
             ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(res);
             if (handler != null) {
-                handler.process(exptLink.getHref(), res);
+        	
+        	handler.process(exptLink.getHref(), res);
+        	
+        	// NOTE: if the load aborts, the bard_exptId will be -1 when returned below
+        	// an example is when an assay isn't loaded because of status and the experiment
+        	// can't load since its assay isn't loaded.
+        	
                 int bardExptId = ((ExperimentHandler) handler).getBardExptId();
                 int exptPubchemAid = ((ExperimentHandler) handler).getPubchemAid();
                 if (bardExptId == -1) continue;
