@@ -261,6 +261,25 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                 conn.commit();
                 pstAnnot.close();
                 log.info("\tLoaded " + annos.size() + " annotations (from " + annos.size() + " CAP annotations) for cap project id " + project.getProjectId());
+            
+                //project source
+                //if we have annotations, lets backfill the project source.
+                Statement projectSourceStmt = conn.createStatement();
+                ResultSet projectSourceRS = projectSourceStmt.executeQuery("select anno_display from cap_project_annotation where anno_key = 559 and bard_proj_id = "+bardProjId);
+                String projectSource = "empty";
+                if(projectSourceRS.next()) {
+                    projectSource = projectSourceRS.getString(1);
+                }
+   
+                projectSourceRS.close();
+   
+                if(projectSource != null && !projectSource.equals("empty")) {
+                    //we have a name
+                    projectSourceStmt.executeUpdate("update bard_project set source = '"+projectSource+"' where bard_proj_id = "+bardProjId);
+                    conn.commit();
+                }
+                projectSourceStmt.close();
+                
             }
             
             updateProbeLinks(annos, (long) bardProjId);
@@ -614,6 +633,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         log.info("Inserted " + rowsInserted.length + " project-experiment entries");
     }
 
+    
     List<CAPAnnotation> processDocuments(Project project) throws SQLException, IOException, ParsingException {
         List<CAPAnnotation> annos = new ArrayList<CAPAnnotation>();
 
