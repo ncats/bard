@@ -64,6 +64,9 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
      *                 can choose to proceed or not based on this parameter.
      */
     public void process(String url, CAPConstants.CapResource resource) throws IOException {
+	//set this to -1 initially. The handler persists and may call on the captured bardExptId
+	bardExptId = -1;
+	
         if (resource != CAPConstants.CapResource.EXPERIMENT) return;
 
         Experiment expt = getResponse(url, resource);
@@ -122,7 +125,8 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
                     assayHandler.process(link.getHref(), CAPConstants.CapResource.ASSAY);
                     bardAssayId = assayHandler.getBardAssayId();
                     if (bardAssayId == -1) {
-                        log.error("Invalid bardAssayId even after inserting CAP assay id " + capAssayId + ". Skipping this err");
+                        log.error("Invalid (missing referenced assay) bardAssayId even after inserting CAP assay id " + capAssayId + ". ABORTING EXPERIMENT LOAD");
+                        bardExptId = -1;
                         return;
                     }
                 }
@@ -311,7 +315,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 
 	    //get bard_expt_id
 	    long bardExptId = 0l;
-	    ResultSet rs = stmt.executeQuery("select bard_expt_id from bard_assay where cap_expt_id = "+capExptId);
+	    ResultSet rs = stmt.executeQuery("select bard_expt_id from bard_experiment where cap_expt_id = "+capExptId);
 	    if(rs.next()) {
 		bardExptId = rs.getLong(1);
 	    } else {

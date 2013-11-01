@@ -271,7 +271,9 @@ public interface Constants {
 	960,
 	962,
 	968,
-	953
+	953,
+	958,
+	1024
     };
 
     public static Integer [] EFFICACY_PERCENT_MEASURES = {
