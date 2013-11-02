@@ -289,6 +289,7 @@ public class BardResultFactory {
 	
 	//one last crack at response class now that we have priority elements, only run this once
 	if(processCnt == 0 && response.getResponseType() == BardExptDataResponse.ResponseClass.UNCLASS.ordinal()) {
+	    //log.info("HEY!!! Setting response class for "+response.getCapExptId());
 	    boolean haveResponseClass = false;
 	    for(BardResultType res : priElems) {
 		if(!haveResponseClass && res.getConcResponseSeries() != null) {
@@ -301,11 +302,13 @@ public class BardResultFactory {
 		    } else {
 			if(!haveResponseClass && this.responseEndpointDataElemV.contains(res.getDictElemId())) {
 			   if(concentrations != null) {
-			       if(concentrations.size() == 1) {
+			       if(concentrations.size() == 1 || concCnt == 1) {
 				   response.setResponseType(BardExptDataResponse.ResponseClass.SP.ordinal());    
 			       } else if(concentrations.size() > 1){
 				   response.setResponseType(BardExptDataResponse.ResponseClass.MULTCONC.ordinal());    
 			       }
+			   } else if(concCnt != null && concCnt == 1) {   
+			       response.setResponseType(BardExptDataResponse.ResponseClass.SP.ordinal());    
 			   }
 			}
 		    }
@@ -442,7 +445,7 @@ public class BardResultFactory {
 	for(BardResultType result : resultList) {
 	    if(haveConcResponse(result)) {
 		//have a series, is the series in a root element
-		//could check but the root might be a mean XX50 measurement
+		//could check but the root might be a mean XX50 measurement		
 		response.setResponseType(BardExptDataResponse.ResponseClass.CR_SER.ordinal());	
 		haveType = true;
 		if(result.getTestConc() != null)
@@ -623,6 +626,7 @@ public class BardResultFactory {
     private boolean haveConcResponse(BardResultType bardResultType) {
 	Integer dictElemId = -1;
 
+	//does it have children?
 	if(bardResultType.getChildElements() == null || bardResultType.getChildElements().size() < 1)
 	    return false;
 
@@ -639,14 +643,15 @@ public class BardResultFactory {
 	for(BardResultType result : bardResultType.getChildElements()) {
 	    dictElemId = result.getDictElemId();
 
-	    if(dictElemId != null && (dictElemId == 986 || dictElemId == 982 || result.getTestConc() != null)) {
+	    if(dictElemId != null && (responseEndpointDataElemV.contains(dictElemId) || result.getTestConc() != null)) {
 		haveActivityMeasure = true;
 		if(result.getTestConc() != null) {
 		    concentrations.add(result.getTestConc());
 		}
 	    }	
 	}
-	return (haveActivityMeasure && concentrations.size() > 1);
+	//need to have a potency, activity measures, and multiple concentrations
+	return ( this.concEndpointDataElemV.contains(dictElemId) && haveActivityMeasure && concentrations.size() > 1);
     }
 
 

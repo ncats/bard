@@ -971,7 +971,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	
 	worker.testResultTypes("jdbc:mysql://bohr.ncats.nih.gov/bard3",
 		"select distinct(bard_expt_id) from bard_experiment",
-		"C:/Users/braistedjc/Desktop/json_response_samples_max_20131030_All_projects_test.txt");
+		"C:/Users/braistedjc/Desktop/json_response_samples_20131102_All_projects_test.txt");
 	
 	//worker.updateExperimentTestStats("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
 	

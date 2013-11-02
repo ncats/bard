@@ -1606,11 +1606,49 @@ public class ExperimentResultsHandler extends CapResourceHandler implements ICap
 //	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/777",CAPConstants.CapResource.EXPERIMENT);
 //	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/34",CAPConstants.CapResource.EXPERIMENT);
 
-	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/4976",CAPConstants.CapResource.EXPERIMENT);
-	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/assays/5520",CAPConstants.CapResource.ASSAY);
-	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/assays/4981",CAPConstants.CapResource.ASSAY);
-	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/assays/3600",CAPConstants.CapResource.ASSAY);
-	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/assays/2692",CAPConstants.CapResource.ASSAY);
+
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/3216",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/967",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/5638",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7532",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7587",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7649",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7683",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7690",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7719",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7787",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/1571",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/5514",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7722",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7723",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7668",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/1827",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/1916",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/5634",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/5635",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/3896",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/3897",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/4188",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/4306",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/5908",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7634",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7685",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7686",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7691",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7696",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7697",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7725",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7743",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7744",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/7746",CAPConstants.CapResource.EXPERIMENT);
+	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/2518",CAPConstants.CapResource.EXPERIMENT);
+
+	
+//	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/experiments/8035",CAPConstants.CapResource.EXPERIMENT);
+//	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/assays/5520",CAPConstants.CapResource.ASSAY);
+//	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/assays/4981",CAPConstants.CapResource.ASSAY);
+//	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/assays/3600",CAPConstants.CapResource.ASSAY);
+//	h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/assays/2692",CAPConstants.CapResource.ASSAY);
 
     }
 
