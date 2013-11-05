@@ -726,7 +726,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
     /*
      * Utility method to pull an example of each experiment result in the db.
      */
-    public void testResultTypes(String serverURL, String experimentQuery, String outFile) {
+    public void testResultTypes(String serverURL, String experimentQuery, String outFile, String version) {
 	try {
 	    try {
 		conn = BardDBUtil.connect(serverURL);
@@ -837,7 +837,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 				pw.print("Not Active\t");
 			    
 			    pw.print("=hyperlink(\"http://pubchem.ncbi.nlm.nih.gov/assay/assay.cgi?aid="+pubchemAID+"#aDefinitions\")\t");
-			    pw.print("=hyperlink(\"http://bard.nih.gov/api/straw/exptdata/"+bid+"."+sid+"\")\t");
+			    pw.print("=hyperlink(\"http://bard.nih.gov/api/"+version+"/exptdata/"+bid+"."+sid+"\")\t");
 			    
 			    //write bard response
 			    pw.print(responseStr+"\t");
@@ -969,9 +969,9 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 //		"select bard_expt_id from bard_project_experiment where bard_proj_id = 3)",
 //		"C:/Users/braistedjc/Desktop/json_response_samples_max_20131030_PID_879_test.txt");
 	
-	worker.testResultTypes("jdbc:mysql://bohr.ncats.nih.gov/bard3",
+	worker.testResultTypes("jdbc:mysql://maxwell.ncats.nih.gov/bard3",
 		"select distinct(bard_expt_id) from bard_experiment",
-		"C:/Users/braistedjc/Desktop/json_response_samples_20131102_All_projects_test.txt");
+		"C:/Users/braistedjc/Desktop/json_response_samples_20131105_All_projects_test_redo2.txt", "v18");
 	
 	//worker.updateExperimentTestStats("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
 	

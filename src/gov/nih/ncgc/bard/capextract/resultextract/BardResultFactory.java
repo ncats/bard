@@ -444,6 +444,9 @@ public class BardResultFactory {
 	concentrations = new HashSet <Double>();
 	for(BardResultType result : resultList) {
 	    if(haveConcResponse(result)) {
+		
+		log.info("HEYYYYY HAVE concResponse TYPE!!!!!!");
+		
 		//have a series, is the series in a root element
 		//could check but the root might be a mean XX50 measurement		
 		response.setResponseType(BardExptDataResponse.ResponseClass.CR_SER.ordinal());	
@@ -624,17 +627,23 @@ public class BardResultFactory {
      * Checks for C/R
      */
     private boolean haveConcResponse(BardResultType bardResultType) {
+	Integer rootDictElemId = -1;
 	Integer dictElemId = -1;
 
 	//does it have children?
 	if(bardResultType.getChildElements() == null || bardResultType.getChildElements().size() < 1)
 	    return false;
 
-	dictElemId = bardResultType.getDictElemId();
+	//log.info("HEYYY Still don't know type/class 1");
+	rootDictElemId = bardResultType.getDictElemId();
 
 	//special case, activity response elements with children are mean values of their child elements
 	//refine to use mean modifier.
-	if(dictElemId != null && (dictElemId == 986 || dictElemId == 982 ||bardResultType.getTestConc() != null))
+	if(rootDictElemId != null && (this.responseEndpointDataElemV.contains(rootDictElemId)))
+	    return false;
+
+	//bail out if it's not a conc enpoint element
+	if(!this.concEndpointDataElemV.contains(rootDictElemId))
 	    return false;
 
 	dictElemId = -1;
@@ -651,7 +660,11 @@ public class BardResultFactory {
 	    }	
 	}
 	//need to have a potency, activity measures, and multiple concentrations
-	return ( this.concEndpointDataElemV.contains(dictElemId) && haveActivityMeasure && concentrations.size() > 1);
+	
+	//log.info("In eval type: main dict id+dictElemId+in concEndpointDataElemV? " + this.concEndpointDataElemV.contains(dictElemId) +" " +
+	//		" haveActMeasure:"+haveActivityMeasure + " conc size="+concentrations.size());
+	
+	return ( this.concEndpointDataElemV.contains(rootDictElemId) && haveActivityMeasure && concentrations.size() > 1);
     }
 
 

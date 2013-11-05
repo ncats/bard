@@ -873,6 +873,10 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 	    stmt.executeUpdate("delete from bard_biology where entity = 'project' and entity_id =" + bardProjId);
 	    log.warn("RETIRE PROJECT, CAP Project ID:"+capProjId+" Deleted from bard_biology.");
 
+	    //drop project's probes
+	    stmt.executeUpdate("delete from project_probe where bard_proj_id =" + bardProjId);
+	    log.warn("RETIRE PROJECT, CAP Project ID:"+capProjId+" Deleted from project_probe.");
+
 	    //don't drop the corresponding experiments, other projects might refer to them	   
 
 	    //clean up related search indices

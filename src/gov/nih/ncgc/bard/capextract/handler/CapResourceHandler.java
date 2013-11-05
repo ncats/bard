@@ -93,12 +93,16 @@ public abstract class CapResourceHandler {
             httpClient = SslHttpClient.getHttpClient();
             response = httpClient.execute(get);
         }
+        
+        log.info("Got a HTTP " + response.getStatusLine().getStatusCode() + " for " + resource + ": " + url);
+        
         if (response.getStatusLine().getStatusCode() != 200 && response.getStatusLine().getStatusCode() != 206)
             throw new IOException("Got a HTTP " + response.getStatusLine().getStatusCode() + " for " + resource + ": " + url);
 
         if (response.getStatusLine().getStatusCode() == 206)
             log.info("Got a 206 (partial content) ... make sure this is handled appropriately for " + resource + ": " + url);
 
+       
         // For debugging
 //        if (url.endsWith("assays/1640")) {
 //            BufferedReader reader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
