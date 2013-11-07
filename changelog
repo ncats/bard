@@ -145,3 +145,4 @@ v18 released
               will work only on the subset of compounds that are probes
 11/07/13      Removed the statusWarning field from JSON responses
               Project responses with expand=true are now consistent when accessing projects via project id or when paging through all projects
+	      Retrieving compounds by name does not require quoteing (so /compounds/name/Ro 8-0576-12 will work fine)

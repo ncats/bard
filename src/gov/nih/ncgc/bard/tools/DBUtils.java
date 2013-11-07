@@ -714,6 +714,12 @@ public class DBUtils {
         try {
             ResultSet rs;
             for (String name : notcached) {
+
+                // if names have spaces we quote here, since we can't pass
+                // quotes via URL. But we do check if the name contains quotes
+                // and if so, skip explicit quoting
+                if (!name.contains("\"") && name.contains(" ")) name = "\"" + name + "\"";
+
                 pst.setString(1, name);
                 rs = pst.executeQuery();
                 List<Compound> c = new ArrayList<Compound>();
