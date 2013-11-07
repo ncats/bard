@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.capextract.handler;
 
+import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPConstants;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
@@ -19,7 +20,10 @@ import gov.nih.ncgc.bard.capextract.jaxb.ProjectExperiment;
 import gov.nih.ncgc.bard.capextract.jaxb.ProjectStep;
 import gov.nih.ncgc.bard.entity.Biology;
 import gov.nih.ncgc.bard.tools.Util;
+import nu.xom.ParsingException;
+import org.w3c.dom.Node;
 
+import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.Connection;
@@ -32,14 +36,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.xml.bind.JAXBElement;
-
-import nu.xom.ParsingException;
-
-import org.w3c.dom.Node;
-
-import com.sun.org.apache.xerces.internal.dom.ElementNSImpl;
 
 /**
  * A one line summary.
@@ -547,7 +543,10 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                     String dictLabel = node.getLabel();
                     String extId = contextItemType.getExtValueId();
                     String description = contextItemType.getValueDisplay();
-                    BiologyInfo bi = new BiologyInfo(dictLabel, Integer.parseInt(dictId), extId, null, description);
+                    String extRef = null;
+                    if (node.getExternalUrl() != null && extId != null)
+                        extRef = node.getExternalUrl()+extId;
+                    BiologyInfo bi = new BiologyInfo(dictLabel, Integer.parseInt(dictId), extId, extRef, description);
                     bioInfo.add(bi);
                 }
             }
