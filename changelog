@@ -141,4 +141,5 @@ v17.3 released
 
 v18 released
 
-10/31/13      Added /probes top level resource. Similar in most respects to /compounds but works only on the subset of compounds that are probes
+10/31/13      Added /probes top level resource. Similar in most respects to /compounds but works only on the subset of compounds that are probes. Structure searches
+              will work only on the subset of compounds that are probes

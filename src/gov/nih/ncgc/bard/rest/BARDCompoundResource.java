@@ -220,7 +220,12 @@ public class BARDCompoundResource extends BARDResource<Compound> {
     }
 
     protected Response doStructureSearch(String query, String type, int top, int skip, Double cutoff, String rankBy,
-                                       DBUtils db, boolean expandEntries, String annot) throws SQLException, IOException {
+                                         DBUtils db, boolean expandEntries, String annot) throws SQLException, IOException {
+        return doStructureSearch(query, type, top, skip, cutoff, rankBy, db, expandEntries, annot, false);
+    }
+
+    protected Response doStructureSearch(String query, String type, int top, int skip, Double cutoff, String rankBy,
+                                       DBUtils db, boolean expandEntries, String annot, boolean probeSubset) throws SQLException, IOException {
 
         Response response;
         SearchService2 search = null;
@@ -289,6 +294,12 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 
                 if (cidstr.equals("")) continue;
                 Long cid = Long.parseLong(cidstr);
+
+                // TODO there should be a faster way to search only within the probe subset
+                if (probeSubset) {
+                    Compound c = db.getCompoundsByCid(cid).get(0);
+                    if (c.getProbeId() == null) continue;
+                }
 
                 // see if we should keep the cid, based on absence/presence of annotations
                 if (annot != null && annot.toLowerCase().equals("true")) {
