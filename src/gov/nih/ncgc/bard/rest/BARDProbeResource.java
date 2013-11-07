@@ -151,13 +151,13 @@ public class BARDProbeResource extends BARDResource<Probe> {
             BARDCompoundResource bcr = getCmpdResource();
             return bcr.getResources(String.valueOf(probe.getCid()), filter, expand);
         } catch (SQLException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            e.printStackTrace();
             throw new WebApplicationException(e);
         } finally {
             try {
                 db.closeConnection();
             } catch (SQLException e) {
-                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                throw new WebApplicationException(e);
             }
         }
     }
@@ -195,7 +195,6 @@ public class BARDProbeResource extends BARDResource<Probe> {
                            @QueryParam("annot") String annot) throws SQLException, IOException {
 
         Response response = null;
-        Long start, end;
         BARDCompoundResource bcr = getCmpdResource();
 
         if (skip == null) skip = -1;
@@ -217,26 +216,14 @@ public class BARDProbeResource extends BARDResource<Probe> {
                 if (expandEntries) expandClause = "expand=true";
 
                 String linkString = null;
-                start = System.currentTimeMillis();
                 if (skip + top <= db.getEntityCount(Probe.class))
                     linkString = BARDConstants.API_BASE + "/probes?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
-                end = System.currentTimeMillis();
-                System.out.println("TIME entity count: " + ((end - start) * 1e-3));
 
-                start = System.currentTimeMillis();
                 List compounds = db.searchForEntity(filter, skip, top, Probe.class);
-                end = System.currentTimeMillis();
-                System.out.println("TIME entity search: " + ((end - start) * 1e-3));
-
 
                 if (expandEntries) {
                     BardLinkedEntity linkedEntity = new BardLinkedEntity(compounds, linkString);
-
-                    start = System.currentTimeMillis();
                     response = Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
-                    end = System.currentTimeMillis();
-                    System.out.println("TIME json generate: " + ((end - start) * 1e-3));
-
                 } else {
                     List<String> links = new ArrayList<String>();
                     for (Object a : compounds) links.add(((Compound) a).getResourcePath());
@@ -245,16 +232,15 @@ public class BARDProbeResource extends BARDResource<Probe> {
                 }
             }
         } else {   // do a filtered search
-
-            // examine the filter argument to see if we should do a structure search
+            // examine the filter argument to see if we should do a structure search. In case we do
+            // a substructure search, it will run only within the subset of compounds that are probes
             if (filter.contains("[structure]")) {
                 filter = filter.trim().replace("[structure]", "");
-                response = bcr.doStructureSearch(filter, type, top, skip, cutoff, rankBy, db, expandEntries, annot);
+                response = bcr.doStructureSearch(filter, type, top, skip, cutoff, rankBy, db, expandEntries, annot, true);
             }
         }
         db.closeConnection();
         return response;
     }
-
 
 }

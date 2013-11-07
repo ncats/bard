@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.tools;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.nih.ncgc.bard.rest.BARDConstants;
 import gov.nih.ncgc.bard.service.CachingService;
@@ -87,6 +88,12 @@ public class Util {
         }
         if (chunk.size() > 0) chunkList.add(chunk);
         return chunkList;
+    }
+
+    public static String toJson(Object o, IJsonConverter converter) throws Exception {
+        if (o == null) return "{}";
+        JsonNode jnode = converter.convert(o);
+        return toJson(jnode);
     }
 
     public static String toJson(Object o) throws IOException {

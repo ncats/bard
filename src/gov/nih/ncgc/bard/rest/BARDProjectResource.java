@@ -18,6 +18,8 @@ import gov.nih.ncgc.bard.entity.Project;
 import gov.nih.ncgc.bard.entity.ProjectStep;
 import gov.nih.ncgc.bard.entity.Publication;
 import gov.nih.ncgc.bard.search.Facet;
+import gov.nih.ncgc.bard.tools.IJsonConverter;
+import gov.nih.ncgc.bard.tools.ProjectListJsonConverter;
 import gov.nih.ncgc.bard.tools.Util;
 
 import javax.ws.rs.Consumes;
@@ -109,7 +111,8 @@ public class BARDProjectResource extends BARDResource<Project> {
             if (countRequested) return Response.ok(String.valueOf(projects.size()), MediaType.TEXT_PLAIN).build();
             if (expandEntries) {
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(projects, linkString);
-                return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
+                IJsonConverter<BardLinkedEntity> jsonConverter = new ProjectListJsonConverter();
+                return Response.ok(Util.toJson(linkedEntity, jsonConverter), MediaType.APPLICATION_JSON).build();
             } else {
                 List<String> links = new ArrayList<String>();
                 for (Project project : projects) links.add(project.getResourcePath());
@@ -120,6 +123,8 @@ public class BARDProjectResource extends BARDResource<Project> {
         } catch (SQLException e) {
             throw new WebApplicationException(e, 500);
         } catch (IOException e) {
+            throw new WebApplicationException(e, 500);
+        } catch (Exception e) {
             throw new WebApplicationException(e, 500);
         }
     }

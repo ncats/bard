@@ -13,6 +13,12 @@ import gov.nih.ncgc.bard.rest.BARDConstants;
  * @author Rajarshi Guha
  */
 public class Probe extends Compound {
+
+    public Probe(Compound c) {
+        this.cid = c.cid;
+        this.probeId = c.probeId;
+    }
+
     public String getResourcePath() {
         return BARDConstants.API_BASE + "/probes/" + probeId;
     }
