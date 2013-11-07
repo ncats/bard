@@ -4438,7 +4438,7 @@ public class DBUtils {
         Connection conn = getConnection();
         PreparedStatement pst = null; 
         try {
-            pst = conn.prepareStatement("select a from bard_project where bard_proj_id = ?");
+            pst = conn.prepareStatement("select * from bard_project where bard_proj_id = ?");
             pst.setLong(1, bardProjId);
             ResultSet rs = pst.executeQuery();
             if (rs.next()) {

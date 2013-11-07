@@ -23,7 +23,7 @@ public class Assay extends BaseEntity {
     String name, source, grantNo, title, designedBy;
     Date deposited, updated;
 
-    String assayType, assayStatus, statusWarning;
+    String assayType, assayStatus;
 
     List<Long> documents;
     List<Long> targets;
@@ -39,14 +39,6 @@ public class Assay extends BaseEntity {
 
     @JsonIgnore
     List<String> gobp_id, gobp_term, gomf_term, gomf_id, gocc_id, gocc_term, av_dict_label, ak_dict_label;
-
-    public String getStatusWarning() {
-        return statusWarning;
-    }
-
-    public void setStatusWarning(String statusWarning) {
-        this.statusWarning = statusWarning;
-    }
 
     public float getScore() {
         return score;
