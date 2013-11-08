@@ -15,7 +15,9 @@ import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.entity.Biology;
 import gov.nih.ncgc.bard.tools.Util;
+import nu.xom.ParsingException;
 
+import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.Connection;
@@ -26,10 +28,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import javax.xml.bind.JAXBElement;
-
-import nu.xom.ParsingException;
 
 /**
  * Process CAP <code>Assay</code> elements.
@@ -633,7 +631,10 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                     String dictLabel = node.getLabel();
                     String extId = contextItem.getExtValueId();
                     String description = contextItem.getValueDisplay();
-                    BiologyInfo bi = new BiologyInfo(dictLabel, Integer.parseInt(dictId), extId, null, description);
+                    String extRef = null;
+                    if (node.getExternalUrl() != null && extId != null)
+                        extRef = node.getExternalUrl()+extId;
+                    BiologyInfo bi = new BiologyInfo(dictLabel, Integer.parseInt(dictId), extId, extRef, description);
                     bioInfo.add(bi);
                 }
             }
