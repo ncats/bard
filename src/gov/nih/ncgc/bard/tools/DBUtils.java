@@ -63,7 +63,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
-
+import java.util.PriorityQueue;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
@@ -103,12 +106,16 @@ public class DBUtils {
                                MAX_CACHE_SIZE,
                                false, // overflowToDisk
                                false, // eternal (never expire)
-                               24*60*60, // time to live (seconds)
-                               24*60*60 // time to idle (seconds)
+                               2*60*60, // time to live (seconds)
+                               2*60*60 // time to idle (seconds)
                                );
             cacheManager.addCacheIfAbsent(cache);
             cache.setStatisticsEnabled(true);
         }
+        else {
+            cache.removeAll();
+        }
+
         return cache;
     }
     
@@ -149,16 +156,66 @@ public class DBUtils {
 	cacheFlushManager.shutdown();
     }
 
-    
-    static private String datasourceContext = "jdbc/bardman3";
-    static public void setDataSourceContext (String context) {
-        if (context == null) {
-            throw new IllegalArgumentException ("Can't set null context!");
-        }
-        datasourceContext = context;
-    }
-    static public String getDataSourceContext () { return datasourceContext; }
+    static class DataSourceContext implements Comparable<DataSourceContext> {
+        String name;
+        DataSource ds;
+        AtomicLong refs = new AtomicLong ();
+        boolean writable;
 
+        DataSourceContext (String name, DataSource ds) {
+            this (name, ds, false);
+        }
+
+        DataSourceContext (String name, DataSource ds, boolean writable) {
+            this.name = name;
+            if (ds == null) {
+                throw new IllegalArgumentException ("DataSource is null");
+            }
+            this.ds = ds;
+            this.writable = writable;
+        }
+
+        public String getName () { return name; }
+        public DataSource getDataSource () { return ds; }
+        public boolean isWritable () { return writable; }
+        public Connection getConnection () throws SQLException {
+            Connection con = ds.getConnection();
+            con.setAutoCommit(false);
+            con.setClientInfo("ApplicationName", "DBUtils");
+            con.setClientInfo("ClientUser", name);
+            refs.incrementAndGet();
+            return con;
+        }
+
+        public long getRefs () { return refs.get(); }
+        public int compareTo (DataSourceContext dsc) {
+            return (int)(refs.get() - dsc.getRefs());
+        }
+
+        public String toString () { 
+            return getClass()+"{"+name+":"+refs.get()+"}"; 
+        }
+    }
+
+    static private List<DataSourceContext> 
+        _resources = new ArrayList<DataSourceContext>();
+
+    static synchronized public void setDataSources (String... sources) {
+        _resources.clear();
+        boolean first = true;
+        for (String s : sources) {
+            DataSource ds = getDataSource (s);
+            if (ds != null) {
+                // the first resource is assumed writable!
+                _resources.add(new DataSourceContext (s, ds, first));
+            }
+            first = false;
+        }
+    }
+
+    static public List<DataSourceContext> getDataSources () { 
+        return _resources; 
+    }
 
     <T> T getCacheValue (Cache cache, Object key) {
         Element el = cache.get(key);
@@ -168,9 +225,7 @@ public class DBUtils {
         return null;
     }
 
-
     static Logger log;
-//    Connection conn = null;
     Map<Class, Query> fieldMap;
     SecureRandom rand = new SecureRandom();
 
@@ -241,7 +296,6 @@ public class DBUtils {
             put(ETag.class, new Query(etagFields, "etag_id", null, "etag", "status=1"));
         }};
 
-//        conn = getConnection();
     }
 
     /**
@@ -249,45 +303,59 @@ public class DBUtils {
      *
      * @return <code>true</code> if there is a valid connection to the database, otherwise false
      */
-//    public boolean ready() {
-//        return conn != null;
-//    }
-//
-    public void closeConnection() throws SQLException {
-//        if (conn != null && !conn.isClosed())
-//            conn.close();
+    public boolean ready() {
+        return !getDataSources().isEmpty();
     }
 
-    private Connection getConnection() {
+    public void closeConnection() throws SQLException {
+    }
+
+    private Connection getConnection () {
+        return getConnection (false);
+    }
+
+    private synchronized Connection getConnection (boolean writable) {
+        PriorityQueue<DataSourceContext> order = 
+            new PriorityQueue<DataSourceContext> (getDataSources ());
+
+        for (Iterator<DataSourceContext> it = order.iterator(); 
+             it.hasNext();) {
+            DataSourceContext ctx = it.next();
+            try {
+                if (writable == ctx.isWritable())
+                    return ctx.getConnection();
+            }
+            catch (Exception ex) {
+                ex.printStackTrace();
+                log.warn("Can't get connection from "+ctx.getName()+"!");
+            }
+        }
+
+        return null;
+    }
+
+    static private DataSource getDataSource (String jndi) {
         javax.naming.Context initContext;
-        Connection con = null;
         try {
             initContext = new javax.naming.InitialContext();
-            DataSource ds = (javax.sql.DataSource)
-                initContext.lookup("java:comp/env/"+getDataSourceContext ());
-            con = ds.getConnection();
-            con.setAutoCommit(false);
+            return (DataSource)initContext.lookup("java:comp/env/"+jndi);
         }
         catch (Exception ex) {
-            log.info(ex.toString());
+            //log.info(ex.toString());
             // try 
             try {
                 initContext = new javax.naming.InitialContext();
-                DataSource ds = (javax.sql.DataSource)
-                    initContext.lookup(getDataSourceContext ());
-                con = ds.getConnection();
-                con.setAutoCommit(false);
-            } catch (Exception e) {
-                System.err.println("Not running in Tomcat/Jetty/Glassfish or other app container?");
+                return (DataSource)initContext.lookup(jndi);
+            } 
+            catch (Exception e) {
+                System.err.println("Can't initialize resource "+jndi
+                                   +"; not running in Tomcat/Jetty/Glassfish "
+                                   +"or other app container?");
                 e.printStackTrace();
             }
         }
-        return con;
+        return null;
     }
-
-//    protected void setConnection(Connection conn) {
-//        this.conn = conn;
-//    }
 
     private String readFromClob(Reader reader) throws IOException {
         StringBuilder sb = new StringBuilder();
@@ -791,7 +859,7 @@ public class DBUtils {
             throw new IllegalArgumentException("Please specify the class!");
         }
 
-        Connection conn = getConnection();
+        Connection conn = getConnection (true); // master 
         PreparedStatement pst = conn.prepareStatement
             ("insert into etag(etag_id,name,type,created,modified,url) "
              + "values (?,?,?,?,?,?)");
@@ -843,7 +911,8 @@ public class DBUtils {
 
     public int createETagLinks(String etag, String... parents)
         throws SQLException {
-        Connection conn = getConnection();
+
+        Connection conn = getConnection (true);
         PreparedStatement pst = conn.prepareStatement
             ("insert into etag_link(etag_id, parent_id) values (?,?)");
         int links = 0;
@@ -871,7 +940,8 @@ public class DBUtils {
     }
     public int putETag (String etag, String name,  Long... ids) throws SQLException {
         int cnt = 0;
-        Connection conn = getConnection();
+
+        Connection conn = getConnection (true);
         PreparedStatement pst = conn.prepareStatement
             ("select a.*,count(*) as size from etag a left join etag_data b "
              +"on a.etag_id = b.etag_id where a.etag_id = ? "
@@ -916,6 +986,7 @@ public class DBUtils {
                             ++cnt;
                         }
                     } catch (SQLException ex) {
+                        log.warn("** "+id+": "+ex.getMessage());
                         // ignore dups...
                     }
                 }
@@ -943,7 +1014,7 @@ public class DBUtils {
 
     public void touchETag(String etag) throws SQLException {
         PreparedStatement pst = null;
-        Connection conn = getConnection();
+        Connection conn = getConnection (true);
 
         try {
             pst = conn.prepareStatement
@@ -1646,7 +1717,6 @@ public class DBUtils {
         catch (ClassCastException ex) {}
 
         Connection conn = getConnection();
-
 
         StringBuffer sb = new StringBuffer();
         String delim = "";

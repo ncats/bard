@@ -365,6 +365,9 @@ public class BARDCompoundResource extends BARDResource<Compound> {
             if (countRequested) return Response.ok(String.valueOf(c.size()), MediaType.TEXT_PLAIN).build();
 
             Long[] ids = new Long[c.size()];
+            for (int i = 0; i < c.size(); ++i) {
+                ids[i] = c.get(i).getCid();
+            }
             EntityTag etag = newETag(db, ids);
 
             if (mediaTypes.contains(BARDConstants.MIME_SMILES)) {
