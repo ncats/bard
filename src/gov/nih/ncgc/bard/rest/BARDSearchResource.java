@@ -82,6 +82,7 @@ public class BARDSearchResource implements IBARDResource {
         return servletContext.getInitParameter("core-name-" + entity);
     }
 
+    /*
     protected static boolean init = false;
 
     @PostConstruct
@@ -95,6 +96,7 @@ public class BARDSearchResource implements IBARDResource {
             init = true;
         }
     }
+    */
 
     @GET
     @Produces("text/plain")

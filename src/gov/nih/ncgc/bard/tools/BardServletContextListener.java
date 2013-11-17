@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.tools;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -13,13 +16,18 @@ import java.net.UnknownHostException;
  * @author braistedjc
  */
 public class BardServletContextListener implements ServletContextListener {
+    static final Logger logger =
+        Logger.getLogger(BardServletContextListener.class.getName());
+
 
     @Override
     public void contextInitialized(ServletContextEvent contextEvent) {
+        logger.info("#### Initializing BARD servlet context");
+        initContext (contextEvent.getServletContext());
+
         String sym = System.getProperty("initHazelcast");
         boolean initHazelcast = true;
         if (sym != null) initHazelcast = sym.toLowerCase().equals("true");
-
 
         // initialize cache management parameters
         if (initHazelcast) {
@@ -45,8 +53,38 @@ public class BardServletContextListener implements ServletContextListener {
         // additional initialization can go here ...
     }
 
+    void initContext (ServletContext servletContext) {
+        String value = servletContext.getInitParameter("datasource-selector");
+        logger.info("## datasource-selector: "+value);
+
+        String[] sources = null;
+        if (value != null) {
+            String selector = servletContext.getInitParameter(value);
+            logger.info("## "+value+": "+selector);
+            if (selector != null) {
+                sources = selector.split(",");
+                DBUtils.setDataSources(sources);
+            }
+        }
+
+        if (sources == null) {
+            String ctx = servletContext.getInitParameter("datasource-context");
+            logger.info("## datasource context: "+ctx);
+            if (ctx != null) {
+                DBUtils.setDataSources(ctx);
+            }
+            else {
+                logger.log(Level.SEVERE, 
+                           "***** NO BARD DATA SOURCES SPECIFIED; "
+                           +"NOTHING WILL WORK! ******");
+            }
+        }
+    }
+
     @Override
     public void contextDestroyed(ServletContextEvent arg0) {
+        logger.info("##### Destroying BARD servlet context");
+
         //closes the cache manger
         DBUtils.shutdownCacheFlushManager();
         DBUtils.flushCachePrefixNames = null;
