@@ -148,7 +148,7 @@ public class BardDBUtil {
 		long tempTableSize = BardDBUtil.getTableRowCount(tempTableName);
 		long prodTableSize = BardDBUtil.getTableRowCount(prodTableName);
 		double sizeDelta = (double)tempTableSize/(double)prodTableSize;
-		if(sizeDelta > delta) {
+		if(sizeDelta >= delta) {
 			Statement stmt = conn.createStatement();
 			stmt.execute("alter table "+prodTableName+" rename "+prodTableName+"_swap");
 			stmt.execute("alter table "+tempTableName+" rename "+prodTableName);
@@ -168,7 +168,7 @@ public class BardDBUtil {
 		long tempTableSize = BardDBUtil.getTableRowCount(tempTableName);
 		long prodTableSize = BardDBUtil.getTableRowCount(prodTableName);
 		double sizeDelta = (double)tempTableSize/(double)prodTableSize;
-		if(sizeDelta > delta) {
+		if(sizeDelta >= delta) {
 			Statement stmt = conn.createStatement();
 			stmt.execute("alter table "+prodTableName+" rename "+prodTableName+"_swap");
 			stmt.execute("alter table "+tempTableName+" rename "+prodTableName);
@@ -188,7 +188,7 @@ public class BardDBUtil {
 		long tempTableSize = BardDBUtil.getTableRowCount(tempTableName, dbURL);
 		long prodTableSize = BardDBUtil.getTableRowCount(prodTableName, dbURL);
 		double sizeDelta = (double)tempTableSize/(double)prodTableSize;
-		if(sizeDelta > delta) {
+		if(sizeDelta >= delta) {
 			Statement stmt = conn.createStatement();
 			stmt.execute("alter table "+prodTableName+" rename "+prodTableName+"_swap");
 			stmt.execute("alter table "+tempTableName+" rename "+prodTableName);
