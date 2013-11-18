@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 
 /**
  * A base class for all REST resource class.
@@ -67,31 +69,7 @@ public abstract class BARDResource<T extends BardEntity>
     protected String jsonpMethodName = null;
     protected List<EntityTag> etagsRequested = new ArrayList<EntityTag>();
 
-    protected static boolean init = false;
-
     protected BARDResource () {
-    }
-
-    synchronized void init () {
-        if (!init) {
-            String ctx = servletContext.getInitParameter("datasource-context");
-            if (ctx != null) {
-                logger.info("## datasource context: "+ctx);
-                DBUtils.setDataSourceContext(ctx);
-            }            
-            init = true;
-
-//            // initialize cache management parameters
-//            ctx = servletContext.getInitParameter("cache-management-cache-prefix-list");
-//            String cacheMgrNodes = servletContext.getInitParameter("cache-manager-cluster-nodes");
-//            if(ctx != null && cacheMgrNodes != null) {
-//        	DBUtils.initializeManagedCaches(ctx, cacheMgrNodes);
-//        	logger.info("Initialize Cache Management cache prefix list="+ctx);
-//            } else {
-//        	logger.warning("Could not initialize cache management. NULL init parameters.");
-//            }
-            
-        }
     }
 
     public static void setDb(DBUtils db) {
@@ -100,8 +78,6 @@ public abstract class BARDResource<T extends BardEntity>
 
     @PostConstruct
     protected void postConstruct() {
-        init ();
-
         countRequested = Util.countRequested(headers);
         List<String> etags = headers.getRequestHeader(HttpHeaders.IF_MATCH);
         if (etags != null) {

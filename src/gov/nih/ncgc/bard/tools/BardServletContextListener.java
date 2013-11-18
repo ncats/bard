@@ -1,5 +1,8 @@
 package gov.nih.ncgc.bard.tools;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import gov.nih.ncgc.bard.rest.BARDResource;
 import gov.nih.ncgc.bard.search.SolrSearch;
 
@@ -17,10 +20,15 @@ import java.sql.SQLException;
  * @author braistedjc
  */
 public class BardServletContextListener implements ServletContextListener {
+    static final Logger logger =
+            Logger.getLogger(BardServletContextListener.class.getName());
+
     DBUtils db;
 
     @Override
     public void contextInitialized(ServletContextEvent contextEvent) {
+        initContext (contextEvent.getServletContext());
+
         db = new DBUtils();
         BARDResource.setDb(db);
         SolrSearch.setDb(db);
@@ -52,6 +60,27 @@ public class BardServletContextListener implements ServletContextListener {
         }
 
         // additional initialization can go here ...
+    }
+
+    void initContext (ServletContext servletContext) {
+        String value = servletContext.getInitParameter("datasource-selector");
+        logger.info("## datasource-selector: "+value);
+
+        if (value != null) {
+            String selector = servletContext.getInitParameter(value);
+            logger.info("## "+value+": "+selector);
+            if (selector != null) {
+                String[] sources = selector.split(",");
+                DBUtils.setDataSources(sources);
+            }
+        }
+        else {
+            String ctx = servletContext.getInitParameter("datasource-context");
+            logger.info("## datasource context: "+ctx);
+            if (ctx != null) {
+                DBUtils.setDataSources(ctx);
+            }            
+        }
     }
 
     @Override

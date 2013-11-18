@@ -37,10 +37,21 @@
         <param-value>/core-experiment-v14/</param-value>
     </context-param>
 
-
     <context-param>
         <param-name>datasource-context</param-name>
         <param-value>jdbc/bardman</param-value>
+    </context-param>
+
+    <!-- the first datasource is the master; all subsequent ones are slave -->
+    <context-param>
+        <param-name>datasource-cluster</param-name>
+        <param-value>jdbc/bardman3,jdbc/bard3_faraday,jdbc/bard3_tesla,jdbc/bard3_coulomb</param-value> 
+    </context-param>
+
+    <!-- specify which datasource to use -->
+    <context-param>
+        <param-name>datasource-selector</param-name>
+        <param-value>datasource-cluster</param-value>
     </context-param>
 
     <context-param>
