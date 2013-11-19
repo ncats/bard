@@ -279,6 +279,7 @@ public class BardResultFactory {
 	
 	//get the priority elements
 	List <BardResultType> priElems = findCAPPriorityElementsAndDisconnect(priorityTuples, resultList);
+	
 	//add them to the priority element list
 	response.getPriorityElements().addAll(priElems);
 	//remove them from the root element list if they are root elements, else they are already disconnected.
@@ -289,7 +290,6 @@ public class BardResultFactory {
 	
 	//one last crack at response class now that we have priority elements, only run this once
 	if(processCnt == 0 && response.getResponseType() == BardExptDataResponse.ResponseClass.UNCLASS.ordinal()) {
-	    //log.info("HEY!!! Setting response class for "+response.getCapExptId());
 	    boolean haveResponseClass = false;
 	    for(BardResultType res : priElems) {
 		if(!haveResponseClass && res.getConcResponseSeries() != null) {
@@ -443,10 +443,7 @@ public class BardResultFactory {
 	boolean haveXX50 = false;
 	concentrations = new HashSet <Double>();
 	for(BardResultType result : resultList) {
-	    if(haveConcResponse(result)) {
-		
-		log.info("HEYYYYY HAVE concResponse TYPE!!!!!!");
-		
+	    if(haveConcResponse(result)) {		
 		//have a series, is the series in a root element
 		//could check but the root might be a mean XX50 measurement		
 		response.setResponseType(BardExptDataResponse.ResponseClass.CR_SER.ordinal());	
@@ -634,7 +631,6 @@ public class BardResultFactory {
 	if(bardResultType.getChildElements() == null || bardResultType.getChildElements().size() < 1)
 	    return false;
 
-	//log.info("HEYYY Still don't know type/class 1");
 	rootDictElemId = bardResultType.getDictElemId();
 
 	//special case, activity response elements with children are mean values of their child elements
@@ -933,8 +929,11 @@ public class BardResultFactory {
 	    System.out.println("Dictionary is reconstituted, size="+dict2.getNodes().size());
 	    
 	    for(CAPDictionaryElement elem : dict2.getNodes()) {
-		if(elem.getLink() != null && elem.getLink().size() > 1) {
-		    System.out.println("num links = "+elem.getLink().size());
+//		if(elem.getLink() != null && elem.getLink().size() > 1) {
+//		    System.out.println("num links = "+elem.getLink().size());
+//		}
+		if(elem.getExternalUrl() != null) {
+		    System.out.println("Node id: "+elem.getElementId()+" has extUrl: "+elem.getExternalUrl());
 		}
 	    }
 	    
@@ -1038,7 +1037,6 @@ public class BardResultFactory {
     }
     
     public List<BardResultType> findCAPPriorityElementsAndDisconnect(List <ResultTuple> priorityTuples, List <BardResultType> resultList) {
-	//log.info("@@@@@@@@@@Finding cap cap pri elem, exptMeasure tuples:"+priorityTuples.size()+" resultList:"+resultList.size());
 	ArrayList<BardResultType> foundPriorityElements = new ArrayList<BardResultType>();
 	for(ResultTuple priTuple : priorityTuples) {
 	    for(BardResultType result : resultList) {
@@ -1053,7 +1051,6 @@ public class BardResultFactory {
 		}
 	    }
 	}
-	//log.info("@@@@@@@@@@Found priority elems:"+foundPriorityElements.size());
 	return foundPriorityElements;
     }
 
@@ -1086,6 +1083,10 @@ public class BardResultFactory {
 	tuples.addAll(concEndpointTuples);
 	tuples.addAll(logConcEndpointTuples);
 	tuples.addAll(otherTuples);
+	
+	for(ResultTuple tuple : tuples) {
+	    log.info("Sort Priority Tuples, dictid:"+tuple.getDictId());
+	}
     }
     
     

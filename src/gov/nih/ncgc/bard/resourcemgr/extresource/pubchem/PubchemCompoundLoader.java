@@ -7,6 +7,7 @@ import gov.nih.ncgc.bard.resourcemgr.BardDBUtil;
 import gov.nih.ncgc.bard.resourcemgr.BardExtResourceLoader;
 import gov.nih.ncgc.bard.resourcemgr.BardExternalResource;
 import gov.nih.ncgc.bard.resourcemgr.IBardExtResourceLoader;
+import gov.nih.ncgc.bard.resourcemgr.precomp.BardCompoundTestStatsWorker;
 import gov.nih.ncgc.util.MolFpFactory;
 
 import java.io.BufferedReader;
@@ -148,23 +149,30 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 	    e.printStackTrace();
 	}
 	
-	if(!haveFiles) {
-	    log.info("FAILED TO UPDATE RESOURCE FILES: ABORT");
-	    return false;
-	}
+
 	
 	//kick off the batch loading process
 	String commandKey = service.getServiceKey();
 	boolean loaded = false;
-	if(commandKey.contains(SERVICE_KEY_FULL_LOAD)) {
-	    //full load into temp tables.
-	    batchLoadCompounds(service.getLocalResPath(), service.getDbURL());
-	    loaded = true;
+
+	if(haveFiles) {
+	    if(commandKey.contains(SERVICE_KEY_FULL_LOAD)) {
+		//full load into temp tables.
+		batchLoadCompounds(service.getLocalResPath(), service.getDbURL());
+		loaded = true;
+	    } else {
+		batchReplaceCompounds();
+		loaded = true;
+	    }
 	} else {
-	    batchReplaceCompounds();
-	    loaded = true;
+	    log.info("FAILED TO UPDATE RESOURCE FILES: ABORT");
 	}
-	
+
+	log.info("Calling to update compound test status.");
+	//after compound upload, refresh testing results
+	BardCompoundTestStatsWorker statWorker = new BardCompoundTestStatsWorker();
+	statWorker.updateCompoundTestStatus(service.getDbURL());
+	log.info("Finished test status update.");
 	return loaded;
     }
 
@@ -1206,7 +1214,7 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 		for(int i = 0; i < fpArr.length; i++) {
 		    long longVal;
 		    longVal = (convertToUnsignedInt((fpArr[i])));
-		    System.out.print(longVal+"\t");		
+		    //System.out.print(longVal+"\t");		
 		}
 	    }
 	} catch (Exception e) {
@@ -1216,7 +1224,6 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 
     public static long convertToUnsignedInt(int input) {  
 	return input & 0xFFFFFFFFL;  
-
     } 
 
     public boolean updateCompoundCreateDate(Properties loaderProps) {
