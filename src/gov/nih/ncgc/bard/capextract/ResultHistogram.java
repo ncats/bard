@@ -24,6 +24,10 @@ public class ResultHistogram {
     }
 
     public void generateHistogram(Long bardExptId) throws SQLException {
+        generateHistogram(bardExptId, false);
+    }
+
+    public void generateHistogram(Long bardExptId, boolean useLog) throws SQLException {
         currentEid = bardExptId;
         Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
 
@@ -44,7 +48,10 @@ public class ResultHistogram {
             pst.setString(2, resultType);
             rs = pst.executeQuery();
             List<Float> values = new ArrayList<Float>();
-            while (rs.next()) values.add(rs.getFloat(1));
+            while (rs.next()) {
+                if (useLog) values.add( (float) Math.log10(rs.getFloat(1)));
+                else values.add(rs.getFloat(1));
+            }
             rs.close();
             pst.close();
 
