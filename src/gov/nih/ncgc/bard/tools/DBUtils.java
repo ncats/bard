@@ -317,8 +317,25 @@ public class DBUtils {
     }
 
     private synchronized Connection getConnection (boolean writable) {
+        List<DataSourceContext> sources = getDataSources ();
+        if (sources.isEmpty()) {
+            throw new IllegalStateException ("No data sources set!");
+        }
+
+        if (sources.size() == 1) {
+            DataSourceContext ctx = sources.iterator().next();
+            try {
+                return ctx.getConnection();
+            }
+            catch (Exception ex) {
+                ex.printStackTrace();
+                log.warn("Can't get connection from "+ctx.getName()+"!");
+            }
+            return null;
+        }
+
         PriorityQueue<DataSourceContext> order = 
-            new PriorityQueue<DataSourceContext> (getDataSources ());
+            new PriorityQueue<DataSourceContext> ();
 
         for (Iterator<DataSourceContext> it = order.iterator(); 
              it.hasNext();) {
