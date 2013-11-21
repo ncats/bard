@@ -25,6 +25,7 @@ public class ResultHistogram {
     }
 
     public void generateHistogram(Long bardExptId) throws SQLException {
+        boolean useLog = false;
         currentEid = bardExptId;
         Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
 
@@ -56,8 +57,9 @@ public class ResultHistogram {
             double statistic = NormalityTest.anderson_darling_statistic(vals);
             double pvalue = NormalityTest.anderson_darling_pvalue(statistic, vals.length);
             if (Double.isNaN(pvalue) || pvalue < 0.05) {  // log10 data is normal, so replace original values with the log10 values
-                log.info("BARD experiment id "+bardExptId+"/"+resultType+" is log normal. Histogramming log10 values");
+                log.info("BARD experiment id " + bardExptId + "/" + resultType + " is log normal. Histogramming log10 values");
                 for (int i = 0; i < values.size(); i++) values.set(i, (float) vals[i]);
+                useLog = true;
             }
 
             List<HBin> bins = calculateHistogram(values);
@@ -74,8 +76,13 @@ public class ResultHistogram {
             for (HBin bin : bins) {
                 pst.setLong(1, bardExptId);
                 pst.setString(2, resultType);
-                pst.setFloat(3, bin.l);
-                pst.setFloat(4, bin.u);
+                if (useLog) {
+                    pst.setFloat(3, (float) Math.pow(10, bin.l));
+                    pst.setFloat(4, (float) Math.pow(10, bin.u));
+                } else {
+                    pst.setFloat(3, bin.l);
+                    pst.setFloat(4, bin.u);
+                }
                 pst.setInt(5, bin.c);
                 pst.executeUpdate();
                 pst.clearParameters();
