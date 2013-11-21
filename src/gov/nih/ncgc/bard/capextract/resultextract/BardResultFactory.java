@@ -1047,7 +1047,7 @@ public class BardResultFactory {
 			result.getParentElement().removeChildElement(result);  //disconnect
 			result.setParentElement(null); //disconnect in both directions
 		    }
-		    break; //found it, check for others.
+		    //break; JCB:Don't break and look for more of these 11.18.2013 policy change //found it, check for others.
 		}
 	    }
 	}

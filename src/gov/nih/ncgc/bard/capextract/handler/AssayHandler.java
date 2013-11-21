@@ -457,7 +457,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
             BigInteger panelId;
             String panelName, panelDescription;
             PreparedStatement ps = conn.prepareStatement("replace into bard_panel_assay (panel_id, bard_assay_id, panel_name, panel_desc) values (?,?,?,?)");
-            if(panels != null) {        	
+            if(panels != null) {        
         	for(Assay.Panels.Panel panel : panels.getPanel()) {
         	    panelId = panel.getId();
         	    panelName = panel.getName();

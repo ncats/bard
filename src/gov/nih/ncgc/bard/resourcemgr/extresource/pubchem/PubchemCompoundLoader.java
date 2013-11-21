@@ -168,11 +168,15 @@ public class PubchemCompoundLoader extends BardExtResourceLoader implements IBar
 	    log.info("FAILED TO UPDATE RESOURCE FILES: ABORT");
 	}
 
-	log.info("Calling to update compound test status.");
+	log.info("NOT Calling to update compound test status!!! Rework pending...");
+	
+	
+	// rework stats worker for low impact selects.
+	
 	//after compound upload, refresh testing results
-	BardCompoundTestStatsWorker statWorker = new BardCompoundTestStatsWorker();
-	statWorker.updateCompoundTestStatus(service.getDbURL());
-	log.info("Finished test status update.");
+//	BardCompoundTestStatsWorker statWorker = new BardCompoundTestStatsWorker();
+//	statWorker.updateCompoundTestStatus(service.getDbURL());
+//	log.info("Finished test status update.");
 	return loaded;
     }
 
