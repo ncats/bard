@@ -180,8 +180,8 @@ public class DBUtils {
         public Connection getConnection () throws SQLException {
             Connection con = ds.getConnection();
             con.setAutoCommit(false);
-            con.setClientInfo("ApplicationName", "DBUtils");
-            con.setClientInfo("ClientUser", name);
+//            con.setClientInfo("ApplicationName", "DBUtils");
+//            con.setClientInfo("ClientUser", name);
             refs.incrementAndGet();
             return con;
         }
