@@ -285,17 +285,27 @@ public class BARDCompoundResource extends BARDResource<Compound> {
 //                List<Long> cids = handler.getCids();
             if (expandEntries) {
                 List<Compound> cs = db.getCompoundsByCid(ids);
+                // FIXME: this is a hack to get only unique results!!!
+                List<Compound> ret = new ArrayList<Compound>();
+                Set<Long> unique = new HashSet<Long>();
                 for (Compound c : cs) {
-                    String hl = highlights.get(c.getCid());
-                    c.setHighlight(hl);
+                    if (unique.add(c.getCid())) {
+                        String hl = highlights.get(c.getCid());
+                        c.setHighlight(hl);
+                        ret.add(c);
+                    }
                 }
-                response = Response.ok(Util.toJson(cs), MediaType.APPLICATION_JSON).tag(etag).build();
+                response = Response.ok(Util.toJson(ret), MediaType.APPLICATION_JSON).tag(etag).build();
             } else {
                 List<String> paths = new ArrayList<String>();
+                // FIXME:
+                Set<Long> unique = new HashSet<Long>();
                 for (Long cid : cids) {
-                    Compound c = new Compound();
-                    c.setCid(cid);
-                    paths.add(c.getResourcePath());
+                    if (unique.add(cid)) {
+                        Compound c = new Compound();
+                        c.setCid(cid);
+                        paths.add(c.getResourcePath());
+                    }
                 }
                 String json = Util.toJson(paths);
                 response = Response.ok(json, MediaType.APPLICATION_JSON).header("content-length", json.length()).tag(etag).build();
