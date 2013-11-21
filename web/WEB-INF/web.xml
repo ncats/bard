@@ -58,6 +58,11 @@
         <param-name>cache-management-cache-prefix-list</param-name>
         <param-value>Assay,Experiment,Project,Biology,CompoundAnnotationCache,Ent,Panther,Probe,Protein,Pub,SearchAssay,SearchForEnt,SearchForExpt,Targets,CAPDictionary,CompoundData,SubstanceData,SubstanceExperiment,Compound,Subst</param-value>
     </context-param>
+
+    <context-param>
+        <param-name>initHazelcast</param-name>
+        <param-value>true</param-value>
+    </context-param>
                  
     <!-- Hazelcast cluster for Glassfish4 cluster: rayleigh, boltzmann, and gauss 
     <context-param>

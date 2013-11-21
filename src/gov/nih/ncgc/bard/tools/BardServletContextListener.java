@@ -1,8 +1,5 @@
 package gov.nih.ncgc.bard.tools;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import gov.nih.ncgc.bard.rest.BARDResource;
 import gov.nih.ncgc.bard.search.SolrSearch;
 
@@ -12,6 +9,7 @@ import javax.servlet.ServletContextListener;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
+import java.util.logging.Logger;
 
 /**
  * This class is specified in the container configuration file (web.xml) as a registered listener.
@@ -34,7 +32,7 @@ public class BardServletContextListener implements ServletContextListener {
         SolrSearch.setDb(db);
 
         // should we initialize cache mgmt at all?
-        String sym = System.getProperty("initHazelcast");
+        String sym = contextEvent.getServletContext().getInitParameter("initHazelcast");
         boolean initHazelcast = true;
         if (sym != null) initHazelcast = sym.toLowerCase().equals("true");
 
