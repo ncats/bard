@@ -61,12 +61,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
-import java.util.PriorityQueue;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 
@@ -2574,8 +2572,8 @@ public class DBUtils {
         a.setAssayType(rs.getString("assay_type"));
         a.setScore(rs.getFloat("score"));
 
-        if (!a.getAssayStatus().equals("Approved"))
-            a.setStatusWarning("THIS IS PREVIEW DATA that has not been curated yet, and may be revised or deprecated without notice. PLEASE USE WITH CAUTION");
+//        if (!a.getAssayStatus().equals("Approved"))
+//            a.setStatusWarning("THIS IS PREVIEW DATA that has not been curated yet, and may be revised or deprecated without notice. PLEASE USE WITH CAUTION");
 
         List<Long> pmids = new ArrayList<Long>();
         for (Publication pub : getAssayPublications(bardAssayId)) pmids.add(pub.getPubmedId());

@@ -6,7 +6,7 @@ import gov.nih.ncgc.bard.resourcemgr.extresource.pubchem.BardCompoundPubchemExtr
 import gov.nih.ncgc.bard.resourcemgr.extresource.pubchem.PubchemSubstanceLoader;
 import gov.nih.ncgc.bard.resourcemgr.extresource.pubchem.PubchemCompoundLoader;
 import gov.nih.ncgc.bard.resourcemgr.extresource.uniprot.BardUniprotProteinTargetLoader;
-import gov.nih.ncgc.bard.resourcemgr.precomp.BardCompoundTestStatusUpdater;
+import gov.nih.ncgc.bard.resourcemgr.precomp.BardCompoundTestStatsWorker;
 import gov.nih.ncgc.bard.resourcemgr.util.BardResourceFetch;
 
 import java.io.FileNotFoundException;
@@ -329,11 +329,11 @@ public class BardDBManager {
 		BardDBUpdateLogger.logEnd(dbLogId, 1, "ERROR: FAILED File Fetch for CID-SID mapping update.");
 	    }			
 	} else if(command.equals(COMPOUND_TEST_STATUS_UPDATE_COMMAND)) {
-	    String dbURL = managerProps.getProperty("bard.db.connection.url");
-	    dbLogId = BardDBUpdateLogger.logStart("Begin Update Command= "+command, dbURL);
-	    BardCompoundTestStatusUpdater compoundTestWorker = new BardCompoundTestStatusUpdater();
-	    compoundTestWorker.updateCompoundTestStatus(managerProps);
-	    BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished Compound Test Status Update", dbURL);
+//	    String dbURL = managerProps.getProperty("bard.db.connection.url");
+//	    dbLogId = BardDBUpdateLogger.logStart("Begin Update Command= "+command, dbURL);
+//	    BardCompoundTestStatsWorker compoundTestWorker = new BardCompoundTestStatsWorker();
+//	    compoundTestWorker.updateCompoundTestStatus(managerProps);
+//	    BardDBUpdateLogger.logEnd(dbLogId, 0, "Finished Compound Test Status Update", dbURL);
 	} else if (command.equals(COMPOUND_RANK_UPDATE_COMMAND)) {
 
 	    dbLogId = BardDBUpdateLogger.logStart("Begin Update Command= "+command);

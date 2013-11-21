@@ -360,6 +360,9 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 deletePst.close();
                 // now load in the new stuff
                 List<BiologyInfo> bi = extractBiology(assayContexts.getAssayContext());
+
+                log.info("Extracted Biology for cap assay "+capAssayId+" have "+bi.size()+" biologies.");
+
                 PreparedStatement pstTarget =
                         conn.prepareStatement("insert into bard_biology (biology, biology_dict_id, biology_dict_label, description, entity, entity_id, ext_id, ext_ref) " +
                                 " values (?,?,?,?,?,?,?,?)");
@@ -586,7 +589,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 
     List<BiologyInfo> extractBiology(List<AssayContexType> contexts) throws ClassNotFoundException, IOException, SQLException {
         CAPDictionary dict = CAPUtil.getCAPDictionary();
-
+        
         if (contexts == null || contexts.size() == 0) return null;
 
         List<BiologyInfo> bioInfo = new ArrayList<BiologyInfo>();
@@ -627,13 +630,15 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 AbstractContextItemType.AttributeId attrid = contextItem.getAttributeId();
                 String dictId = Util.getEntityIdFromUrl(attrid.getLink().getHref());
                 if (Util.isNumber(dictId) && targetDictIds.contains(Integer.parseInt(dictId))) {
+ 
                     CAPDictionaryElement node = dict.getNode(new BigInteger(dictId));
                     String dictLabel = node.getLabel();
                     String extId = contextItem.getExtValueId();
                     String description = contextItem.getValueDisplay();
                     String extRef = null;
-                    if (node.getExternalUrl() != null && extId != null)
-                        extRef = node.getExternalUrl()+extId;
+                    if (node.getExternalUrl() != null && extId != null) {
+                	extRef = node.getExternalUrl()+extId;
+                    }
                     BiologyInfo bi = new BiologyInfo(dictLabel, Integer.parseInt(dictId), extId, extRef, description);
                     bioInfo.add(bi);
                 }

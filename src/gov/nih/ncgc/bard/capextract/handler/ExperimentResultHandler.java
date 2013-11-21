@@ -621,15 +621,12 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 		//iterate over measures and build corresponding 
 		for(ExperimentMeasure measure : measures) {
 		    if(measure.isPriorityElement()) {
-			System.out.println("Priority Element");
 			ResultTuple resultTuple = makeResultTuple(measure);
 			resultTuples.add(resultTuple);
 			if(!resultTuple.isAtRoot()) {
 			    populateParentInfo(measure, measures, resultTuple);
 			}
-			System.out.println(resultTuple.toString());
 		    }
-		    System.out.println(measure.getExperimentMeasureId()+ " statsmod:"+ measure.getStatsModifierRef() + " is priority element " + measure.isPriorityElement() + " relation " + measure.getParentChildRelationship() + " resultType:" + measure.getResultTypeRef().getLabel() + "(" + Util.getEntityIdFromUrl(measure.getResultTypeRef().getLink().getHref()) + ")");
 		}
 	    }
 	} catch (IOException e) {
@@ -654,9 +651,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 		    if(!resultTuple.isAtRoot()) {
 			populateParentInfo(measure, measures, resultTuple);
 		    }
-		    //System.out.println(resultTuple.toString());
 		}
-		//System.out.println(measure.getExperimentMeasureId()+ " statsmod:"+ measure.getStatsModifierRef() + " is priority element " + measure.isPriorityElement() + " relation " + measure.getParentChildRelationship() + " resultType:" + measure.getResultTypeRef().getLabel() + "(" + Util.getEntityIdFromUrl(measure.getResultTypeRef().getLink().getHref()) + ")");
 	    }
 	}
 	return resultTuples;
