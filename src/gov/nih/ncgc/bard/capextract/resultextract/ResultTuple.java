@@ -1,7 +1,5 @@
 package gov.nih.ncgc.bard.capextract.resultextract;
 
-import org.eclipse.jetty.util.log.Log;
-
 public class ResultTuple {
 
     private Integer dictId;

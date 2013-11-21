@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.capextract;
 
+import jdistlib.disttest.NormalityTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,12 +46,21 @@ public class ResultHistogram {
             pst.setString(2, resultType);
             rs = pst.executeQuery();
             List<Float> values = new ArrayList<Float>();
-            while (rs.next()) {
-                if (useLog) values.add((float) Math.log10(rs.getFloat(1)));
-                else values.add(rs.getFloat(1));
-            }
+            while (rs.next()) values.add(rs.getFloat(1));
             rs.close();
             pst.close();
+
+            // get the log10 version of the values
+            double[] vals = new double[values.size()];
+            for (int i = 0; i < values.size(); i++) vals[i] = Math.log10(values.get(i));
+
+            double statistic = NormalityTest.anderson_darling_statistic(vals);
+            double pvalue = NormalityTest.anderson_darling_pvalue(statistic, vals.length);
+            if (Double.isNaN(pvalue) || pvalue < 0.05) {  // log10 data is normal, so replace original values with the log10 values
+                log.info("BARD experiment id " + bardExptId + "/" + resultType + " is log normal. Histogramming log10 values");
+                for (int i = 0; i < values.size(); i++) values.set(i, (float) vals[i]);
+                useLog = true;
+            }
 
             List<HBin> bins = calculateHistogram(values);
 
@@ -66,8 +76,13 @@ public class ResultHistogram {
             for (HBin bin : bins) {
                 pst.setLong(1, bardExptId);
                 pst.setString(2, resultType);
-                pst.setFloat(3, bin.l);
-                pst.setFloat(4, bin.u);
+                if (useLog) {
+                    pst.setFloat(3, (float) Math.pow(10, bin.l));
+                    pst.setFloat(4, (float) Math.pow(10, bin.u));
+                } else {
+                    pst.setFloat(3, bin.l);
+                    pst.setFloat(4, bin.u);
+                }
                 pst.setInt(5, bin.c);
                 pst.executeUpdate();
                 pst.clearParameters();
@@ -257,13 +272,13 @@ public class ResultHistogram {
 
     public static void main(String[] args) throws SQLException {
         ResultHistogram r = new ResultHistogram();
-        r.generateHistogram(333L);
+        r.generateHistogram(830L);
 
-        Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
-        PreparedStatement pst = conn.prepareStatement("select distinct bard_expt_id from exploded_results");
-        ResultSet rs = pst.executeQuery();
-        while (rs.next()) r.generateHistogram(rs.getLong(1));
-        conn.close();
+//        Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+//        PreparedStatement pst = conn.prepareStatement("select distinct bard_expt_id from exploded_results");
+//        ResultSet rs = pst.executeQuery();
+//        while (rs.next()) r.generateHistogram(rs.getLong(1));
+//        conn.close();
 
     }
 }
