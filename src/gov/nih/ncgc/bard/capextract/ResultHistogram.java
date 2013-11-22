@@ -50,15 +50,21 @@ public class ResultHistogram {
             rs.close();
             pst.close();
 
-            // get the log10 version of the values
-            double[] vals = new double[values.size()];
-            for (int i = 0; i < values.size(); i++) vals[i] = Math.log10(values.get(i));
+            // get the log10 version of the values - we remove
+            // values <= 0 since they would not allow us to
+            // consider the data as a lognormal distribution
+            List<Float> vals = new ArrayList<Float>();
+            for (Float value : values) {
+                if (value > 0) vals.add((float) Math.log10(value));
+            }
+            double[] dvals = new double[vals.size()];
+            for (int i = 0; i < vals.size(); i++) dvals[i] = vals.get(i);
 
-            double statistic = NormalityTest.anderson_darling_statistic(vals);
-            double pvalue = NormalityTest.anderson_darling_pvalue(statistic, vals.length);
-            if (Double.isNaN(pvalue) || pvalue < 0.05) {  // log10 data is normal, so replace original values with the log10 values
-                log.info("BARD experiment id " + bardExptId + "/" + resultType + " is log normal. Histogramming log10 values");
-                for (int i = 0; i < values.size(); i++) values.set(i, (float) vals[i]);
+            double statistic = NormalityTest.anderson_darling_statistic(dvals);
+            double pvalue = NormalityTest.anderson_darling_pvalue(statistic, dvals.length);
+            if (Double.isNaN(pvalue) || pvalue > 0.05) {  // log10 data is normal, so replace original values with the log10 values
+                log.info("BARD experiment id " + bardExptId + "/" + resultType + " is lognormal. Histogramming log10 values");
+                values = vals;
                 useLog = true;
             }
 
@@ -272,7 +278,7 @@ public class ResultHistogram {
 
     public static void main(String[] args) throws SQLException {
         ResultHistogram r = new ResultHistogram();
-        r.generateHistogram(830L);
+        r.generateHistogram(320L);
 
 //        Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
 //        PreparedStatement pst = conn.prepareStatement("select distinct bard_expt_id from exploded_results");
