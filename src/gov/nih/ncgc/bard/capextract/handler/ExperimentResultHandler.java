@@ -953,9 +953,46 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	}
 	
     }
+
+    public void explodeAllHistograms() {
+	try {
+	    Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
+	    Statement stmt = conn.createStatement();
+	    stmt.setFetchSize(Integer.MIN_VALUE); //allow streaming...
+	    ResultSet rs = stmt.executeQuery("select distinct(bardExptId) from exploded_histograms");
+	    ArrayList <Long> exptList = new ArrayList<Long>();
+	    while(rs.next()) {
+		exptList.add(rs.getLong(1));
+	    }
+	    rs.close();
+	    stmt.close();
+	    conn.close();
+	    
+	    for (Long bardExptId : exptList) {
+		log.info("===== Exploding Histogram for Bard Expt ID: "+bardExptId+" =====");
+		this.explodeHistogram(bardExptId);
+	    }
+	} catch (SQLException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	}
+    }
+    
+    public void explodeHistogram(long bardExptId) throws SQLException {
+	ResultHistogram rh = new ResultHistogram();
+	rh.generateHistogram(bardExptId);
+	logger.info("Generated histograms for BARD Experiment "+bardExptId);
+    }
     
     public static void main(String [] args) {
 	ExperimentResultHandler worker = new ExperimentResultHandler();
+	try {
+	    worker.explodeHistogram(320l);
+	    //worker.explodeHistogram(349l);
+	} catch (SQLException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	}
 	long start = System.currentTimeMillis();
 	//worker.fetchPriorityElements(4976l);
 	//worker.getPubchemTIDCount(624024);
@@ -964,9 +1001,9 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 //		"select bard_expt_id from bard_project_experiment where bard_proj_id = 3)",
 //		"C:/Users/braistedjc/Desktop/json_response_samples_max_20131030_PID_879_test.txt");
 	
-	worker.testResultTypes("jdbc:mysql://maxwell.ncats.nih.gov/bard3",
-		"select distinct(bard_expt_id) from bard_experiment",
-		"C:/Users/braistedjc/Desktop/json_response_samples_20131105_All_projects_test_redo_3.txt", "v18");
+//	worker.testResultTypes("jdbc:mysql://maxwell.ncats.nih.gov/bard3",
+//		"select distinct(bard_expt_id) from bard_experiment",
+//		"C:/Users/braistedjc/Desktop/json_response_samples_20131105_All_projects_test_redo_3.txt", "v18");
 	
 	//worker.updateExperimentTestStats("jdbc:mysql://maxwell.ncats.nih.gov/bard3");
 	
