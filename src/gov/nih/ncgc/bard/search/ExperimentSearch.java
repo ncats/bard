@@ -1,5 +1,6 @@
 package gov.nih.ncgc.bard.search;
 
+import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.Project;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
@@ -145,7 +146,8 @@ public class ExperimentSearch extends SolrSearch {
                 for (int i = skip; i < size; i++) {
                     SolrDocument doc = docs.get(i);
                     String bardExptId = (String) doc.getFieldValue(PKEY_EXPERIMENT_DOC);
-                    ret.add(db.getExperimentByExptId(Long.parseLong(bardExptId)));
+                    Experiment e = db.getExperimentByExptId(Long.parseLong(bardExptId));
+                    if (e != null) ret.add(e);
                 }
                 db.closeConnection();
             } catch (SQLException e) {
