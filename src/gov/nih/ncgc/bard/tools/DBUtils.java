@@ -4473,7 +4473,7 @@ public class DBUtils {
         Project p = null;
         Connection conn = getConnection();
         try {
-            PreparedStatement pst = conn.prepareStatement("select a.*, b.name as source_name from bard_project a left join source b on a.depositor_id = b.source_id where a.bard_proj_id = ?");
+            PreparedStatement pst = conn.prepareStatement("select a.*, b.name as source from bard_project a left join source b on a.depositor_id = b.source_id where a.bard_proj_id = ?");
             try {
                 pst.setLong(1, bardProjId);
                 ResultSet rs = pst.executeQuery();
@@ -4483,7 +4483,7 @@ public class DBUtils {
                     p.setDescription(rs.getString("description"));
                     p.setName(rs.getString("name"));
                     p.setDeposited(rs.getDate("deposited"));
-                    p.setSource(rs.getString("source_name"));
+                    p.setSource(rs.getString("source"));
                     p.setCapProjectId(rs.getLong("cap_proj_id"));
                     p.setScore(rs.getFloat("score"));
                     
