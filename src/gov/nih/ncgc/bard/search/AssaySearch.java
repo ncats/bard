@@ -140,7 +140,8 @@ public class AssaySearch extends SolrSearch {
                 for (int i = skip; i < size; i++) {
                     SolrDocument doc = docs.get(i);
                     String assayId = (String) doc.getFieldValue(PKEY_ASSAY_DOC);
-                    ret.add(db.getAssayByAid(Long.parseLong(assayId)));
+                    Assay a = db.getAssayByAid(Long.parseLong(assayId));
+                    if (a != null) ret.add(a);
                 }
                 db.closeConnection();
             } catch (SQLException e) {
