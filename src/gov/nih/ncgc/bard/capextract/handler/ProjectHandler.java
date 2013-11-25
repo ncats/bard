@@ -19,8 +19,11 @@ import gov.nih.ncgc.bard.capextract.jaxb.Project;
 import gov.nih.ncgc.bard.capextract.jaxb.ProjectExperiment;
 import gov.nih.ncgc.bard.capextract.jaxb.ProjectStep;
 import gov.nih.ncgc.bard.entity.Biology;
+import gov.nih.ncgc.bard.search.SearchUtil;
 import gov.nih.ncgc.bard.tools.Util;
 import nu.xom.ParsingException;
+
+import org.apache.solr.client.solrj.SolrServerException;
 import org.w3c.dom.Node;
 
 import javax.xml.bind.JAXBElement;
@@ -835,7 +838,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
     }
 
     private void retireProject(long capProjId) {
-	
+
 	try { 
 	    
 	    //note autocommit is false
@@ -851,7 +854,8 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         	log.warn("RETIRE PROJECT, CAP Project ID:"+capProjId+" Note: Project not present.");
 		return;
 	    }
-	    
+	    rs.close();
+	    	    
 	    //drop project
 	    stmt.executeUpdate("delete from bard_project where bard_proj_id =" + bardProjId);
 	    log.warn("RETIRE PROJECT, CAP Project ID:"+capProjId+" Deleted from bard_project.");
@@ -881,10 +885,33 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 	    //clean up related search indices
 
 	    conn.commit();
-	    conn.close();
+	    conn.close();	    
 	    
 	} catch (SQLException sqle) {
 	    sqle.printStackTrace();
+	}
+	
+	log.info("Retirement Log ("+capProjId+"): Completed DB clean-up for bardProjID: "+bardProjId);
+
+	//clean up related search indices
+	String solrCoreUrl = null;
+	String solrCompoundUrl = null;
+	try {
+	    log.info("Retirement Log ("+capProjId+"): Removing documents from SOLR for bardProjID: "+bardProjId);
+	    solrCoreUrl = CAPConstants.getSolrURL(CAPConstants.SOLR_RESOURCE_KEY_PROJECT);
+	    if(solrCoreUrl != null) {
+		SearchUtil.deleteDocs(solrCoreUrl, Long.toString(bardProjId));
+		log.info("Retirement Log ("+capProjId+"): Issued command to remove documents from SOLR for bardProjID: "+bardProjId+" SOLR URL:"+solrCoreUrl);
+						
+	    } else {
+		log.warn("Retirement Log ("+capProjId+"): FAILED to remove documents from SOLR for bardProjID: "+bardProjId+" SOLR URL: NULL!");	    
+	    }
+	} catch (IOException e) {
+	    log.warn("Retirement Log ("+capProjId+"): IOException removing documents from SOLR for bardProjID: "+bardProjId+" SOLR URL:"+solrCoreUrl);	    	
+	    e.printStackTrace();
+	} catch (SolrServerException e) {
+	    log.warn("Retirement Log ("+capProjId+"): SolrServerException, FAILED to remove documents from SOLR for bardAssayID: "+bardProjId+" SOLR URL:"+solrCoreUrl);	    
+	    e.printStackTrace();
 	}
     }
     

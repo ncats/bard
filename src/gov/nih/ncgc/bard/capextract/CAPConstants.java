@@ -16,6 +16,12 @@ public class CAPConstants {
     public static final String CAP_STATUS_READY = "Ready";
     public static final String CAP_STATUS_STARTED = "Started";
     public static final String CAP_STATUS_COMPLETE = "Complete";
+    //solr resource keys
+    public static final String SOLR_CORE_URL_KEY = "SOLR_SERVER_URL";
+    public static final String SOLR_RESOURCE_KEY_ASSAY = "SOLR_ASSAY_CORE";
+    public static final String SOLR_RESOURCE_KEY_PROJECT = "SOLR_PROJECT_CORE";
+    public static final String SOLR_RESOURCE_KEY_EXPERIMENT = "SOLR_EXPERIMENT_CORE";
+    public static final String SOLR_RESOURCE_KEY_COMPOUND = "SOLR_COMPOUND_CORE";
         
     /**
      * Get the API key.
@@ -48,6 +54,27 @@ public class CAPConstants {
 	    capRoot = "https://bard.broadinstitute.org/dataExport/api";
 	return capRoot;
    }
+    
+    /**
+     * Returns the solr url with specified core. The solr core key should be specified using
+     * CAPConstants static solr keys in the general form SOLR_RESOURCE_KEY_<entity> where
+     * entity is one of 'ASSAY', 'PROJECT', 'EXPERIMENT', or 'COMPOUND' (or similar indexed entities).
+     * @param solrCoreKey A string specifying the solr entity core (described in method description)
+     * @return
+     */
+    public static String getSolrURL(String solrCoreKey) {
+	String baseUrl = System.getProperty(SOLR_CORE_URL_KEY);
+	String core;
+	//if we have the base url, append the core
+	if(baseUrl != null) {
+	    core = System.getProperty(solrCoreKey);
+	    if(core != null)
+		baseUrl += core;
+	    else
+		baseUrl = null; //if we don't have the core, no reason to send base url
+	}
+	return baseUrl;
+    }
     
     public static enum CapResource {
         BARDEXPORT("application/vnd.bard.cap+xml;type=bardexport"),

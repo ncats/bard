@@ -14,10 +14,9 @@ import gov.nih.ncgc.bard.capextract.jaxb.AssayContextItemType;
 import gov.nih.ncgc.bard.capextract.jaxb.DocumentType;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
 import gov.nih.ncgc.bard.entity.Biology;
+import gov.nih.ncgc.bard.search.SearchUtil;
 import gov.nih.ncgc.bard.tools.Util;
-import nu.xom.ParsingException;
 
-import javax.xml.bind.JAXBElement;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.Connection;
@@ -28,6 +27,12 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import javax.xml.bind.JAXBElement;
+
+import org.apache.solr.client.solrj.SolrServerException;
+
+import nu.xom.ParsingException;
 
 /**
  * Process CAP <code>Assay</code> elements.
@@ -576,14 +581,32 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 		
 	    }
 
-	    //clean up related search indices
-	    
-	    //commit
+	    //commit to finish DB changes.
 	    conn.commit();
 	    conn.close();
-	    
 	} catch (SQLException sqle) {
 	    sqle.printStackTrace();
+	}
+	
+	log.info("Retirement Log ("+capAssayId+"): Completed DB clean-up for bardAssayID: "+bardAssayId);
+
+	//clean up related search indices
+	String solrCoreUrl = null;
+	try {
+	    log.info("Retirement Log ("+capAssayId+"): Removing documents from SOLR for bardAssayID: "+bardAssayId);
+	    solrCoreUrl = CAPConstants.getSolrURL(CAPConstants.SOLR_RESOURCE_KEY_ASSAY);
+	    if(solrCoreUrl != null) {
+		SearchUtil.deleteDocs(solrCoreUrl, Long.toString(bardAssayId));
+		log.info("Retirement Log ("+capAssayId+"): Issued command to remove documents from SOLR for bardAssayID: "+bardAssayId+" SOLR URL:"+solrCoreUrl);
+	    } else {
+		log.warn("Retirement Log ("+capAssayId+"): FAILED to remove documents from SOLR for bardAssayID: "+bardAssayId+" SOLR URL: NULL!");	    
+	    }
+	} catch (IOException e) {
+	    log.warn("Retirement Log ("+capAssayId+"): IOException removing documents from SOLR for bardAssayID: "+bardAssayId+" SOLR URL:"+solrCoreUrl);	    	
+	    e.printStackTrace();
+	} catch (SolrServerException e) {
+	    log.warn("Retirement Log ("+capAssayId+"): SolrServerException, FAILED to remove documents from SOLR for bardAssayID: "+bardAssayId+" SOLR URL:"+solrCoreUrl);	    
+	    e.printStackTrace();
 	}
     }
 

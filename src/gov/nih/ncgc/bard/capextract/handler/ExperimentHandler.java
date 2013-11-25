@@ -13,6 +13,7 @@ import gov.nih.ncgc.bard.capextract.jaxb.Contexts;
 import gov.nih.ncgc.bard.capextract.jaxb.Experiment;
 import gov.nih.ncgc.bard.capextract.jaxb.ExternalSystem;
 import gov.nih.ncgc.bard.capextract.jaxb.Link;
+import gov.nih.ncgc.bard.search.SearchUtil;
 import gov.nih.ncgc.bard.tools.Util;
 
 import java.io.IOException;
@@ -26,6 +27,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
+
+import org.apache.solr.client.solrj.SolrServerException;
 
 /**
  * Process CAP <code>Experiment</code> elements.
@@ -309,7 +312,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 
     
     public void retireExperiment(long capExptId) {
-	try {    
+	try {
 	    Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
 	    Statement stmt = conn.createStatement();
 
@@ -323,7 +326,6 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 		return;
 	    }
 	    rs.close();
-
 
 	    //delete experiment
 	    stmt.executeUpdate("delete from bard_experiment where bard_expt_id = " + bardExptId);
@@ -358,12 +360,35 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 	    stmt.executeUpdate("delete from cap_annotation where entity = 'experiment' and entity_id =" + bardExptId);
 	    log.info("Retirement Log ("+capExptId+"): Deleting experiment annotations, bard_expt_id: " + bardExptId);
 
+	    //commit to finish experiment updates to DB
 	    conn.commit();
 	    conn.close();
-
 	} catch (SQLException sqle) {
 	    sqle.printStackTrace();
 	}
+	
+	log.info("Retirement Log ("+capExptId+"): Completed DB clean-up for bardExptID: "+bardExptId);
+
+	
+	//clean up related search indices
+	String solrCoreUrl = null;
+	try {
+	    log.info("Retirement Log ("+capExptId+"): Removing documents from SOLR for bardExptID: "+bardExptId);
+	    solrCoreUrl = CAPConstants.getSolrURL(CAPConstants.SOLR_RESOURCE_KEY_EXPERIMENT);
+	    if(solrCoreUrl != null) {
+		SearchUtil.deleteDocs(solrCoreUrl, Long.toString(bardExptId));
+		log.info("Retirement Log ("+capExptId+"): Issued command to remove documents from SOLR for bardExptID: "+bardExptId+" SOLR URL:"+solrCoreUrl);
+	    } else {
+		log.warn("Retirement Log ("+capExptId+"): FAILED to remove documents from SOLR for bardExptID: "+bardExptId+" SOLR URL: NULL!");	    
+	    }
+	} catch (IOException e) {
+	    log.warn("Retirement Log ("+capExptId+"): IOException removing documents from SOLR for bardExptID: "+bardExptId+" SOLR URL:"+solrCoreUrl);	    	
+	    e.printStackTrace();
+	} catch (SolrServerException e) {
+	    log.warn("Retirement Log ("+capExptId+"): SolrServerException, FAILED to remove documents from SOLR for bardExptID: "+bardExptId+" SOLR URL:"+solrCoreUrl);	    
+	    e.printStackTrace();
+	}
+
     }
     
 //
