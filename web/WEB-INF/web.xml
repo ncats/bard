@@ -51,7 +51,7 @@
     <!-- specify which datasource to use -->
     <context-param>
         <param-name>datasource-selector</param-name>
-        <param-value>datasource-context</param-value>
+        <param-value>datasource-cluster</param-value>
     </context-param>
 
     <context-param>
