@@ -323,6 +323,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 		bardExptId = rs.getLong(1);
 	    } else {
 		//if bard assay doesn't exist, then we're done.
+		log.info("Retirement Log ("+capExptId+"): No bardExptId exists. Exit Retirement.");
 		return;
 	    }
 	    rs.close();
