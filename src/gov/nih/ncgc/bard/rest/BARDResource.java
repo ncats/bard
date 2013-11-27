@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -69,7 +68,19 @@ public abstract class BARDResource<T extends BardEntity>
     protected String jsonpMethodName = null;
     protected List<EntityTag> etagsRequested = new ArrayList<EntityTag>();
 
-    protected BARDResource () {
+    protected BARDResource() {
+    }
+
+    protected int getDefaultEntityCount() {
+        String s = servletContext.getInitParameter("default-entity-count");
+        int n = BARDConstants.MAX_COMPOUND_COUNT;
+        if (s != null) {
+            try {
+                return Integer.parseInt(s);
+            } catch (NumberFormatException e) {
+                return n;
+            }
+        } else return BARDConstants.MAX_COMPOUND_COUNT;
     }
 
     public static void setDb(DBUtils db) {
@@ -92,7 +103,7 @@ public abstract class BARDResource<T extends BardEntity>
             System.err.println(" " + etagsRequested.size());
         }
 
-        System.err.println("## Request URI: "+getRequestURI ());
+        System.err.println("## Request URI: " + getRequestURI());
     }
 
     protected List<EntityTag> getETagsRequested() {
@@ -117,17 +128,18 @@ public abstract class BARDResource<T extends BardEntity>
                 + (query != null ? ("?" + query) : ""));
     }
 
-    public abstract Class<T> getEntityClass ();
-    public abstract String getResourceBase ();
+    public abstract Class<T> getEntityClass();
+
+    public abstract String getResourceBase();
 
     /*
      * ETag common resources
      */
     @GET
     @Path("/etag")
-    public Response getETags (@QueryParam("expand") String expand,
-                              @QueryParam("skip") Integer skip,
-                              @QueryParam("top") Integer top) {
+    public Response getETags(@QueryParam("expand") String expand,
+                             @QueryParam("skip") Integer skip,
+                             @QueryParam("top") Integer top) {
         try {
             Response response = null;
             if (top == null) {
@@ -137,46 +149,42 @@ public abstract class BARDResource<T extends BardEntity>
                 skip = 0;
             }
 
-            List<String> etags = db.getETagsForEntity 
-                (skip, top, null /* Principal */, getEntityClass());
+            List<String> etags = db.getETagsForEntity
+                    (skip, top, null /* Principal */, getEntityClass());
 
             String linkString = null;
             if (etags.size() == top) { // there are more
-                linkString = getResourceBase()+"/etag?skip="+(skip+top)
-                    +"&top="+top+"&expand="+expand;
+                linkString = getResourceBase() + "/etag?skip=" + (skip + top)
+                        + "&top=" + top + "&expand=" + expand;
             }
-            
-            if (expandEntries (expand)) {
+
+            if (expandEntries(expand)) {
                 List<Map> entities = new ArrayList<Map>();
                 for (String e : etags) {
                     Map et = db.getETagInfo(e);
                     entities.add(et);
                 }
 
-                Map map = new TreeMap ();
+                Map map = new TreeMap();
                 map.put("collection", entities);
                 map.put("link", linkString);
-                response = Response.ok(Util.toJson(map), 
-                                       MediaType.APPLICATION_JSON).build();
-            }
-            else {
-                Map res = new TreeMap ();
+                response = Response.ok(Util.toJson(map),
+                        MediaType.APPLICATION_JSON).build();
+            } else {
+                Map res = new TreeMap();
                 res.put("collection", etags);
                 res.put("link", linkString);
-                response = Response.ok(Util.toJson(res), 
-                                       MediaType.APPLICATION_JSON).build();
+                response = Response.ok(Util.toJson(res),
+                        MediaType.APPLICATION_JSON).build();
             }
 
             return response;
-        }
-        catch (Exception ex) {
-            throw new WebApplicationException (ex, 500);            
-        }
-        finally {
+        } catch (Exception ex) {
+            throw new WebApplicationException(ex, 500);
+        } finally {
             try {
                 db.closeConnection();
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
             }
         }
     }
@@ -259,8 +267,8 @@ public abstract class BARDResource<T extends BardEntity>
             Map info = db.getETagInfo(etag);
             if (!getEntityClass().getName().equals(info.get("type"))) {
                 throw new WebApplicationException
-                    (new IllegalArgumentException 
-                     ("ETag "+etag+" is not of type "+getEntityClass()), 500);
+                        (new IllegalArgumentException
+                                ("ETag " + etag + " is not of type " + getEntityClass()), 500);
             }
 
             List<Long> list = new ArrayList<Long>();
@@ -270,7 +278,7 @@ public abstract class BARDResource<T extends BardEntity>
                 } catch (NumberFormatException ex) {
                 }
             }
-            int cnt = db.putETag(etag, name,  list.toArray(new Long[0]));
+            int cnt = db.putETag(etag, name, list.toArray(new Long[0]));
             log("** put ETag: " + etag + " " + cnt);
 
             if (etagids != null) {
@@ -295,7 +303,7 @@ public abstract class BARDResource<T extends BardEntity>
 
     @GET
     @Path("/etag/{etag}/_info")
-    public Response getETagInfo (@PathParam("etag") String resourceId) {
+    public Response getETagInfo(@PathParam("etag") String resourceId) {
         try {
             Map info = db.getETagInfo(resourceId);
             return Response.ok(Util.toJson(info),
@@ -378,7 +386,6 @@ public abstract class BARDResource<T extends BardEntity>
             }
         }
     }
-
 
 
 }

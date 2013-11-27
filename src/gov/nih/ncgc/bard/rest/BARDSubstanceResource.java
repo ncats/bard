@@ -96,7 +96,7 @@ public class BARDSubstanceResource extends BARDResource<Substance> {
                 else response = Response.ok(String.valueOf(db.getEntityCount(Substance.class))).build();
             } else {
                 if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                    top = getDefaultEntityCount();
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";

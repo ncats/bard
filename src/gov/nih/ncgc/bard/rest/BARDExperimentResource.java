@@ -102,7 +102,7 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
                 if (countRequested)
                     return Response.ok(String.valueOf(db.getEntityCount(Experiment.class)), MediaType.TEXT_PLAIN).build();
                 if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                    top = getDefaultEntityCount();
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
@@ -275,9 +275,9 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
             Experiment experiment = db.getExperimentByExptId(Long.valueOf(resourceId));
 
             // set up skip and top params
-            if (experiment.getCompounds() > BARDConstants.MAX_COMPOUND_COUNT) {
+            if (experiment.getCompounds() > getDefaultEntityCount()) {
                 if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                    top = getDefaultEntityCount();
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
@@ -349,9 +349,9 @@ public class    BARDExperimentResource extends BARDResource<Experiment> {
             Experiment experiemnt = db.getExperimentByExptId(Long.valueOf(resourceId));
 
             // set up skip and top params
-            if (experiemnt.getSubstances() > BARDConstants.MAX_COMPOUND_COUNT) {
+            if (experiemnt.getSubstances() > getDefaultEntityCount()) {
                 if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                    top = getDefaultEntityCount();
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";

@@ -121,7 +121,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
                     return Response.ok(String.valueOf(db.getEntityCount(Assay.class)), MediaType.TEXT_PLAIN).build();
                 }
                 if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                    top = getDefaultEntityCount();
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
@@ -545,9 +545,9 @@ public class BARDAssayResource extends BARDResource<Assay> {
             }
 
             // set up skip and top params
-            if (n > BARDConstants.MAX_COMPOUND_COUNT) {
+            if (n > getDefaultEntityCount()) {
                 if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                    top = getDefaultEntityCount();
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
@@ -620,9 +620,9 @@ public class BARDAssayResource extends BARDResource<Assay> {
             }
 
             // set up skip and top params
-            if (n > BARDConstants.MAX_COMPOUND_COUNT) {
+            if (n > getDefaultEntityCount()) {
                 if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                    top = getDefaultEntityCount();
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";

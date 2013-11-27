@@ -66,7 +66,7 @@ public class BARDEtagResource extends BARDResource<ETag> implements IBARDResourc
                 }
 
                 if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                    top = getDefaultEntityCount();
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";

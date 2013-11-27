@@ -141,7 +141,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                 response = Response.ok(String.valueOf(db.getEntityCount(Compound.class))).build();
             else {
                 if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                    top = getDefaultEntityCount();
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
@@ -188,7 +188,7 @@ public class BARDCompoundResource extends BARDResource<Compound> {
                     response = Response.ok(String.valueOf(db.getCompoundActiveCount())).build();
                 else {
                     if ((top == -1)) { // top was not specified, so we start from the beginning
-                        top = BARDConstants.MAX_COMPOUND_COUNT;
+                        top = getDefaultEntityCount();
                     }
                     if (skip == -1) skip = 0;
                     String expandClause = "expand=false";

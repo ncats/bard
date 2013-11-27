@@ -91,7 +91,7 @@ public class BARDBiologyResource extends BARDResource<Biology> {
                 if (countRequested)
                     return Response.ok(String.valueOf(db.getEntityCount(Biology.class)), MediaType.TEXT_PLAIN).build();
                 if ((top == -1)) { // top was not specified, so we start from the beginning
-                    top = BARDConstants.MAX_COMPOUND_COUNT;
+                    top = getDefaultEntityCount();
                 }
                 if (skip == -1) skip = 0;
                 String expandClause = "expand=false";
