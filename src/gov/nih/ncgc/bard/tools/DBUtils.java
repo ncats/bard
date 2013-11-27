@@ -207,7 +207,7 @@ public class DBUtils {
             if (ds != null) {
                 // the first resource is assumed writable!
                 _resources.add(new DataSourceContext (s, ds, first));
-                log.info("Datasource "+s+" initialized!");
+//                log.info("Datasource "+s+" initialized!");
             }
             else {
                 log.warn("Datasource "+s+" not initialized!");
