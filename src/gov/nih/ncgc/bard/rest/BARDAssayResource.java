@@ -130,26 +130,28 @@ public class BARDAssayResource extends BARDResource<Assay> {
                     linkString = BARDConstants.API_BASE + "/assays?skip=" + (skip + top) + "&top=" + top + "&" + expandClause;
             }
 
-            long start = System.currentTimeMillis();
-            List<Assay> assays = db.searchForEntity(filter, skip, top, Assay.class);
-            log.info(getRequestURI() + "..." + assays.size() + " in "
-                    + String.format("%1$.3fs", 1.e-3 * (System.currentTimeMillis() - start)));
-
-            if (countRequested) return Response.ok(String.valueOf(assays.size()), MediaType.TEXT_PLAIN).build();
             if (expandEntries) {
+                long start = System.currentTimeMillis();
+                List<Assay> assays = db.searchForEntity(filter, skip, top, Assay.class);
+                log.info(getRequestURI() + "..." + assays.size() + " in "
+                        + String.format("%1$.3fs", 1.e-3 * (System.currentTimeMillis() - start)));
+                if (countRequested) return Response.ok(String.valueOf(assays.size()), MediaType.TEXT_PLAIN).build();
                 BardLinkedEntity linkedEntity = new BardLinkedEntity(assays, linkString);
                 start = System.currentTimeMillis();
-
-                String json = getExpandedJson(linkedEntity, null).toString();
+                String json = Util.toJson(linkedEntity);
                 log.info("## Generating json in " + String.format("%1$.3fs", 1.e-3 * (System.currentTimeMillis() - start)));
                 return Response.ok(json, MediaType.APPLICATION_JSON).build();
             } else {
-                List<String> links = new ArrayList<String>();
-                for (Assay a : assays) links.add(a.getResourcePath());
-                BardLinkedEntity linkedEntity = new BardLinkedEntity(links, linkString);
+                long start = System.currentTimeMillis();
+                List<Object> assayIds = db.searchForEntityId(filter, skip, top, Assay.class);
+                log.info(getRequestURI() + "..." + assayIds.size() + " in "
+                        + String.format("%1$.3fs", 1.e-3 * (System.currentTimeMillis() - start)));
+                if (countRequested) return Response.ok(String.valueOf(assayIds.size()), MediaType.TEXT_PLAIN).build();
+                List<String> resPaths = new ArrayList<String>();
+                for (Object id : assayIds) resPaths.add("/assays/" + id);
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(resPaths, linkString);
                 return Response.ok(Util.toJson(linkedEntity), MediaType.APPLICATION_JSON).build();
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
             throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
@@ -265,7 +267,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     @Path("/")
     @Produces("application/json")
     @Consumes("application/x-www-form-urlencoded")
-    public Response getResources(@FormParam("ids") String aids, @QueryParam("expand") String expand) {
+    public Response getResources(@FormParam("ids") String aids, @QueryParam("expand") String expand) throws SQLException {
         if (aids == null)
             throw new WebApplicationException(new Exception("POST request must specify the aids form parameter, which should be a comma separated string of assay IDs"), 400);
         try {
@@ -292,23 +294,21 @@ public class BARDAssayResource extends BARDResource<Assay> {
                 for (Assay ap : assays) links.add(ap.getResourcePath());
                 json = Util.toJson(links);
             } else {
-                ObjectMapper mapper = new ObjectMapper();
-                ArrayNode an = mapper.createArrayNode();
-                for (Assay a : assays) {
-                    an.add(getExpandedJson(a, a.getBardAssayId()));
-                }
-                json = an.toString();
-                db.closeConnection();
+                BardLinkedEntity linkedEntity = new BardLinkedEntity(assays, null);
+                long start = System.currentTimeMillis();
+                json = Util.toJson(linkedEntity);
+                log.info("## Generating json in " + String.format("%1$.3fs", 1.e-3 * (System.currentTimeMillis() - start)));
             }
             return Response.ok(json, MediaType.APPLICATION_JSON).build();
         } catch (SQLException e) {
             throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
         } catch (IOException e) {
             throw new WebApplicationException(Response.status(500).entity(e.getMessage()).build());
+        } finally {
+            db.closeConnection();
         }
+
     }
-
-
 
 
     @POST
@@ -455,7 +455,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
         boolean expandEntries = false;
         if (expand != null && (expand.toLowerCase().equals("true") || expand.toLowerCase().equals("yes")))
             expandEntries = true;
-        
+
         try {
             List<Project> projects = db.getProjectByAssayId(aid);
             if (!expandEntries) {
@@ -753,7 +753,7 @@ public class BARDAssayResource extends BARDResource<Assay> {
     @Produces("application/json")
     @Path("/etag/{etag}/facets")
     public Response getFacets(@PathParam("etag") String resourceId) {
-        
+
         try {
             List<Facet> facets = db.getAssayFacets(resourceId);
             return Response.ok(Util.toJson(facets),

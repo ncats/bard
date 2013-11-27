@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.entity.Assay;
+import gov.nih.ncgc.bard.entity.Experiment;
 import gov.nih.ncgc.bard.entity.ExperimentData;
 import gov.nih.ncgc.bard.entity.FitModel;
 import gov.nih.ncgc.bard.entity.Project;
@@ -308,9 +309,9 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
         List<String> edids = new ArrayList<String>();
         
         for (String aid : aids) {
-            List<Long> eids = db.getAssayByAid(Long.parseLong(aid)).getExperiments();
+            List<Experiment> eids = db.getAssayByAid(Long.parseLong(aid)).getExperiments();
             String[] s = new String[eids.size()];
-            for (int i = 0; i < eids.size(); i++) s[i] = eids.get(i).toString();
+            for (int i = 0; i < eids.size(); i++) s[i] = eids.get(i).getBardExptId().toString();
             edids.addAll(getAllEdidFromExperiments(s, skip, top, filter));
         }
         db.closeConnection();
@@ -343,7 +344,8 @@ public class BARDExperimentDataResource extends BARDResource<ExperimentData> {
         List<Long> eids = new ArrayList<Long>();
         for (String aid : aids) {
             Assay assay = db.getAssayByAid(Long.parseLong(aid));
-            eids.addAll(assay.getExperiments());
+            List<Experiment> expts = assay.getExperiments();
+            for (Experiment e : expts) eids.add(e.getBardExptId());
         }
         db.closeConnection();
         return getEdidFromExperiments(ids, eids.toArray(new String[0]), skip, top, filter);

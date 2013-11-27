@@ -25,9 +25,10 @@ public class Assay extends BaseEntity {
 
     String assayType, assayStatus;
 
-    List<Long> documents;
-    List<Long> targets;
-    List<Long> experiments, projects; // experiments and projects
+    List<Publication> documents;
+    List<Biology> targets;
+    List<Experiment> experiments;
+    List<Project> projects; // experiments and projects
 
     Map<String, String> minimumAnnotations = new HashMap<String, String>();
 
@@ -80,7 +81,7 @@ public class Assay extends BaseEntity {
         this.title = title;
     }
 
-    public List<Long> getExperiments() {
+    public List<Experiment> getExperiments() {
         return experiments;
     }    
 
@@ -100,15 +101,15 @@ public class Assay extends BaseEntity {
         this.capAssayId = capAssayId;
     }
 
-    public void setExperiments(List<Long> experiments) {
+    public void setExperiments(List<Experiment> experiments) {
         this.experiments = experiments;
     }
 
-    public List<Long> getProjects() {
+    public List<Project> getProjects() {
         return projects;
     }
 
-    public void setProjects(List<Long> projects) {
+    public void setProjects(List<Project> projects) {
         this.projects = projects;
     }
 
@@ -216,19 +217,19 @@ public class Assay extends BaseEntity {
         this.source = source;
     }
 
-    public List<Long> getDocuments() {
+    public List<Publication> getDocuments() {
         return documents;
     }
 
-    public void setDocuments(List<Long> documents) {
+    public void setDocuments(List<Publication> documents) {
         this.documents = documents;
     }
 
-    public List<Long> getTargets() {
+    public List<Biology> getTargets() {
         return targets;
     }
 
-    public void setTargets(List<Long> targets) {
+    public void setTargets(List<Biology> targets) {
         this.targets = targets;
     }
 
