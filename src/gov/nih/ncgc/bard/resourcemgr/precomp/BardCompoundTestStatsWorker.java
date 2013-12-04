@@ -62,42 +62,7 @@ public class BardCompoundTestStatsWorker {
 	    conn = CAPUtil.connectToBARD(serverURL);
 	    conn.setAutoCommit(false);
 	    
-	    //logger.info("Building temp compound table.");
-	    //make a copy of the current compound table
-	    //Statement stmt = conn.createStatement();
-	    //stmt.execute("drop table if exists temp_compound");
-	    //stmt.execute("create table temp_compound like compound");
-	    //conn.commit();
-	    
-	    //Why make a temp compound? The counts are not incremental
-	    //Most efficient way is to zero out counts and do the updates off-line.
-	    //
-	    //Why zero? If an experiment is retired, the tested counts should drop.
-	    //We don't want to deal with this in real time, removing counts for all dropped cids.
-	    //Nightly rebuild based on data tables.
-	    //
-	    //We need to avoid long selects. 
-	    //Insert into temp_compound gradually instead of insert... select
-	
-	    //stmt.execute("insert into temp_compound select * from compound");
-	    //replace the insert... select... to do an staged update to temp_compound 
-	    
-	    //stageCopyToTable(conn, "compound", "temp_compound", 1000000);
-	    //conn.commit();
-	    
-	    //logger.info("Completed temp_compound table creation. Starting zero of all stats.");
-	    
-	    //clear the current counters
-	    //stmt.executeUpdate("update temp_compound set tested_expt_cnt = 0, active_expt_cnt = 0, " +
-	    //		"tested_assay_cnt = 0, active_assay_cnt = 0");	    
-
-	    //logger.info("Completed temp_compound zeroing of all stats. Starting stat updates.");
-
-	    //conn.commit();
-
-	    //now update all of these statuses
-	    
-	    //zero untested compounds in the compound table
+	    // zero out untested compounds
 	    this.zeroUntestedCompounds();
 	    
 	    long start = System.currentTimeMillis();
@@ -125,36 +90,7 @@ public class BardCompoundTestStatsWorker {
 	    conn.commit();
 	    logger.info("Finished compound tested state update");
 
-	    //conn.setAutoCommit(true);
-	    
-//	    //zero the nulls, null means it's a new compound, 0 means that it's been assessed and is zero
-//	    start = System.currentTimeMillis();	    
-//	    logger.info("Setting active expt nulls to zero");
-//	    zeroNullTestCnts(this.sqlSetActiveExptNullToZero);
-//	    logger.info("ET zero active expt = " + ((float)(System.currentTimeMillis()-start))/1000.0/60.0);	    
-//	    
-//	    start = System.currentTimeMillis();	    
-//	    logger.info("Setting tested expt nulls to zero");
-//	    zeroNullTestCnts(this.sqlSetTestedExptNullToZero);
-//	    logger.info("ET zero tested expt = " + ((float)(System.currentTimeMillis()-start))/1000.0/60.0);	    
-//
-//	    start = System.currentTimeMillis();	    
-//	    logger.info("Setting active assay nulls to zero");
-//	    zeroNullTestCnts(this.sqlSetActiveAssayNullToZero);
-//	    logger.info("ET zero active assays = " + ((float)(System.currentTimeMillis()-start))/1000.0/60.0);	    
-//	    
-//	    start = System.currentTimeMillis();	    
-//	    logger.info("Setting active assay nulls to zero");
-//	    zeroNullTestCnts(this.sqlSetTestedAssayNullToZero);
-//	    logger.info("ET zero active assays = " + ((float)(System.currentTimeMillis()-start))/1000.0/60.0);	    
-
 	    conn.close();
-
-	    
-	    
-	    //boolean swapped = BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_compound", "compound", 1.0, serverURL);
-	    
-	    //logger.info("Swapped temp_compound into compound, confirmation: "+swapped);
 	    
 	} catch (SQLException e) {
 	    // TODO Auto-generated catch block
