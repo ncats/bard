@@ -11,10 +11,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.logging.Logger;
-
-import org.eclipse.jetty.util.log.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import chemaxon.formats.MolFormatException;
 import chemaxon.struc.Molecule;
@@ -23,7 +23,7 @@ import chemaxon.util.MolHandler;
 public class BardCompoundTestStatsWorker {
 
     static final private Logger logger = 
-		Logger.getLogger(BardCompoundPubchemExtrasLoader.class.getName());
+		LoggerFactory.getLogger(BardCompoundPubchemExtrasLoader.class.getName());
     
     String sqlSelectCIDActiveData = "select cid,count(distinct(bard_expt_id)) from bard_experiment_data " +
     		"where (outcome = 2 or outcome = 5) group by cid";
@@ -39,18 +39,18 @@ public class BardCompoundTestStatsWorker {
     "from bard_experiment a, bard_experiment_data b " +
     "where a.bard_expt_id=b.bard_expt_id group by b.cid";
     
-    String sqlUpdateCIDActiveCnt = "update temp_compound set active_expt_cnt = ? where cid = ?";
+    String sqlUpdateCIDActiveCnt = "update compound set active_expt_cnt = ? where cid = ?";
     
-    String sqlUpdateCIDTestedCnt = "update temp_compound set tested_expt_cnt = ? where cid = ?";
+    String sqlUpdateCIDTestedCnt = "update compound set tested_expt_cnt = ? where cid = ?";
 
-    String sqlUpdateCIDAssayActiveCnt = "update temp_compound set active_assay_cnt = ? where cid = ?";
+    String sqlUpdateCIDAssayActiveCnt = "update compound set active_assay_cnt = ? where cid = ?";
     
-    String sqlUpdateCIDAssayTestedCnt = "update temp_compound set tested_assay_cnt = ? where cid = ?";
+    String sqlUpdateCIDAssayTestedCnt = "update compound set tested_assay_cnt = ? where cid = ?";
 
-    String sqlSetActiveExptNullToZero = "update temp_compound set active_expt_cnt = 0 where active_expt_cnt is null";
-    String sqlSetTestedExptNullToZero = "update temp_compound set tested_expt_cnt = 0 where tested_expt_cnt is null";
-    String sqlSetActiveAssayNullToZero = "update temp_compound set active_assay_cnt = 0 where active_assay_cnt is null";
-    String sqlSetTestedAssayNullToZero = "update temp_compound set tested_assay_cnt = 0 where tested_assay_cnt is null";
+    String sqlSetActiveExptNullToZero = "update compound set active_expt_cnt = 0 where active_expt_cnt is null";
+    String sqlSetTestedExptNullToZero = "update compound set tested_expt_cnt = 0 where tested_expt_cnt is null";
+    String sqlSetActiveAssayNullToZero = "update compound set active_assay_cnt = 0 where active_assay_cnt is null";
+    String sqlSetTestedAssayNullToZero = "update compound set tested_assay_cnt = 0 where tested_assay_cnt is null";
     
     private Connection conn;
     
@@ -62,12 +62,12 @@ public class BardCompoundTestStatsWorker {
 	    conn = CAPUtil.connectToBARD(serverURL);
 	    conn.setAutoCommit(false);
 	    
-	    logger.info("Building temp compound table.");
+	    //logger.info("Building temp compound table.");
 	    //make a copy of the current compound table
-	    Statement stmt = conn.createStatement();
-	    stmt.execute("drop table if exists temp_compound");
-	    stmt.execute("create table temp_compound like compound");
-	    conn.commit();
+	    //Statement stmt = conn.createStatement();
+	    //stmt.execute("drop table if exists temp_compound");
+	    //stmt.execute("create table temp_compound like compound");
+	    //conn.commit();
 	    
 	    //Why make a temp compound? The counts are not incremental
 	    //Most efficient way is to zero out counts and do the updates off-line.
@@ -82,20 +82,23 @@ public class BardCompoundTestStatsWorker {
 	    //stmt.execute("insert into temp_compound select * from compound");
 	    //replace the insert... select... to do an staged update to temp_compound 
 	    
-	    stageCopyToTable(conn, "compound", "temp_compound", 1000000);
-	    conn.commit();
+	    //stageCopyToTable(conn, "compound", "temp_compound", 1000000);
+	    //conn.commit();
 	    
-	    logger.info("Completed temp_compound table creation. Starting zero of all stats.");
+	    //logger.info("Completed temp_compound table creation. Starting zero of all stats.");
 	    
 	    //clear the current counters
-	    stmt.executeUpdate("update temp_compound set tested_expt_cnt = 0, active_expt_cnt = 0, " +
-	    		"tested_assay_cnt = 0, active_assay_cnt = 0");	    
+	    //stmt.executeUpdate("update temp_compound set tested_expt_cnt = 0, active_expt_cnt = 0, " +
+	    //		"tested_assay_cnt = 0, active_assay_cnt = 0");	    
 
-	    logger.info("Completed temp_compound zeroing of all stats. Starting stat updates.");
+	    //logger.info("Completed temp_compound zeroing of all stats. Starting stat updates.");
 
-	    conn.commit();
+	    //conn.commit();
 
 	    //now update all of these statuses
+	    
+	    //zero untested compounds in the compound table
+	    this.zeroUntestedCompounds();
 	    
 	    long start = System.currentTimeMillis();
 	    updateCompoundStatus(sqlSelectCIDActiveData,sqlUpdateCIDActiveCnt, "active expt update");	
@@ -147,14 +150,13 @@ public class BardCompoundTestStatsWorker {
 
 	    conn.close();
 
-	    boolean swapped = BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_compound", "compound", 1.0, serverURL);
 	    
-	    logger.info("Swapped temp_compound into compound, confirmation: "+swapped);
+	    
+	    //boolean swapped = BardDBUtil.swapTempTableToProductionIfPassesSizeDelta("temp_compound", "compound", 1.0, serverURL);
+	    
+	    //logger.info("Swapped temp_compound into compound, confirmation: "+swapped);
 	    
 	} catch (SQLException e) {
-	    // TODO Auto-generated catch block
-	    e.printStackTrace();
-	} catch (ClassNotFoundException e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();
 	}
@@ -207,8 +209,69 @@ public class BardCompoundTestStatsWorker {
     }
 
 
+    public void zeroUntestedCompounds() {
+	try {
 
+	    logger.info("Begin Zero Untested Compounds");
+	    
+	    //collect tested cids
+	    Statement stmt = conn.createStatement();
+	    stmt.setFetchSize(Integer.MIN_VALUE); //stream
+	    
+	    ResultSet rs = stmt.executeQuery("select cid from bard_experiment_data");
+	    HashSet <Long> testedCidSet = new HashSet <Long>();
+	    
+	    while(rs.next()) {
+		testedCidSet.add(rs.getLong(1));
+	    }
+	    
+	    rs.close();
+	    
+	    logger.info("Tested cid set size = "+testedCidSet.size());
+	    
+	    //don't loop through all cids, just check if any with tested stats are not in the tested cid list
+	    
+	    //collect tested cids in compound
+	    rs = stmt.executeQuery("select cid from compound where tested_expt_cnt > 0");
+	    ArrayList <Long> cidsToZero = new ArrayList <Long>();
+	    while(rs.next()) {
+		if(!testedCidSet.contains(rs.getLong(1))) {
+		    cidsToZero.add(rs.getLong(1));
+		}
+	    }
+	   
+	    rs.close();
+	    stmt.close();
+	    testedCidSet = null;
+	   
+	    logger.info("Number of CIDs to zero (previously tested, now retired):"+cidsToZero.size());
 
+	    PreparedStatement ps = conn.prepareStatement(
+		    "update compound set tested_expt_cnt = 0, active_expt_cnt = 0, " +
+		    "tested_assay_cnt = 0, active_assay_cnt = 0 where cid = ?");
+
+	    long cnt = 0;
+	    for(Long cid : cidsToZero) {
+		ps.setLong(1, cid);
+		ps.addBatch();
+		if(cnt % 100 == 0) {
+		    ps.executeBatch();
+		    conn.commit();
+		}
+	    }
+	    ps.executeBatch();
+	    conn.commit();
+	    ps.close();
+	    
+	    logger.info("Finished zeroing untested compounds");
+	    
+	} catch (SQLException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	}
+	
+	
+    }
 
     public void updateCompoundStatus(String selectSQL, String updateSQL, String msg) {
 	try {
@@ -252,7 +315,7 @@ public class BardCompoundTestStatsWorker {
 	} catch (SQLException e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();
-	    logger.warning(e.getMessage());
+	    logger.warn(e.getMessage());
 	}
     }
     
@@ -433,14 +496,15 @@ public class BardCompoundTestStatsWorker {
 	BardCompoundTestStatsWorker worker = new BardCompoundTestStatsWorker();
 	String serverURL = "jdbc:mysql://bohr.ncats.nih.gov:3306/bard3";
 	
-	try {
-	    Connection conn = CAPUtil.connectToBARD(serverURL);
-	    worker.stageCopyToTable(conn, "compound", "temp_compound", 1000000);
-	    conn.close();
-	} catch (SQLException e) {
-	    // TODO Auto-generated catch block
-	    e.printStackTrace();
-	}
+//	try {
+	    //Connection conn = CAPUtil.connectToBARD(serverURL);
+	    worker.updateCompoundTestStatus(serverURL);
+	    //worker.stageCopyToTable(conn, "compound", "temp_compound", 1000000);
+	    //conn.close();
+//	} catch (SQLException e) {
+//	    // TODO Auto-generated catch block
+//	    e.printStackTrace();
+//	}
 	
 	    //worker.updateDruglikeInTempCompound("jdbc:mysql://bohr.ncats.nih.gov:3306/bard3");
 	
