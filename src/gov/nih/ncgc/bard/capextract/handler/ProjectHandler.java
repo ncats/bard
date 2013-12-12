@@ -839,6 +839,8 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
     private void retireProject(long capProjId) {
 
+	long bardProjId = 0l;
+
 	try { 
 	    
 	    //note autocommit is false
@@ -846,7 +848,6 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 	    Statement stmt = conn.createStatement();
 	    
 	    ResultSet rs = stmt.executeQuery("select bard_proj_id from bard_project where cap_proj_id = " + capProjId);
-	    long bardProjId = 0l;
 	    if(rs.next()) {
 		bardProjId = rs.getLong(1);
 	    } else {
