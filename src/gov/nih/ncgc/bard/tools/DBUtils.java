@@ -1240,7 +1240,7 @@ public class DBUtils {
 
         Connection conn = getConnection();
         PreparedStatement pst = conn.prepareStatement
-                ("select syn from synonyms where id = ? and type=1");
+                ("select syn from synonym_type where id = ? and type=1");
         List<String> syns = new ArrayList<String>();
         try {
             pst.setLong(1, cid);
