@@ -312,12 +312,15 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
 
     
     public void retireExperiment(long capExptId) {
+	
+	long bardExptId = 0l;
+	    
+	
 	try {
 	    Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
 	    Statement stmt = conn.createStatement();
 
 	    //get bard_expt_id
-	    long bardExptId = 0l;
 	    ResultSet rs = stmt.executeQuery("select bard_expt_id from bard_experiment where cap_expt_id = "+capExptId);
 	    if(rs.next()) {
 		bardExptId = rs.getLong(1);

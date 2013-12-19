@@ -30,10 +30,19 @@ public class ResultTuple {
 	    //now check parity only based on dict id and stats modifier, no parent for parent dict id test
 	    if(dictId.equals(result.getDictElemId())) {
 		//dict id matches, check stats modifier
-		if((statsModifierId == null && result.getStatsModifierId() == null)
-			|| (statsModifierId.equals(result.getStatsModifierId()))) {
+		
+		//both null
+		if(statsModifierId == null && result.getStatsModifierId() == null) {
 		    return true;
-		} 
+		    
+		//both have to be non-null to compare, sometimes mismatch
+		} else if((statsModifierId != null && statsModifierId != null) &&
+			(statsModifierId.equals(result.getStatsModifierId()))) {
+		    return true;
+		} else {
+		    //if one null and one isn't no match
+		    return false;
+		}
 	    }
 	    
 	    //both at root but fall through because of dict id or stats mod not matching		
@@ -42,10 +51,16 @@ public class ResultTuple {
 	    if(parentDictId.equals(result.getParentElement().getDictElemId()) 
 		    && dictId.equals(result.getDictElemId())) {
 		//parent matches and dictionary id matches, now just check the stats modifier
-		if((statsModifierId == null && result.getStatsModifierId() == null)
-			|| (statsModifierId.equals(result.getStatsModifierId()))) {
+		//both null matches
+		if(statsModifierId == null && result.getStatsModifierId() == null) {
 		    return true;
-		} 
+		    //both have to be non-null for comparison
+		} else if((statsModifierId != null && result.getStatsModifierId() != null) 
+			&& (statsModifierId.equals(result.getStatsModifierId()))) {
+		    return true;
+		} else {
+		    return false;
+		}		
 	    }
 	    //neither at root but fall through because of parent dict id, dict id, or stats modifier
 	}	        

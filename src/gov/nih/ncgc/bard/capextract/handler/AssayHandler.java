@@ -498,12 +498,13 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
 
     private void retireAssay(long capAssayId) {
 
+	long bardAssayId = 0l;
+	    
 	try {    
 	    Connection conn = CAPUtil.connectToBARD(CAPConstants.getBardDBJDBCUrl());
 	    Statement stmt = conn.createStatement();
 	    
 	    //get bard_assay_id
-	    long bardAssayId = 0l;
 	    ResultSet rs = stmt.executeQuery("select bard_assay_id from bard_assay where cap_assay_id = "+capAssayId);
 	    if(rs.next()) {
 		bardAssayId = rs.getLong(1);
