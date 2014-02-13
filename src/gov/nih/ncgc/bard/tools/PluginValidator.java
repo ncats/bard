@@ -8,6 +8,12 @@ import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
 import com.github.fge.jsonschema.util.JsonLoader;
 import gov.nih.ncgc.bard.plugin.IPlugin;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.nio.SelectChannelConnector;
+import org.eclipse.jetty.webapp.WebAppContext;
+import org.eclipse.jetty.xml.XmlConfiguration;
+import org.xml.sax.SAXException;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -41,7 +47,8 @@ import java.util.zip.ZipFile;
  * @author Rajarshi Guha
  */
 public class PluginValidator {
-    private static final String version = "1.0";
+    private static final String version = "1.1";
+    private static final Integer JETTY_PORT = 8989;
 
     private String[] packagesToIgnore = {"javax.servlet"};
 
@@ -174,6 +181,29 @@ public class PluginValidator {
         for (String pkg : packagesToIgnore) {
             if (className.contains(pkg)) return true;
         }
+        return false;
+    }
+
+    public boolean validateServlet(String filename) throws Exception, IOException, SAXException {
+        URL configResource = this.getClass().getResource("/jetty.xml");
+//        File configFile = new File(configResource.toURI());
+
+//        File configFile = new File("src/jetty.xml");
+        XmlConfiguration configuration = new XmlConfiguration(configResource);
+        Server server = (Server) configuration.configure();
+        Connector connector = new SelectChannelConnector();
+        connector.setPort(JETTY_PORT);
+        connector.setHost("127.0.0.1");
+        server.addConnector(connector);
+        WebAppContext wac = new WebAppContext();
+        wac.setWar(filename);
+        wac.setContextPath("/");
+        wac.setParentLoaderPriority(true);
+        server.setHandler(wac);
+        server.setStopAtShutdown(true);
+        server.start();
+        server.join();
+
         return false;
     }
 
@@ -429,13 +459,13 @@ public class PluginValidator {
 
         return errors.size() == 0;
     }
- 
+
     public static void main(String[] args) throws Exception {
         boolean printInfo = false;
         boolean printWarn = false;
 
         if (args.length < 1) {
-            System.out.println("\nBARD Plugin validator v"+version);
+            System.out.println("\nBARD Plugin validator v" + version);
             System.out.println("\nUsage: java -jar validator.jar bardplugin_FOO.war [-i|-w]");
             System.out.println("\n-i\tPrint INFO messages");
             System.out.println("-w\tPrint WARN messages");
@@ -449,7 +479,9 @@ public class PluginValidator {
         }
 
         PluginValidator v = new PluginValidator();
-        boolean status = v.validate(args[0]);
+        boolean status = v.validateServlet(args[0]);
+
+//        boolean status = v.validate(args[0]);
 //        boolean status = v.validate("/Users/guhar/Downloads/bardplugin_badapple.war");
 //        boolean status = v.validate("/Users/guhar/Downloads/bardplugin_hellofromunm.war");
         System.out.println("status = " + status);

@@ -260,6 +260,9 @@
             <fileset dir="${bard.lib}">
                 <include name="*.jar"/>
             </fileset>
+            <fileset dir="${bard.lib}/plugin">
+                <include name="*.jar"/>
+            </fileset>
         </path>
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
@@ -275,10 +278,24 @@
         <unjar dest="${bard.build}" src="${bard.lib}/plugin/json-schema-validator-2.1.0-SNAPSHOT.jar"/>
         <unjar dest="${bard.build}" src="${bard.lib}/plugin/guava-14.0.jar"/>
         <unjar dest="${bard.build}" src="${bard.lib}/plugin/joda-time-2.2.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/jetty-server-7.6.9.v20130131.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/jetty-servlet-7.6.9.v20130131.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/jetty-servlets-7.6.9.v20130131.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/jetty-http-7.6.9.v20130131.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/jetty-util-7.6.9.v20130131.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/jetty-webapp-7.6.9.v20130131.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/jetty-xml-7.6.9.v20130131.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/jetty-io-7.6.9.v20130131.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/jetty-security-7.6.9.v20130131.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/jetty-plus-7.6.9.v20130131.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/jetty-jndi-7.6.9.v20130131.jar"/>
+        <unjar dest="${bard.build}" src="${bard.lib}/plugin/jetty-continuation-7.6.9.v20130131.jar"/>
         <unjar dest="${bard.build}" src="${bard.lib}/mail.jar"/>
         <unjar dest="${bard.build}" src="${bard.lib}/javaee.jar"/>
         <unjar dest="${bard.build}" src="${bard.lib}/plugin/libphonenumber-5.4.jar"/>
         <copy file="resources/manifest.json" todir="${bard.build}"/>
+        <copy file="resources/jetty.xml" todir="${bard.build}"/>
+        <copy file="resources/jndi.properties" todir="${bard.build}"/>
 
         <jar destfile="${bard.deploy}/validator.jar">
             <manifest>
@@ -294,6 +311,8 @@
                 <include name="org/**"/>
                 <include name="draft*/**"/>
                 <include name="manifest.json"/>
+                <include name="jetty.xml"/>
+                <include name="jndi.properties"/>
             </fileset>
         </jar>
     </target>
