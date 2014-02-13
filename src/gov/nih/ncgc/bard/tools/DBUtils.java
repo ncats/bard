@@ -62,11 +62,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.PriorityQueue;
 
 
 /**
@@ -326,6 +326,17 @@ public class DBUtils {
     private synchronized Connection getConnection (boolean writable) {
         PriorityQueue<DataSourceContext> order = 
             new PriorityQueue<DataSourceContext> (getDataSources ());
+
+        if (order.size() == 1) {
+            DataSourceContext ctx = order.iterator().next();
+            try {
+                return ctx.getConnection();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                log.warn("Can't get connection from " + ctx.getName() + "!");
+            }
+            return null;
+        }
 
         for (Iterator<DataSourceContext> it = order.iterator(); 
              it.hasNext();) {
