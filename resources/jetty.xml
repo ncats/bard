@@ -18,6 +18,12 @@
 <Configure id="Server" class="org.eclipse.jetty.server.Server">
     <!-- <Configure id="Server" class="org.eclipse.jetty.webapp.WebAppContext"> -->
 
+    <Call class="org.eclipse.jetty.util.log.Log" name="getRootLogger">
+        <Call name="setDebugEnabled">
+            <Arg type="boolean">false</Arg>
+        </Call>
+    </Call>
+
     <!-- =========================================================== -->
     <!-- Server Thread Pool                                          -->
     <!-- =========================================================== -->

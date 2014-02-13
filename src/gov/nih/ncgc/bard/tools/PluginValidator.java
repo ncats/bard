@@ -8,9 +8,13 @@ import com.github.fge.jsonschema.report.ProcessingMessage;
 import com.github.fge.jsonschema.report.ProcessingReport;
 import com.github.fge.jsonschema.util.JsonLoader;
 import gov.nih.ncgc.bard.plugin.IPlugin;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
+import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.xml.XmlConfiguration;
 import org.xml.sax.SAXException;
@@ -22,10 +26,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -47,8 +53,9 @@ import java.util.zip.ZipFile;
  * @author Rajarshi Guha
  */
 public class PluginValidator {
+    private static Server server = null;
     private static final String version = "1.1";
-    private static final Integer JETTY_PORT = 8989;
+    private static Integer JETTY_PORT = 8989;
 
     private String[] packagesToIgnore = {"javax.servlet"};
 
@@ -60,8 +67,71 @@ public class PluginValidator {
         return version;
     }
 
+    public class NoLogging implements Logger {
+        @Override
+        public String getName() {
+            return "no";
+        }
+
+        @Override
+        public void warn(String msg, Object... args) {
+        }
+
+        @Override
+        public void warn(Throwable thrown) {
+        }
+
+        @Override
+        public void warn(String msg, Throwable thrown) {
+        }
+
+        @Override
+        public void info(String msg, Object... args) {
+        }
+
+        @Override
+        public void info(Throwable thrown) {
+        }
+
+        @Override
+        public void info(String msg, Throwable thrown) {
+        }
+
+        @Override
+        public boolean isDebugEnabled() {
+            return false;
+        }
+
+        @Override
+        public void setDebugEnabled(boolean enabled) {
+        }
+
+        @Override
+        public void debug(String msg, Object... args) {
+        }
+
+        @Override
+        public void debug(Throwable thrown) {
+        }
+
+        @Override
+        public void debug(String msg, Throwable thrown) {
+        }
+
+        @Override
+        public Logger getLogger(String name) {
+            return this;
+        }
+
+        @Override
+        public void ignore(Throwable ignored) {
+        }
+    }
+
+
     public PluginValidator() {
         errors = new ErrorList();
+        org.eclipse.jetty.util.log.Log.setLog(new NoLogging());
     }
 
     public List<String> getErrors() {
@@ -184,13 +254,24 @@ public class PluginValidator {
         return false;
     }
 
+    protected Object[] readFromUrl(String url) throws IOException {
+        StringBuffer result = new StringBuffer();
+        DefaultHttpClient httpclient = new DefaultHttpClient();
+        HttpGet get = new HttpGet(url);
+        HttpResponse response = httpclient.execute(get);
+        Integer statusCode = response.getStatusLine().getStatusCode();
+        BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+        String line;
+        while ((line = rd.readLine()) != null) {
+            result.append(line);
+        }
+        return new Object[]{statusCode, result.toString()};
+    }
+
     public boolean validateServlet(String filename) throws Exception, IOException, SAXException {
         URL configResource = this.getClass().getResource("/jetty.xml");
-//        File configFile = new File(configResource.toURI());
-
-//        File configFile = new File("src/jetty.xml");
         XmlConfiguration configuration = new XmlConfiguration(configResource);
-        Server server = (Server) configuration.configure();
+        server = (Server) configuration.configure();
         Connector connector = new SelectChannelConnector();
         connector.setPort(JETTY_PORT);
         connector.setHost("127.0.0.1");
@@ -202,9 +283,56 @@ public class PluginValidator {
         server.setHandler(wac);
         server.setStopAtShutdown(true);
         server.start();
-        server.join();
 
-        return false;
+        String res = null;
+        filename = new File(filename).getName();
+        String[] toks = filename.split("\\.");
+        if (toks.length == 2) {
+            res = toks[0].replace("bardplugin_", "");
+        } else {
+            errors.add("Invalid name format for war file");
+        }
+
+        String baseUrl = "http://localhost:" + JETTY_PORT;
+
+        // check that we can access the servlet
+        String url = baseUrl + "/" + res;
+        Object[] ret = readFromUrl(url);
+        if ((Integer) ret[0] == 404) errors.add("/" + res + " resource not found");
+
+        // check we can get the /_info subresource
+        url = baseUrl + "/" + res + "/_info";
+        ret = readFromUrl(url);
+        if ((Integer) ret[0] != 200) errors.add("/" + res + "/_info resource not found");
+
+        // check we can get the /_manifest subresource
+        url = baseUrl + "/" + res + "/_manifest";
+        ret = readFromUrl(url);
+        if ((Integer) ret[0] != 200) errors.add("/" + res + "/_manifest resource not found");
+
+        boolean manifestIsValid = false;
+        try {
+            if (ret[1] != null && !ret[1].equals("")) {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode manifestNode = mapper.readTree((String) ret[1]);
+                JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
+
+                JsonNode schemaNode = JsonLoader.fromResource("/manifest.json");
+                com.github.fge.jsonschema.main.JsonSchema schema = factory.getJsonSchema(schemaNode);
+
+                ProcessingReport report = schema.validate(manifestNode);
+                manifestIsValid = report.isSuccess();
+                if (!manifestIsValid) {
+                    for (ProcessingMessage msg : report) errors.error(msg.getMessage());
+                }
+            }
+        } catch (IOException e) {
+        } catch (ProcessingException e) {
+        }
+        if (!manifestIsValid) errors.error("Manifest did not validate");
+
+        server.setGracefulShutdown(0);
+        return errors.size() == 0;
     }
 
     public boolean validate(String filename) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
@@ -326,62 +454,18 @@ public class PluginValidator {
 
         // check that the class has a class level @Path annotation
         // if @Path is present, ensure it matches war file name (if we got one)
-        boolean hasClassLevelPathAnnot = false;
         boolean collidesWithRegistry = false;
-        boolean matchesWarFileName = false;
         if (klass.isAnnotationPresent(Path.class)) {
-            hasClassLevelPathAnnot = true;
             Path annot = (Path) klass.getAnnotation(Path.class);
             String value = annot.value();
             if (value != null && value.indexOf("/plugins/registry") == 0) {
                 collidesWithRegistry = true;
             }
-            if (warName != null) {
-                String[] toks = warName.split("\\.");
-                if (toks.length == 2) {
-                    String tmp = toks[0].replace("bardplugin_", "");
-                    matchesWarFileName = tmp.equals(value.replace("/", ""));
-                }
-            }
         }
-        if (!hasClassLevelPathAnnot)
-            errors.error("Missing the class level @Path annotation");
-        if (warName != null && !matchesWarFileName)
-            errors.error("WAR file name does not correspond to @Path annotation");
         if (collidesWithRegistry)
             errors.error("Class level @Path annotation cannot start with '/plugins/registry'");
 
         Method[] methods = klass.getMethods();
-
-        // check for the _info resource
-        boolean infoResourcePresent = false;
-        for (Method method : methods) {
-            if (method.isAnnotationPresent(Path.class)) {
-                Path annot = method.getAnnotation(Path.class);
-                // make sure the @GET annotation is present and the annotation is on the expected method
-                if (annot.value().equals("/_info") && method.getAnnotation(GET.class) != null && method.getName().equals("getDescription")) {
-                    infoResourcePresent = true;
-                    break;
-                }
-            }
-        }
-        if (!infoResourcePresent)
-            errors.error("Missing the getDescription() method with @Path(\"/_info\") and @GET annotations");
-
-        // check for the _info resource
-        boolean manifestResourcePresent = false;
-        for (Method method : methods) {
-            if (method.isAnnotationPresent(Path.class)) {
-                Path annot = method.getAnnotation(Path.class);
-                // make sure the @GET annotation is present and the annotation is on the expected method
-                if (annot.value().equals("/_manifest") && method.getAnnotation(GET.class) != null && method.getName().equals("getManifest")) {
-                    manifestResourcePresent = true;
-                    break;
-                }
-            }
-        }
-        if (!manifestResourcePresent)
-            errors.error("Missing the getManifest() method with @Path(\"/_manifest\") and @GET annotations");
 
 
         // check that we have at least one (public) method that is annotated 
@@ -424,39 +508,6 @@ public class PluginValidator {
             return false;
         }
 
-        // ok, now we create the class
-        IPlugin plugin = (IPlugin) klass.newInstance();
-
-        // check for a non-null description, version, manifest
-        String s = plugin.getDescription();
-        if (s == null) errors.error("getDescription() returned a null value");
-        s = plugin.getManifest();
-        if (s == null) errors.error("getManifest() returned a null value");
-
-        // validate the manifest document. First we need to get the manifest schema
-        boolean manifestIsValid = false;
-        try {
-            if (s != null && !s.equals("")) {
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode manifestNode = mapper.readTree(s);
-                JsonSchemaFactory factory = JsonSchemaFactory.byDefault();
-
-                JsonNode schemaNode = JsonLoader.fromResource("/manifest.json");
-                com.github.fge.jsonschema.main.JsonSchema schema = factory.getJsonSchema(schemaNode);
-
-                ProcessingReport report = schema.validate(manifestNode);
-                manifestIsValid = report.isSuccess();
-                if (!manifestIsValid) {
-                    for (ProcessingMessage msg : report) errors.error(msg.getMessage());
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } catch (ProcessingException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
-        if (!manifestIsValid) errors.error("Manifest did not validate");
-
         return errors.size() == 0;
     }
 
@@ -466,29 +517,35 @@ public class PluginValidator {
 
         if (args.length < 1) {
             System.out.println("\nBARD Plugin validator v" + version);
-            System.out.println("\nUsage: java -jar validator.jar bardplugin_FOO.war [-i|-w]");
+            System.out.println("\nUsage: java -jar validator.jar bardplugin_FOO.war [-i|-w|-p PORT]");
             System.out.println("\n-i\tPrint INFO messages");
             System.out.println("-w\tPrint WARN messages");
+            System.out.println("-p PORT\tSet Jetty port. Default is 8989");
             System.out.println("\nBy default only ERROR messages are reported");
             System.exit(-1);
         }
 
+        int i = 0;
         for (String arg : args) {
             if (arg.contains("-i")) printInfo = true;
             if (arg.contains("-w")) printWarn = true;
+            if (arg.contains("-i")) JETTY_PORT = Integer.parseInt(args[i + 1]);
+            i++;
         }
 
         PluginValidator v = new PluginValidator();
-        boolean status = v.validateServlet(args[0]);
+        boolean status = v.validateServlet(args[0]) && v.validate(args[0]);
 
 //        boolean status = v.validate(args[0]);
 //        boolean status = v.validate("/Users/guhar/Downloads/bardplugin_badapple.war");
 //        boolean status = v.validate("/Users/guhar/Downloads/bardplugin_hellofromunm.war");
-        System.out.println("status = " + status);
+        System.out.println("PLUGINVALIDATOR: status = " + status);
         for (String s : v.getErrors()) {
-            if (s.startsWith("INFO") && printInfo) System.out.println(s);
-            else if (s.startsWith("WARN") && printWarn) System.out.println(s);
-            else if (s.startsWith("ERROR")) System.out.println(s);
+            if (s.startsWith("INFO") && printInfo) System.out.println("PLUGINVALIDATOR:" + s);
+            else if (s.startsWith("WARN") && printWarn) System.out.println("PLUGINVALIDATOR:" + s);
+            else if (s.startsWith("ERROR")) System.out.println("PLUGINVALIDATOR:" + s);
         }
+
+        if (server != null) server.stop();
     }
 }
