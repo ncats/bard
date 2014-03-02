@@ -45,7 +45,7 @@
 
     <context-param>
         <param-name>datasource-context</param-name>
-        <param-value>jdbc/bardman</param-value>
+        <param-value>jdbc/bardman3</param-value>
     </context-param>
 
     <!-- the first datasource is the master; all subsequent ones are slave -->
