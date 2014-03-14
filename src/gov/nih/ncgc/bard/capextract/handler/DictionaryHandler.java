@@ -34,8 +34,8 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
      * @param resource The CAP resource that is meant to be processed. An implementing class
      *                 can choose to proceed or not based on this parameter.
      */
-    public void process(String url, CAPConstants.CapResource resource) throws IOException {
-        if (resource != CAPConstants.CapResource.DICTIONARY) return;
+    public int process(String url, CAPConstants.CapResource resource) throws IOException {
+        if (resource != CAPConstants.CapResource.DICTIONARY) return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
         log.info("Processing " + resource + " from " + url);
         Dictionary d = getResponse(url, resource);
         log.info("\tUnmarshalled dictionary");
@@ -98,6 +98,7 @@ public class DictionaryHandler extends CapResourceHandler implements ICapResourc
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
 
+        return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
         // TODO should handle resultType, units and descriptors
     }
 

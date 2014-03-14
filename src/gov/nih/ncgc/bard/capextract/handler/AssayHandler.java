@@ -80,8 +80,8 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
      * @param resource The CAP resource that is meant to be processed. An implementing class
      *                 can choose to proceed or not based on this parameter.
      */
-    public void process(String url, CAPConstants.CapResource resource) throws IOException {
-        if (resource != CAPConstants.CapResource.ASSAY) return;
+    public int process(String url, CAPConstants.CapResource resource) throws IOException {
+        if (resource != CAPConstants.CapResource.ASSAY) return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
         log.info("Processing " + resource);
 
         // get the Assay object here
@@ -95,7 +95,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         String type = assay.getAssayType(); // Regular, Panel - Array, Panel - Group
         if (!"Regular".equals(type)) {
             log.warn("Unable to process non-regular assays at the moment, assay:" + url + " " + type);
-            return;
+            return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
         }
         
         String status = assay.getStatus(); // Pending, Active, Superceded, Retired. Probably should do something with the status
@@ -103,13 +103,14 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         //we should only process Approved and non-retired assays
         if(!"Approved".equals(status) && !"Retired".equals(status)) {
             log.warn("Unable to process non-Approved assays (aborting assay load), assay:" + url + " " + status);
-            return;
+            this.setExtractionStatus("Failed", url, resource);
+            return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
         }
         
         if("Retired".equals(status)) {
             log.info("RETIRED ASSAY! CAP Assay " + capAssayId + " has Retired status. Initiating Retirement.");
             this.retireAssay(capAssayId.longValue());
-            return;
+            return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
         }
         
         
@@ -294,7 +295,7 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
                 conn.commit();
                 if (insertedRows == 0) {
                     log.error("Could not insert new CAP assay id = " + capAssayId);
-                    return;
+                    return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
                 } else log.info("Staged CAP assay id = " + capAssayId);
 
             }
@@ -494,6 +495,8 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
+        
+        return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
     }
 
     private void retireAssay(long capAssayId) {

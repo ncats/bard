@@ -20,7 +20,7 @@ public interface ICapResourceHandler {
      *                 can choose to proceed or not based on this parameter.
      * @throws java.io.IOException if there is an error in retrieving the resource
      */
-    public void process(String url, CAPConstants.CapResource resource) throws IOException;
+    public int process(String url, CAPConstants.CapResource resource) throws IOException;
 
     // retrieves objects (handles http 206 response), but does not push results into DB
     public <T> Vector<T> poll(String url, CAPConstants.CapResource resource) throws IOException;

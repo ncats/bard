@@ -28,9 +28,9 @@ public class AssaysHandler extends CapResourceHandler implements ICapResourceHan
      * @param resource The CAP resource that is meant to be processed. An implementing class
      *                 can choose to proceed or not based on this parameter.
      */
-    public void process(String url, CAPConstants.CapResource resource) throws IOException {
+    public int process(String url, CAPConstants.CapResource resource) throws IOException {
 
-	if (resource != CAPConstants.CapResource.ASSAYS) return;
+	if (resource != CAPConstants.CapResource.ASSAYS) return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
 	log.info("Processing " + resource);
 
 	// get the Assays object here
@@ -60,6 +60,7 @@ public class AssaysHandler extends CapResourceHandler implements ICapResourceHan
 		}
 	    }
 	}
+	return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
     }
 }
 

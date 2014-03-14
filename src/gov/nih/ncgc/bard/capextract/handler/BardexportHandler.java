@@ -26,8 +26,8 @@ public class BardexportHandler extends CapResourceHandler implements ICapResourc
      * @param resource The CAP resource that is meant to be processed. An implementing class
      *                 can choose to proceed or not based on this parameter.
      */
-    public void process(String url, CAPConstants.CapResource resource) throws IOException {
-        if (resource != CAPConstants.CapResource.BARDEXPORT) return;
+    public int process(String url, CAPConstants.CapResource resource) throws IOException {
+        if (resource != CAPConstants.CapResource.BARDEXPORT) return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
         log.info("Processing " + resource);
         Bardexport export = getResponse(url, resource);
         
@@ -41,5 +41,6 @@ public class BardexportHandler extends CapResourceHandler implements ICapResourc
                 log.error("No handler for " + link.getType());
             } else handler.process(aurl, res);
         }
+        return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
     }
 }

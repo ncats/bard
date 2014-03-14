@@ -26,11 +26,13 @@ public class ExternalSystemHandler extends CapResourceHandler implements ICapRes
      * @param resource The CAP resource that is meant to be processed. An implementing class
      *                 can choose to proceed or not based on this parameter.
      */
-    public void process(String url, CAPConstants.CapResource resource) throws IOException {
-        if (resource != CAPConstants.CapResource.EXTSYS) return;
+    public int process(String url, CAPConstants.CapResource resource) throws IOException {
+        if (resource != CAPConstants.CapResource.EXTSYS) return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
 
         // get the Project object here
         extsys = getResponse(url, resource);
+        
+        return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
     }
 
     public ExternalSystem getExtsys() {

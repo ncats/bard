@@ -66,14 +66,14 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
      * @param resource The CAP resource that is meant to be processed. An implementing class
      *                 can choose to proceed or not based on this parameter.
      */
-    public void process(String url, CAPConstants.CapResource resource) throws IOException {
+    public int process(String url, CAPConstants.CapResource resource) throws IOException {
 	//set this to -1 initially. The handler persists and may call on the captured bardExptId
 	bardExptId = -1;
 	
-        if (resource != CAPConstants.CapResource.EXPERIMENT) return;
+        if (resource != CAPConstants.CapResource.EXPERIMENT) return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
 
         Experiment expt = getResponse(url, resource);
-        if (expt == null) return;
+        if (expt == null) return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
 
         BigInteger exptID = expt.getExperimentId();
         BigInteger confLevel = expt.getConfidenceLevel();
@@ -87,19 +87,20 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         //first check if it's approved
         if(!"Approved".equals(status) && !"Retired".equals(status)) {
             log.warn("Unable to process non-Approved experiments (aborting experiment load), experiment:" + url + " " + status);
-            return;
+            setExtractionStatus("Failed", url, resource);
+            return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
         }
         
         if("Retired".equals(status)) {
             log.info("RETIRED EXPERIMENT! CAP Experiment " + exptID + " has Retired status. Initiating Retirement.");
             this.retireExperiment(exptID.longValue());
-            return;
+            return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
         }
         
         //check the EXTRACTION status, if can't determine readyForExtraction, or it's 'Not Ready', don't load.
         if(extractionStatus == null || extractionStatus.equals("Not Ready")) {
             log.warn("Aborting Load!!! Cap experiment = "+exptID + " extraction status ="+extractionStatus);
-            return;
+            return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
         }
         
         ExternalReferenceHandler extrefHandler = new ExternalReferenceHandler();
@@ -130,7 +131,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
                     if (bardAssayId == -1) {
                         log.error("Invalid (missing referenced assay) bardAssayId even after inserting CAP assay id " + capAssayId + ". ABORTING EXPERIMENT LOAD");
                         bardExptId = -1;
-                        return;
+                        return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
                     }
                 }
                 _CAP_ExptID_AssayID_lookup.put(exptID, bardAssayId);
@@ -308,6 +309,7 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
             e.printStackTrace();
             log.error("Error inserting/updating the experiment or related annotations (see stack trace) for CAP expt id " + expt.getExperimentId() + "\n" + e.getMessage());
         }
+        return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
     }
 
     

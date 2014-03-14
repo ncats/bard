@@ -31,8 +31,8 @@ public class ExperimentResultsHandler extends CapResourceHandler implements ICap
      * @param url URL to list all CAP Experiments
      * @param resource CAPResource for experiments.
      */
-    public void process(String url, CapResource resource) throws IOException {
-        if (resource != CAPConstants.CapResource.EXPERIMENTS) return;
+    public int process(String url, CapResource resource) throws IOException {
+        if (resource != CAPConstants.CapResource.EXPERIMENTS) return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
         log.info("Processing " + resource);
 
         while (url != null) { // in case 206 partial response is returned, we should continue to iterate
@@ -55,21 +55,27 @@ public class ExperimentResultsHandler extends CapResourceHandler implements ICap
         	    link.getTitle();
 
         	    //log.info("\t" + title + "/" + type + "/ href = " + href);
+        	    int loadStatus;
         	    ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.RESULT_JSON);
         	    if (handler != null) { 
         		//set start status
         		setExtractionStatus(CAPConstants.CAP_STATUS_STARTED, href, 
         			CAPConstants.CapResource.EXPERIMENT);
         		//process expt results
-        		handler.process(href, CAPConstants.CapResource.RESULT_JSON);
+        		loadStatus = handler.process(href, CAPConstants.CapResource.RESULT_JSON);
         		//set complete status
-        		setExtractionStatus(CAPConstants.CAP_STATUS_COMPLETE, href, 
-        			CAPConstants.CapResource.EXPERIMENT);
+        		if(loadStatus == CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE) {
+        		    setExtractionStatus(CAPConstants.CAP_STATUS_COMPLETE, href, 
+        			    CAPConstants.CapResource.EXPERIMENT);
+        		} else if(loadStatus == CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED) {
+        		    setExtractionStatus(CAPConstants.CAP_STATUS_FAILED, href, 
+        			    CAPConstants.CapResource.EXPERIMENT);
+        		}
         	    }
         	}
             }
         }
-	
+	return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
     }
     
     /*
@@ -87,25 +93,25 @@ public class ExperimentResultsHandler extends CapResourceHandler implements ICap
 	int [] ids = {
 
 		//These are SP's to load on 11/19
-		4863,
-		5188,
-		5197,
-		5214,
-		7634,
-		7663,
-		7668,
-		7669,
-		7672,
-		7683,
-		7690,
-		7691,
-		7694,
-		7696,
-		7719,
-		7722,
-		7723,
-		7746,
-		8088
+//		4863,
+//		5188,
+//		5197,
+//		5214,
+//		7634,
+//		7663,
+//		7668,
+//		7669,
+//		7672,
+//		7683,
+//		7690,
+//		7691,
+//		7694,
+//		7696,
+//		7719,
+//		7722,
+//		7723,
+//		7746,
+//		8088
 		
 		// NCGC experiments to pick up correct cid., done
 //		7570,
@@ -184,11 +190,20 @@ public class ExperimentResultsHandler extends CapResourceHandler implements ICap
 //		8188,
 //		1778,
 //		2488
+		
+		
+		74,
+		882,
+		883
+
+
+		
+
 	};
 
 	int i =0;
 	for(int id : ids) {
-	    h.setExtractionStatus("Ready", "https://bard.broadinstitute.org/dataExport/api/experiments/"+id, CAPConstants.CapResource.EXPERIMENT);
+	    h.setExtractionStatus("Ready", "https://bard-qa.broadinstitute.org/dataExport/api/projects/"+id, CAPConstants.CapResource.PROJECT);
 	    System.out.println("Change #"+(++i));
 	}
 	

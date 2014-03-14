@@ -25,8 +25,8 @@ public class ResultsHandler extends CapResourceHandler implements ICapResourceHa
      * @param resource The CAP resource that is meant to be processed. An implementing class
      *                 can choose to proceed or not based on this parameter.
      */
-    public void process(String url, CAPConstants.CapResource resource) throws IOException {
-        if (resource != CAPConstants.CapResource.RESULTS) return;
+    public int process(String url, CAPConstants.CapResource resource) throws IOException {
+        if (resource != CAPConstants.CapResource.RESULTS) return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
         log.info("Processing " + resource);
 
         while (url != null) { // in case 206 partial response is returned, we should continue to iterate
@@ -50,5 +50,6 @@ public class ResultsHandler extends CapResourceHandler implements ICapResourceHa
 //        	}
 //            }
         }
+        return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
     }
 }

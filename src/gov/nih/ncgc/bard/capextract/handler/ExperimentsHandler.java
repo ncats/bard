@@ -28,8 +28,8 @@ public class ExperimentsHandler extends CapResourceHandler implements ICapResour
      * @param resource The CAP resource that is meant to be processed. An implementing class
      *                 can choose to proceed or not based on this parameter.
      */
-    public void process(String url, CAPConstants.CapResource resource) throws IOException {
-	if (resource != CAPConstants.CapResource.EXPERIMENTS) return;
+    public int process(String url, CAPConstants.CapResource resource) throws IOException {
+	if (resource != CAPConstants.CapResource.EXPERIMENTS) return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
 	log.info("Processing " + resource);
 
 	while (url != null) { // in case 206 partial response is returned, we should continue to iterate
@@ -53,25 +53,34 @@ public class ExperimentsHandler extends CapResourceHandler implements ICapResour
 
 		    //load experiment, then results
 		    ICapResourceHandler handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.EXPERIMENT);
+		    int loadStatus = CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
+		    int dataLoadStatus = CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
 		    if (handler != null) { 
 			//status set to started
 			setExtractionStatus(CAPConstants.CAP_STATUS_STARTED, href, CAPConstants.CapResource.EXPERIMENT);
 
 			//load experiment
-			handler.process(href, CAPConstants.CapResource.EXPERIMENT);
+			loadStatus = handler.process(href, CAPConstants.CapResource.EXPERIMENT);
 
 			//if loading experiment, load experiment results
 			handler = CapResourceHandlerRegistry.getInstance().getHandler(CAPConstants.CapResource.RESULT_JSON);
 			if (handler != null) {
-			   handler.process(href, CAPConstants.CapResource.RESULT_JSON);
+			   dataLoadStatus = handler.process(href, CAPConstants.CapResource.RESULT_JSON);
 			} else {
 			    log.warn("!!! Don't have handler for result json, it's null.");
 			}
 			//set status to completed
-			this.setExtractionStatus(CAPConstants.CAP_STATUS_COMPLETE, href, CAPConstants.CapResource.EXPERIMENT);
+			if(loadStatus == CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE 
+				&& dataLoadStatus == CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE) {
+			    
+			    this.setExtractionStatus(CAPConstants.CAP_STATUS_COMPLETE, href, CAPConstants.CapResource.EXPERIMENT);
+			} else {
+			    this.setExtractionStatus(CAPConstants.CAP_STATUS_FAILED, href, CAPConstants.CapResource.EXPERIMENT);
+			}
 		    }
 		}
 	    }
 	}
+	return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
     }
 }

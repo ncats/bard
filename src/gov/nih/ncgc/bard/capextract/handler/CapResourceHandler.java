@@ -159,6 +159,7 @@ public abstract class CapResourceHandler {
 	    get.setHeader(CAPConstants.CAP_APIKEY_HEADER, CAPConstants.getApiKey());
 
 	    HttpResponse baseResponse = httpClient.execute(get);
+	        
 	    if(baseResponse != null && baseResponse.getFirstHeader("Etag").getValue() != null) {
 		etag = Integer.parseInt(baseResponse.getFirstHeader("Etag").getValue());
 

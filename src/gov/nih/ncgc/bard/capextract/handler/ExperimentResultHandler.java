@@ -85,7 +85,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
      * @param url The URL for the experiment object. 
      * @param resource the JSON Result resource
      */
-    public void process(String url, CAPConstants.CapResource resource) {
+    public int process(String url, CAPConstants.CapResource resource) {
 	try {
 
 	    long capExptId = Long.parseLong(url.substring(url.lastIndexOf('/')+1));
@@ -97,7 +97,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    //make sure we have a priority element
 	    if(priorityElems.size() < 1) {
 		logger.warning("CAP Expt Id ="+capExptId+" lacks a CAP specified priority element. ABORT EXPT DATA LOAD!!!");
-		return;
+		return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
 	    }
 
 	    //open connection
@@ -127,7 +127,7 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    Long bardExptId = ids.get("bardExptId");
 	    if(bardExptId == null) {
 		logger.warning("A bardExtId does not exist corresponding to capExptId:"+capExptId+". Experiment data load aborted. Load experiment first.");
-		return;
+		return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
 	    }
 
 	    //get project ids for the cap experiment
@@ -273,7 +273,8 @@ public class ExperimentResultHandler extends CapResourceHandler implements ICapR
 	    e.printStackTrace();
 	} catch (SQLException e) {
 	    e.printStackTrace();
-	}	
+	}
+	return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
     }
 
     private BardExptDataResponse determineResultClass(Long capExptId, BufferedReader bufferedReader) throws IOException {

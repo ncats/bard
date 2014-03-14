@@ -39,8 +39,8 @@ public class ProjectDocHandler extends CapResourceHandler implements ICapResourc
      * @param resource The CAP resource that is meant to be processed. An implementing class
      *                 can choose to proceed or not based on this parameter.
      */
-    public void process(String url, CAPConstants.CapResource resource) throws IOException {
-        if (resource != CAPConstants.CapResource.PROJECTDOC) return;
+    public int process(String url, CAPConstants.CapResource resource) throws IOException {
+        if (resource != CAPConstants.CapResource.PROJECTDOC) return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
 
         // get the Project object here
         Project project = getResponse(url, resource);
@@ -54,6 +54,8 @@ public class ProjectDocHandler extends CapResourceHandler implements ICapResourc
             log.info("\tExtracting " + title);
             process(project);
         }
+        
+        return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
     }
 
     public void process(Project project) {

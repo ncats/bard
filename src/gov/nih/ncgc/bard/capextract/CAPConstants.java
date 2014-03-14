@@ -16,6 +16,8 @@ public class CAPConstants {
     public static final String CAP_STATUS_READY = "Ready";
     public static final String CAP_STATUS_STARTED = "Started";
     public static final String CAP_STATUS_COMPLETE = "Complete";
+    public static final String CAP_STATUS_FAILED = "Failed";
+
     //solr resource keys
     public static final String SOLR_CORE_URL_KEY = "SOLR_SERVER_URL";
     public static final String SOLR_RESOURCE_KEY_ASSAY = "SOLR_ASSAY_CORE";
@@ -23,6 +25,9 @@ public class CAPConstants {
     public static final String SOLR_RESOURCE_KEY_EXPERIMENT = "SOLR_EXPERIMENT_CORE";
     public static final String SOLR_RESOURCE_KEY_COMPOUND = "SOLR_COMPOUND_CORE";
         
+    public static final int CAP_EXTRACT_LOAD_STATUS_COMPLETE = 0;
+    public static final int CAP_EXTRACT_LOAD_STATUS_FAILED = 1;
+
     /**
      * Get the API key.
      * <p/>

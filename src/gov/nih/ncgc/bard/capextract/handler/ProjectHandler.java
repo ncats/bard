@@ -63,12 +63,12 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
      * @param resource The CAP resource that is meant to be processed. An implementing class
      *                 can choose to proceed or not based on this parameter.
      */
-    public void process(String url, CAPConstants.CapResource resource) throws IOException {
-        if (resource != CAPConstants.CapResource.PROJECT) return;
+    public int process(String url, CAPConstants.CapResource resource) throws IOException {
+        if (resource != CAPConstants.CapResource.PROJECT) return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
 
         // get the Project object here
         Project project = getResponse(url, resource);
-        if (project == null) return;
+        if (project == null) return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
 
         if (project.getProjectSteps() == null) {
             log.info("$$$ null project steps");
@@ -86,11 +86,12 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 //        log.info("\taurl = [" + readyToXtract + "] for " + title + " pid " + pid);
 
         //JB: Note, project will not be exposed unless it's 'Ready'    
-        process(project);
+        int loadStatus = process(project, url, resource);
 
+        return loadStatus;
     }
 
-    public void process(Project project) {
+    public int process(Project project, String url, CAPConstants.CapResource resource) {
         String readyToXtract = project.getReadyForExtraction();
         if (!"Ready".equals(readyToXtract)) log.error("Proceeding even though project not ready: " + readyToXtract);
 
@@ -112,14 +113,14 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         if(status != null) {
             if(!status.equals("Approved") && !status.equals("Retired")) {
         	log.warn("ABORT PROJECT Load. CAP Project ID:"+capProjectId+" Status:"+status+" Only Approved and Retired projects can be processed.");
-        	return;
+        	setExtractionStatus("Failed", url, resource);
+        	return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
             }
             if(status.equals("Retired")) {
         	log.warn("RETIRE PROJECT, CAP Project ID:"+capProjectId+" Starting retirement process.");
         	retireProject(capProjectId);
-        	return;
+        	return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
             }
-        
         }
         
         
@@ -296,6 +297,8 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
         } catch (ClassNotFoundException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
+        
+        return CAPConstants.CAP_EXTRACT_LOAD_STATUS_COMPLETE;
     }
 
     void updateProbeLinks(List<CAPAnnotation> annos, Long bardProjId) {
