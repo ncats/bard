@@ -111,8 +111,8 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
 
         String status = project.getStatus();
         if(status != null) {
-            if(!status.equals("Approved") && !status.equals("Retired")) {
-        	log.warn("ABORT PROJECT Load. CAP Project ID:"+capProjectId+" Status:"+status+" Only Approved and Retired projects can be processed.");
+            if(!status.equals("Approved") && !status.equals("Retired") && !"Provisional".equals(status)) {
+        	log.warn("ABORT PROJECT Load. CAP Project ID:"+capProjectId+" Status:"+status+" Only Approved, Provisional, and Retired projects can be processed.");
         	setExtractionStatus("Failed", url, resource);
         	return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
             }
@@ -142,7 +142,7 @@ public class ProjectHandler extends CapResourceHandler implements ICapResourceHa
                         extsysHandler.process(refLink.getHref(), CAPConstants.CapResource.EXTSYS);
                         ExternalSystem extsys = extsysHandler.getExtsys();
                         String source = extsys.getName() + "," + extsys.getOwner() + "," + extsys.getSystemUrl();
-                        if (PUBCHEM.equals(source)) pubchemAid = Integer.parseInt(aid);
+                        if (PUBCHEM.equals(source) && aid != null) pubchemAid = Integer.parseInt(aid);
                     }
                 }
             }

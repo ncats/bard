@@ -2,15 +2,16 @@ package gov.nih.ncgc.bard.rest.filter;
 
 import gov.nih.ncgc.bard.rest.BARDConstants;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.MultivaluedMap;
 
-import com.sun.jersey.core.header.InBoundHeaders;
-import com.sun.jersey.spi.container.ContainerRequest;
-import com.sun.jersey.spi.container.ContainerRequestFilter;
+import org.glassfish.jersey.server.ContainerRequest;
 
 
 /**
@@ -37,25 +38,36 @@ public class CountFilter implements ContainerRequestFilter {
         MultivaluedMap<String, String> headers = request.getRequestHeaders();
         if (path.endsWith("/_count")) { // make sure to strip out query params
             headers.add(BARDConstants.REQUEST_HEADER_COUNT, "true");
-//            request.setHeaders(headers);
+            //request.setHeaders(headers);
             
             String uriString = request.getRequestUri().toString().replace("/_count", "");
             try {
                 URI uri = new URI(uriString);
-                request.setUris(request.getBaseUri(), uri);
+                // new jersey 
+                request.setRequestUri(request.getBaseUri(), uri);
+                // old jersey
+                //request.setUris(request.getBaseUri(), uri);
             } catch (URISyntaxException e) {
                 e.printStackTrace();
             }
         }
-
-        MultivaluedMap<String, String> queryParams = request.getQueryParameters();
+        //old jersey
+        //MultivaluedMap<String, String> queryParams = request.getQueryParameters();
+        // New jersey...
+        MultivaluedMap<String, String> queryParams = request.getUriInfo().getQueryParameters();
         if (queryParams.containsKey("callback")) {
             List<String> vals = queryParams.get("callback");
             if (vals.size() == 1) {
                 headers.add(BARDConstants.REQUEST_HEADER_JSONP, vals.get(0));
-                request.setHeaders((InBoundHeaders) headers);
+                //request.setHeaders(headers); 
             }
         }
         return request;
+    }
+
+    @Override
+    public void filter(ContainerRequestContext arg0) throws IOException {
+	// TODO Auto-generated method stub
+	
     }
 }

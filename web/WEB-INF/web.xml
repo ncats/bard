@@ -45,19 +45,27 @@
 
     <context-param>
         <param-name>datasource-context</param-name>
-        <param-value>jdbc/bardman3</param-value>
+        <param-value>jdbc/bard-1</param-value>
     </context-param>
 
-    <!-- the first datasource is the master; all subsequent ones are slave -->
+    <!-- the first datasource is the master; all subsequent ones are slave 
     <context-param>
         <param-name>datasource-cluster</param-name>
         <param-value>jdbc/bardman3,jdbc/bard3_faraday,jdbc/bard3_tesla,jdbc/bard3_coulomb</param-value> 
     </context-param>
+	-->
+
+	<!-- Test New cluster config -->
+    <context-param>
+        <param-name>datasource-cluster</param-name>
+        <param-value>jdbc/bard-1,jdbc/bard-2,jdbc/bard-3,jdbc/bard-4</param-value> 
+    </context-param>
+
 
     <!-- specify which datasource to use -->
     <context-param>
         <param-name>datasource-selector</param-name>
-        <param-value>datasource-context</param-value>
+        <param-value>datasource-cluster</param-value>
     </context-param>
 
     <context-param>
@@ -67,7 +75,7 @@
 
     <context-param>
         <param-name>initHazelcast</param-name>
-        <param-value>false</param-value>
+        <param-value>true</param-value>
     </context-param>
                  
     <!-- Hazelcast cluster for Glassfish4 cluster: rayleigh, boltzmann, and gauss 
@@ -80,7 +88,7 @@
     <!-- Hazelcast cluster for Glassfish3: hamilton and dirac  -->
     <context-param>
         <param-name>cache-manager-cluster-nodes</param-name>
-        <param-value>128.231.10.33:5701,128.231.10.95:5701</param-value>
+        <param-value>128.231.10.93:5701</param-value>
     </context-param>
 
     <listener>

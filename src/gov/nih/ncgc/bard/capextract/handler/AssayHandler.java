@@ -101,8 +101,8 @@ public class AssayHandler extends CapResourceHandler implements ICapResourceHand
         String status = assay.getStatus(); // Pending, Active, Superceded, Retired. Probably should do something with the status
         
         //we should only process Approved and non-retired assays
-        if(!"Approved".equals(status) && !"Retired".equals(status)) {
-            log.warn("Unable to process non-Approved assays (aborting assay load), assay:" + url + " " + status);
+        if(!"Approved".equals(status) && !"Retired".equals(status) && !"Provisional".equals(status)) {
+            log.warn("Unable to process "+ status + " assays (aborting assay load), assay:" + url + " " + status);
             this.setExtractionStatus("Failed", url, resource);
             return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
         }

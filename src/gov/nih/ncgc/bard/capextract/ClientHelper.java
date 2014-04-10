@@ -10,12 +10,12 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.core.Configuration;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.client.urlconnection.HTTPSProperties;
-import com.sun.jersey.core.util.FeaturesAndProperties;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.message.MessageProperties;
 
 /**
  * Handle HTTPS connections.
@@ -25,7 +25,7 @@ import com.sun.jersey.core.util.FeaturesAndProperties;
  * @author Rajarshi Guha
  */
 public class ClientHelper {
-    private static ClientConfig configureClient() {
+    private static Configuration configureClient() {
         TrustManager[] certs = new TrustManager[]{
                 new X509TrustManager() {
 
@@ -52,26 +52,49 @@ public class ClientHelper {
         assert ctx != null;
         HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
 
-        ClientConfig config = new DefaultClientConfig();
-        try {
-            config.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES, new HTTPSProperties(
-                    new HostnameVerifier() {
-                        public boolean verify(String hostname, SSLSession session) {
-                            return true;
-                        }
-                    },
-                    ctx
-            ));
-        } catch (Exception e) {
-        }
+        
+        
+        
+        HostnameVerifier hostnameVerifier = new HostnameVerifier() {
+            public boolean verify(String hostname, SSLSession session) {
+        	return true;
+            }
+        };
+
+        // 'New' jersey...
+        ClientBuilder builder = ClientBuilder.newBuilder().sslContext(ctx);
+        Client client = builder.hostnameVerifier(hostnameVerifier).build();
+        Configuration config = client.getConfiguration();
+        
+        // Old Jersey...
+        //ClientConfig config = new ClientConfig();
+//        try {
+//            config.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES, new HTTPSProperties(
+//                    new HostnameVerifier() {
+//                        public boolean verify(String hostname, SSLSession session) {
+//                            return true;
+//                        }
+//                    },
+//                    ctx
+//            ));
+//        } catch (Exception e) {
+//        }
 
         // should be getting a better SAX parser, but there's only going to be
         // a single source of XML documents
-        config.getFeatures().put(FeaturesAndProperties.FEATURE_DISABLE_XML_SECURITY, true);
+     
+        // 'New' jersey :) 
+        config.getProperties().put(MessageProperties.XML_SECURITY_DISABLE, Boolean.TRUE);
+        // old jersey
+        // config.getFeatures().put(FeaturesAndProperties.FEATURE_DISABLE_XML_SECURITY, true);
+        
         return config;
     }
 
     public static Client createClient() {
-        return Client.create(ClientHelper.configureClient());
+	// new jersey
+	return ClientBuilder.newBuilder().build();
+        // old jersey
+	//return Client.create(ClientHelper.configureClient());
     }
 }

@@ -85,8 +85,8 @@ public class ExperimentHandler extends CapResourceHandler implements ICapResourc
         log.info("Cap experiment = "+exptID + " extraction status ="+extractionStatus);
         
         //first check if it's approved
-        if(!"Approved".equals(status) && !"Retired".equals(status)) {
-            log.warn("Unable to process non-Approved experiments (aborting experiment load), experiment:" + url + " " + status);
+        if(!"Approved".equals(status) && !"Retired".equals(status) && !"Provisional".equals(status)) {
+            log.warn("Unable to process "+ status +" experiments (aborting experiment load), experiment:" + url + " " + status);
             setExtractionStatus("Failed", url, resource);
             return CAPConstants.CAP_EXTRACT_LOAD_STATUS_FAILED;
         }

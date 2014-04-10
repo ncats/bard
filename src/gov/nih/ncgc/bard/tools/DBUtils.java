@@ -1,11 +1,5 @@
 package gov.nih.ncgc.bard.tools;
 
-import chemaxon.formats.MolFormatException;
-import chemaxon.formats.MolImporter;
-import chemaxon.struc.Molecule;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import gov.nih.ncgc.bard.capextract.CAPAnnotation;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.entity.Assay;
@@ -30,13 +24,7 @@ import gov.nih.ncgc.bard.rest.rowdef.DoseResponseResultObject;
 import gov.nih.ncgc.bard.search.Facet;
 import gov.nih.ncgc.bard.search.SearchUtil;
 import gov.nih.ncgc.bard.search.SolrField;
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Element;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -66,6 +54,25 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicLong;
+
+import javax.sql.DataSource;
+
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Element;
+
+import java.util.logging.Logger;
+
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
+
+import chemaxon.formats.MolFormatException;
+import chemaxon.formats.MolImporter;
+import chemaxon.struc.Molecule;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
 /**
@@ -221,7 +228,7 @@ public class DBUtils {
                 _resources.add(new DataSourceContext(s, ds, first));
 //                log.info("Datasource "+s+" initialized!");
             } else {
-                log.warn("Datasource " + s + " not initialized!");
+                log.warning("Datasource " + s + " not initialized!");
             }
             first = false;
         }
@@ -285,7 +292,7 @@ public class DBUtils {
     }
 
     public DBUtils() {
-        log = LoggerFactory.getLogger(this.getClass());
+        log = Logger.getLogger(DBUtils.class.getName());
         log.info("DBUtils initialized. No connection yet.");
 
         final List<String> publicationFields = Arrays.asList("pmid", "title", "abstract", "doi");
@@ -332,8 +339,13 @@ public class DBUtils {
     }
 
     private synchronized Connection getConnection(boolean writable) {
+	
+        log.warning("Hey, in GET CONNECTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
         List<DataSourceContext> sources = getDataSources();
         if (sources.isEmpty()) {
+            log.warning("Hey, NO DATA SOURCES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
             throw new IllegalStateException("No data sources set!");
         }
 
@@ -343,23 +355,29 @@ public class DBUtils {
                 return ctx.getConnection();
             } catch (Exception ex) {
                 ex.printStackTrace();
-                log.warn("Can't get connection from " + ctx.getName() + "!");
+                
+                log.warning("Hey, CANT GET SINGLE CONNECTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
+                
+                log.warning("Can't get connection from " + ctx.getName() + "!");
             }
             return null;
         }
 
-        PriorityQueue<DataSourceContext> order =
-                new PriorityQueue<DataSourceContext>();
+//	  ? The code use to interate over this empty 'order' collection
+//        PriorityQueue<DataSourceContext> order =
+//                new PriorityQueue<DataSourceContext>();
 
-        for (Iterator<DataSourceContext> it = order.iterator();
+        for (Iterator<DataSourceContext> it = sources.iterator();
              it.hasNext(); ) {
             DataSourceContext ctx = it.next();
             try {
-                if (writable == ctx.isWritable())
+                if (writable == ctx.isWritable()) {
                     return ctx.getConnection();
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
-                log.warn("Can't get connection from " + ctx.getName() + "!");
+                log.warning("Can't get connection from " + ctx.getName() + "!");
             }
         }
 
@@ -1007,7 +1025,7 @@ public class DBUtils {
                             ++cnt;
                         }
                     } catch (SQLException ex) {
-                        log.warn("** " + id + ": " + ex.getMessage());
+                        log.warning("** " + id + ": " + ex.getMessage());
                         // ignore dups...
                     }
                 }
@@ -2101,11 +2119,11 @@ public class DBUtils {
                                 + "a.expt_data_id = b.expt_data_id and "
                                 + "a.bard_expt_id = c.bard_expt_id order by d.index");
             } else {
-                log.error("Can't retrieve experiment data "
+                log.warning("Can't retrieve experiment data "
                         + "for etag of type: " + type);
             }
         } else {
-            log.error("Invalid ETag " + etag);
+            log.warning("Invalid ETag " + etag);
         }
 
         System.out.println("sql = " + sql);
@@ -5638,7 +5656,7 @@ public class DBUtils {
                 return cap;
             }
         } catch (ClassCastException ex) {
-            log.warn("** Cache miss due to ClassLoader changed");
+            log.warning("** Cache miss due to ClassLoader changed");
         }
 
 

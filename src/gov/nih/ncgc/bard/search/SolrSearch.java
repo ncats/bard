@@ -1,24 +1,29 @@
 package gov.nih.ncgc.bard.search;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
 import gov.nih.ncgc.bard.tools.DBUtils;
-import nu.xom.Builder;
-import nu.xom.Document;
-import nu.xom.Element;
-import nu.xom.Node;
-import nu.xom.Nodes;
-import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.common.SolrDocument;
-import org.apache.solr.common.SolrDocumentList;
 
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Response;
+
+import nu.xom.Builder;
+import nu.xom.Document;
+import nu.xom.Element;
+import nu.xom.Node;
+import nu.xom.Nodes;
+
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrDocument;
+import org.apache.solr.common.SolrDocumentList;
+import org.glassfish.jersey.client.ClientResponse;
 
 /**
  * A one line summary.
@@ -102,14 +107,21 @@ public abstract class SolrSearch implements ISolrSearch {
 
         String lukeUrl = getSolrURL() + CORE_NAME + "admin/luke?numTerms=0";
         List<SolrField> fieldNames = new ArrayList<SolrField>();
-        Client client = Client.create();
-        WebResource resource = client.resource(lukeUrl);
-        ClientResponse response = resource.get(ClientResponse.class);
+        //Client client = new Client.create();
+        // New jersey...
+        Client client = ClientBuilder.newClient();
+        WebTarget target = client.target(getSolrURL() + CORE_NAME);
+        Response response = target.request().get();
+        
+        //WebResource resource = client.resource(lukeUrl); 
+        //ClientResponse response = resource.get(ClientResponse.class);
         int status = response.getStatus();
         if (status != 200) {
             throw new Exception("There was a problem querying " + lukeUrl);
         }
-        String xml = response.getEntity(String.class);
+        //String xml = response.getEntity(String.class);
+        String xml = (String)response.getEntity();
+
         Document doc = new Builder(false).build(xml, null);
         Nodes nodes = doc.query("/response/lst[@name='fields']");
         if (nodes.size() > 0) {
@@ -125,7 +137,8 @@ public abstract class SolrSearch implements ISolrSearch {
                 fieldNames.add(new SolrField(name, type));
             }
         }
-        client.destroy();
+        //client.destroy();
+        client.close();
         return fieldNames;
     }
 

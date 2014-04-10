@@ -1,12 +1,19 @@
 package gov.nih.ncgc.bard.rest;
 
-import com.sun.jersey.api.NotFoundException;
 import gov.nih.ncgc.bard.capextract.CAPDictionary;
 import gov.nih.ncgc.bard.capextract.CAPDictionaryElement;
 import gov.nih.ncgc.bard.entity.DummyEntity;
 import gov.nih.ncgc.bard.tools.Util;
 
+import java.io.IOException;
+import java.math.BigInteger;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -14,12 +21,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.IOException;
-import java.math.BigInteger;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /**
  * A resource to expose CAP information.
@@ -84,7 +85,7 @@ public class BARDCapResource extends BARDResource<DummyEntity> {
             CAPDictionaryElement elem;
             if (Util.isNumber(dictId)) elem = dict.getNode(new BigInteger(dictId));
             else elem = dict.getNode(dictId);
-            if (elem == null) throw new NotFoundException("No CAP dictionary element for " + dictId);
+            if (elem == null) throw new NotFoundException("No CAP dictionary element for " + dictId, Response.status(404).entity("").build());
             return Response.ok(Util.toJson(elem)).type(MediaType.APPLICATION_JSON_TYPE).build();
         } catch (SQLException e) {
             throw new WebApplicationException(Response.status(500).entity(e).build());
