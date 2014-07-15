@@ -5,3 +5,4 @@ test.out
 *.iws
 *.iml
 *.ipr
+/bin
