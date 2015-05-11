@@ -16,7 +16,7 @@
 
     <context-param>
         <param-name>solr-server</param-name>
-        <param-value>http://carnot.ncats.nih.gov:8094/solr</param-value>
+        <param-value>http://darwin.ncats.nih.gov/solr</param-value>
     </context-param>
 
     <context-param>
