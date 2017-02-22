@@ -43,7 +43,7 @@
     <target name="tools">
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
-               debug="yes" target="1.6"
+               debug="yes" target="1.8"
                includes="**/tools/*.java, **/Util.java">
             <classpath refid="compile.classpath"/>
         </javac>
@@ -82,7 +82,7 @@
     <target name='compile-capextract' id='compile-capextract'>
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
-               debug="yes" target="1.6"
+               debug="yes" target="1.8"
                includes="**/capextract/**, **/tools/LogConfig*, **/entity/Biology*">
             <classpath refid="compile.classpath"/>
         </javac>
@@ -104,7 +104,7 @@
     <target name='compile-rest' id='compile-rest'>
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
-               debug="yes" target="1.6"
+               debug="yes" target="1.8"
                includes="**/rest/*.java, **/rest/filter/*.java, **entity/*.java, **/tools/*.java, **/plugin/*.java,**/search/*.java"
                excludes="**/*Plugin.java, **/Jetty*.java"
                >
@@ -137,16 +137,16 @@
 
         <copy file="${bard.lib}/solr/apache-solr-solrj-3.6.1.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/apache-solr-solrj-3.6.1.jar"/>
-        <copy file="${bard.lib}/solr/commons-codec-1.6.jar"
-              tofile="${bard.explode.dir}/WEB-INF/lib/commons-codec-1.6.jar"/>
+        <copy file="${bard.lib}/solr/commons-codec-1.8.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/commons-codec-1.8.jar"/>
         <copy file="${bard.lib}/solr/commons-httpclient-3.1.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/commons-httpclient-3.1.jar"/>
         <copy file="${bard.lib}/solr/commons-io-2.1.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/commons-io-2.1.jar"/>
         <copy file="${bard.lib}/solr/geronimo-stax-api_1.0_spec-1.0.1.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/geronimo-stax-api_1.0_spec-1.0.1.jar"/>
-        <copy file="${bard.lib}/solr/jcl-over-slf4j-1.6.1.jar"
-              tofile="${bard.explode.dir}/WEB-INF/lib/jcl-over-slf4j-1.6.1.jar"/>
+        <copy file="${bard.lib}/solr/jcl-over-slf4j-1.8.1.jar"
+              tofile="${bard.explode.dir}/WEB-INF/lib/jcl-over-slf4j-1.8.1.jar"/>
         <copy file="${bard.lib}/solr/wstx-asl-3.2.7.jar"
               tofile="${bard.explode.dir}/WEB-INF/lib/wstx-asl-3.2.7.jar"/>
 
@@ -228,7 +228,7 @@
         </path>
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
-               debug="yes" target="1.6"
+               debug="yes" target="1.8"
                includes="**/plugin/* **/rest/*Plugin*">
             <classpath refid="compile.classpath"/>
         </javac>
@@ -258,7 +258,7 @@
         </path>
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
-               debug="yes" target="1.6"
+               debug="yes" target="1.8"
                includes="**/plugin/*">
             <classpath refid="compile.classpath"/>
         </javac>
@@ -302,7 +302,7 @@
     <target name="caching-service">
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.src}" destdir="${bard.build}"
-               debug="yes" target="1.6"
+               debug="yes" target="1.8"
                includes="**/service/*.java">
             <classpath refid="compile.classpath"/>
         </javac>
@@ -336,7 +336,7 @@
     <target name='compile-test' id='compile-test' depends='compile-rest, compile-capextract'>
         <mkdir dir="${bard.build}"/>
         <javac srcdir="${bard.test}" destdir="${bard.build}"
-               debug="yes" target="1.6">
+               debug="yes" target="1.8">
             <classpath refid="compile.classpath"/>
         </javac>
     </target>
